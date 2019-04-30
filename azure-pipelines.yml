@@ -10,9 +10,11 @@ jobs:
       - script: |
           docker run --mount type=bind,src=$PWD,target=/mnt/yugabyte-db-thirdparty \
               yugabytedb/yb_build_infra_ubuntu1804:v2019-04-27T08_37_04_mikhail \
-              bash -c 'mkdir -p /home/yugabuilder/code &&
+              bash -c 'apt-get install -y python-pip && \
+                       mkdir -p /home/yugabuilder/code && \
                        cp -R /mnt/yugabyte-db-thirdparty /home/yugabuilder/code && \
                        chown -R yugabuilder /home/yugabuilder/code && \
-                       sudo su - yugabuilder bash -c "cd ~/code/yugabyte-db-thirdparty && ./build_thirdparty.sh"'
+                       sudo su - yugabuilder bash -c "cd ~/code/yugabyte-db-thirdparty && \
+                                                      ./build_thirdparty.sh"'
         displayName: 'Build YugaByte DB third-party dependencies'
 
