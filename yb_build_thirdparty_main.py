@@ -31,8 +31,6 @@ import_submodules(build_definitions)
 
 sys.path = [os.path.join(os.path.dirname(__file__), '..', 'python')] + sys.path
 
-from yb.linuxbrew import get_linuxbrew_dir
-
 CHECKSUM_FILE_NAME = 'thirdparty_src_checksums.txt'
 CLOUDFRONT_URL = 'http://d3dr9sfxru4sde.cloudfront.net/{}'
 
@@ -77,6 +75,13 @@ def compute_file_sha256(path):
     return hashsum_file(hashlib.sha256(), path)
 
 
+def compiler_wrappers_exist(compiler_wrappers_dir):
+    return all(
+        os.path.exists(os.path.join(compiler_wrappers_dir, compiler_name))
+            for compiler_name in ['cc', 'c++']
+    )
+
+
 class Builder:
     def __init__(self):
         self.tp_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
@@ -90,8 +95,13 @@ class Builder:
             fatal('YB src directory "{}" does not exist'.format(self.src_dir))
         self.build_support_dir = os.path.join(self.src_dir, 'build-support')
         self.enterprise_root = os.path.join(self.src_dir, 'ent')
-        self.cc_wrapper = os.path.join(self.build_support_dir, 'compiler-wrappers', 'cc')
-        self.cxx_wrapper = os.path.join(self.build_support_dir, 'compiler-wrappers', 'c++')
+        compiler_wrappers_dir = os.path.join(self.build_support_dir, 'compiler-wrappers')
+        if compiler_wrappers_exist(compiler_wrappers_dir):
+            self.cc_wrapper = os.path.join(compiler_wrappers_dir, 'cc')
+            self.cxx_wrapper = os.path.join(compiler_wrappers_dir, 'c++')
+        else:
+            self.cc_wrapper = 'cc'
+            self.cxx_wrapper = 'c++'
 
         self.dependencies = [
             build_definitions.zlib.ZLibDependency(),
@@ -284,7 +294,10 @@ class Builder:
         if not is_linux():
             return
 
-        self.linuxbrew_dir = get_linuxbrew_dir()
+        if 'YB_SRC_ROOT' in os.environ:
+            self.linuxbrew_dir = get_linuxbrew_dir()
+        else:
+            self.linuxbrew_dir = None
 
         if self.linuxbrew_dir:
             os.environ['PATH'] = os.path.join(self.linuxbrew_dir, 'bin') + ':' + os.environ['PATH']

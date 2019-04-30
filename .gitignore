@@ -32,3 +32,6 @@ prebuilt_downloads/
 src/
 download/
 !/patches/*
+venv/
+*.pyc
+build/

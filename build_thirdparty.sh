@@ -13,12 +13,42 @@
 # under the License.
 #
 set -euo pipefail
-. "${BASH_SOURCE%/*}/../build-support/common-build-env.sh"
+yb_thirdparty_repo_root=$( cd "${BASH_SOURCE%/*}" && pwd )
 
-activate_virtualenv
-export PYTHONPATH=$YB_SRC_ROOT/python:${PYTHONPATH:-}
-detect_brew
-add_brew_bin_to_path
+if [[ -z ${YB_THIRDPARTY_DIR:-} ]]; then
+  YB_THIRDPARTY_DIR=$yb_thirdparty_repo_root
+fi
+
+if [[ $YB_THIRDPARTY_DIR != $yb_thirdparty_repo_root ]]; then
+  echo >&2 "Warning: yb_thirdparty_repo_root=$yb_thirdparty_repo_root, but " \
+           "YB_THIRDPARTY_DIR=$YB_THIRDPARTY_DIR"
+fi
+if [[ -z ${YB_SRC_ROOT:-} ]]; then
+  yb_src_root_candidate=$( cd "${BASH_SOURCE%/*}"/.. && pwd )
+  if [[ -d $yb_src_root_candidate/build-support ]]; then
+    YB_SRC_ROOT=$yb_src_root_candidate
+  fi
+fi
+echo "YB_THIRDPARTY_DIR=${YB_THIRDPARTY_DIR:-undefined}"
+echo "YB_SRC_ROOT=${YB_SRC_ROOT:-undefined}"
+if [[ -n ${YB_SRC_ROOT:-} ]]; then
+  echo "Building YugaByte DB third-party dependencies inside a YugaByte DB source tree: " \
+       "$YB_SRC_ROOT"
+  . "$YB_SRC_ROOT/build-support/common-build-env.sh"
+  detect_brew
+  add_brew_bin_to_path
+else
+  echo "Building YugaByte DB in a stand-alone mode (not within a YugaByte DB source tree)."
+  # Running outside of a YugaByte DB codebase -- this is a stand-alone thirdparty deps build.
+  if [[ ! -d $YB_THIRDPARTY_DIR/venv ]]; then
+    python2.7 -m virtualenv "$YB_THIRDPARTY_DIR/venv"
+    set +u
+    . "$YB_THIRDPARTY_DIR/venv/bin/activate"
+    set -u
+    ( set -x; cd "$YB_THIRDPARTY_DIR" && pip install -r requirements.txt )
+  fi
+fi
+
 echo "YB_LINUXBREW_DIR=${YB_LINUXBREW_DIR:-undefined}"
 echo "YB_CUSTOM_HOMEBREW_DIR=${YB_CUSTOM_HOMEBREW_DIR:-undefined}"
-python2 "$YB_SRC_ROOT/thirdparty/yb_build_thirdparty_main.py" "$@"
+python2.7 "$YB_THIRDPARTY_DIR/yb_build_thirdparty_main.py" "$@"
