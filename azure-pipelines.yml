@@ -60,8 +60,7 @@ jobs:
           repo_dir_when_archiving=$dir_for_archiving/$archive_dir_name
           mv "$repo_dir" "$repo_dir_when_archiving"
           archive_tarball_name=$archive_dir_name.tar.gz
-          tar cvzf \
-            --exclude "$archive_dir_name/.git" \
+          tar --exclude "$archive_dir_name/.git" cvzf \
             "$archive_tarball_name" \
             "$archive_dir_name"
           mv "$repo_dir_when_archiving" "$repo_dir"
