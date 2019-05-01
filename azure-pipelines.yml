@@ -60,13 +60,14 @@ jobs:
           repo_dir_when_archiving=$dir_for_archiving/$archive_dir_name
           mv "$repo_dir" "$repo_dir_when_archiving"
           archive_tarball_name=$archive_dir_name.tar.gz
+          archive_tarball_path=$PWD/$archive_tarball_name
           tar --exclude "$archive_dir_name/.git" -cvzf \
             "$archive_tarball_name" \
             "$archive_dir_name"
           mv "$repo_dir_when_archiving" "$repo_dir"
 
           cd "$repo_dir"
-          hub release create "$tag" -m "Release $tag" -a "$archive_tarball_name"
+          hub release create "$tag" -m "Release $tag" -a "$archive_tarball_path"
         env:
           GITHUB_TOKEN: $(yugabyte.githubToken)
 
