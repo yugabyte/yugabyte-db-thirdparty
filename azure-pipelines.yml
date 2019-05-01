@@ -32,10 +32,12 @@ jobs:
           linuxbrew_parent_dir=$HOME/linuxbrew_versions
           mkdir -p "$linuxbrew_parent_dir"
           cd "$linuxbrew_parent_dir"
-          wget https://github.com/YugaByte/brew-build/releases/download/v0.27/$linuxbrew_tarball_name
+          wget -q https://github.com/YugaByte/brew-build/releases/download/v0.27/$linuxbrew_tarball_name
           tar xzf "$linuxbrew_tarball_name"
           export YB_LINUXBREW_DIR=$PWD/$linuxbrew_dir_name
-          "$YB_LINUXBREW_DIR/post_install.sh"
+          
+          cd "$YB_LINUXBREW_DIR"
+          ./post_install.sh
 
           cd "$repo_dir"
           pip install --user virtualenv 
