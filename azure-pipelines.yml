@@ -44,7 +44,7 @@ jobs:
           (
             export PATH=$linuxbrew_parent_dir/$linuxbrew_dir_name/bin:$PATH
             # Just build one dependency for now.
-            ./build_thirdparty.sh zlib
+            ./build_thirdparty.sh zlib --build-type uninstrumented
           )
 
           # Cleanup
