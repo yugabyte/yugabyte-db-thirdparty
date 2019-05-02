@@ -170,12 +170,7 @@ class Builder:
         c_compiler = self.get_c_compiler()
         cxx_compiler = self.get_cxx_compiler()
 
-        if c_compiler is None:
-            raise ValueError("C compiler is not set")
         os.environ['CC'] = c_compiler
-
-        if cxx_compiler is None:
-            raise ValueError("C++ compiler is not set")
         os.environ['CXX'] = cxx_compiler
 
     def init(self):
@@ -260,7 +255,7 @@ class Builder:
             fatal("Unknown compiler type {}".format(compiler_type))
 
         for compiler in compilers:
-            if not os.path.exists(compiler):
+            if compiler is None or not os.path.exists(compiler):
                 fatal("Compiler executable does not exist: {}".format(compiler))
 
         self.cc = compilers[0]
@@ -268,10 +263,17 @@ class Builder:
 
     def get_c_compiler(self):
         if self.using_compiler_wrapper:
+            assert self.cc_wraper is not None
             return self.cc_wrapper
+        assert self.cc is not None
+        return self.cc
 
     def get_cxx_compiler(self):
-        return self.cxx_wrapper if self.using_compiler_wrapper else self.cxx
+        if self.using_compiler_wrapper:
+            assert self.cxx_wrapper is not None
+            return self.cxx_wrapper
+        assert self.cxx is not None
+        return self.cxx
 
     def find_gcc(self):
         if 'YB_GCC_PREFIX' is os.environ:
@@ -647,6 +649,7 @@ class Builder:
         self.set_compiler('clang' if self.building_with_clang() else 'gcc')
         heading("Building {} dependencies (compiler type: {})".format(
             build_type, self.compiler_type))
+        log("Compiler type: {}".format(self.compiler_type()))
         log("C compiler: {}".format(self.get_c_compiler()))
         log("C++ compiler: {}".format(self.get_cxx_compiler()))
 
