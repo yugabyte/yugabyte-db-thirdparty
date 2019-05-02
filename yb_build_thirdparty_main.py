@@ -311,9 +311,9 @@ class Builder:
     def clean(self):
         heading('Clean')
         for dependency in self.selected_dependencies:
-            for dir in BUILD_TYPES:
+            for dir_name in BUILD_TYPES:
                 for leaf in [dependency.name, '.build-stamp-{}'.format(dependency)]:
-                    path = os.path.join(self.tp_build_dir, dir, leaf)
+                    path = os.path.join(self.tp_build_dir, dir_name, leaf)
                     if os.path.exists(path):
                         log("Removing {} build output: {}".format(dependency.name, path))
                         remove_path(path)
@@ -605,31 +605,34 @@ class Builder:
         if 'install' not in kwargs or kwargs['install']:
             log_output(log_prefix, [build_tool, 'install'])
 
-    def build(self, type):
-        if type != BUILD_TYPE_COMMON and self.args.build_type is not None:
-            if type != self.args.build_type:
+    def build(self, build_type):
+        if build_type != BUILD_TYPE_COMMON and self.args.build_type is not None:
+            if build_type != self.args.build_type:
                 return
 
-        self.set_build_type(type)
+        self.set_build_type(build_type)
         self.setup_compiler()
         # This is needed at least for glog to be able to find gflags.
         self.add_rpath(os.path.join(self.tp_installed_dir, self.build_type, 'lib'))
-        build_group = BUILD_GROUP_COMMON if type == BUILD_TYPE_COMMON else BUILD_GROUP_INSTRUMENTED
+        build_group = (
+            BUILD_GROUP_COMMON if build_type == BUILD_TYPE_COMMON
+                               else BUILD_GROUP_INSTRUMENTED
+        )
         for dep in self.selected_dependencies:
             if dep.build_group == build_group and dep.should_build(self):
                 self.build_dependency(dep)
 
-    def set_build_type(self, type):
-        self.build_type = type
-        self.prefix = os.path.join(self.tp_installed_dir, type)
+    def set_build_type(self, build_type):
+        self.build_type = build_type
+        self.prefix = os.path.join(self.tp_installed_dir, build_type)
         self.find_prefix = self.tp_installed_common_dir
-        if type != BUILD_TYPE_COMMON:
+        if build_type != BUILD_TYPE_COMMON:
             self.find_prefix += ';' + self.prefix
         self.prefix_bin = os.path.join(self.prefix, 'bin')
         self.prefix_lib = os.path.join(self.prefix, 'lib')
         self.prefix_include = os.path.join(self.prefix, 'include')
         self.set_compiler('clang' if self.building_with_clang() else 'gcc')
-        heading("Building {} dependencies".format(type))
+        heading("Building {} dependencies".format(build_type))
 
     def setup_compiler(self):
         self.init_flags()
