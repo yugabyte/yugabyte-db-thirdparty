@@ -814,7 +814,7 @@ class Builder:
         return self.args.build_type != BUILD_TYPE_UNINSTRUMENTED
 
     def check_cxx_compiler_flag(self, flag):
-        process = subprocess.Popen([self.cxx_wrapper, '-x', 'c++', flag, '-'],
+        process = subprocess.Popen([self.get_cxx_compiler(), '-x', 'c++', flag, '-'],
                                    stdin=subprocess.PIPE)
         process.stdin.write("int main() { return 0; }")
         process.stdin.close()
