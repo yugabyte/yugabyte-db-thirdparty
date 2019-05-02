@@ -61,7 +61,7 @@ class BoostDependency(Dependency):
                 cxx_flags.remove('-nostdinc++')
             out.write(PROJECT_CONFIG.format(
                     builder.compiler_type,
-                    builder.cxx_wrapper,
+                    builder.get_cxx_compiler(),
                     ' '.join(['<compileflags>' + flag for flag in cxx_flags]),
                     ' '.join(['<linkflags>' + flag for flag in cxx_flags + builder.ld_flags]),
                     ' '.join(['--with-{}'.format(lib) for lib in libs])))

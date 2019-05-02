@@ -163,8 +163,8 @@ class Builder:
         self.compiler_type = compiler_type
         os.environ['YB_COMPILER_TYPE'] = compiler_type
         self.find_compiler_by_type(compiler_type)
-        os.environ['CC'] = self.cc_wrapper if self.using_compiler_wrapper else self.cc
-        os.environ['CXX'] = self.cxx_wrapper if self.using_compiler_wrapper else self.cxx
+        os.environ['CC'] = self.get_c_compiler()
+        os.environ['CXX'] = self.get_cxx_compiler()
 
     def init(self):
         os.environ['YB_IS_THIRDPARTY_BUILD'] = '1'
@@ -254,6 +254,11 @@ class Builder:
         self.cc = compilers[0]
         self.cxx = compilers[1]
 
+    def get_c_compiler(self):
+        return self.cc_wrapper if self.using_compiler_wrapper else self.cc
+
+    def get_cxx_compiler(self):
+        return self.cxx_wrapper if self.using_compiler_wrapper else self.cxx
 
     def find_gcc(self):
         if 'YB_GCC_PREFIX' is os.environ:
