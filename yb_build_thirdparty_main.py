@@ -669,11 +669,12 @@ class Builder:
 
         self.download_dependency(dep)
 
+        # Additional flags coming from the dependency itself.
         dep_additional_cxx_flags = (dep.get_additional_cxx_flags(self) +
                                     dep.get_additional_c_cxx_flags(self))
         dep_additional_c_flags = (dep.get_additional_c_flags(self) +
                                   dep.get_additional_c_cxx_flags(self))
-        additional_cxx_flags
+
         os.environ["CXXFLAGS"] = " ".join(
                 self.compiler_flags + self.cxx_flags + dep_additional_cxx_flags)
         os.environ["CFLAGS"] = " ".join(
