@@ -649,7 +649,7 @@ class Builder:
         self.set_compiler('clang' if self.building_with_clang() else 'gcc')
         heading("Building {} dependencies (compiler type: {})".format(
             build_type, self.compiler_type))
-        log("Compiler type: {}".format(self.compiler_type()))
+        log("Compiler type: {}".format(self.compiler_type))
         log("C compiler: {}".format(self.get_c_compiler()))
         log("C++ compiler: {}".format(self.get_cxx_compiler()))
 
