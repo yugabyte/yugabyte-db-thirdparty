@@ -37,4 +37,4 @@ venv/
 build/
 .session.vim
 .session.vim.lock
-
+*.sw?
