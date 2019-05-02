@@ -507,8 +507,12 @@ class Builder:
 
         self.add_linuxbrew_flags()
         # -fPIC is there to always generate position-independent code, even for static libraries.
+        # -mcrc32 (https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html)
+        # This option enables built-in functions __builtin_ia32_crc32qi, __builtin_ia32_crc32hi,
+        # __builtin_ia32_crc32si and __builtin_ia32_crc32di to generate the crc32 machine
+        # instruction.
         self.compiler_flags += \
-            ['-fno-omit-frame-pointer', '-fPIC', '-O2',
+            ['-fno-omit-frame-pointer', '-fPIC', '-O2', '-mcrc32',
              '-I{}'.format(os.path.join(self.tp_installed_common_dir, 'include'))]
         self.ld_flags.append('-L{}'.format(os.path.join(self.tp_installed_common_dir, 'lib')))
         if is_linux():

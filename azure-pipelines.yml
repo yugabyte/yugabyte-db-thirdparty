@@ -26,6 +26,7 @@ jobs:
     steps:
       - script: |
           set -euxo pipefail
+          cat /proc/cpuinfo
           repo_dir=$PWD
           linuxbrew_dir_name=linuxbrew-20190501T182709-nosse4
           linuxbrew_tarball_name=$linuxbrew_dir_name.tar.gz
