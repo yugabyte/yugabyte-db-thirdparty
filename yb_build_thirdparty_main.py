@@ -96,12 +96,13 @@ class Builder:
         self.build_support_dir = os.path.join(self.src_dir, 'build-support')
         self.enterprise_root = os.path.join(self.src_dir, 'ent')
         compiler_wrappers_dir = os.path.join(self.build_support_dir, 'compiler-wrappers')
-        if compiler_wrappers_exist(compiler_wrappers_dir):
+        self.using_compiler_wrapper = compiler_wrappers_exist(compiler_wrappers_dir)
+        if self.using_compiler_wrapper:
             self.cc_wrapper = os.path.join(compiler_wrappers_dir, 'cc')
             self.cxx_wrapper = os.path.join(compiler_wrappers_dir, 'c++')
         else:
-            self.cc_wrapper = 'cc'
-            self.cxx_wrapper = 'c++'
+            self.cc_wrapper = None
+            self.cxx_wrapper = None
 
         self.dependencies = [
             build_definitions.zlib.ZLibDependency(),
@@ -162,8 +163,8 @@ class Builder:
         self.compiler_type = compiler_type
         os.environ['YB_COMPILER_TYPE'] = compiler_type
         self.find_compiler_by_type(compiler_type)
-        os.environ['CC'] = self.cc_wrapper
-        os.environ['CXX'] = self.cxx_wrapper
+        os.environ['CC'] = self.cc_wrapper if self.using_compiler_wrapper else self.cc
+        os.environ['CXX'] = self.cxx_wrapper if self.using_compiler_wrapper else self.cxx
 
     def init(self):
         os.environ['YB_IS_THIRDPARTY_BUILD'] = '1'
