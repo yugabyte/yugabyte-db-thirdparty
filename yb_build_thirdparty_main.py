@@ -294,7 +294,7 @@ class Builder:
 
         clang_bin_dir = os.path.join(clang_dir, 'bin')
 
-        return os.path.join(clang_bin_dir, 'clang'), os.path.join(clang_bin_dir)
+        return os.path.join(clang_bin_dir, 'clang'), os.path.join(clang_bin_dir, 'clang++')
 
     def detect_linuxbrew(self):
         if not is_linux():
