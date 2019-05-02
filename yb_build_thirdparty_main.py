@@ -97,12 +97,11 @@ class Builder:
         self.enterprise_root = os.path.join(self.src_dir, 'ent')
         compiler_wrappers_dir = os.path.join(self.build_support_dir, 'compiler-wrappers')
         self.using_compiler_wrapper = compiler_wrappers_exist(compiler_wrappers_dir)
+        self.cc_wrapper = None
+        self.cxx_wrapper = None
         if self.using_compiler_wrapper:
             self.cc_wrapper = os.path.join(compiler_wrappers_dir, 'cc')
             self.cxx_wrapper = os.path.join(compiler_wrappers_dir, 'c++')
-        else:
-            self.cc_wrapper = None
-            self.cxx_wrapper = None
 
         self.dependencies = [
             build_definitions.zlib.ZLibDependency(),
@@ -157,14 +156,27 @@ class Builder:
 
     def set_compiler(self, compiler_type):
         if is_mac():
+            if compiler_type != 'clang':
+                raise IllegalState(
+                    "Cannot set compiler type to %s on macOS, only clang is supported" %
+                        compiler_type)
             self.compiler_type = 'clang'
-            return
+        else:
+            self.compiler_type = compiler_type
 
-        self.compiler_type = compiler_type
         os.environ['YB_COMPILER_TYPE'] = compiler_type
         self.find_compiler_by_type(compiler_type)
-        os.environ['CC'] = self.get_c_compiler()
-        os.environ['CXX'] = self.get_cxx_compiler()
+
+        c_compiler = self.get_c_compiler()
+        cxx_compiler = self.get_cxx_compiler()
+
+        if c_compiler is None:
+            raise ValueError("C compiler is not set")
+        os.environ['CC'] = c_compiler
+
+        if cxx_compiler is None:
+            raise ValueError("C++ compiler is not set")
+        os.environ['CXX'] = cxx_compiler
 
     def init(self):
         os.environ['YB_IS_THIRDPARTY_BUILD'] = '1'
@@ -255,7 +267,8 @@ class Builder:
         self.cxx = compilers[1]
 
     def get_c_compiler(self):
-        return self.cc_wrapper if self.using_compiler_wrapper else self.cc
+        if self.using_compiler_wrapper:
+            return self.cc_wrapper
 
     def get_cxx_compiler(self):
         return self.cxx_wrapper if self.using_compiler_wrapper else self.cxx
@@ -632,7 +645,10 @@ class Builder:
         self.prefix_lib = os.path.join(self.prefix, 'lib')
         self.prefix_include = os.path.join(self.prefix, 'include')
         self.set_compiler('clang' if self.building_with_clang() else 'gcc')
-        heading("Building {} dependencies".format(build_type))
+        heading("Building {} dependencies (compiler type: {})".format(
+            build_type, self.compiler_type))
+        log("C compiler: {}".format(self.get_c_compiler()))
+        log("C++ compiler: {}".format(self.get_cxx_compiler()))
 
     def setup_compiler(self):
         self.init_flags()
@@ -784,6 +800,9 @@ class Builder:
 
     # Returns true if we are using clang to build current build_type.
     def building_with_clang(self):
+        if is_mac():
+            # We only support clang on macOS.
+            return True
         return self.build_type == BUILD_TYPE_ASAN or self.build_type == BUILD_TYPE_TSAN or \
                self.build_type == BUILD_TYPE_CLANG_UNINSTRUMENTED
 
