@@ -513,12 +513,8 @@ class Builder:
 
         self.add_linuxbrew_flags()
         # -fPIC is there to always generate position-independent code, even for static libraries.
-        # -mcrc32 (https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html)
-        # This option enables built-in functions __builtin_ia32_crc32qi, __builtin_ia32_crc32hi,
-        # __builtin_ia32_crc32si and __builtin_ia32_crc32di to generate the crc32 machine
-        # instruction.
         self.compiler_flags += \
-            ['-fno-omit-frame-pointer', '-fPIC', '-O2', '-mcrc32',
+            ['-fno-omit-frame-pointer', '-fPIC', '-O2',
              '-I{}'.format(os.path.join(self.tp_installed_common_dir, 'include'))]
         self.ld_flags.append('-L{}'.format(os.path.join(self.tp_installed_common_dir, 'lib')))
         if is_linux():
@@ -673,8 +669,15 @@ class Builder:
 
         self.download_dependency(dep)
 
-        os.environ["CXXFLAGS"] = " ".join(self.compiler_flags + self.cxx_flags)
-        os.environ["CFLAGS"] = " ".join(self.compiler_flags + self.c_flags)
+        dep_additional_cxx_flags = (dep.get_additional_cxx_flags(self) +
+                                    dep.get_additional_c_cxx_flags(self))
+        dep_additional_c_flags = (dep.get_additional_c_flags(self) +
+                                  dep.get_additional_c_cxx_flags(self))
+        additional_cxx_flags
+        os.environ["CXXFLAGS"] = " ".join(
+                self.compiler_flags + self.cxx_flags + dep_additional_cxx_flags)
+        os.environ["CFLAGS"] = " ".join(
+                self.compiler_flags + self.c_flags + dep_additional_c_flags)
         os.environ["LDFLAGS"] = " ".join(self.ld_flags)
         os.environ["LIBS"] = " ".join(self.libs)
 
