@@ -19,13 +19,16 @@ if [[ -n ${YB_THIRDPARTY_DIR:-} && $YB_THIRDPARTY_DIR != $yb_thirdparty_repo_roo
   echo >&2 "Warning: un-setting previously set YB_THIRDPARTY_DIR: $YB_THIRDPARTY_DIR"
 fi
 
+export YB_THIRDPARTY_DIR=$yb_thirdparty_repo_root
+echo "YB_THIRDPARTY_DIR=${YB_THIRDPARTY_DIR:-undefined}"
+
 if [[ -z ${YB_SRC_ROOT:-} ]]; then
   yb_src_root_candidate=$( cd "${BASH_SOURCE%/*}"/.. && pwd )
   if [[ -d $yb_src_root_candidate/build-support ]]; then
     YB_SRC_ROOT=$yb_src_root_candidate
   fi
 fi
-echo "YB_THIRDPARTY_DIR=${YB_THIRDPARTY_DIR:-undefined}"
+
 echo "YB_SRC_ROOT=${YB_SRC_ROOT:-undefined}"
 if [[ -n ${YB_SRC_ROOT:-} ]]; then
   echo "Building YugaByte DB third-party dependencies inside a YugaByte DB source tree: " \
