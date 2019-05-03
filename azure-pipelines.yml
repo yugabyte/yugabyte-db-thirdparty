@@ -44,9 +44,7 @@ jobs:
           pip install --user virtualenv 
           (
             export PATH=$linuxbrew_parent_dir/$linuxbrew_dir_name/bin:$PATH
-            # Just build one dependency for now.
-            #time ./build_thirdparty.sh --build-type uninstrumented zlib
-            time ./build_thirdparty.sh
+            time ./build_thirdparty.sh --skip-sanitizers
           )
 
           # Cleanup

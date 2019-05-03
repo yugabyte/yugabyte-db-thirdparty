@@ -15,14 +15,10 @@
 set -euo pipefail
 yb_thirdparty_repo_root=$( cd "${BASH_SOURCE%/*}" && pwd )
 
-if [[ -z ${YB_THIRDPARTY_DIR:-} ]]; then
-  YB_THIRDPARTY_DIR=$yb_thirdparty_repo_root
+if [[ -n ${YB_THIRDPARTY_DIR:-} && $YB_THIRDPARTY_DIR != $yb_thirdparty_repo_root ]]; then
+  echo >&2 "Warning: un-setting previously set YB_THIRDPARTY_DIR: $YB_THIRDPARTY_DIR"
 fi
 
-if [[ $YB_THIRDPARTY_DIR != $yb_thirdparty_repo_root ]]; then
-  echo >&2 "Warning: yb_thirdparty_repo_root=$yb_thirdparty_repo_root, but " \
-           "YB_THIRDPARTY_DIR=$YB_THIRDPARTY_DIR"
-fi
 if [[ -z ${YB_SRC_ROOT:-} ]]; then
   yb_src_root_candidate=$( cd "${BASH_SOURCE%/*}"/.. && pwd )
   if [[ -d $yb_src_root_candidate/build-support ]]; then

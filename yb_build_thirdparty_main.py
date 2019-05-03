@@ -180,7 +180,11 @@ class Builder:
         parser.add_argument('--build-type',
                             default=None,
                             type=str,
+                            choices=BUILD_TYPES,
                             help='Build only specific part of thirdparty dependencies.')
+        parser.add_argument('--skip-sanitizers',
+                            action='store_true',
+                            help='Do not build ASAN and TSAN instrumented dependencies.')
         parser.add_argument('--clean',
                             action='store_const',
                             const=True,
@@ -241,7 +245,7 @@ class Builder:
         if is_linux():
             self.build(BUILD_TYPE_UNINSTRUMENTED)
         self.build(BUILD_TYPE_CLANG_UNINSTRUMENTED)
-        if is_linux():
+        if is_linux() and not self.args.skip_sanitizers:
             self.build(BUILD_TYPE_ASAN)
             self.build(BUILD_TYPE_TSAN)
 
