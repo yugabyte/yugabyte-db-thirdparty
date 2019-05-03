@@ -36,12 +36,12 @@ jobs:
           wget -q https://github.com/YugaByte/brew-build/releases/download/v0.27/$linuxbrew_tarball_name
           time tar xzf "$linuxbrew_tarball_name"
           export YB_LINUXBREW_DIR=$PWD/$linuxbrew_dir_name
-          
+
           cd "$YB_LINUXBREW_DIR"
           time ./post_install.sh
 
           cd "$repo_dir"
-          pip install --user virtualenv 
+          pip install --user virtualenv
           (
             export PATH=$linuxbrew_parent_dir/$linuxbrew_dir_name/bin:$PATH
             time ./build_thirdparty.sh --skip-sanitizers
@@ -50,9 +50,9 @@ jobs:
           # Cleanup
           rm -rf src build venv
           find . -name "*.pyc" -exec rm -f {} \;
-          
+
           tag=v0.$( git rev-list --count HEAD )
-          
+
           dir_for_archiving=$HOME/archiving_dir
           mkdir -p "$dir_for_archiving"
           cd "$dir_for_archiving"
@@ -87,4 +87,3 @@ jobs:
 #                                                      cd ~/code/yugabyte-db-thirdparty && \
 #                                                      ./build_thirdparty.sh"'
 #        displayName: 'Build YugaByte DB third-party dependencies'
-
