@@ -535,6 +535,18 @@ class Builder:
         self.compiler_flags += \
             ['-fno-omit-frame-pointer', '-fPIC', '-O2',
              '-I{}'.format(os.path.join(self.tp_installed_common_dir, 'include'))]
+        self.compiler_flags += [
+            # The target architecture/instruction sets should be consistent with what we use for
+            # Linuxbrew.
+            # https://github.com/YugaByte/brew-build/blob/master/linuxbrew-build.sh
+            '-mno-avx',
+            '-mno-avx2',
+            '-mno-bmi',
+            '-mno-bmi2'
+            '-mno-fma'
+            # TODO: add -march=... here.
+            # TODO: support the no-SSE4 option.
+        ]
         self.ld_flags.append('-L{}'.format(os.path.join(self.tp_installed_common_dir, 'lib')))
         if is_linux():
             # On Linux, ensure we set a long enough rpath so we can change it later with chrpath or
