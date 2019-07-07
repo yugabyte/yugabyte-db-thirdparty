@@ -21,7 +21,9 @@ jobs:
         centos7:
           containerResource: centos7
 
-    container: $[ variables['containerResource'] ] --cap-add=SYS_PTRACE
+    container:
+      image: $[ variables['containerResource'] ]
+      options: "--cap-add=SYS_PTRACE"
 
     steps:
       - script: ./build_and_release.sh

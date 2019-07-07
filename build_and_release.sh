@@ -5,19 +5,26 @@ set -euxo pipefail
 cat /proc/cpuinfo
 repo_dir=$PWD
 
-# Grab a recent URL from https://github.com/YugaByte/brew-build/releases
-linuxbrew_url=https://github.com/YugaByte/brew-build/releases/download/v0.33/linuxbrew-20190504T004257-nosse4.tar.gz
-linuxbrew_tarball_name=${linuxbrew_url##*/}
-linuxbrew_dir_name=${linuxbrew_tarball_name%.tar.gz}
-linuxbrew_parent_dir=$HOME/linuxbrew_versions
-mkdir -p "$linuxbrew_parent_dir"
-cd "$linuxbrew_parent_dir"
-wget -q "$linuxbrew_url"
-time tar xzf "$linuxbrew_tarball_name"
-export YB_LINUXBREW_DIR=$PWD/$linuxbrew_dir_name
+is_ubuntu=false
+if grep -q Ubuntu /etc/issue; then
+  is_ubuntu=true
+fi
 
-cd "$YB_LINUXBREW_DIR"
-time ./post_install.sh
+if ! "$is_ubuntu"; then
+  # Grab a recent URL from https://github.com/YugaByte/brew-build/releases
+  linuxbrew_url=https://github.com/YugaByte/brew-build/releases/download/v0.33/linuxbrew-20190504T004257-nosse4.tar.gz
+  linuxbrew_tarball_name=${linuxbrew_url##*/}
+  linuxbrew_dir_name=${linuxbrew_tarball_name%.tar.gz}
+  linuxbrew_parent_dir=$HOME/linuxbrew_versions
+  mkdir -p "$linuxbrew_parent_dir"
+  cd "$linuxbrew_parent_dir"
+  wget -q "$linuxbrew_url"
+  time tar xzf "$linuxbrew_tarball_name"
+  export YB_LINUXBREW_DIR=$PWD/$linuxbrew_dir_name
+
+  cd "$YB_LINUXBREW_DIR"
+  time ./post_install.sh
+fi
 
 cd "$repo_dir"
 pip install --user virtualenv
