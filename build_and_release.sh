@@ -5,10 +5,34 @@ set -euxo pipefail
 cat /proc/cpuinfo
 repo_dir=$PWD
 
+os_name=""
+
 is_ubuntu=false
-if grep -q Ubuntu /etc/issue; then
-  is_ubuntu=true
+is_centos=false
+is_mac=false
+
+if [[ $OSTYPE == linux* ]]; then
+  if grep -q Ubuntu /etc/issue; then
+    is_ubuntu=true
+    os_name="ubuntu"
+  fi
+
+  if [[ -f /etc/os-release ]] && grep -q CentOS /etc/os-release; then
+    is_centos=true
+    os_name="centos"
+  fi
+elif [[ $OSTYPE == darwin* ]]; then
+  is_mac=true
+  os_name="macos"
 fi
+
+if [[ -z $os_name ]]; then
+  echo "Failed to determine OS name. OSTYPE: $OSTYPE" >&2
+  exit 1
+fi
+
+echo "GitHub token: $GITHUB_TOKEN"
+exit 1
 
 if ! "$is_ubuntu"; then
   # Grab a recent URL from https://github.com/YugaByte/brew-build/releases
