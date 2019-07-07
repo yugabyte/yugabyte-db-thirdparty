@@ -29,7 +29,9 @@ fi
 cd "$repo_dir"
 pip install --user virtualenv
 (
-  export PATH=$YB_LINUXBREW_DIR/bin:$PATH
+  if [[ -n ${YB_LINUXBREW_DIR:-} ]]; then
+    export PATH=$YB_LINUXBREW_DIR/bin:$PATH
+  fi
   # TODO: need to add --cap-add=SYS_PTRACE to Docker command line and build with ASAN/TSAN, too.
   time ./build_thirdparty.sh
 )
