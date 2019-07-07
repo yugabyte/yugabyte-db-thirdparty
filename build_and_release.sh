@@ -4,6 +4,7 @@ set -euxo pipefail
 
 cat /proc/cpuinfo
 repo_dir=$PWD
+
 # Grab a recent URL from https://github.com/YugaByte/brew-build/releases
 linuxbrew_url=https://github.com/YugaByte/brew-build/releases/download/v0.33/linuxbrew-20190504T004257-nosse4.tar.gz
 linuxbrew_tarball_name=${linuxbrew_url##*/}
@@ -23,13 +24,14 @@ pip install --user virtualenv
 (
   export PATH=$YB_LINUXBREW_DIR/bin:$PATH
   # TODO: need to add --cap-add=SYS_PTRACE to Docker command line and build with ASAN/TSAN, too.
-  time ./build_thirdparty.sh --skip-sanitizers
+  time ./build_thirdparty.sh
 )
 
 # Cleanup
 find . -name "*.pyc" -exec rm -f {} \;
 
-tag=v0.$( git rev-list --count HEAD )
+git_sha1=$( git rev-parse HEAD )
+tag=v$( date +%Y%m%d%H%M%S ).${git_sha1:0:10}
 
 dir_for_archiving=$HOME/archiving_dir
 mkdir -p "$dir_for_archiving"
@@ -50,5 +52,7 @@ tar \
   "$archive_dir_name"
 mv "$repo_dir_when_archiving" "$repo_dir"
 
-cd "$repo_dir"
-hub release create "$tag" -m "Release $tag" -a "$archive_tarball_path"
+if [[ -n ${GITHUB_TOKEN:-} ]]; then
+  cd "$repo_dir"
+  hub release create "$tag" -m "Release $tag" -a "$archive_tarball_path"
+fi

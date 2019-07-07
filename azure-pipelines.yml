@@ -16,12 +16,12 @@ jobs:
 
     strategy:
       matrix:
-        #ubuntu1804:
-        #  containerResource: ubuntu1804
+        ubuntu1804:
+          containerResource: ubuntu1804
         centos7:
           containerResource: centos7
 
-    container: $[ variables['containerResource'] ]
+    container: $[ variables['containerResource'] ] --cap-add=SYS_PTRACE
 
     steps:
       - script: ./build_and_release.sh
