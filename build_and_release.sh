@@ -31,8 +31,12 @@ if [[ -z $os_name ]]; then
   exit 1
 fi
 
-echo "GitHub token: $GITHUB_TOKEN"
-exit 1
+if [[ -z ${GITHUB_TOKEN:-} || $GITHUB_TOKEN == *githubToken* ]]; then
+  echo "This must be a pull request build. Will not upload artifacts."
+  GITHUB_TOKEN=""
+else
+  echo "This is an official branch build. Will upload artifacts."
+fi
 
 if ! "$is_ubuntu"; then
   # Grab a recent URL from https://github.com/YugaByte/brew-build/releases
