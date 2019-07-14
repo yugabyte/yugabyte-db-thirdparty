@@ -35,6 +35,13 @@ if [[ -z $os_name ]]; then
 fi
 
 # -------------------------------------------------------------------------------------------------
+# Current user
+# -------------------------------------------------------------------------------------------------
+
+USER=$(whoami)
+echo "Current user: $USER"
+
+# -------------------------------------------------------------------------------------------------
 
 if [[ -z ${GITHUB_TOKEN:-} || $GITHUB_TOKEN == *githubToken* ]]; then
   echo "This must be a pull request build. Will not upload artifacts."
@@ -50,12 +57,15 @@ git_sha1=$( git rev-parse HEAD )
 tag=v$( date +%Y%m%d%H%M%S ).${git_sha1:0:10}
 
 archive_dir_name=yugabyte-db-thirdparty-$tag-$OSTYPE
-build_dir_parent=/opt/yugabytedb-thirdparty-build
+build_dir_parent=/opt/yugabytedb-thirdparty
 repo_dir=$build_dir_parent/$archive_dir_name
-sudo mkdir -p "$build_dir_parent"
-sudo chown -R "$USER" "$build_dir_parent"
-cp -R "$original_repo_dir" "$repo_dir"
-cd "$repo_dir"
+
+(
+  set -x
+  sudo mkdir -p "$build_dir_parent"
+  sudo chown -R "$USER" "$build_dir_parent"
+  cp -R "$original_repo_dir" "$repo_dir"
+)
 
 if ! "$is_ubuntu"; then
   # Grab a recent URL from https://github.com/YugaByte/brew-build/releases
@@ -63,23 +73,35 @@ if ! "$is_ubuntu"; then
   linuxbrew_url=https://github.com/YugaByte/brew-build/releases/download/v0.33/linuxbrew-20190504T004257-nosse4.tar.gz
   linuxbrew_tarball_name=${linuxbrew_url##*/}
   linuxbrew_dir_name=${linuxbrew_tarball_name%.tar.gz}
-  linuxbrew_parent_dir=$HOME/linuxbrew_versions
-  mkdir -p "$linuxbrew_parent_dir"
+  linuxbrew_parent_dir=/opt/yugabytedb-linuxbrew
+
+  echo "Downloading and installing Linuxbrew into a subdirectory of $linuxbrew_parent_dir"
+  (
+    set -x
+    sudo mkdir -p "$linuxbrew_parent_dir"
+    sudo chown -R "$USER" "$linuxbrew_parent_dir"
+  )
+
   cd "$linuxbrew_parent_dir"
   wget -q "$linuxbrew_url"
   time tar xzf "$linuxbrew_tarball_name"
   export YB_LINUXBREW_DIR=$PWD/$linuxbrew_dir_name
 
+  echo "Downloaded and installed Linuxbrew to $YB_LINUXBREW_DIR"
+
   cd "$YB_LINUXBREW_DIR"
   time ./post_install.sh
 fi
+
+echo "Building YugabyteDB third-party code in $repo_dir"
+
+cd "$repo_dir"
 
 pip install --user virtualenv
 (
   if [[ -n ${YB_LINUXBREW_DIR:-} ]]; then
     export PATH=$YB_LINUXBREW_DIR/bin:$PATH
   fi
-  # TODO: need to add --cap-add=SYS_PTRACE to Docker command line and build with ASAN/TSAN, too.
   time ./build_thirdparty.sh
 )
 
