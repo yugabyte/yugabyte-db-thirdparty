@@ -5,7 +5,7 @@ resources:
   containers:
     - container: ubuntu1804
       image: yugabytedb/yb_build_infra_ubuntu1804:v2019-04-30T20_16_36_mikhail
-      options: "--cap-add=SYS_PTRACE"      
+      options: "--cap-add=SYS_PTRACE"
 
     - container: ubuntu1904_gcc7
       image: yugabytedb/yb_build_infra_ubuntu1904_gcc7:v2019-07-12T01_07_36_mbautin
@@ -13,7 +13,7 @@ resources:
 
     - container: centos7
       image: yugabytedb/yb_build_infra_centos7:v2019-04-30T20_16_52_mikhail
-      options: "--cap-add=SYS_PTRACE"      
+      options: "--cap-add=SYS_PTRACE"
 
 jobs:
   - job: RunInContainer
@@ -36,20 +36,3 @@ jobs:
       - script: ./build_and_release.sh
         env:
           GITHUB_TOKEN: $(yugabyte.githubToken)
-
-#jobs:
-#  - job: ubuntu_1804
-#    pool:
-#      vmImage: 'Ubuntu-16.04'
-#    timeoutInMinutes: 0
-#    steps:
-#      - script: |
-#          docker run --mount type=bind,src=$PWD,target=/mnt/yugabyte-db-thirdparty \
-#              yugabytedb/yb_build_infra_ubuntu1804:v2019-04-27T08_37_04_mikhail \
-#              bash -c 'mkdir -p /home/yugabuilder/code && \
-#                       cp -R /mnt/yugabyte-db-thirdparty /home/yugabuilder/code && \
-#                       chown -R yugabuilder /home/yugabuilder/code && \
-#                       sudo su - yugabuilder bash -c "pip install --user virtualenv && \
-#                                                      cd ~/code/yugabyte-db-thirdparty && \
-#                                                      ./build_thirdparty.sh"'
-#        displayName: 'Build YugaByte DB third-party dependencies'

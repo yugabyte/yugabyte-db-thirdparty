@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 
-set -euxo pipefail
+set -euo pipefail
 
 cat /proc/cpuinfo
-repo_dir=$PWD
+
+# -------------------------------------------------------------------------------------------------
+# OS detection
+# -------------------------------------------------------------------------------------------------
 
 os_name=""
 
@@ -31,6 +34,8 @@ if [[ -z $os_name ]]; then
   exit 1
 fi
 
+# -------------------------------------------------------------------------------------------------
+
 if [[ -z ${GITHUB_TOKEN:-} || $GITHUB_TOKEN == *githubToken* ]]; then
   echo "This must be a pull request build. Will not upload artifacts."
   GITHUB_TOKEN=""
@@ -38,8 +43,22 @@ else
   echo "This is an official branch build. Will upload artifacts."
 fi
 
+# -------------------------------------------------------------------------------------------------
+
+original_repo_dir=$PWD
+git_sha1=$( git rev-parse HEAD )
+tag=v$( date +%Y%m%d%H%M%S ).${git_sha1:0:10}
+
+archive_dir_name=yugabyte-db-thirdparty-$tag-$OSTYPE
+build_dir_parent=/opt/yugabytedb-thirdparty-build
+repo_dir=$build_dir_parent/$archive_dir_name
+mkdir -p "$build_dir_parent"
+cp -R "$original_repo_dir" "$repo_dir"
+cd "$repo_dir"
+
 if ! "$is_ubuntu"; then
   # Grab a recent URL from https://github.com/YugaByte/brew-build/releases
+  # TODO: handle both SSE4 vs. non-SSE4 configurations.
   linuxbrew_url=https://github.com/YugaByte/brew-build/releases/download/v0.33/linuxbrew-20190504T004257-nosse4.tar.gz
   linuxbrew_tarball_name=${linuxbrew_url##*/}
   linuxbrew_dir_name=${linuxbrew_tarball_name%.tar.gz}
@@ -54,7 +73,6 @@ if ! "$is_ubuntu"; then
   time ./post_install.sh
 fi
 
-cd "$repo_dir"
 pip install --user virtualenv
 (
   if [[ -n ${YB_LINUXBREW_DIR:-} ]]; then
@@ -64,18 +82,18 @@ pip install --user virtualenv
   time ./build_thirdparty.sh
 )
 
+# -------------------------------------------------------------------------------------------------
 # Cleanup
+# -------------------------------------------------------------------------------------------------
+
 find . -name "*.pyc" -exec rm -f {} \;
 
-git_sha1=$( git rev-parse HEAD )
-tag=v$( date +%Y%m%d%H%M%S ).${git_sha1:0:10}
+# -------------------------------------------------------------------------------------------------
+# Archive creation and upload
+# -------------------------------------------------------------------------------------------------
 
-dir_for_archiving=$HOME/archiving_dir
-mkdir -p "$dir_for_archiving"
-cd "$dir_for_archiving"
-archive_dir_name=yugabyte-db-thirdparty-$tag-$OSTYPE
-repo_dir_when_archiving=$dir_for_archiving/$archive_dir_name
-mv "$repo_dir" "$repo_dir_when_archiving"
+cd "$build_dir_parent"
+
 archive_tarball_name=$archive_dir_name.tar.gz
 archive_tarball_path=$PWD/$archive_tarball_name
 tar \
@@ -87,9 +105,8 @@ tar \
   -cvzf \
   "$archive_tarball_name" \
   "$archive_dir_name"
-mv "$repo_dir_when_archiving" "$repo_dir"
 
 if [[ -n ${GITHUB_TOKEN:-} ]]; then
   cd "$repo_dir"
-  hub release create "$tag" -m "Release $tag" -a "$archive_tarball_path"
+  ( set -x; hub release create "$tag" -m "Release $tag" -a "$archive_tarball_path" )
 fi
