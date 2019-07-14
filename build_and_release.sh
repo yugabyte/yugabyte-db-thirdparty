@@ -52,7 +52,8 @@ tag=v$( date +%Y%m%d%H%M%S ).${git_sha1:0:10}
 archive_dir_name=yugabyte-db-thirdparty-$tag-$OSTYPE
 build_dir_parent=/opt/yugabytedb-thirdparty-build
 repo_dir=$build_dir_parent/$archive_dir_name
-mkdir -p "$build_dir_parent"
+sudo mkdir -p "$build_dir_parent"
+sudo chown -R "$USER" "$build_dir_parent"
 cp -R "$original_repo_dir" "$repo_dir"
 cd "$repo_dir"
 
