@@ -244,6 +244,7 @@ class Builder:
         self.build(BUILD_TYPE_COMMON)
         if is_linux():
             self.build(BUILD_TYPE_UNINSTRUMENTED)
+            self.build(BUILD_TYPE_GCC8_UNINSTRUMENTED)
         self.build(BUILD_TYPE_CLANG_UNINSTRUMENTED)
         if is_linux() and not self.args.skip_sanitizers:
             self.build(BUILD_TYPE_ASAN)
@@ -253,6 +254,8 @@ class Builder:
         compilers = None
         if compiler_type == 'gcc':
             compilers = self.find_gcc()
+        elif compiler_type == 'gcc8':
+            compilers = self.find_gcc8()
         elif compiler_type == 'clang':
             compilers = self.find_clang()
         else:
@@ -280,12 +283,18 @@ class Builder:
         return self.cxx
 
     def find_gcc(self):
+        return self.do_find_gcc('gcc', 'g++')
+
+    def find_gcc8(self):
+        return self.do_find_gcc('gcc-8', 'g++-8')
+
+    def do_find_gcc(self, c_compiler, cxx_compiler):
         if 'YB_GCC_PREFIX' is os.environ:
             gcc_dir = os.environ['YB_GCC_PREFIX']
         elif self.using_linuxbrew:
             gcc_dir = self.linuxbrew_dir
         else:
-            return which('gcc'), which('g++')
+            return which(c_compiler), which(cxx_compiler)
 
         gcc_bin_dir = os.path.join(gcc_dir, 'bin')
 
@@ -325,6 +334,7 @@ class Builder:
             self.linuxbrew_dir = None
 
         if self.linuxbrew_dir:
+            self.using_linuxbrew = True
             os.environ['PATH'] = os.path.join(self.linuxbrew_dir, 'bin') + ':' + os.environ['PATH']
 
     def clean(self):
@@ -533,7 +543,7 @@ class Builder:
         self.add_linuxbrew_flags()
         # -fPIC is there to always generate position-independent code, even for static libraries.
         self.compiler_flags += \
-            ['-fno-omit-frame-pointer', '-fPIC', '-O2',
+            ['-fno-omit-frame-pointer', '-fPIC', '-O2', '-Wall',
              '-I{}'.format(os.path.join(self.tp_installed_common_dir, 'include'))]
         self.ld_flags.append('-L{}'.format(os.path.join(self.tp_installed_common_dir, 'lib')))
         if is_linux():
@@ -650,7 +660,13 @@ class Builder:
         self.prefix_bin = os.path.join(self.prefix, 'bin')
         self.prefix_lib = os.path.join(self.prefix, 'lib')
         self.prefix_include = os.path.join(self.prefix, 'include')
-        self.set_compiler('clang' if self.building_with_clang() else 'gcc')
+        if self.building_with_clang():
+            compiler = 'clang'
+        elif type == BUILD_TYPE_GCC8_UNINSTRUMENTED:
+            compiler = 'gcc8'
+        else:
+            compiler = 'gcc'
+        self.set_compiler(compiler)
         heading("Building {} dependencies (compiler type: {})".format(
             build_type, self.compiler_type))
         log("Compiler type: {}".format(self.compiler_type))
@@ -799,7 +815,8 @@ class Builder:
         return build_dir
 
     def is_release_build(self):
-        return self.build_type == BUILD_TYPE_UNINSTRUMENTED or \
+        return self.build_type == BUILD_TYPE_GCC8_UNINSTRUMENTED or \
+               self.build_type == BUILD_TYPE_UNINSTRUMENTED or \
                self.build_type == BUILD_TYPE_CLANG_UNINSTRUMENTED
 
     def cmake_build_type(self):
@@ -815,7 +832,8 @@ class Builder:
 
     # Returns true if we will need clang to complete full thirdparty build, requested by user.
     def will_need_clang(self):
-        return self.args.build_type != BUILD_TYPE_UNINSTRUMENTED
+        return self.args.build_type != BUILD_TYPE_UNINSTRUMENTED and \
+               self.args.build_type != BUILD_TYPE_GCC8_UNINSTRUMENTED
 
     def check_cxx_compiler_flag(self, flag):
         process = subprocess.Popen([self.get_cxx_compiler(), '-x', 'c++', flag, '-'],
@@ -823,6 +841,10 @@ class Builder:
         process.stdin.write("int main() { return 0; }")
         process.stdin.close()
         return process.wait() == 0
+
+    def add_checked_flag(self, flags, flag):
+        if self.check_cxx_compiler_flag(flag):
+            flags.append(flag)
 
 def main():
     unset_if_set('CC')
