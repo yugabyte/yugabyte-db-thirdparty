@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Copyright (c) YugaByte, Inc.
 #
@@ -14,15 +14,7 @@
 #
 set -euo pipefail
 yb_thirdparty_repo_root=$( cd "${BASH_SOURCE%/*}" && pwd )
-
-log() {
-  echo >&2 "[$( date +%Y-%m-%dT%H:%M:%S )] $*"
-}
-
-fatal() {
-  log "$@"
-  exit 1
-}
+. "$yb_thirdparty_repo_root/yb-thirdparty-common.sh"
 
 while [[ $# -gt 0 ]]; do
   case $1 in

@@ -2,6 +2,8 @@
 
 set -euo pipefail
 
+. "${BASH_SOURCE%/*}/yb-thirdparty-common.sh"
+
 cat /proc/cpuinfo
 
 # -------------------------------------------------------------------------------------------------
@@ -56,15 +58,15 @@ original_repo_dir=$PWD
 git_sha1=$( git rev-parse HEAD )
 tag=v$( date +%Y%m%d%H%M%S ).${git_sha1:0:10}
 
-archive_dir_name=yugabyte-db-thirdparty-$tag-$OSTYPE
+archive_dir_name=yugabyte-db-thirdparty-$tag-$os_name
 build_dir_parent=/opt/yb-build/thirdparty
 repo_dir=$build_dir_parent/$archive_dir_name
 
 (
   set -x
-  sudo mkdir -p "$build_dir_parent"
-  sudo chown -R "$USER" "$build_dir_parent"
-  cp -R "$original_repo_dir" "$repo_dir"
+  mkdir -p "$build_dir_parent"
+  git clone "$original_repo_dir" "$repo_dir"
+  ( cd "$original_repo_dir" && git diff ) | ( cd "$repo_dir" && patch -p1 )
 )
 
 if ! "$is_ubuntu"; then
@@ -75,22 +77,26 @@ if ! "$is_ubuntu"; then
   linuxbrew_dir_name=${linuxbrew_tarball_name%.tar.gz}
   linuxbrew_parent_dir=/opt/yb-build/brew
 
-  echo "Downloading and installing Linuxbrew into a subdirectory of $linuxbrew_parent_dir"
-  (
-    set -x
-    sudo mkdir -p "$linuxbrew_parent_dir"
-    sudo chown -R "$USER" "$linuxbrew_parent_dir"
-  )
+  export YB_LINUXBREW_DIR=$linuxbrew_parent_dir/$linuxbrew_dir_name
+  if [[ -d $YB_LINUXBREW_DIR ]]; then
+    log "Homebrew/Linuxbrew directory already exists at $YB_LINUXBREW_DIR"
+  else
+    log "Downloading and installing Homebrew/Linuxbrew into a subdirectory of $linuxbrew_parent_dir"
+    (
+      set -x
+      mkdir -p "$linuxbrew_parent_dir"
+      cd "$linuxbrew_parent_dir"
+      wget -q "$linuxbrew_url"
+      time tar xzf "$linuxbrew_tarball_name"
+    )
+    log "Downloaded and installed Homebrew/Linuxbrew to $YB_LINUXBREW_DIR"
 
-  cd "$linuxbrew_parent_dir"
-  wget -q "$linuxbrew_url"
-  time tar xzf "$linuxbrew_tarball_name"
-  export YB_LINUXBREW_DIR=$PWD/$linuxbrew_dir_name
-
-  echo "Downloaded and installed Linuxbrew to $YB_LINUXBREW_DIR"
-
-  cd "$YB_LINUXBREW_DIR"
-  time ./post_install.sh
+    log "Running post_install.sh"
+    (
+      cd "$YB_LINUXBREW_DIR"
+      time ./post_install.sh
+    )
+  fi
 fi
 
 echo "Building YugabyteDB third-party code in $repo_dir"
