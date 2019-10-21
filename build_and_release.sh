@@ -57,7 +57,7 @@ git_sha1=$( git rev-parse HEAD )
 tag=v$( date +%Y%m%d%H%M%S ).${git_sha1:0:10}
 
 archive_dir_name=yugabyte-db-thirdparty-$tag-$OSTYPE
-build_dir_parent=/opt/yugabytedb-thirdparty
+build_dir_parent=/opt/yb-build/thirdparty
 repo_dir=$build_dir_parent/$archive_dir_name
 
 (
@@ -70,10 +70,10 @@ repo_dir=$build_dir_parent/$archive_dir_name
 if ! "$is_ubuntu"; then
   # Grab a recent URL from https://github.com/YugaByte/brew-build/releases
   # TODO: handle both SSE4 vs. non-SSE4 configurations.
-  linuxbrew_url=https://github.com/YugaByte/brew-build/releases/download/v0.33/linuxbrew-20190504T004257-nosse4.tar.gz
+  linuxbrew_url=https://github.com/mbautin/brew-build/releases/download/20191018T221210-linux/linuxbrew-20191018T221210.tar.gz
   linuxbrew_tarball_name=${linuxbrew_url##*/}
   linuxbrew_dir_name=${linuxbrew_tarball_name%.tar.gz}
-  linuxbrew_parent_dir=/opt/yugabytedb-linuxbrew
+  linuxbrew_parent_dir=/opt/yb-build/brew
 
   echo "Downloading and installing Linuxbrew into a subdirectory of $linuxbrew_parent_dir"
   (

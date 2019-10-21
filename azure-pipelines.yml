@@ -4,15 +4,15 @@ trigger:
 resources:
   containers:
     - container: ubuntu1804
-      image: yugabytedb/yb_build_infra_ubuntu1804:v2019-04-30T20_16_36_mikhail
+      image: yugabytedb/yb_build_infra_ubuntu1804:v2019-07-24T14_48_25_mbautin
       options: "--cap-add=SYS_PTRACE"
 
     - container: ubuntu1904_gcc7
-      image: yugabytedb/yb_build_infra_ubuntu1904_gcc7:v2019-07-12T01_07_36_mbautin
+      image: yugabytedb/yb_build_infra_ubuntu1904_gcc7:v2019-07-11T23_55_23_mbautin
       options: "--cap-add=SYS_PTRACE"
 
     - container: centos7
-      image: yugabytedb/yb_build_infra_centos7:v2019-04-30T20_16_52_mikhail
+      image: yugabytedb/yb_build_infra_centos7:v2019-09-01T14_58_09_mbautin
       options: "--cap-add=SYS_PTRACE"
 
 jobs:
@@ -33,6 +33,14 @@ jobs:
     container: $[ variables['containerResource'] ]
 
     steps:
-      - script: ./build_and_release.sh
+      - script: |
+          sudo mkdir -p /opt/yb-build
+          sudo chown yugabyte-ci /opt/yb-build
+          sudo mkdir -p /opt/yb-build/thirdparty
+          sudo chown yugabyte-ci /opt/yb-build/thirdparty
+          checkout_dir=$PWD
+          chmod -R a+r "$checkout_dir"
+          find "$checkout_dir" -executable -type f -exec chmod a+x {} \;
+          sudo -u yugabyte-ci -E /bin/bash -c "cd '$checkout_dir' ./build_and_release.sh"
         env:
           GITHUB_TOKEN: $(yugabyte.githubToken)
