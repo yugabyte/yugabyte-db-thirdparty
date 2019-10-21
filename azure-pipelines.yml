@@ -41,6 +41,6 @@ jobs:
           checkout_dir=$PWD
           chmod -R a+r "$checkout_dir"
           find "$checkout_dir" -executable -type f -exec chmod a+x {} \;
-          sudo -u yugabyte-ci -E /bin/bash -c "cd '$checkout_dir' ./build_and_release.sh"
+          sudo -u yugabyte-ci -E /bin/bash -c "cd '$checkout_dir' && ./build_and_release.sh"
         env:
           GITHUB_TOKEN: $(yugabyte.githubToken)
