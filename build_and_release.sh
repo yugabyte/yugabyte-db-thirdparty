@@ -72,7 +72,7 @@ repo_dir=$build_dir_parent/$archive_dir_name
 if ! "$is_ubuntu"; then
   # Grab a recent URL from https://github.com/YugaByte/brew-build/releases
   # TODO: handle both SSE4 vs. non-SSE4 configurations.
-  linuxbrew_url=https://github.com/mbautin/brew-build/releases/download/20191018T221210-linux/linuxbrew-20191018T221210.tar.gz
+  linuxbrew_url=https://github.com/yugabyte/brew-build/releases/download/20191021T231003-linux/linuxbrew-20191021T231003.tar.gz
   linuxbrew_tarball_name=${linuxbrew_url##*/}
   linuxbrew_dir_name=${linuxbrew_tarball_name%.tar.gz}
   linuxbrew_parent_dir=/opt/yb-build/brew
