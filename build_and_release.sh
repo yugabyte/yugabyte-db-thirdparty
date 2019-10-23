@@ -68,7 +68,7 @@ repo_dir=$build_dir_parent/$archive_dir_name
 
 ( set -x; git remote -v )
 
-origin_url=$( git remote get-url origin )
+origin_url=$( git config --get remote.origin.url ) 
 if [[ -z $origin_url ]]; then
   fatal "Could not get URL of the 'origin' remote in $PWD"
 fi
