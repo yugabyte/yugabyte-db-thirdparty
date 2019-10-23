@@ -66,11 +66,20 @@ archive_dir_name=yugabyte-db-thirdparty-$tag-$os_name
 build_dir_parent=/opt/yb-build/thirdparty
 repo_dir=$build_dir_parent/$archive_dir_name
 
+( set -x; git remote -v )
+
+origin_url=$( git remote get-url origin )
+if [[ -z $origin_url ]]; then
+  fatal "Could not get URL of the 'origin' remote in $PWD"
+fi
+
 (
   set -x
   mkdir -p "$build_dir_parent"
   git clone "$original_repo_dir" "$repo_dir"
   ( cd "$original_repo_dir" && git diff ) | ( cd "$repo_dir" && patch -p1 )
+  cd "$repo_dir"
+  git remote set-url origin "$origin_url"
 )
 
 if ! "$is_ubuntu"; then
