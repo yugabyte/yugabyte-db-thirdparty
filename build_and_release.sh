@@ -60,7 +60,7 @@ fi
 
 original_repo_dir=$PWD
 git_sha1=$( git rev-parse HEAD )
-tag=v$( date +%Y%m%d%H%M%S ).${git_sha1:0:10}
+tag=v$( date +%Y%m%d%H%M%S )-${git_sha1:0:10}
 
 archive_dir_name=yugabyte-db-thirdparty-$tag-$os_name
 build_dir_parent=/opt/yb-build/thirdparty
@@ -85,22 +85,25 @@ fi
 if ! "$is_ubuntu"; then
   # Grab a recent URL from https://github.com/YugaByte/brew-build/releases
   # TODO: handle both SSE4 vs. non-SSE4 configurations.
-  linuxbrew_url=https://github.com/yugabyte/brew-build/releases/download/20191021T231003-linux/linuxbrew-20191021T231003.tar.gz
-  linuxbrew_tarball_name=${linuxbrew_url##*/}
-  linuxbrew_dir_name=${linuxbrew_tarball_name%.tar.gz}
-  linuxbrew_parent_dir=/opt/yb-build/brew
+  brew_url=$(<linuxbrew_url.txt)
+  if [[ $linuxbrew_url != https://*.tar.gz ]]; then
+    fatal "Expected the pre-built Homebrew/Linuxbrew URL to be of the form https://*.tar.gz"
+  fi
+  brew_tarball_name=${brew_url##*/}
+  brew_dir_name=${brew_tarball_name%.tar.gz}
+  brew_parent_dir=/opt/yb-build/brew
 
-  export YB_LINUXBREW_DIR=$linuxbrew_parent_dir/$linuxbrew_dir_name
+  export YB_LINUXBREW_DIR=$brew_parent_dir/$brew_dir_name
   if [[ -d $YB_LINUXBREW_DIR ]]; then
     log "Homebrew/Linuxbrew directory already exists at $YB_LINUXBREW_DIR"
   else
-    log "Downloading and installing Homebrew/Linuxbrew into a subdirectory of $linuxbrew_parent_dir"
+    log "Downloading and installing Homebrew/Linuxbrew into a subdirectory of $brew_parent_dir"
     (
       set -x
-      mkdir -p "$linuxbrew_parent_dir"
-      cd "$linuxbrew_parent_dir"
-      wget -q "$linuxbrew_url"
-      time tar xzf "$linuxbrew_tarball_name"
+      mkdir -p "$brew_parent_dir"
+      cd "$brew_parent_dir"
+      wget -q "$brew_url"
+      time tar xzf "$brew_tarball_name"
     )
     log "Downloaded and installed Homebrew/Linuxbrew to $YB_LINUXBREW_DIR"
 
@@ -138,6 +141,9 @@ cd "$build_dir_parent"
 
 archive_tarball_name=$archive_dir_name.tar.gz
 archive_tarball_path=$PWD/$archive_tarball_name
+if [[ -n $YB_LINUXBREW_DIR ]]; then
+  echo "$YB_LINUXBREW_DIR" >linuxbrew_path.txt
+fi
 tar \
   --exclude "$archive_dir_name/.git" \
   --exclude "$archive_dir_name/src" \
