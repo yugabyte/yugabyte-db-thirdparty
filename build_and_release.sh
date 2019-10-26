@@ -86,7 +86,7 @@ if ! "$is_ubuntu"; then
   # Grab a recent URL from https://github.com/YugaByte/brew-build/releases
   # TODO: handle both SSE4 vs. non-SSE4 configurations.
   brew_url=$(<linuxbrew_url.txt)
-  if [[ $linuxbrew_url != https://*.tar.gz ]]; then
+  if [[ $brew_url != https://*.tar.gz ]]; then
     fatal "Expected the pre-built Homebrew/Linuxbrew URL to be of the form https://*.tar.gz"
   fi
   brew_tarball_name=${brew_url##*/}
