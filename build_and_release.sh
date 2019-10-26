@@ -4,8 +4,6 @@ set -euo pipefail
 
 . "${BASH_SOURCE%/*}/yb-thirdparty-common.sh"
 
-cat /proc/cpuinfo
-
 # -------------------------------------------------------------------------------------------------
 # OS detection
 # -------------------------------------------------------------------------------------------------
@@ -34,6 +32,10 @@ fi
 if [[ -z $os_name ]]; then
   echo "Failed to determine OS name. OSTYPE: $OSTYPE" >&2
   exit 1
+fi
+
+if ! "$is_mac"; then
+  cat /proc/cpuinfo
 fi
 
 # -------------------------------------------------------------------------------------------------
@@ -87,7 +89,8 @@ if ! "$is_ubuntu"; then
   # TODO: handle both SSE4 vs. non-SSE4 configurations.
   brew_url=$(<linuxbrew_url.txt)
   if [[ $brew_url != https://*.tar.gz ]]; then
-    fatal "Expected the pre-built Homebrew/Linuxbrew URL to be of the form https://*.tar.gz"
+    fatal "Expected the pre-built Homebrew/Linuxbrew URL to be of the form https://*.tar.gz," \
+          "found: $brew_url"
   fi
   brew_tarball_name=${brew_url##*/}
   brew_dir_name=${brew_tarball_name%.tar.gz}
