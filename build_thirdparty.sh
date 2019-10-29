@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Copyright (c) YugaByte, Inc.
 #
@@ -14,6 +14,19 @@
 #
 set -euo pipefail
 yb_thirdparty_repo_root=$( cd "${BASH_SOURCE%/*}" && pwd )
+. "$yb_thirdparty_repo_root/yb-thirdparty-common.sh"
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --linuxbrew-dir)
+      export YB_LINUXBREW_DIR=$2
+      shift
+    ;;
+    *)
+      fatal "Invalid option"
+  esac
+  shift
+done
 
 if [[ -n ${YB_THIRDPARTY_DIR:-} && $YB_THIRDPARTY_DIR != $yb_thirdparty_repo_root ]]; then
   echo >&2 "Warning: un-setting previously set YB_THIRDPARTY_DIR: $YB_THIRDPARTY_DIR"
@@ -49,5 +62,12 @@ else
 fi
 
 echo "YB_LINUXBREW_DIR=${YB_LINUXBREW_DIR:-undefined}"
+if [[ $OSTYPE == linux* && -n $YB_LINUXBREW_DIR ]]; then
+  if [[ ! -d $YB_LINUXBREW_DIR ]]; then
+    fatal "Directory specified by YB_LINUXBREW_DIR ('$YB_LINUXBREW_DIR') does not exist"
+  fi
+  export PATH=$YB_LINUXBREW_DIR/bin:$PATH
+fi
+
 echo "YB_CUSTOM_HOMEBREW_DIR=${YB_CUSTOM_HOMEBREW_DIR:-undefined}"
 python2.7 "$YB_THIRDPARTY_DIR/yb_build_thirdparty_main.py" "$@"
