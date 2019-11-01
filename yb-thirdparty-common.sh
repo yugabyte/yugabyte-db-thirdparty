@@ -19,4 +19,3 @@ fatal() {
   log "$@"
   exit 1
 }
-

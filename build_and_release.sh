@@ -5,6 +5,18 @@ set -euo pipefail
 . "${BASH_SOURCE%/*}/yb-thirdparty-common.sh"
 
 # -------------------------------------------------------------------------------------------------
+# Functions
+# -------------------------------------------------------------------------------------------------
+
+compute_sha256sum() {
+  if [[ $OSTYPE =~ darwin ]]; then
+    shasum --portable --algorithm 256 "$@"
+  else
+    sha256sum "$@"
+  fi
+}
+
+# -------------------------------------------------------------------------------------------------
 # OS detection
 # -------------------------------------------------------------------------------------------------
 
@@ -70,7 +82,7 @@ repo_dir=$build_dir_parent/$archive_dir_name
 
 ( set -x; git remote -v )
 
-origin_url=$( git config --get remote.origin.url ) 
+origin_url=$( git config --get remote.origin.url )
 if [[ -z $origin_url ]]; then
   fatal "Could not get URL of the 'origin' remote in $PWD"
 fi
@@ -157,7 +169,16 @@ tar \
   "$archive_tarball_name" \
   "$archive_dir_name"
 
+compute_sha256sum "$archive_tarball_path" >"$archive_tarball_path.sha256"
+log "Computed SHA256 sum of the archive:"
+cat "$archive_tarball_path.sha256"
+
 if [[ -n ${GITHUB_TOKEN:-} ]]; then
   cd "$repo_dir"
-  ( set -x; hub release create "$tag" -m "Release $tag" -a "$archive_tarball_path" )
+  (
+    set -x
+    hub release create "$tag" -m "Release $tag" \
+      -a "$archive_tarball_path" \
+      -a "$archive_tarball_path.sha256"
+  )
 fi
