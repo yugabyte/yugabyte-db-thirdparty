@@ -16,18 +16,6 @@ set -euo pipefail
 yb_thirdparty_repo_root=$( cd "${BASH_SOURCE%/*}" && pwd )
 . "$yb_thirdparty_repo_root/yb-thirdparty-common.sh"
 
-while [[ $# -gt 0 ]]; do
-  case $1 in
-    --linuxbrew-dir)
-      export YB_LINUXBREW_DIR=$2
-      shift
-    ;;
-    *)
-      fatal "Invalid option"
-  esac
-  shift
-done
-
 if [[ -n ${YB_THIRDPARTY_DIR:-} && $YB_THIRDPARTY_DIR != $yb_thirdparty_repo_root ]]; then
   echo >&2 "Warning: un-setting previously set YB_THIRDPARTY_DIR: $YB_THIRDPARTY_DIR"
 fi

@@ -19,3 +19,45 @@ fatal() {
   log "$@"
   exit 1
 }
+
+compute_sha256sum() {
+  sha256_sum=$( (
+    if [[ $OSTYPE =~ darwin ]]; then
+      shasum --portable --algorithm 256 "$@"
+    else
+      sha256sum "$@"
+    fi 
+  ) | awk '{print $1}' )
+  if [[ ! $sha256_sum =~ ^[0-9a-f]{64} ]]; then
+    log "Got an incorrect SHA256 sum: $sha256_sum. Expected 64 hex digits."
+  fi
+}
+
+detect_os() {
+  os_name=""
+
+  is_ubuntu=false
+  is_centos=false
+  is_mac=false
+
+  if [[ $OSTYPE == linux* ]]; then
+    if grep -q Ubuntu /etc/issue; then
+      is_ubuntu=true
+      os_name="ubuntu"
+    fi
+
+    if [[ -f /etc/os-release ]] && grep -q CentOS /etc/os-release; then
+      is_centos=true
+      os_name="centos"
+    fi
+  elif [[ $OSTYPE == darwin* ]]; then
+    is_mac=true
+    os_name="macos"
+  fi
+
+  if [[ -z $os_name ]]; then
+    fatal "Failed to determine OS name. OSTYPE: $OSTYPE" >&2
+  fi
+}
+
+detect_os

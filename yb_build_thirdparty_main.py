@@ -157,7 +157,7 @@ class Builder:
     def set_compiler(self, compiler_type):
         if is_mac():
             if compiler_type != 'clang':
-                raise IllegalState(
+                raise ValueError(
                     "Cannot set compiler type to %s on macOS, only clang is supported" %
                         compiler_type)
             self.compiler_type = 'clang'
@@ -234,7 +234,7 @@ class Builder:
             os.environ['YB_MAKE_PARALLELISM'] = str(self.args.make_parallelism)
 
     def run(self):
-        self.set_compiler('gcc')
+        self.set_compiler('clang' if is_mac() else 'gcc')
         if self.args.clean:
             self.clean()
         self.prepare_out_dirs()
@@ -311,6 +311,7 @@ class Builder:
             candidate_dirs = [
                 os.path.join(self.tp_dir, 'clang-toolchain'),
                 self.tp_installed_common_dir,
+                '/usr'
             ]
             for dir in candidate_dirs:
                 bin_dir = os.path.join(dir, 'bin')
@@ -859,6 +860,7 @@ def main():
     builder = Builder()
     builder.init()
     builder.run()
+
 
 if __name__ == "__main__":
     main()

@@ -5,49 +5,15 @@ set -euo pipefail
 . "${BASH_SOURCE%/*}/yb-thirdparty-common.sh"
 
 # -------------------------------------------------------------------------------------------------
-# Functions
-# -------------------------------------------------------------------------------------------------
-
-compute_sha256sum() {
-  if [[ $OSTYPE =~ darwin ]]; then
-    shasum --portable --algorithm 256 "$@"
-  else
-    sha256sum "$@"
-  fi
-}
-
-# -------------------------------------------------------------------------------------------------
 # OS detection
 # -------------------------------------------------------------------------------------------------
 
-os_name=""
-
-is_ubuntu=false
-is_centos=false
-is_mac=false
-
-if [[ $OSTYPE == linux* ]]; then
-  if grep -q Ubuntu /etc/issue; then
-    is_ubuntu=true
-    os_name="ubuntu"
-  fi
-
-  if [[ -f /etc/os-release ]] && grep -q CentOS /etc/os-release; then
-    is_centos=true
-    os_name="centos"
-  fi
-elif [[ $OSTYPE == darwin* ]]; then
-  is_mac=true
-  os_name="macos"
-fi
-
-if [[ -z $os_name ]]; then
-  echo "Failed to determine OS name. OSTYPE: $OSTYPE" >&2
-  exit 1
-fi
-
 if ! "$is_mac"; then
   cat /proc/cpuinfo
+fi
+
+if "$is_mac"; then
+  unset YB_LINUXBREW_DIR
 fi
 
 # -------------------------------------------------------------------------------------------------
@@ -96,7 +62,7 @@ fi
   git remote set-url origin "$origin_url"
 )
 
-if ! "$is_ubuntu"; then
+if "$is_centos"; then
   # Grab a recent URL from https://github.com/YugaByte/brew-build/releases
   # TODO: handle both SSE4 vs. non-SSE4 configurations.
   brew_url=$(<linuxbrew_url.txt)
@@ -139,7 +105,7 @@ pip install --user virtualenv
   if [[ -n ${YB_LINUXBREW_DIR:-} ]]; then
     export PATH=$YB_LINUXBREW_DIR/bin:$PATH
   fi
-  time ./build_thirdparty.sh
+  time ./build_thirdparty.sh zlib
 )
 
 # -------------------------------------------------------------------------------------------------
@@ -156,7 +122,7 @@ cd "$build_dir_parent"
 
 archive_tarball_name=$archive_dir_name.tar.gz
 archive_tarball_path=$PWD/$archive_tarball_name
-if [[ -n $YB_LINUXBREW_DIR ]]; then
+if [[ -n ${YB_LINUXBREW_DIR:-} ]]; then
   echo "$YB_LINUXBREW_DIR" >linuxbrew_path.txt
 fi
 tar \
@@ -169,9 +135,9 @@ tar \
   "$archive_tarball_name" \
   "$archive_dir_name"
 
-compute_sha256sum "$archive_tarball_path" >"$archive_tarball_path.sha256"
-log "Computed SHA256 sum of the archive:"
-cat "$archive_tarball_path.sha256"
+compute_sha256sum "$archive_tarball_path"
+log "Computed SHA256 sum of the archive: $sha256_sum"
+echo -n "$sha256_sum" >"$archive_tarball_path.sha256"
 
 if [[ -n ${GITHUB_TOKEN:-} ]]; then
   cd "$repo_dir"
@@ -181,4 +147,6 @@ if [[ -n ${GITHUB_TOKEN:-} ]]; then
       -a "$archive_tarball_path" \
       -a "$archive_tarball_path.sha256"
   )
+else
+  log "GITHUB_TOKEN is not set, skipping archive upload"
 fi
