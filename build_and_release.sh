@@ -105,7 +105,7 @@ pip install --user virtualenv
   if [[ -n ${YB_LINUXBREW_DIR:-} ]]; then
     export PATH=$YB_LINUXBREW_DIR/bin:$PATH
   fi
-  time ./build_thirdparty.sh zlib
+  time ./build_thirdparty.sh
 )
 
 # -------------------------------------------------------------------------------------------------
