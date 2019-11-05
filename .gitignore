@@ -39,3 +39,6 @@ build/
 .session.vim.lock
 *.sw?
 linuxbrew_path.txt
+*.orig
+*.rej
+.vscode
