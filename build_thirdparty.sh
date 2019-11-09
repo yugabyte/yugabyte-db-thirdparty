@@ -50,7 +50,7 @@ else
 fi
 
 echo "YB_LINUXBREW_DIR=${YB_LINUXBREW_DIR:-undefined}"
-if [[ $OSTYPE == linux* && -n $YB_LINUXBREW_DIR ]]; then
+if [[ $OSTYPE == linux* && -n ${YB_LINUXBREW_DIR:-} ]]; then
   if [[ ! -d $YB_LINUXBREW_DIR ]]; then
     fatal "Directory specified by YB_LINUXBREW_DIR ('$YB_LINUXBREW_DIR') does not exist"
   fi
