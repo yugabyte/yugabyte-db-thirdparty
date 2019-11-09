@@ -42,3 +42,4 @@ linuxbrew_path.txt
 *.orig
 *.rej
 .vscode
+installed_*/

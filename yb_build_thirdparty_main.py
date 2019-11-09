@@ -90,6 +90,8 @@ class Builder:
         self.tp_download_dir = os.path.join(self.tp_dir, 'download')
         self.tp_installed_dir = os.path.join(self.tp_dir, 'installed')
         self.tp_installed_common_dir = os.path.join(self.tp_installed_dir, BUILD_TYPE_COMMON)
+        self.tp_installed_llvm7_common_dir = os.path.join(
+                self.tp_installed_dir + '_llvm7', BUILD_TYPE_COMMON)
         self.src_dir = os.path.dirname(self.tp_dir)
         if not os.path.isdir(self.src_dir):
             fatal('YB src directory "{}" does not exist'.format(self.src_dir))
@@ -239,8 +241,11 @@ class Builder:
             self.clean()
         self.prepare_out_dirs()
         self.curl_path = which('curl')
-        os.environ['PATH'] = os.path.join(self.tp_installed_common_dir, 'bin') + ':' + \
-                                 os.environ['PATH']
+        os.environ['PATH'] = ':'.join([
+                os.path.join(self.tp_installed_common_dir, 'bin'),
+                os.path.join(self.tp_installed_llvm7_common_dir, 'bin'),
+                os.environ['PATH']
+        ])
         self.build(BUILD_TYPE_COMMON)
         if is_linux():
             self.build(BUILD_TYPE_UNINSTRUMENTED)
@@ -310,7 +315,6 @@ class Builder:
         else:
             candidate_dirs = [
                 os.path.join(self.tp_dir, 'clang-toolchain'),
-                self.tp_installed_common_dir,
                 '/usr'
             ]
             for dir in candidate_dirs:
@@ -652,10 +656,15 @@ class Builder:
             if dep.build_group == build_group and dep.should_build(self):
                 self.build_dependency(dep)
 
+    def get_prefix(self, qualifier=None):
+        return os.path.join(
+            self.tp_installed_dir + ('_' + qualifier if qualifier else ''),
+            self.build_type)
+
     def set_build_type(self, build_type):
         self.build_type = build_type
-        self.prefix = os.path.join(self.tp_installed_dir, build_type)
         self.find_prefix = self.tp_installed_common_dir
+        self.prefix = self.get_prefix()
         if build_type != BUILD_TYPE_COMMON:
             self.find_prefix += ';' + self.prefix
         self.prefix_bin = os.path.join(self.prefix, 'bin')
@@ -846,6 +855,7 @@ class Builder:
     def add_checked_flag(self, flags, flag):
         if self.check_cxx_compiler_flag(flag):
             flags.append(flag)
+
 
 def main():
     unset_if_set('CC')
