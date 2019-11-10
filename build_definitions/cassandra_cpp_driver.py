@@ -14,6 +14,8 @@
 
 import os
 import sys
+import subprocess
+import glob
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -37,6 +39,12 @@ class CassandraCppDriverDependency(Dependency):
             builder.add_checked_flag(cxx_flags, '-Wno-error=implicit-fallthrough')
             builder.add_checked_flag(cxx_flags, '-Wno-error=class-memaccess')
 
+        src_dir = builder.source_path(self)
+        hpp_files_glob = os.path.join(src_dir, 'src', '*.hpp')
+        hpp_files = glob.glob(hpp_files_glob)
+        if not hpp_files:
+            raise RuntimeError("Could not find any files matching: '%s'" % hpp_files_glob)
+
         builder.build_with_cmake(
                 self,
                 ['-DCMAKE_BUILD_TYPE={}'.format(builder.cmake_build_type()),
@@ -46,8 +54,12 @@ class CassandraCppDriverDependency(Dependency):
                 (['-DCMAKE_CXX_FLAGS=' + ' '.join(cxx_flags)] if not is_mac() else []) +
                     get_openssl_related_cmake_args())
 
+        hpp_dest_dir = os.path.join(builder.prefix, 'include', 'cassandra_cpp_driver')
+        subprocess.check_call(['mkdir', '-p', hpp_dest_dir])
+        for hpp_file in hpp_files:
+            subprocess.check_call(['cp', '-f', hpp_file, hpp_dest_dir])
         if is_mac():
-          lib_file = 'libcassandra.' + builder.dylib_suffix
-          path = os.path.join(builder.prefix_lib, lib_file)
-          log_output(builder.log_prefix(self),
-                     ['install_name_tool', '-id', '@rpath/' + lib_file, path])
+            lib_file = 'libcassandra.' + builder.dylib_suffix
+            path = os.path.join(builder.prefix_lib, lib_file)
+            log_output(builder.log_prefix(self),
+                        ['install_name_tool', '-id', '@rpath/' + lib_file, path])
