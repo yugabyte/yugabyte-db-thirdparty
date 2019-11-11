@@ -45,6 +45,18 @@ class CassandraCppDriverDependency(Dependency):
         if not hpp_files:
             raise RuntimeError("Could not find any files matching: '%s'" % hpp_files_glob)
 
+        sparsehash_src_dir = os.path.join(
+                src_dir, 'src', 'third_party', 'sparsehash', 'src', 'sparsehash')
+        if not os.path.exists(sparsehash_src_dir):
+            raise RuntimeError("Directory does not exist: %s" % sparsehash_src_dir)
+
+        hpp_dest_dir = os.path.join(builder.prefix, 'include', 'cassandra_cpp_driver')
+        sparsehash_dest_dir = os.path.join(hpp_dest_dir, 'sparsehash')
+        subprocess.check_call(['mkdir', '-p', hpp_dest_dir])
+        subprocess.check_call(['rm', '-rf', sparsehash_dest_dir])
+        log('Syncing {} to {}'.format(sparsehash_src_dir, sparsehash_dest_dir))
+        subprocess.check_call(['rsync', '-avz', sparsehash_src_dir + '/', sparsehash_dest_dir])
+
         builder.build_with_cmake(
                 self,
                 ['-DCMAKE_BUILD_TYPE={}'.format(builder.cmake_build_type()),
@@ -54,8 +66,6 @@ class CassandraCppDriverDependency(Dependency):
                 (['-DCMAKE_CXX_FLAGS=' + ' '.join(cxx_flags)] if not is_mac() else []) +
                     get_openssl_related_cmake_args())
 
-        hpp_dest_dir = os.path.join(builder.prefix, 'include', 'cassandra_cpp_driver')
-        subprocess.check_call(['mkdir', '-p', hpp_dest_dir])
         for hpp_file in hpp_files:
             subprocess.check_call(['cp', '-f', hpp_file, hpp_dest_dir])
         if is_mac():
