@@ -487,12 +487,7 @@ class Builder:
             log("File {} already exists but has wrong checksum, removing".format(path))
             remove_path(path)
         log("Fetching {}".format(filename))
-        if re.match("s3:.*", url):
-            subprocess.check_call(['s3cmd', 'get', url, path])
-            # Alternatively we can use AWS CLI:
-            # aws s3 cp "$download_url" "$FILENAME"
-        else:
-            subprocess.check_call([self.curl_path, '-o', path, '--location', url])
+        subprocess.check_call([self.curl_path, '-o', path, '--location', url])
         if not os.path.exists(path):
             fatal("Downloaded '{}' but but unable to find '{}'".format(url, path))
         expected_checksum = self.get_expected_checksum(filename, downloaded_path=path)
@@ -672,7 +667,7 @@ class Builder:
         self.prefix_include = os.path.join(self.prefix, 'include')
         if self.building_with_clang():
             compiler = 'clang'
-        elif type == BUILD_TYPE_GCC8_UNINSTRUMENTED:
+        elif build_type == BUILD_TYPE_GCC8_UNINSTRUMENTED:
             compiler = 'gcc8'
         else:
             compiler = 'gcc'
@@ -704,7 +699,7 @@ class Builder:
         self.cxx_flags.insert(0, '-isystem')
         self.cxx_flags.insert(1, stdlib_include)
         self.cxx_flags.insert(0, '-stdlib=libc++')
-        # CLang complains about argument unused during compilation: '-stdlib=libc++' when both
+        # Clang complains about argument unused during compilation: '-stdlib=libc++' when both
         # -stdlib=libc++ and -nostdinc++ are specified.
         self.cxx_flags.insert(0, '-Wno-error=unused-command-line-argument')
         self.prepend_lib_dir_and_rpath(stdlib_lib)
