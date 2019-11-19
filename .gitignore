@@ -18,6 +18,7 @@ squeasel-*
 installed/
 installed-deps/
 installed-deps-tsan/
+installed_*/
 install_manifest.txt
 .build-hash
 google-styleguide*
@@ -43,3 +44,4 @@ linuxbrew_path.txt
 *.rej
 .vscode
 installed_*/
+.idea/
