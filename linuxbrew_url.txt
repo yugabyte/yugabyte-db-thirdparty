@@ -1,1 +1,1 @@
-https://github.com/yugabyte/brew-build/releases/download/20191021T231003-linux/linuxbrew-20191021T231003.tar.gz
+https://github.com/yugabyte/brew-build/releases/download/20181203T161736/linuxbrew-20181203T161736.tar.gz
