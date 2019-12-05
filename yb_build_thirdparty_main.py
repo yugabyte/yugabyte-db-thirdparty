@@ -249,7 +249,7 @@ class Builder:
         self.build(BUILD_TYPE_COMMON)
         if is_linux():
             self.build(BUILD_TYPE_UNINSTRUMENTED)
-            # GCC8 has been temporary removed, since it relies on broken Linuxbrew distribution.
+            # GCC8 has been temporarily removed, since it relies on broken Linuxbrew distribution.
             # See https://github.com/yugabyte/yugabyte-db/issues/3044#issuecomment-560639105
             # self.build(BUILD_TYPE_GCC8_UNINSTRUMENTED)
         self.build(BUILD_TYPE_CLANG_UNINSTRUMENTED)
