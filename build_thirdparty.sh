@@ -41,11 +41,11 @@ else
   echo "Building YugaByte DB in a stand-alone mode (not within a YugaByte DB source tree)."
   # Running outside of a YugaByte DB codebase -- this is a stand-alone thirdparty deps build.
   if [[ ! -d $YB_THIRDPARTY_DIR/venv ]]; then
-    python2.7 -m virtualenv "$YB_THIRDPARTY_DIR/venv"
+    python3 -m venv "$YB_THIRDPARTY_DIR/venv"
     set +u
     . "$YB_THIRDPARTY_DIR/venv/bin/activate"
     set -u
-    ( set -x; cd "$YB_THIRDPARTY_DIR" && pip install -r requirements.txt )
+    ( set -x; cd "$YB_THIRDPARTY_DIR" && pip3 install -r requirements.txt )
   fi
 fi
 
