@@ -29,8 +29,6 @@ from build_definitions import *
 import build_definitions
 import_submodules(build_definitions)
 
-sys.path = [os.path.join(os.path.dirname(__file__), '..', 'python')] + sys.path
-
 CHECKSUM_FILE_NAME = 'thirdparty_src_checksums.txt'
 CLOUDFRONT_URL = 'http://d3dr9sfxru4sde.cloudfront.net/{}'
 
@@ -412,7 +410,7 @@ class Builder:
                                                stdin=subprocess.PIPE)
                     with open(os.path.join(self.tp_dir, 'patches', patch), 'rt') as inp:
                         patch = inp.read()
-                    process.stdin.write(patch)
+                    process.stdin.write(patch.encode('utf-8'))
                     process.stdin.close()
                     exit_code = process.wait()
                     if exit_code:

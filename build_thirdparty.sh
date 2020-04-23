@@ -32,21 +32,21 @@ fi
 
 echo "YB_SRC_ROOT=${YB_SRC_ROOT:-undefined}"
 if [[ -n ${YB_SRC_ROOT:-} ]]; then
-  echo "Building YugaByte DB third-party dependencies inside a YugaByte DB source tree: " \
+  echo "Building YugabyteDB third-party dependencies inside a YugabyteDB source tree: " \
        "$YB_SRC_ROOT"
   . "$YB_SRC_ROOT/build-support/common-build-env.sh"
   detect_brew
   add_brew_bin_to_path
 else
-  echo "Building YugaByte DB in a stand-alone mode (not within a YugaByte DB source tree)."
-  # Running outside of a YugaByte DB codebase -- this is a stand-alone thirdparty deps build.
+  echo "Building YugabyteDB in a stand-alone mode (not within a YugabyteDB source tree)."
+  # Running outside of a YugabyteDB codebase -- this is a stand-alone thirdparty deps build.
   if [[ ! -d $YB_THIRDPARTY_DIR/venv ]]; then
     python3 -m venv "$YB_THIRDPARTY_DIR/venv"
-    set +u
-    . "$YB_THIRDPARTY_DIR/venv/bin/activate"
-    set -u
-    ( set -x; cd "$YB_THIRDPARTY_DIR" && pip3 install -r requirements.txt )
   fi
+  set +u
+  . "$YB_THIRDPARTY_DIR/venv/bin/activate"
+  set -u
+  ( set -x; cd "$YB_THIRDPARTY_DIR" && pip3 install -r requirements.txt )
 fi
 
 echo "YB_LINUXBREW_DIR=${YB_LINUXBREW_DIR:-undefined}"

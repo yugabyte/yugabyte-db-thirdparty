@@ -15,10 +15,6 @@
 import os
 import sys
 
-BUILD_DEFINITIONS_DIR = os.path.realpath(os.path.dirname(__file__))
-print(BUILD_DEFINITIONS_DIR)
-sys.path = filter(lambda p: os.path.realpath(p) != BUILD_DEFINITIONS_DIR, sys.path)
-
 import importlib
 import pkgutil
 import platform
@@ -86,8 +82,8 @@ def log_output(prefix, args, log_cmd=True):
             prefix, "Running command: {} (current directory: {})".format(
                 args, os.getcwd()))
         process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        for line in iter(process.stdout.readline, ''):
-            print_line_with_colored_prefix(prefix, line)
+        for line in process.stdout:
+            print_line_with_colored_prefix(prefix, line.decode('utf-8'))
 
         process.stdout.close()
         exit_code = process.wait()
@@ -174,7 +170,7 @@ def make_archive_name(name, version, download_url):
 
 
 def which(exe):
-    return subprocess.check_output(['which', exe]).rstrip()
+    return subprocess.check_output(['which', exe]).rstrip().decode('utf-8')
 
 
 def import_submodules(package, recursive=True):

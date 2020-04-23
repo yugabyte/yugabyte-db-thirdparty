@@ -100,7 +100,6 @@ echo "Building YugabyteDB third-party code in $repo_dir"
 
 cd "$repo_dir"
 
-pip install --user virtualenv
 (
   if [[ -n ${YB_LINUXBREW_DIR:-} ]]; then
     export PATH=$YB_LINUXBREW_DIR/bin:$PATH
