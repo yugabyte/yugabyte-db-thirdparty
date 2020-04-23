@@ -3,16 +3,8 @@ trigger:
 
 resources:
   containers:
-    - container: ubuntu1804
-      image: yugabytedb/yb_build_infra_ubuntu1804:v2019-07-24T14_48_25_mbautin
-      options: "--cap-add=SYS_PTRACE"
-
-    - container: ubuntu1904_gcc7
-      image: yugabytedb/yb_build_infra_ubuntu1904_gcc7:v2019-07-11T23_55_23_mbautin
-      options: "--cap-add=SYS_PTRACE"
-
     - container: centos7
-      image: yugabytedb/yb_build_infra_centos7:v2019-09-01T14_58_09_mbautin
+      image: yugabyteci/yb_build_infra_centos7:v2020-03-28T07_29_17
       options: "--cap-add=SYS_PTRACE"
 
 jobs:
@@ -23,12 +15,8 @@ jobs:
 
     strategy:
       matrix:
-        # ubuntu1804:
-        #   containerResource: ubuntu1804
         centos7:
           containerResource: centos7
-        # ubuntu1904_gcc7:
-        #   containerResource: ubuntu1904_gcc7
 
     container: $[ variables['containerResource'] ]
 
