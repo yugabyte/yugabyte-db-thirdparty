@@ -842,7 +842,7 @@ class Builder:
     def check_cxx_compiler_flag(self, flag):
         process = subprocess.Popen([self.get_cxx_compiler(), '-x', 'c++', flag, '-'],
                                    stdin=subprocess.PIPE)
-        process.stdin.write("int main() { return 0; }")
+        process.stdin.write("int main() { return 0; }".encode('utf-8'))
         process.stdin.close()
         return process.wait() == 0
 
