@@ -23,13 +23,13 @@ jobs:
     steps:
       - script: |
           sudo mkdir -p /opt/yb-build
-          sudo chown yugabyte-ci /opt/yb-build
+          sudo chown yugabyteci /opt/yb-build
           sudo mkdir -p /opt/yb-build/thirdparty
-          sudo chown yugabyte-ci /opt/yb-build/thirdparty
+          sudo chown yugabyteci /opt/yb-build/thirdparty
           checkout_dir=$PWD
           chmod -R a+r "$checkout_dir"
           find "$checkout_dir" -executable -type f -exec chmod a+x {} \;
-          sudo -u yugabyte-ci -E /bin/bash -c \
+          sudo -u yugabyteci -E /bin/bash -c \
             "cd '$checkout_dir' && YB_MAKE_PARALLELISM=1 ./build_and_release.sh"
         env:
           GITHUB_TOKEN: $(yugabyte.githubToken)
