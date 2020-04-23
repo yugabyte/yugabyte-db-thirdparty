@@ -396,7 +396,7 @@ class Builder:
                 self.extract_archive(archive_path, output_path)
                 if hasattr(extra, 'post_exec'):
                     with PushDir(output_path):
-                        if isinstance(extra.post_exec[0], basestring):
+                        if isinstance(extra.post_exec[0], str):
                             subprocess.check_call(extra.post_exec)
                         else:
                             for command in extra.post_exec:
