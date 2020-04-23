@@ -58,4 +58,4 @@ if [[ $OSTYPE == linux* && -n ${YB_LINUXBREW_DIR:-} ]]; then
 fi
 
 echo "YB_CUSTOM_HOMEBREW_DIR=${YB_CUSTOM_HOMEBREW_DIR:-undefined}"
-python2.7 "$YB_THIRDPARTY_DIR/yb_build_thirdparty_main.py" "$@"
+python3 "$YB_THIRDPARTY_DIR/yb_build_thirdparty_main.py" "$@"
