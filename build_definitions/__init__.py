@@ -16,7 +16,7 @@ import os
 import sys
 
 BUILD_DEFINITIONS_DIR = os.path.realpath(os.path.dirname(__file__))
-print BUILD_DEFINITIONS_DIR
+print(BUILD_DEFINITIONS_DIR)
 sys.path = filter(lambda p: os.path.realpath(p) != BUILD_DEFINITIONS_DIR, sys.path)
 
 import importlib
@@ -93,7 +93,7 @@ def log_output(prefix, args, log_cmd=True):
         exit_code = process.wait()
         if exit_code:
             fatal("Execution failed with code: {}".format(exit_code))
-    except OSError, err:
+    except OSError as err:
         log("Error when trying to execute command: " + str(args))
         log("PATH is: {}".format(os.getenv("PATH")))
         raise

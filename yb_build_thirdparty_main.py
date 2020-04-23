@@ -296,7 +296,7 @@ class Builder:
         return self.do_find_gcc('gcc-8', 'g++-8')
 
     def do_find_gcc(self, c_compiler, cxx_compiler):
-        if 'YB_GCC_PREFIX' is os.environ:
+        if 'YB_GCC_PREFIX' in os.environ:
             gcc_dir = os.environ['YB_GCC_PREFIX']
         elif self.using_linuxbrew:
             gcc_dir = self.linuxbrew_dir
@@ -312,7 +312,7 @@ class Builder:
 
     def find_clang(self):
         clang_dir = None
-        if 'YB_CLANG_PREFIX' is os.environ:
+        if 'YB_CLANG_PREFIX' in os.environ:
             clang_dir = os.environ['YB_CLANG_PREFIX']
         else:
             candidate_dirs = [
