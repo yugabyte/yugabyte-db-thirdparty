@@ -1,0 +1,25 @@
+version: 2
+jobs:
+  build:
+    machine:
+      enabled: true
+
+    steps:
+      - checkout
+
+      - run: |
+          pwd
+          df -H .
+          checkout_dir=$PWD
+          echo "Building in directory: $checkout_dir"
+          echo "YB_BUILD_THIRDPARTY_EXTRA_ARGS=${YB_BUILD_THIRDPARTY_EXTRA_ARGS:-undefined}"
+          docker run -t \
+            --cap-add=SYS_PTRACE \
+            -e GITHUB_TOKEN \
+            -e YB_BUILD_THIRDPARTY_EXTRA_ARGS \
+            "--mount=type=bind,src=$checkout_dir,dst=/opt/yb-build/thirdparty/checkout" \
+            yugabyteci/yb_build_infra_centos7:v2020-03-28T07_29_17 \
+            bash -c "
+              cd /opt/yb-build/thirdparty/checkout
+              sudo -E -u yugabyteci ./build_and_release.sh
+            "
