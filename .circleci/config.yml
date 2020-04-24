@@ -1,0 +1,24 @@
+version: 2
+jobs:
+  build:
+    machine:
+      enabled: true
+
+      # Specify service dependencies here if necessary
+      # CircleCI maintains a library of pre-built images
+      # documented at https://circleci.com/docs/2.0/circleci-images/
+      # - image: circleci/postgres:9.4
+
+    #### TEMPLATE_NOTE: go expects specific checkout path representing url
+    #### expecting it in the form of
+    ####   /go/src/github.com/circleci/go-tool
+    ####   /go/src/bitbucket.org/circleci/go-tool
+    steps:
+      - checkout
+
+      - run: |
+          pwd
+          df -H .
+          docker run -t yugabyteci/yb_build_infra_centos7:v2020-03-28T07_29_17 bash -c "
+            echo Hello World
+          "
