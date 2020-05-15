@@ -21,7 +21,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from build_definitions import *
 
 class LLVMDependency(Dependency):
-    VERSION = '7.0.1'
+    VERSION = '7.1.0'
 
     def __init__(self):
         url_prefix="http://releases.llvm.org/{0}/"
