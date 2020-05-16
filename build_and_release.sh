@@ -64,7 +64,6 @@ fi
 
 if "$is_centos"; then
   # Grab a recent URL from https://github.com/YugaByte/brew-build/releases
-  # TODO: handle both SSE4 vs. non-SSE4 configurations.
   brew_url=$(<linuxbrew_url.txt)
   if [[ $brew_url != https://*.tar.gz ]]; then
     fatal "Expected the pre-built Homebrew/Linuxbrew URL to be of the form https://*.tar.gz," \
@@ -87,6 +86,9 @@ if "$is_centos"; then
       time tar xzf "$brew_tarball_name"
     )
     log "Downloaded and installed Homebrew/Linuxbrew to $YB_LINUXBREW_DIR"
+    if [[ ! -d $YB_LINUXBREW_DIR ]]; then
+      fatal "Directory $YB_LINUXBREW_DIR still does not exist"
+    fi
 
     log "Running post_install.sh"
     (
@@ -94,6 +96,9 @@ if "$is_centos"; then
       time ./post_install.sh
     )
   fi
+
+  log "Linuxbrew gcc version:"
+  ( set -x; "$YB_LINUXBREW_DIR/bin/gcc" --version )
 fi
 
 echo "Building YugabyteDB third-party code in $repo_dir"
@@ -119,11 +124,13 @@ cd "$repo_dir"
   time ./build_thirdparty.sh "$@"
 )
 
+log "Build finished. See timing information above."
+
 # -------------------------------------------------------------------------------------------------
 # Cleanup
 # -------------------------------------------------------------------------------------------------
 
-find . -name "*.pyc" -exec rm -f {} \;
+( set -x; find . -name "*.pyc" -exec rm -f {} \; )
 
 # -------------------------------------------------------------------------------------------------
 # Archive creation and upload
@@ -136,15 +143,21 @@ archive_tarball_path=$PWD/$archive_tarball_name
 if [[ -n ${YB_LINUXBREW_DIR:-} ]]; then
   echo "$YB_LINUXBREW_DIR" >linuxbrew_path.txt
 fi
-tar \
-  --exclude "$archive_dir_name/.git" \
-  --exclude "$archive_dir_name/src" \
-  --exclude "$archive_dir_name/build" \
-  --exclude "$archive_dir_name/venv" \
-  --exclude "$archive_dir_name/download" \
-  -cvzf \
-  "$archive_tarball_name" \
-  "$archive_dir_name"
+
+log "Creating archive: $archive_tarball_name"
+(
+  set -x
+  time tar \
+    --exclude "$archive_dir_name/.git" \
+    --exclude "$archive_dir_name/src" \
+    --exclude "$archive_dir_name/build" \
+    --exclude "$archive_dir_name/venv" \
+    --exclude "$archive_dir_name/download" \
+    -czf \
+    "$archive_tarball_name" \
+    "$archive_dir_name"
+)
+log "Finished creating archive: $archive_tarball_name. See timing information above."
 
 compute_sha256sum "$archive_tarball_path"
 log "Computed SHA256 sum of the archive: $sha256_sum"

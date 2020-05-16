@@ -28,7 +28,7 @@ class LLVMDependency(Dependency):
         super(LLVMDependency, self).__init__(
                 'llvm', LLVMDependency.VERSION, url_prefix + 'llvm-{0}.src.tar.xz',
                 BUILD_GROUP_COMMON)
-        self.dir += ".src"
+        self.dir_name += ".src"
         self.extra_downloads = [
             ExtraDownload('cfe', self.version, url_prefix + 'cfe-{0}.src.tar.xz',
                                         'tools', ['mv', 'cfe-{}.src'.format(self.version), 'cfe']),
