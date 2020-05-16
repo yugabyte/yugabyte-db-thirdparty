@@ -64,7 +64,14 @@ def fatal(message):
     sys.exit(1)
 
 
-def log(message=""):
+def log(*args):
+    n_args = len(args)
+    if n_args == 0:
+        message = ""
+    elif n_args == 1:
+        message = args[0]
+    else:
+        message = args[0] % args[1:]
     sys.stderr.write(message + "\n")
 
 
@@ -189,7 +196,7 @@ class Dependency(object):
     def __init__(self, name, version, url_pattern, build_group):
         self.name = name
         self.version = version
-        self.dir = '{}-{}'.format(name, version)
+        self.dir_name = '{}-{}'.format(name, version)
         self.underscored_version = version.replace('.', '_')
         if url_pattern is not None:
             self.download_url = url_pattern.format(version, self.underscored_version)
@@ -213,23 +220,23 @@ class Dependency(object):
 
 
 class ExtraDownload(object):
-    def __init__(self, name, version, url_pattern, dir, post_exec=None):
+    def __init__(self, name, version, url_pattern, dir_name, post_exec=None):
         self.name = name
         self.version = version
         self.download_url = url_pattern.format(version)
         self.archive_name = make_archive_name(name, version, self.download_url)
-        self.dir = dir
+        self.dir_name = dir_name
         if post_exec is not None:
             self.post_exec = post_exec
 
 class PushDir:
-    def __init__(self, dir):
-        self.dir = dir
+    def __init__(self, dir_name):
+        self.dir_name = dir_name
         self.prev = None
 
     def __enter__(self):
         self.prev = os.getcwd()
-        os.chdir(self.dir)
+        os.chdir(self.dir_name)
 
     def __exit__(self, type, value, traceback):
         os.chdir(self.prev)
