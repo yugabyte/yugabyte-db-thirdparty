@@ -1,1 +1,1 @@
-https://github.com/yugabyte/brew-build/releases/download/20181203T161736v5/linuxbrew-20181203T161736v5.tar.gz
+https://github.com/yugabyte/brew-build/releases/download/20181203T161736v6/linuxbrew-20181203T161736v6.tar.gz
