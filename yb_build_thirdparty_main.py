@@ -74,13 +74,6 @@ def compute_file_sha256(path):
     return hashsum_file(hashlib.sha256(), path)
 
 
-def compiler_wrappers_exist(compiler_wrappers_dir):
-    return all(
-        os.path.exists(os.path.join(compiler_wrappers_dir, compiler_name))
-            for compiler_name in ['cc', 'c++']
-    )
-
-
 class Builder:
     def __init__(self):
         self.tp_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
@@ -96,13 +89,6 @@ class Builder:
             fatal('YB src directory "{}" does not exist'.format(self.src_dir))
         self.build_support_dir = os.path.join(self.src_dir, 'build-support')
         self.enterprise_root = os.path.join(self.src_dir, 'ent')
-        compiler_wrappers_dir = os.path.join(self.build_support_dir, 'compiler-wrappers')
-        self.using_compiler_wrapper = compiler_wrappers_exist(compiler_wrappers_dir)
-        self.cc_wrapper = None
-        self.cxx_wrapper = None
-        if self.using_compiler_wrapper:
-            self.cc_wrapper = os.path.join(compiler_wrappers_dir, 'cc')
-            self.cxx_wrapper = os.path.join(compiler_wrappers_dir, 'c++')
 
         self.dependencies = [
             build_definitions.zlib.ZLibDependency(),
@@ -278,16 +264,10 @@ class Builder:
         self.cxx = compilers[1]
 
     def get_c_compiler(self):
-        if self.using_compiler_wrapper:
-            assert self.cc_wraper is not None
-            return self.cc_wrapper
         assert self.cc is not None
         return self.cc
 
     def get_cxx_compiler(self):
-        if self.using_compiler_wrapper:
-            assert self.cxx_wrapper is not None
-            return self.cxx_wrapper
         assert self.cxx is not None
         return self.cxx
 
