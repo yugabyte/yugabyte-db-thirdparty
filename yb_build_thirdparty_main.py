@@ -24,6 +24,7 @@ import random
 import re
 import subprocess
 import sys
+import time
 from datetime import datetime
 
 from build_definitions import *
@@ -32,6 +33,9 @@ import_submodules(build_definitions)
 
 CHECKSUM_FILE_NAME = 'thirdparty_src_checksums.txt'
 CLOUDFRONT_URL = 'http://d3dr9sfxru4sde.cloudfront.net/{}'
+MAX_FETCH_ATTEMPTS = 10
+INITIAL_DOWNLOAD_RETRY_SLEEP_TIME_SEC = 1.0
+DOWNLOAD_RETRY_SLEEP_INCREASE_SEC = 0.5
 
 
 def hashsum_file(hash, filename, block_size=65536):
@@ -202,13 +206,13 @@ class Builder:
             names = set([dep.name for dep in self.dependencies])
             for dep in self.args.dependencies:
                 if dep not in names:
-                    fatal("Unknown dependency name: {}".format(dep))
+                    fatal("Unknown dependency name: %s", dep)
             for dep in self.dependencies:
                 if dep.name in self.args.dependencies:
                     self.selected_dependencies.append(dep)
         elif self.args.skip:
             skipped = set(self.args.skip.split(','))
-            log("Skipping dependencies: {}".format(sorted(skipped)))
+            log("Skipping dependencies: %s", sorted(skipped))
             self.selected_dependencies = []
             for dependency in self.dependencies:
                 if dependency.name in skipped:
@@ -330,17 +334,17 @@ class Builder:
                 for leaf in [dependency.name, '.build-stamp-{}'.format(dependency)]:
                     path = os.path.join(self.tp_build_dir, dir_name, leaf)
                     if os.path.exists(path):
-                        log("Removing {} build output: {}".format(dependency.name, path))
+                        log("Removing %s build output: %s", dependency.name, path)
                         remove_path(path)
             if dependency.dir_name is not None:
                 src_dir = self.source_path(dependency)
                 if os.path.exists(src_dir):
-                    log("Removing {} source: {}".format(dependency.name, src_dir))
+                    log("Removing %s source: %s", dependency.name, src_dir)
                     remove_path(src_dir)
 
             archive_path = self.archive_path(dependency)
             if archive_path is not None:
-                log("Removing {} archive: {}".format(dependency.name, archive_path))
+                log("Removing %s archive: %s", dependency.name, archive_path)
                 remove_path(archive_path)
 
     def download_dependency(self, dep):
@@ -352,8 +356,8 @@ class Builder:
         download_url = dep.download_url
         if download_url is None:
             download_url = CLOUDFRONT_URL.format(dep.archive_name)
-            log("Using legacy download URL: {} (we should consider moving this to GitHub)".format(
-                download_url))
+            log("Using legacy download URL: %s (we should consider moving this to GitHub)",
+                download_url)
 
         archive_path = self.archive_path(dep)
 
@@ -367,13 +371,13 @@ class Builder:
                                  os.path.dirname(src_path),
                                  os.path.basename(src_path))
         else:
-            log("Creating {}".format(src_path))
+            log("Creating %s", src_path)
             mkdir_if_missing(src_path)
 
         if hasattr(dep, 'extra_downloads'):
             for extra in dep.extra_downloads:
                 archive_path = os.path.join(self.tp_download_dir, extra.archive_name)
-                log("Downloading {} from {}".format(extra.archive_name, extra.download_url))
+                log("Downloading %s from %s", extra.archive_name, extra.download_url)
                 self.ensure_file_downloaded(extra.download_url, archive_path)
                 output_path = os.path.join(src_path, extra.dir_name)
                 self.extract_archive(archive_path, output_path)
@@ -388,7 +392,7 @@ class Builder:
         if hasattr(dep, 'patches'):
             with PushDir(src_path):
                 for patch in dep.patches:
-                    log("Applying patch: {}".format(patch))
+                    log("Applying patch: %s", patch)
                     process = subprocess.Popen(['patch', '-p{}'.format(dep.patch_strip)],
                                                stdin=subprocess.PIPE)
                     with open(os.path.join(self.tp_dir, 'patches', patch), 'rt') as inp:
@@ -448,7 +452,7 @@ class Builder:
                     for line in lines:
                         out.write(line + "\n")
                 self.filename2checksum[filename] = checksum
-                log("Added checksum for {} to {}: {}".format(filename, checksum_file, checksum))
+                log("Added checksum for %s to %s: %s", filename, checksum_file, checksum)
                 return checksum
 
             fatal("No expected checksum provided for {}".format(filename))
@@ -465,20 +469,34 @@ class Builder:
             # easier to add new third-party dependencies.
             expected_checksum = self.get_expected_checksum(filename, downloaded_path=path)
             if self.verify_checksum(path, expected_checksum):
-                log("No need to re-download {}: checksum already correct".format(filename))
+                log("No need to re-download %s: checksum already correct", filename)
                 return
-            log("File {} already exists but has wrong checksum, removing".format(path))
+            log("File %s already exists but has wrong checksum, removing", path)
             remove_path(path)
-        log("Fetching {}".format(filename))
-        subprocess.check_call([self.curl_path, '-o', path, '--location', url])
+        
+        log("Fetching %s", filename)
+        sleep_time_sec = INITIAL_DOWNLOAD_RETRY_SLEEP_TIME_SEC
+        for attempt_index in range(1, MAX_FETCH_ATTEMPTS + 1):
+            try:
+                subprocess.check_call([self.curl_path, '-o', path, '--location', url])
+                break
+            except subprocess.CalledProcessError as ex:
+                log("Error downloading %s (attempt %d): %s",
+                    self.curl_path, attempt_index, str(ex))
+                if attempt_index == MAX_FETCH_ATTEMPTS:
+                    log("Giving up after %d attempts", MAX_FETCH_ATTEMPTS)
+                    raise ex
+                log("Will retry after %.1f seconds", sleep_time_sec)
+                time.sleep(sleep_time_sec)
+                sleep_time_sec += DOWNLOAD_RETRY_SLEEP_INCREASE_SEC
+                
         if not os.path.exists(path):
-            fatal("Downloaded '{}' but but unable to find '{}'".format(url, path))
+            fatal("Downloaded '%s' but but unable to find '%s'", url, path)
         expected_checksum = self.get_expected_checksum(filename, downloaded_path=path)
         if not self.verify_checksum(path, expected_checksum):
-            fatal("File '{}' has wrong checksum after downloading from '{}'. "
-                          "Has {}, but expected: {}"
-                          .format(path, url, compute_file_sha256(path),
-                                  expected_checksum))
+            fatal("File '%s' has wrong checksum after downloading from '%s'. "
+                  "Has %s, but expected: %s",
+                  path, url, compute_file_sha256(path), expected_checksum)
 
     def verify_checksum(self, filename, expected_checksum):
         real_checksum = hashsum_file(hashlib.sha256(), filename)
@@ -666,10 +684,10 @@ class Builder:
     def build_with_cmake(self, dep, extra_args=None, use_ninja=False, **kwargs):
         if use_ninja == 'auto':
             use_ninja = is_ninja_available()
-            log('Ninja is {}'.format('available' if use_ninja else 'unavailable'))
+            log('Ninja is %s', 'available' if use_ninja else 'unavailable')
 
-        log("Building dependency {} using CMake with arguments: {}, use_ninja={}".format(
-            dep, extra_args, use_ninja))
+        log("Building dependency %s using CMake with arguments: %s, use_ninja=%s",
+            dep, extra_args, use_ninja)
         log_prefix = self.log_prefix(dep)
         os.environ["YB_REMOTE_COMPILATION"] = "0"
 
@@ -735,9 +753,9 @@ class Builder:
         self.set_compiler(compiler)
         heading("Building {} dependencies (compiler type: {})".format(
             build_type, self.compiler_type))
-        log("Compiler type: {}".format(self.compiler_type))
-        log("C compiler: {}".format(self.get_c_compiler()))
-        log("C++ compiler: {}".format(self.get_cxx_compiler()))
+        log("Compiler type: %s", self.compiler_type)
+        log("C compiler: %s", self.get_c_compiler())
+        log("C++ compiler: %s", self.get_cxx_compiler())
 
     def setup_compiler(self):
         self.init_flags()
@@ -772,7 +790,7 @@ class Builder:
             return
         log("")
         colored_log(YELLOW_COLOR, SEPARATOR)
-        colored_log(YELLOW_COLOR, "Building {} ({})".format(dep.name, self.build_type))
+        colored_log(YELLOW_COLOR, "Building %s (%s)", dep.name, self.build_type)
         colored_log(YELLOW_COLOR, SEPARATOR)
 
         self.download_dependency(dep)
@@ -794,7 +812,7 @@ class Builder:
             dep.build(self)
         self.save_build_stamp_for_dependency(dep)
         log("")
-        log("Finished building {} ({})".format(dep.name, self.build_type))
+        log("Finished building %s (%s)", dep.name, self.build_type)
         log("")
 
     # Determines if we should rebuild a component with the given name based on the existing "stamp"
@@ -813,19 +831,19 @@ class Builder:
         if dep.dir_name is not None:
             src_dir = self.source_path(dep)
             if not os.path.exists(src_dir):
-                log("Have to rebuild {} ({}): source dir {} does not exist".format(
-                    dep.name, self.build_type, src_dir
-                ))
+                log("Have to rebuild %s (%s): source dir %s does not exist",
+                    dep.name, self.build_type, src_dir)
                 return True
 
         if old_build_stamp == new_build_stamp:
-            log("Not rebuilding {} ({}) -- nothing changed.".format(dep.name, self.build_type))
+            log("Not rebuilding %s (%s) -- nothing changed.", dep.name, self.build_type)
             return False
         else:
-            log("Have to rebuild {} ({}):".format(dep.name, self.build_type))
-            log("Old build stamp for {} (from {}):\n{}".format(
-                    dep.name, stamp_path, indent_lines(old_build_stamp)))
-            log("New build stamp for {}:\n{}".format(dep.name, indent_lines(new_build_stamp)))
+            log("Have to rebuild %s (%s):", dep.name, self.build_type)
+            log("Old build stamp for %s (from %s):\n%s",
+                dep.name, stamp_path, indent_lines(old_build_stamp))
+            log("New build stamp for %s:\n%s",
+                dep.name, indent_lines(new_build_stamp))
             return True
 
     def get_build_stamp_path_for_dependency(self, dep):
@@ -863,7 +881,7 @@ class Builder:
         stamp = self.get_build_stamp_for_dependency(dep)
         stamp_path = self.get_build_stamp_path_for_dependency(dep)
 
-        log("Saving new build stamp to '{}':\n{}".format(stamp_path, indent_lines(stamp)))
+        log("Saving new build stamp to '%s':\n%s", stamp_path, indent_lines(stamp))
         with open(stamp_path, "wt") as out:
             out.write(stamp)
 
@@ -876,7 +894,7 @@ class Builder:
         mkdir_if_missing(build_dir)
 
         if dep.copy_sources:
-            log("Bootstrapping {} from {}".format(build_dir, src_dir))
+            log("Bootstrapping %s from %s", build_dir, src_dir)
             subprocess.check_call(['rsync', '-a', src_dir + '/', build_dir])
         return build_dir
 

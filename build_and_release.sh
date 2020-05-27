@@ -2,19 +2,19 @@
 
 set -euo pipefail
 
+# shellcheck source=./yb-thirdparty-common.sh
 . "${BASH_SOURCE%/*}/yb-thirdparty-common.sh"
 
 # -------------------------------------------------------------------------------------------------
 # OS detection
 # -------------------------------------------------------------------------------------------------
 
-if ! "$is_mac"; then
+if "$is_mac"; then
+  unset YB_LINUXBREW_DIR
+else
   cat /proc/cpuinfo
 fi
 
-if "$is_mac"; then
-  unset YB_LINUXBREW_DIR
-fi
 
 # -------------------------------------------------------------------------------------------------
 # Current user
