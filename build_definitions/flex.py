@@ -22,7 +22,7 @@ from build_definitions import *
 class FlexDependency(Dependency):
     def __init__(self):
         super(FlexDependency, self).__init__(
-                'flex', '2.6.4',
+                'flex', '2.6.3',
                 'https://github.com/westes/flex/releases/download/v{0}/flex-{0}.tar.gz',
                 BUILD_GROUP_COMMON)
         self.copy_sources = True
