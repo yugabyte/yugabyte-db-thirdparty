@@ -27,7 +27,11 @@ fatal() {
 compute_sha256sum() {
   sha256_sum=$( (
     if [[ $OSTYPE =~ darwin ]]; then
-      shasum --portable --algorithm 256 "$@"
+      local portable_arg=""
+      if shasum --help | grep -qE '[-][-]portable'; then
+        portable_arg="--portable"
+      fi
+      shasum $portable_arg --algorithm 256 "$@"
     else
       sha256sum "$@"
     fi 

@@ -29,6 +29,7 @@ echo "Bash version: $BASH_VERSION"
   autoconf --version
   autoreconf --version
   pkg-config --version
+  shasum --version
 )
 
 # -------------------------------------------------------------------------------------------------
