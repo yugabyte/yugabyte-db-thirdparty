@@ -317,10 +317,7 @@ class Builder:
         if not is_linux():
             return
 
-        if 'YB_SRC_ROOT' in os.environ:
-            self.linuxbrew_dir = get_linuxbrew_dir()
-        else:
-            self.linuxbrew_dir = None
+        self.linuxbrew_dir = os.getenv('YB_LINUXBREW_DIR')
 
         if self.linuxbrew_dir:
             self.using_linuxbrew = True
