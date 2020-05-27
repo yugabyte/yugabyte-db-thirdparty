@@ -36,4 +36,6 @@ jobs:
 
       - name: Build YugabyteDB third-party dependencies
         run: |
-          ./build_thirdparty.sh
+          sudo mkdir -p /opt/yb-build/{thirdparty,brew,tmp}
+          sudo chmod 777 /opt/yb-build/{thirdparty,brew,tmp}
+          ./build_and_release.sh
