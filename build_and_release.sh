@@ -9,13 +9,12 @@ set -euo pipefail
 # OS detection
 # -------------------------------------------------------------------------------------------------
 
-if ! "$is_mac"; then
+if "$is_mac"; then
+  unset YB_LINUXBREW_DIR
+else
   cat /proc/cpuinfo
 fi
 
-if "$is_mac"; then
-  unset YB_LINUXBREW_DIR
-fi
 
 # -------------------------------------------------------------------------------------------------
 # Current user
