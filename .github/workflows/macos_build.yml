@@ -36,7 +36,7 @@ jobs:
 
       - name: Build YugabyteDB third-party dependencies
         run: |
-          brew install autoconf automake
+          brew install autoconf automake pkg-config
           sudo mkdir -p /opt/yb-build/{thirdparty,brew,tmp}
           sudo chmod 777 /opt/yb-build/{thirdparty,brew,tmp}
           ./build_and_release.sh
