@@ -58,13 +58,7 @@ ARCHIVE_TYPES = {
 }
 
 
-def fatal(message):
-    log(message)
-    traceback.print_stack()
-    sys.exit(1)
-
-
-def log(*args):
+def _args_to_message(*args):
     n_args = len(args)
     if n_args == 0:
         message = ""
@@ -72,15 +66,25 @@ def log(*args):
         message = args[0]
     else:
         message = args[0] % args[1:]
-    sys.stderr.write(message + "\n")
+    return message
 
 
-def colored_log(color, message):
-    sys.stderr.write(color + message + NO_COLOR + "\n")
+def fatal(*args):
+    log(*args)
+    traceback.print_stack()
+    sys.exit(1)
+
+
+def log(*args):
+    sys.stderr.write(_args_to_message(*args) + "\n")
+
+
+def colored_log(color, *args):
+    sys.stderr.write(color + _args_to_message(*args) + NO_COLOR + "\n")
 
 
 def print_line_with_colored_prefix(prefix, line):
-    log("{}[{}] {}{}".format(CYAN_COLOR, prefix, NO_COLOR, line.rstrip()))
+    log("%s[%s] %s%s", CYAN_COLOR, prefix, NO_COLOR, line.rstrip())
 
 
 def log_output(prefix, args, log_cmd=True):
@@ -98,13 +102,13 @@ def log_output(prefix, args, log_cmd=True):
             fatal("Execution failed with code: {}".format(exit_code))
     except OSError as err:
         log("Error when trying to execute command: " + str(args))
-        log("PATH is: {}".format(os.getenv("PATH")))
+        log("PATH is: %s", os.getenv("PATH"))
         raise
 
 
 def unset_if_set(name):
     if name in os.environ:
-        log('Unsetting {} for third-party build (was set to "{}").'.format(name, os.environ[name]))
+        log('Unsetting %s for third-party build (was set to "%s").', name, os.environ[name])
         del os.environ[name]
 
 

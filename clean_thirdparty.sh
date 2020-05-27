@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
 
-. "${BASH_SOURCE%/*}/thirdparty-common.sh"
+set -euo pipefail
 
-cd "$YB_SRC_ROOT/thirdparty"
+# shellcheck source=./yb-thirdparty-common.sh
+. "${BASH_SOURCE[0]%/*}/yb-thirdparty-common.sh"
+
+# -------------------------------------------------------------------------------------------------
+# Functions
+# -------------------------------------------------------------------------------------------------
 
 show_usage() {
   cat <<-EOT
@@ -25,8 +30,11 @@ realpath() {
 }
 
 delete_dir() {
-  expect_num_args 1 "$@"
-  local dir_path=$( realpath "$1" )
+  if [[ $# -ne 1 ]]; then
+    fatal "delete_dir expects exactly one arugment, got $#"
+  fi
+  local dir_path
+  dir_path=$( realpath "$1" )
   if [[ -d $dir_path ]]; then
       log "DELETING directory '$dir_path'"
     ( set -x; rm -rf "$dir_path" )
@@ -36,9 +44,11 @@ delete_dir() {
 }
 
 delete_file() {
-  expect_num_args 1 "$@"
+  if [[ $# -ne 1 ]]; then
+    fatal "delete_file expects exactly one arugment, got $#"
+  fi
   local file_glob=$1
-  local file_paths=( $file_glob )
+  local file_paths=( "$file_glob" )
   local file_path
   for file_path in "${file_paths[@]}"; do
     file_path=$( realpath "$file_path" )
@@ -50,6 +60,12 @@ delete_file() {
     fi
   done
 }
+
+# -------------------------------------------------------------------------------------------------
+# Main script
+# -------------------------------------------------------------------------------------------------
+
+cd "$YB_THIRDPARTY_DIR"
 
 dependency_names_to_clean=()
 if [[ $# -eq 0 ]]; then
@@ -82,11 +98,11 @@ while [[ $# -gt 0 ]]; do
 done
 
 if "$clean_all"; then
-  set -x
   if ! "$delete_downloads"; then
     exclude_downloads="--exclude download/"
   fi
-  git clean -dxf $exclude_downloads --exclude '*.sw?'
+  # shellcheck disable=SC2086
+  ( set -x; git clean -dxf $exclude_downloads --exclude '*.sw?' )
   exit
 fi
 
@@ -94,13 +110,17 @@ for dep_name in "${dependency_names_to_clean[@]}"; do
   (
     set -x
     rm -rfv \
-      "$YB_THIRDPARTY_DIR"/build/{common,uninstrumented,tsan}/{$dep_name,.build-stamp-$dep_name}
+      "$YB_THIRDPARTY_DIR"/build/{common,uninstrumented,tsan}/{"$dep_name",.build-stamp-"$dep_name"}
   )
 
   for top_build_dir in "$YB_THIRDPARTY_DIR"/build/{common,uninstrumented,tsan}; do
-    (
-      cd "$top_build_dir"
-      delete_file ".build-stamp-$dep_name"
-    )
+    if [[ -d $top_build_dir ]]; then
+      (
+        cd "$top_build_dir"
+        delete_file ".build-stamp-$dep_name"
+      )
+    else
+      log "Directory '$top_build_dir' does not exist, ignoring"
+    fi
   done
 done
