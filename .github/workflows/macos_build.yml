@@ -1,4 +1,4 @@
-name: Docker
+name: macOS
 
 on:
   push:
@@ -36,6 +36,7 @@ jobs:
 
       - name: Build YugabyteDB third-party dependencies
         run: |
+          brew install autoconf automake
           sudo mkdir -p /opt/yb-build/{thirdparty,brew,tmp}
           sudo chmod 777 /opt/yb-build/{thirdparty,brew,tmp}
           ./build_and_release.sh
