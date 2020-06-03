@@ -3,7 +3,7 @@ name: macOS
 on:
   push:
     branches:
-      - *
+      - '*'
 
     # Publish `v1.2.3` tags as releases.
     tags:
