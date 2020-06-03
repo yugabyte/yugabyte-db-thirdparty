@@ -98,11 +98,20 @@ while [[ $# -gt 0 ]]; do
 done
 
 if "$clean_all"; then
+  exclusions=(
+    '*.sw?'
+    venv/
+    .vscode/
+  )
   if ! "$delete_downloads"; then
-    exclude_downloads="--exclude download/"
+    exclusions+=( download/ )
   fi
+  git_clean_args=( -dxf )
+  for exclusion in "${exclusions[@]}"; do
+    git_clean_args+=( --exclude "$exclusion" )
+  done
   # shellcheck disable=SC2086
-  ( set -x; git clean -dxf $exclude_downloads --exclude '*.sw?' )
+  ( set -x; git clean "${git_clean_args[@]}" )
   exit
 fi
 

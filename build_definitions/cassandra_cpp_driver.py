@@ -44,7 +44,7 @@ class CassandraCppDriverDependency(Dependency):
                  '-DCMAKE_INSTALL_PREFIX={}'.format(builder.prefix),
                  '-DBUILD_SHARED_LIBS=On'] +
                 (['-DCMAKE_CXX_FLAGS=' + ' '.join(cxx_flags)] if not is_mac() else []) +
-                    get_openssl_related_cmake_args())
+                    builder.get_openssl_related_cmake_args())
 
         if is_mac():
           lib_file = 'libcassandra.' + builder.dylib_suffix

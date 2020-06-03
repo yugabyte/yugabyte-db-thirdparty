@@ -19,19 +19,17 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from build_definitions import *
 
-class CurlDependency(Dependency):
+class OpenSSLDependency(Dependency):
     def __init__(self):
-        super(CurlDependency, self).__init__(
-                'curl', '7.32.0', "https://curl.haxx.se/download/curl-{0}.tar.gz",
+        super(OpenSSLDependency, self).__init__(
+                'openssl', '1.1.1g',
+                'https://www.openssl.org/source/openssl-{0}.tar.gz',
                 BUILD_GROUP_COMMON)
         self.copy_sources = True
 
     def build(self, builder):
-        disabled_features = ['ftp', 'file', 'ldap', 'ldaps', 'rtsp', 'dict', 'telnet', 'tftp',
-                             'pop3', 'imap', 'smtp', 'gopher', 'manual', 'librtmp', 'ipv6']
-        extra_args = ['--disable-' + feature for feature in disabled_features]
-
-        extra_args.append('--with-ssl=%s' % builder.get_openssl_dir())
-        extra_args.append('--with-zlib=%s' % builder.get_openssl_dir())
-
-        builder.build_with_configure(builder.log_prefix(self), extra_args)
+        builder.build_with_configure(
+                builder.log_prefix(self),
+                configure_cmd=['./config'],
+                # https://bit.ly/openssl_install_without_manpages
+                install=['install_sw'])

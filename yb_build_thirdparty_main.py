@@ -79,6 +79,10 @@ def compute_file_sha256(path):
 
 
 class Builder:
+    """
+    This class manages the overall process of building third-party dependencies, including the set
+    of dependencies to build, build types, and the directories to install dependencies.
+    """
     def __init__(self):
         self.tp_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
         self.tp_build_dir = os.path.join(self.tp_dir, 'build')
@@ -97,6 +101,7 @@ class Builder:
         self.dependencies = [
             build_definitions.zlib.ZLibDependency(),
             build_definitions.lz4.LZ4Dependency(),
+            build_definitions.openssl.OpenSSLDependency(),
             build_definitions.bitshuffle.BitShuffleDependency(),
             build_definitions.libev.LibEvDependency(),
             build_definitions.rapidjson.RapidJsonDependency(),
@@ -406,8 +411,8 @@ class Builder:
                     subprocess.check_call(dep.post_patch)
 
         with open(patch_level_path, 'wb') as out:
+            # Just create an empty file.
             pass
-
 
     def archive_path(self, dep):
         if dep.archive_name is None:
@@ -473,7 +478,7 @@ class Builder:
                 return
             log("File %s already exists but has wrong checksum, removing", path)
             remove_path(path)
-        
+
         log("Fetching %s", filename)
         sleep_time_sec = INITIAL_DOWNLOAD_RETRY_SLEEP_TIME_SEC
         for attempt_index in range(1, MAX_FETCH_ATTEMPTS + 1):
@@ -489,7 +494,7 @@ class Builder:
                 log("Will retry after %.1f seconds", sleep_time_sec)
                 time.sleep(sleep_time_sec)
                 sleep_time_sec += DOWNLOAD_RETRY_SLEEP_INCREASE_SEC
-                
+
         if not os.path.exists(path):
             fatal("Downloaded '%s' but but unable to find '%s'", url, path)
         expected_checksum = self.get_expected_checksum(filename, downloaded_path=path)
@@ -929,6 +934,25 @@ class Builder:
     def add_checked_flag(self, flags, flag):
         if self.check_cxx_compiler_flag(flag):
             flags.append(flag)
+
+    def get_openssl_dir(self):
+        return os.path.join(self.tp_installed_common_dir)
+
+    def get_openssl_related_cmake_args(self):
+        """
+        Returns a list of CMake arguments to use to pick up the version of OpenSSL that we should be
+        using. Returns an empty list if the default OpenSSL installation should be used.
+        """
+        openssl_dir = self.get_openssl_dir()
+        openssl_options = ['-DOPENSSL_ROOT_DIR=' + openssl_dir]
+        openssl_crypto_library = os.path.join(openssl_dir, 'lib', 'libcrypto.' + self.dylib_suffix)
+        openssl_ssl_library = os.path.join(openssl_dir, 'lib', 'libssl.' + self.dylib_suffix)
+        openssl_options += [
+            '-DOPENSSL_CRYPTO_LIBRARY=' + openssl_crypto_library,
+            '-DOPENSSL_SSL_LIBRARY=' + openssl_ssl_library,
+            '-DOPENSSL_LIBRARIES=%s;%s' % (openssl_crypto_library, openssl_ssl_library)
+        ]
+        return openssl_options
 
 
 def main():
