@@ -43,8 +43,13 @@ echo "Bash version: $BASH_VERSION"
   autoconf --version
   autoreconf --version
   pkg-config --version
-  shasum --version
 )
+
+if "$is_mac"; then
+  ( set -x; shasum --version )
+else
+  ( set -x; sha256sum --version )
+fi
 
 # -------------------------------------------------------------------------------------------------
 
