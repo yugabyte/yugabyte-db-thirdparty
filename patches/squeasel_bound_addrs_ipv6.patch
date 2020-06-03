@@ -1,0 +1,50 @@
+diff --git squeasel.c squeasel.c
+index e30ae7c..4836de4 100644
+--- squeasel.c
++++ squeasel.c
+@@ -968,13 +968,13 @@ static int set_non_blocking_mode(SOCKET sock) {
+   return 0;
+ }
+ 
+-int sq_get_bound_addresses(const struct sq_context *ctx, struct sockaddr_in ***addrs,
++int sq_get_bound_addresses(const struct sq_context *ctx, struct sockaddr_storage ***addrs,
+                            int *num_addrs) {
+   int n = ctx->num_listening_sockets;
+   int rc = 1;
+   int i;
+ 
+-  struct sockaddr_in **addr_array = calloc(n, sizeof(struct sockaddr_in *));
++  struct sockaddr_storage **addr_array = calloc(n, sizeof(struct sockaddr_storage *));
+   if (addr_array == NULL) {
+     cry(fc(ctx), "%s: cannot allocate memory", __func__);
+     goto cleanup;
+@@ -988,7 +988,7 @@ int sq_get_bound_addresses(const struct sq_context *ctx, struct sockaddr_in ***a
+       goto cleanup;
+     }
+ 
+-    socklen_t len = sizeof(struct sockaddr_in *);
++    socklen_t len = sizeof(*addr_array[i]);
+     if (getsockname(ctx->listening_sockets[i].sock, (struct sockaddr*)addr_array[i],
+                     &len) != 0) {
+       cry(fc(ctx), "%s: cannot get socket name: %s", __func__, strerror(errno));
+@@ -1011,6 +1011,7 @@ int sq_get_bound_addresses(const struct sq_context *ctx, struct sockaddr_in ***a
+ }
+ 
+ 
++
+ // Write data to the IO channel - opened file descriptor, socket or SSL
+ // descriptor. Return number of bytes written.
+ static int64_t push(FILE *fp, SOCKET sock, SSL *ssl, const char *buf,
+diff --git squeasel.h squeasel.h
+index 68a4034..10e0c82 100644
+--- squeasel.h
++++ squeasel.h
+@@ -223,7 +223,7 @@ const char **sq_get_valid_option_names(void);
+ // 'addrs' array itself, unless an error occurs.
+ //
+ // Returns 0 on success, non-zero if an error occurred.
+-int sq_get_bound_addresses(const struct sq_context *ctx, struct sockaddr_in ***addrs,
++int sq_get_bound_addresses(const struct sq_context *ctx, struct sockaddr_storage ***addrs,
+                            int *num_addrs);
+ 
+ // Add, edit or delete the entry in the passwords file.
