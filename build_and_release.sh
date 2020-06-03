@@ -23,8 +23,32 @@ fi
 USER=$(whoami)
 log "Current user: $USER"
 
-if "$is_centos"; then
-  export PATH=/usr/local/bin:$PATH
+# -------------------------------------------------------------------------------------------------
+# PATH
+# -------------------------------------------------------------------------------------------------
+
+export PATH=/usr/local/bin:$PATH
+log "PATH: $PATH"
+
+# -------------------------------------------------------------------------------------------------
+# Installed tools
+# -------------------------------------------------------------------------------------------------
+
+echo "Bash version: $BASH_VERSION"
+
+(
+  set -x
+  cmake --version
+  automake --version
+  autoconf --version
+  autoreconf --version
+  pkg-config --version
+)
+
+if "$is_mac"; then
+  ( set -x; shasum --version )
+else
+  ( set -x; sha256sum --version )
 fi
 
 # -------------------------------------------------------------------------------------------------
