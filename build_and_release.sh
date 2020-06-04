@@ -110,9 +110,17 @@ if "$is_centos"; then
       set -x
       mkdir -p "$brew_parent_dir"
       cd "$brew_parent_dir"
-      wget -q "$brew_url"
+      curl --silent -LO "$brew_url"
       time tar xzf "$brew_tarball_name"
     )
+
+    expected_sha256=$( curl --silent -L "$brew_url.sha256" | awk '{print $1}' )
+    actual_sha256=$( sha256sum "$brew_tarball_name" )
+    if [[ $expected_sha256 != $actual_sha256 ]]; then
+      fatal "Invalid SHA256 sum of the Linuxbrew archive: $actual_sha256, expected:" \
+            "$expected_sha256"
+    fi
+
     log "Downloaded and installed Homebrew/Linuxbrew to $YB_LINUXBREW_DIR"
     if [[ ! -d $YB_LINUXBREW_DIR ]]; then
       fatal "Directory $YB_LINUXBREW_DIR still does not exist"
