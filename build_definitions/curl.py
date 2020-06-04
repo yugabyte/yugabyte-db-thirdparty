@@ -22,7 +22,7 @@ from build_definitions import *
 class CurlDependency(Dependency):
     def __init__(self):
         super(CurlDependency, self).__init__(
-                'curl', '7.32.0', "https://curl.haxx.se/download/curl-{0}.tar.gz",
+                'curl', '7.70.0', "https://curl.haxx.se/download/curl-{0}.tar.gz",
                 BUILD_GROUP_COMMON)
         self.copy_sources = True
 
