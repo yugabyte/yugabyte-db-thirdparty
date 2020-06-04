@@ -37,6 +37,19 @@ class CassandraCppDriverDependency(Dependency):
             builder.add_checked_flag(cxx_flags, '-Wno-error=implicit-fallthrough')
             builder.add_checked_flag(cxx_flags, '-Wno-error=class-memaccess')
 
+        # FindOpenSSL.cmake in cassandra-cpp-driver is buggy (e.g. it cannot recognize the version
+        # 1.1.1g of OpenSSL, because it has a regexp hardcoded with [a-f], as if for hex characters,
+        # and we prefer to use the standard version of this file that comes with CMake).
+        src_dir = builder.source_path(self)
+        find_openssl_cmake_module_path = os.path.join(
+            src_dir, 'cmake', 'modules', 'FindOpenSSL.cmake')
+        if os.path.exists(find_openssl_cmake_module_path):
+            log("Removing %s so we can use the standard version of this CMake module",
+                find_openssl_cmake_module_path)
+            os.remove(find_openssl_cmake_module_path)
+        else:
+            log("File does not exist, maybe already removed: %s", find_openssl_cmake_module_path)
+
         builder.build_with_cmake(
                 self,
                 ['-DCMAKE_BUILD_TYPE={}'.format(builder.cmake_build_type()),
