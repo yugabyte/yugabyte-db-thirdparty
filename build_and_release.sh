@@ -119,7 +119,7 @@ if "$is_centos"; then
       cd "$brew_parent_dir"
       sha256sum "$brew_tarball_name" | awk '{print $1}'
     )
-    if [[ $expected_sha256 != $actual_sha256 ]]; then
+    if [[ $expected_sha256 != "$actual_sha256" ]]; then
       fatal "Invalid SHA256 sum of the Linuxbrew archive: $actual_sha256, expected:" \
             "$expected_sha256"
     fi
