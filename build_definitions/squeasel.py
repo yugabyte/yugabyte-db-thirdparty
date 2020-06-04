@@ -24,10 +24,9 @@ class SqueaselDependency(Dependency):
         super(SqueaselDependency, self).__init__(
                 'squeasel', '8ac777a122fccf0358cb8562e900f8e9edd9ed11', None, BUILD_GROUP_COMMON)
         self.copy_sources = True
-        # Temporarily disable squeasel IPv6 patch. Will re-enable immediately.
-        # self.patches = ['squeasel_bound_addrs_ipv6.patch']
-        # self.patch_version = 1
-        # self.patch_strip = 0
+        self.patches = ['squeasel_bound_addrs_ipv6.patch']
+        self.patch_version = 1
+        self.patch_strip = 0
 
     def build(self, builder):
         log_prefix = builder.log_prefix(self)
