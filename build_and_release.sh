@@ -48,7 +48,11 @@ echo "Bash version: $BASH_VERSION"
 if "$is_mac"; then
   ( set -x; shasum --version )
 else
-  ( set -x; sha256sum --version )
+  (
+    set -x
+    sha256sum --version
+    libtool --version
+  )
 fi
 
 # -------------------------------------------------------------------------------------------------
