@@ -48,12 +48,19 @@ echo "Bash version: $BASH_VERSION"
 if "$is_mac"; then
   ( set -x; shasum --version )
 else
-  ( set -x; sha256sum --version )
+  (
+    set -x
+    sha256sum --version
+    libtool --version
+  )
 fi
 
 # -------------------------------------------------------------------------------------------------
 
-if [[ -z ${GITHUB_TOKEN:-} || $GITHUB_TOKEN == *githubToken* ]]; then
+if [[ -n ${CIRCLE_PULL_REQUEST:-} ]]; then
+  echo "CIRCLE_PULL_REQUEST is set: $CIRCLE_PULL_REQUEST. Will not upload artifacts."
+  unset GITHUB_TOKEN
+elif [[ -z ${GITHUB_TOKEN:-} || $GITHUB_TOKEN == *githubToken* ]]; then
   echo "This must be a pull request build. Will not upload artifacts."
   GITHUB_TOKEN=""
 else
@@ -106,9 +113,20 @@ if "$is_centos"; then
       set -x
       mkdir -p "$brew_parent_dir"
       cd "$brew_parent_dir"
-      wget -q "$brew_url"
+      curl --silent -LO "$brew_url"
       time tar xzf "$brew_tarball_name"
     )
+
+    expected_sha256=$( curl --silent -L "$brew_url.sha256" | awk '{print $1}' )
+    actual_sha256=$(
+      cd "$brew_parent_dir"
+      sha256sum "$brew_tarball_name" | awk '{print $1}'
+    )
+    if [[ $expected_sha256 != "$actual_sha256" ]]; then
+      fatal "Invalid SHA256 sum of the Linuxbrew archive: $actual_sha256, expected:" \
+            "$expected_sha256"
+    fi
+
     log "Downloaded and installed Homebrew/Linuxbrew to $YB_LINUXBREW_DIR"
     if [[ ! -d $YB_LINUXBREW_DIR ]]; then
       fatal "Directory $YB_LINUXBREW_DIR still does not exist"

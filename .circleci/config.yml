@@ -7,19 +7,22 @@ jobs:
     steps:
       - checkout
 
-      - run: |
-          pwd
-          df -H .
-          checkout_dir=$PWD
-          echo "Building in directory: $checkout_dir"
-          echo "YB_BUILD_THIRDPARTY_EXTRA_ARGS=${YB_BUILD_THIRDPARTY_EXTRA_ARGS:-undefined}"
-          docker run -t \
-            --cap-add=SYS_PTRACE \
-            -e GITHUB_TOKEN \
-            -e YB_BUILD_THIRDPARTY_EXTRA_ARGS \
-            "--mount=type=bind,src=$checkout_dir,dst=/opt/yb-build/thirdparty/checkout" \
-            yugabyteci/yb_build_infra_centos7:v2020-06-03T06_49_38 \
-            bash -c "
-              cd /opt/yb-build/thirdparty/checkout
-              sudo -E -u yugabyteci ./build_and_release.sh
-            "
+      - run:
+          name: Build YugabyteDB third-party dependencies
+          command: |
+            pwd
+            df -H .
+            checkout_dir=$PWD
+            echo "Building in directory: $checkout_dir"
+            echo "YB_BUILD_THIRDPARTY_EXTRA_ARGS=${YB_BUILD_THIRDPARTY_EXTRA_ARGS:-undefined}"
+            docker run -t \
+              --cap-add=SYS_PTRACE \
+              -e GITHUB_TOKEN \
+              -e YB_BUILD_THIRDPARTY_EXTRA_ARGS \
+              -e CIRCLE_PULL_REQUEST \
+              "--mount=type=bind,src=$checkout_dir,dst=/opt/yb-build/thirdparty/checkout" \
+              yugabyteci/yb_build_infra_centos7:v2020-06-03T06_49_38 \
+              bash -c "
+                cd /opt/yb-build/thirdparty/checkout
+                sudo -E -u yugabyteci ./build_and_release.sh
+              "
