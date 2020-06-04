@@ -25,11 +25,8 @@ class SqueaselDependency(Dependency):
                 'squeasel', '8ac777a122fccf0358cb8562e900f8e9edd9ed11', None, BUILD_GROUP_COMMON)
         self.copy_sources = True
         self.patches = ['squeasel_bound_addrs_ipv6.patch']
-        # Comment patch_version / patch_strip out temporarily (for one commit) to build a third-party
-        # package with a non-IPv6 version of squeasel.
-
-        # self.patch_version = 1
-        # self.patch_strip = 0
+        self.patch_version = 1
+        self.patch_strip = 0
 
     def build(self, builder):
         log_prefix = builder.log_prefix(self)
