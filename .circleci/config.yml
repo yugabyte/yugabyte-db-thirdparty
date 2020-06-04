@@ -17,6 +17,7 @@ jobs:
             --cap-add=SYS_PTRACE \
             -e GITHUB_TOKEN \
             -e YB_BUILD_THIRDPARTY_EXTRA_ARGS \
+            -e CIRCLE_PULL_REQUEST \
             "--mount=type=bind,src=$checkout_dir,dst=/opt/yb-build/thirdparty/checkout" \
             yugabyteci/yb_build_infra_centos7:v2020-06-03T06_49_38 \
             bash -c "

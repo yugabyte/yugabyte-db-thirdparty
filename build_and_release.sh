@@ -57,7 +57,10 @@ fi
 
 # -------------------------------------------------------------------------------------------------
 
-if [[ -z ${GITHUB_TOKEN:-} || $GITHUB_TOKEN == *githubToken* ]]; then
+if [[ -n ${CIRCLE_PULL_REQUEST:-} ]]; then
+  echo "CIRCLE_PULL_REQUEST is set: $CIRCLE_PULL_REQUEST. Will not upload artifacts."
+  unset GITHUB_TOKEN
+elif [[ -z ${GITHUB_TOKEN:-} || $GITHUB_TOKEN == *githubToken* ]]; then
   echo "This must be a pull request build. Will not upload artifacts."
   GITHUB_TOKEN=""
 else
