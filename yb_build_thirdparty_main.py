@@ -662,7 +662,8 @@ class Builder:
             log_prefix,
             extra_args=None,
             jobs=None,
-            configure_cmd=['./configure'], install=['install'],
+            configure_cmd=['./configure'],
+            install=['install'],
             autoconf=False,
             source_subdir=None):
         os.environ["YB_REMOTE_COMPILATION"] = "0"

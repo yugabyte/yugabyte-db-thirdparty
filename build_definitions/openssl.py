@@ -28,8 +28,16 @@ class OpenSSLDependency(Dependency):
         self.copy_sources = True
 
     def build(self, builder):
+        common_configure_options = ['shared']
+        if is_mac():
+            # On macOS x86_64, OpenSSL 1.0.2 fails to detect the proper architecture.
+            configure_cmd = [
+                '/bin/bash', './Configure', 'darwin64-x86_64-cc'] + common_configure_options
+        else:
+            configure_cmd = ['./config', '-arch', 'x86_64'] + common_configure_options
+
         builder.build_with_configure(
                 builder.log_prefix(self),
-                configure_cmd=['./config'],
+                configure_cmd=configure_cmd,
                 # https://bit.ly/openssl_install_without_manpages
                 install=['install_sw'])
