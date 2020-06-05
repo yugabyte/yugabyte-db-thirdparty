@@ -34,7 +34,7 @@ class OpenSSLDependency(Dependency):
             configure_cmd = [
                 '/bin/bash', './Configure', 'darwin64-x86_64-cc'] + common_configure_options
         else:
-            configure_cmd = ['./config', '-arch', 'x86_64'] + common_configure_options
+            configure_cmd = ['./config'] + common_configure_options
 
         builder.build_with_configure(
                 builder.log_prefix(self),
