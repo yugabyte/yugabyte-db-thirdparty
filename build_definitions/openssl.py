@@ -22,7 +22,7 @@ from build_definitions import *
 class OpenSSLDependency(Dependency):
     def __init__(self):
         super(OpenSSLDependency, self).__init__(
-                'openssl', '1.1.1g',
+                'openssl', '1.0.2u',
                 'https://www.openssl.org/source/openssl-{0}.tar.gz',
                 BUILD_GROUP_COMMON)
         self.copy_sources = True
