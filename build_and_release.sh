@@ -209,9 +209,11 @@ if [[ -n ${GITHUB_TOKEN:-} ]]; then
   cd "$repo_dir"
   (
     set -x
-    hub release create "$tag" -m "Release $tag" \
+    hub release create "$tag" \
+      -m "Release $tag" \
       -a "$archive_tarball_path" \
-      -a "$archive_tarball_path.sha256"
+      -a "$archive_tarball_path.sha256" \
+      -t "$git_sha1"
   )
 else
   log "GITHUB_TOKEN is not set, skipping archive upload"
