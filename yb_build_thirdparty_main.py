@@ -112,6 +112,7 @@ class Builder:
             build_definitions.redis_cli.RedisCliDependency(),
             build_definitions.flex.FlexDependency(),
             build_definitions.bison.BisonDependency(),
+            build_definitions.icu4c.Icu4cDependency(),
         ]
 
         if is_linux():
@@ -122,7 +123,7 @@ class Builder:
 
                 build_definitions.libunwind.LibUnwindDependency(),
                 build_definitions.libbacktrace.LibBacktraceDependency(),
-                build_definitions.include_what_you_use.IncludeWhatYouUseDependency()
+                build_definitions.include_what_you_use.IncludeWhatYouUseDependency(),
             ]
 
         self.dependencies += [
