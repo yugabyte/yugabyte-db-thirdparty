@@ -733,6 +733,7 @@ class Builder:
             BUILD_GROUP_COMMON if build_type == BUILD_TYPE_COMMON
                                else BUILD_GROUP_INSTRUMENTED
         )
+
         for dep in self.selected_dependencies:
             if dep.build_group == build_group and dep.should_build(self):
                 self.build_dependency(dep)
