@@ -14,6 +14,7 @@
 
 import os
 import sys
+import glob
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -36,6 +37,51 @@ class Icu4cDependency(Dependency):
         self.copy_sources = True
 
     def build(self, builder):
+        configure_extra_args = [
+            '--disable-samples',
+            '--disable-tests',
+            '--enable-static',
+            '--with-library-bits=64'
+        ]
+
         builder.build_with_configure(
                 builder.log_prefix(self),
-                source_subdir='source')
+                source_subdir='source',
+                extra_args=configure_extra_args)
+
+        if is_mac():
+            lib_dir = os.path.realpath(os.path.join(builder.prefix, "lib"))
+            icu_lib_paths = glob.glob(os.path.join(lib_dir, "libicu*.dylib"))
+
+            for icu_lib in icu_lib_paths:
+                if os.path.islink(icu_lib):
+                    continue
+                lib_basename = os.path.basename(icu_lib)
+
+                otool_output = subprocess.check_output(['otool', '-L', icu_lib]).decode('utf-8')
+
+                for line in otool_output.split('\n'):
+                    if line.startswith('\tlibicu'):
+                        dependency_name = line.strip().split()[0]
+                        dependency_real_name = os.path.relpath(
+                            os.path.realpath(os.path.join(lib_dir, dependency_name)),
+                            lib_dir)
+
+                        if lib_basename in [dependency_name, dependency_real_name]:
+                            log("Making %s refer to itself using @rpath", icu_lib)
+                            subprocess.check_call([
+                                'install_name_tool',
+                                '-id',
+                                '@rpath/' + dependency_name,
+                                icu_lib
+                            ])
+                        else:
+                            log("Making %s refer to %s using @loader_path",
+                                 icu_lib, dependency_name)
+                            subprocess.check_call([
+                                'install_name_tool',
+                                '-change',
+                                dependency_name,
+                                '@loader_path/' + dependency_name,
+                                icu_lib
+                            ])
