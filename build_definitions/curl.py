@@ -33,5 +33,11 @@ class CurlDependency(Dependency):
 
         extra_args.append('--with-ssl=%s' % builder.get_openssl_dir())
         extra_args.append('--with-zlib=%s' % builder.get_openssl_dir())
+        extra_args += [
+            '--without-brotli',
+            '--without-libidn2',
+            '--without-librtmp',
+            '--without-nghttp2'
+        ]
 
         builder.build_with_configure(builder.log_prefix(self), extra_args)
