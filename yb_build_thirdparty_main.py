@@ -102,7 +102,6 @@ class Builder:
             build_definitions.zlib.ZLibDependency(),
             build_definitions.lz4.LZ4Dependency(),
             build_definitions.openssl.OpenSSLDependency(),
-            build_definitions.bitshuffle.BitShuffleDependency(),
             build_definitions.libev.LibEvDependency(),
             build_definitions.rapidjson.RapidJsonDependency(),
             build_definitions.squeasel.SqueaselDependency(),
@@ -630,6 +629,8 @@ class Builder:
             # default, so we specify it explicitly.
             self.cxx_flags.append("-stdlib=libc++")
             self.libs += ["-lc++", "-lc++abi"]
+            # Build for macOS Mojave or later. See https://bit.ly/37myHbk
+            self.cxx_flags.append("-mmacosx-version-min=10.14")
         else:
             fatal("Unsupported platform: {}".format(platform.system()))
         # The C++ standard must match CMAKE_CXX_STANDARD our top-level CMakeLists.txt.
