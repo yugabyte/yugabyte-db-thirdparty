@@ -29,7 +29,8 @@ class GLogDependency(Dependency):
         self.patch_version = 1
         self.patch_strip = 0
         self.patches = ['glog-tsan-annotations.patch',
-                        'glog-application-fingerprint.patch']
+                        'glog-application-fingerprint.patch',
+                        'glog-symbolize-and-demangle.patch']
         self.post_patch = ['autoreconf', '-fvi']
 
     def build(self, builder):
