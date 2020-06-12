@@ -1,7 +1,7 @@
-diff --git a/src/symbolize.cc b/src/symbolize.cc
+diff --git src/symbolize.cc src/symbolize.cc
 index 1ffc607..91422bd 100644
---- a/src/symbolize.cc
-+++ b/src/symbolize.cc
+--- src/symbolize.cc
++++ src/symbolize.cc
 @@ -843,7 +843,7 @@ static ATTRIBUTE_NOINLINE bool SymbolizeAndDemangle(void *pc, char *out,
                                                      int out_size) {
    Dl_info info;
