@@ -48,10 +48,13 @@ class GMockDependency(Dependency):
     def do_build(self, builder, mode):
         build_dir = os.path.join(os.getcwd(), mode)
         mkdir_if_missing(build_dir)
+        cmake_opts = ['-DCMAKE_BUILD_TYPE=Debug',
+                      '-DCMAKE_POSITION_INDEPENDENT_CODE=On',
+                      '-DBUILD_SHARED_LIBS={}'.format('ON' if mode == 'shared' else 'OFF')]
+        if is_mac():
+            cmake_opts += ['-DCMAKE_MACOSX_RPATH=ON']
         with PushDir(build_dir):
             builder.build_with_cmake(
                     self,
-                    ['-DCMAKE_BUILD_TYPE=Debug',
-                     '-DCMAKE_POSITION_INDEPENDENT_CODE=On',
-                     '-DBUILD_SHARED_LIBS={}'.format('ON' if mode == 'shared' else 'OFF')],
+                    cmake_opts,
                     install=False)
