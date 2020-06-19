@@ -958,63 +958,33 @@ class Builder:
         ]
         return openssl_options
 
-class LibTest:
+class LibTestBase:
     """
-    Verify correct library paths are used in installed dynamically-linked eecutables and
+    Verify correct library paths are used in installed dynamically-linked executables and
     libraries.
     """
     def __init__(self):
         self.tp_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
         self.tp_installed_dir = os.path.join(self.tp_dir, 'installed')
-        if is_mac():
-            self.tool = "otool -L"
-            self.okay_paths = "^\t("
-            self.okay_paths += "/usr/|"
-            self.okay_paths += "/System/Library/|"
-            self.okay_paths += "@rpath|"
-            self.okay_paths += "@loader_path|"
-            self.okay_paths += f"{self.tp_dir})"
-        else:
-            self.tool = "ldd"
-            self.okay_paths = "^\tlinux-vdso|"
-            self.okay_paths += "^\t/lib64/|"
-            self.okay_paths += "^\tstatically linked|"
-            self.okay_paths += "^.* => /lib64/|"
-            self.okay_paths += "^.* => /opt/yb-build/brew/linuxbrew|"
-            self.okay_paths += f"^.* => {self.tp_dir}"
 
-    def good_libs(self,file_path):
+    def check_lib_deps(self, file_path, cmdout):
         status = True
-        if is_mac():
-            libout = subprocess.check_output(['otool', '-L' ] + [file_path]).decode('utf-8')
-            if 'is not an object file' in libout:
-                return status
-        else:
-            # SSL libs need to search in common lib
-            ld_search = {"LD_LIBRARY_PATH": self.tp_installed_dir + "/common/lib" }
-            try:
-                libout = subprocess.check_output(['ldd'] + [file_path],
-                                                 env=ld_search,
-                                                 stderr=subprocess.DEVNULL).decode('utf-8')
-            except subprocess.CalledProcessError as cpe:
-                # Normal error code if file is not a shared library or executable
-                if cpe.returncode != 1:
-                    print("Unexpected error for file:",file_path)
-                    status = False
-                return status
-
-        for line in libout.splitlines():
+        for line in cmdout.splitlines():
             # Dependent libs indented with tab
             if line.startswith('\t'):
                 if not re.match(self.okay_paths,line):
                     if status:
-                        print(file_path + ":")
-                    print("Bad path:",line)
+                        log(file_path + ":")
+                    log("Bad path: %s", line)
                     status = False
         return status
 
+    # overridden in platform specific classes
+    def good_libs(self, file_path):
+        pass
+
     def run(self):
-        print("Scanning installed executables and libraries...")
+        log("Scanning installed executables and libraries...")
         test_pass = True
         # files to examine are much reduced if we look only at bin and lib directories
         dir_pattern = '^(lib|libcxx|[s]bin)$'
@@ -1023,21 +993,63 @@ class LibTest:
             with os.scandir(installed_dir) as candidate_dirs:
                 for candidate in candidate_dirs:
                     if re.match(dir_pattern, candidate.name):
-                        examine_path = os.path.join(installed_dir,candidate.name)
+                        examine_path = os.path.join(installed_dir, candidate.name)
                         for dirpath, dirnames, files in os.walk(examine_path):
                             for file_name in files:
-                                full_path = os.path.join(dirpath,file_name)
+                                full_path = os.path.join(dirpath, file_name)
                                 if os.path.islink(full_path):
                                     continue
                                 if not self.good_libs(full_path):
                                     test_pass = False
         if not test_pass:
-            print('-------------------')
-            print("Found problematic library dependencies, using tool: ",self.tool)
-            print('-------------------')
+            fatal(f"Found problematic library dependencies, using tool: {self.tool}")
         else:
-            print("No problems found with library dependencies.")
-        return test_pass
+            log("No problems found with library dependencies.")
+
+
+class LibTestMac(LibTestBase):
+    def __init__(self):
+        super().__init__()
+        self.tool = "otool -L"
+        path_regex = ["^\t/usr/",
+                       "^\t/System/Library/",
+                       "^\t@rpath",
+                       "^\t@loader_path",
+                       f"^\t{self.tp_dir}"]
+        self.okay_paths = "|".join(path_regex)
+
+    def good_libs(self, file_path):
+        libout = subprocess.check_output(['otool', '-L', file_path]).decode('utf-8')
+        if 'is not an object file' in libout:
+            return True
+        return self.check_lib_deps(file_path, libout)
+
+
+class LibTestLinux(LibTestBase):
+    def __init__(self):
+        super().__init__()
+        self.tool = "ldd"
+        path_regex = ["^\tlinux-vdso",
+                       "^\t/lib64/",
+                       "^\t/opt/yb-build/brew/linuxbrew",
+                       "^\tstatically linked",
+                       "^.* => /lib64/",
+                       "^.* => /opt/yb-build/brew/linuxbrew",
+                       f"^.* => {self.tp_dir}"]
+        self.okay_paths = "|".join(path_regex)
+
+    def good_libs(self, file_path):
+        try:
+            # Hide messages about execute permissions
+            libout = subprocess.check_output(['ldd', file_path],
+                                             stderr=subprocess.DEVNULL).decode('utf-8')
+        except subprocess.CalledProcessError as cpe:
+            # Normal error code if file is not a shared library or executable
+            if cpe.returncode != 1:
+                log("Unexpected error for: ldd", file_path)
+                return False
+            return True
+        return self.check_lib_deps(file_path, libout)
 
 
 def main():
@@ -1054,9 +1066,11 @@ def main():
     builder.init()
     builder.run()
 
-    tester = LibTest()
-    if not tester.run():
-        sys.exit(1)
+    if is_mac():
+        tester = LibTestMac()
+    else:
+        tester = LibTestLinux()
+    tester.run()
 
 
 if __name__ == "__main__":
