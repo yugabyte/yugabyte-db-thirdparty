@@ -52,8 +52,10 @@ class Icu4cDependency(Dependency):
         if is_mac():
             lib_dir = os.path.realpath(os.path.join(builder.prefix, "lib"))
             icu_lib_paths = glob.glob(os.path.join(lib_dir, "libicu*.dylib"))
+            bin_dir = os.path.realpath(os.path.join(builder.prefix, "sbin"))
+            icu_bin_paths = glob.glob(os.path.join(bin_dir, "*"))
 
-            for icu_lib in icu_lib_paths:
+            for icu_lib in icu_lib_paths + icu_bin_paths:
                 if os.path.islink(icu_lib):
                     continue
                 lib_basename = os.path.basename(icu_lib)

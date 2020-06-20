@@ -958,6 +958,100 @@ class Builder:
         ]
         return openssl_options
 
+class LibTestBase:
+    """
+    Verify correct library paths are used in installed dynamically-linked executables and
+    libraries.
+    """
+    def __init__(self):
+        self.tp_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
+        self.tp_installed_dir = os.path.join(self.tp_dir, 'installed')
+
+    def init_regex(self):
+        self.okay_paths = re.compile("|".join(self.lib_re_list))
+
+    def check_lib_deps(self, file_path, cmdout):
+        status = True
+        for line in cmdout.splitlines():
+            if not self.okay_paths.match(line):
+                if status:
+                    log(file_path + ":")
+                log("Bad path: %s", line)
+                status = False
+        return status
+
+    # overridden in platform specific classes
+    def good_libs(self, file_path):
+        pass
+
+    def run(self):
+        self.init_regex()
+        heading("Scanning installed executables and libraries...")
+        test_pass = True
+        # files to examine are much reduced if we look only at bin and lib directories
+        dir_pattern = re.compile('^(lib|libcxx|[s]bin)$')
+        dirs = [os.path.join(self.tp_installed_dir, type) for type in BUILD_TYPES]
+        for installed_dir in dirs:
+            with os.scandir(installed_dir) as candidate_dirs:
+                for candidate in candidate_dirs:
+                    if dir_pattern.match(candidate.name):
+                        examine_path = os.path.join(installed_dir, candidate.name)
+                        for dirpath, dirnames, files in os.walk(examine_path):
+                            for file_name in files:
+                                full_path = os.path.join(dirpath, file_name)
+                                if os.path.islink(full_path):
+                                    continue
+                                if not self.good_libs(full_path):
+                                    test_pass = False
+        if not test_pass:
+            fatal(f"Found problematic library dependencies, using tool: {self.tool}")
+        else:
+            log("No problems found with library dependencies.")
+
+
+class LibTestMac(LibTestBase):
+    def __init__(self):
+        super().__init__()
+        self.tool = "otool -L"
+        self.lib_re_list = ["^\t/usr/",
+                            "^\t/System/Library/",
+                            "^Archive ",
+                            "^/",
+                            "^\t@rpath",
+                            "^\t@loader_path",
+                            f"^\t{self.tp_dir}"]
+
+    def good_libs(self, file_path):
+        libout = subprocess.check_output(['otool', '-L', file_path]).decode('utf-8')
+        if 'is not an object file' in libout:
+            return True
+        return self.check_lib_deps(file_path, libout)
+
+
+class LibTestLinux(LibTestBase):
+    def __init__(self):
+        super().__init__()
+        self.tool = "ldd"
+        self.lib_re_list = [ "^\tlinux-vdso",
+                            "^\t/lib64/",
+                            "^\t/opt/yb-build/brew/linuxbrew",
+                            "^\tstatically linked",
+                            "^\tnot a dynamic executable",
+                            "ldd: warning: you do not have execution permission",
+                            "^.* => /lib64/",
+                            "^.* => /opt/yb-build/brew/linuxbrew",
+                            f"^.* => {self.tp_dir}"]
+
+    def good_libs(self, file_path):
+        proc = subprocess.run(['ldd', file_path], capture_output=True)
+        if proc.returncode > 1:
+            log("Unexpected exit code %d from ldd, file %s", proc.returncode, file_path)
+            log(proc.stdout.decode('utf-8'))
+            log(proc.stderr.decode('utf-8'))
+            return False
+        libout = proc.stdout.decode('utf-8') + proc.stderr.decode('utf-8')
+        return self.check_lib_deps(file_path, libout)
+
 
 def main():
     unset_if_set('CC')
@@ -972,6 +1066,14 @@ def main():
     builder = Builder()
     builder.init()
     builder.run()
+
+    if is_mac():
+        tester = LibTestMac()
+    elif is_linux():
+        tester = LibTestLinux()
+    else:
+        fatal(f"Unsupported platform: {platform.system()}")
+    tester.run()
 
 
 if __name__ == "__main__":

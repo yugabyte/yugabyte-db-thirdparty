@@ -33,6 +33,7 @@ class CassandraCppDriverDependency(Dependency):
     def build(self, builder):
         cxx_flags = []
         if not is_mac():
+            builder.prepend_rpath(os.path.join(builder.tp_installed_common_dir, "lib"))
             cxx_flags = builder.compiler_flags + builder.cxx_flags + builder.ld_flags
             builder.add_checked_flag(cxx_flags, '-Wno-error=implicit-fallthrough')
             builder.add_checked_flag(cxx_flags, '-Wno-error=class-memaccess')
