@@ -1039,17 +1039,22 @@ class LibTestLinux(LibTestBase):
                             "^\tnot a dynamic executable",
                             "ldd: warning: you do not have execution permission",
                             "^.* => /lib64/",
+                            "^.* => /lib/",
+                            "^.* => /usr/lib/x86_64-linux-gnu/",
                             "^.* => /opt/yb-build/brew/linuxbrew",
                             f"^.* => {self.tp_dir}"]
 
     def good_libs(self, file_path):
-        proc = subprocess.run(['ldd', file_path], capture_output=True)
-        if proc.returncode > 1:
-            log("Unexpected exit code %d from ldd, file %s", proc.returncode, file_path)
-            log(proc.stdout.decode('utf-8'))
-            log(proc.stderr.decode('utf-8'))
-            return False
-        libout = proc.stdout.decode('utf-8') + proc.stderr.decode('utf-8')
+        try:
+            libout = subprocess.check_output(['ldd', file_path],
+                                             stderr=subprocess.STDOUT).decode('utf-8')
+        except subprocess.CalledProcessError as ex:
+            if ex.returncode > 1:
+                log("Unexpected exit code %d from ldd, file %s", ex.returncode, file_path)
+                log(ex.stdout.decode('utf-8'))
+                return False
+            else:
+                libout = ex.stdout.decode('utf-8')
         return self.check_lib_deps(file_path, libout)
 
 
