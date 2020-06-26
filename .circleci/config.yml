@@ -1,55 +1,31 @@
-version: 2
+version: 2.1
+
 jobs:
   build:
-    machine:
-      enabled: true
+    parameters:
+      docker_image:
+        type: string
+
+    parallelism: 2
+
+    docker:
+      - image: << parameters.docker_image >>
 
     steps:
-      - checkout
+      - checkout:
+          path: /opt/yb-build/thirdparty/checkout
 
       - run:
           name: Build YugabyteDB third-party dependencies
-          command: |
-            pwd
-            df -H .
-            checkout_dir=$PWD
-            echo "Building in directory: $checkout_dir"
-            echo "YB_BUILD_THIRDPARTY_EXTRA_ARGS=${YB_BUILD_THIRDPARTY_EXTRA_ARGS:-undefined}"
-            docker run -t \
-              --cap-add=SYS_PTRACE \
-              -e GITHUB_TOKEN \
-              -e YB_BUILD_THIRDPARTY_EXTRA_ARGS \
-              -e CIRCLE_PULL_REQUEST \
-              "--mount=type=bind,src=$checkout_dir,dst=/opt/yb-build/thirdparty/checkout" \
-              yugabyteci/yb_build_infra_centos7:v2020-06-03T06_49_38 \
-              bash -c "
-                cd /opt/yb-build/thirdparty/checkout
-                sudo -E -u yugabyteci ./build_and_release.sh
-              "
+          working_directory: /opt/yb-build/thirdparty/checkout
+          command: ./build_and_release.sh
 
-  build-ubuntu:
-    machine:
-      enabled: true
-
-    steps:
-      - checkout
-
-      - run:
-          name: Build YugabyteDB third-party dependencies
-          command: |
-            pwd
-            df -H .
-            checkout_dir=$PWD
-            echo "Building in directory: $checkout_dir"
-            echo "YB_BUILD_THIRDPARTY_EXTRA_ARGS=${YB_BUILD_THIRDPARTY_EXTRA_ARGS:-undefined}"
-            docker run -t \
-              --cap-add=SYS_PTRACE \
-              -e GITHUB_TOKEN \
-              -e YB_BUILD_THIRDPARTY_EXTRA_ARGS \
-              -e CIRCLE_PULL_REQUEST \
-              "--mount=type=bind,src=$checkout_dir,dst=/opt/yb-build/thirdparty/checkout" \
-              yugabyteci/yb_build_infra_ubuntu1804:v2020-06-10T22_57_55 \
-              bash -c "
-                cd /opt/yb-build/thirdparty/checkout
-                sudo -E -u yugabyteci ./build_and_release.sh
-              "
+workflows:
+  build-release:
+    jobs:
+      - build:
+          name: build-centos
+          docker_image: yugabyteci/yb_build_infra_centos7:v2020-06-03T06_49_38
+      - build:
+          name: build-ubuntu
+          docker_image: yugabyteci/yb_build_infra_ubuntu1804:v2020-06-10T22_57_55
