@@ -27,11 +27,13 @@ class CryptBlowfishDependency(Dependency):
                 'https://github.com/YugaByte/crypt_blowfish/archive/{0}.tar.gz',
                 BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = True
+        self.patches = ['crypt_blowfish-makefile-cflags.patch']
+        self.patch_strip = 0
 
     def build(self, builder):
         log_prefix = builder.log_prefix(self)
         log_output(log_prefix, ['make', 'clean'])
-        log_output(log_prefix, ['make'])
+        log_output(log_prefix, ['make','CFLAG_EXTRA="-mmacosx-version-min=10.14"'])
         crypt_blowfish_include_dir = os.path.join(builder.prefix_include, 'crypt_blowfish')
         mkdir_if_missing(crypt_blowfish_include_dir)
         # Copy over all the headers into a generic include/ directory.
