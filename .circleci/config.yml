@@ -8,17 +8,31 @@ jobs:
 
     parallelism: 2
 
-    docker:
-      - image: << parameters.docker_image >>
+    # Need docker run with SYS_PTRACE for gcc/Asan address sanitizer to work
+    machine:
+      enabled: true
 
     steps:
-      - checkout:
-          path: /opt/yb-build/thirdparty/checkout
+      - checkout
 
       - run:
           name: Build YugabyteDB third-party dependencies
-          working_directory: /opt/yb-build/thirdparty/checkout
-          command: ./build_and_release.sh
+          command: |
+            df -H .
+            checkout_dir=$PWD
+            echo "Building in directory: $checkout_dir"
+            echo "YB_BUILD_THIRDPARTY_EXTRA_ARGS=${YB_BUILD_THIRDPARTY_EXTRA_ARGS:-undefined}"
+            docker run -t \
+              --cap-add=SYS_PTRACE \
+              -e GITHUB_TOKEN \
+              -e YB_BUILD_THIRDPARTY_EXTRA_ARGS \
+              -e CIRCLE_PULL_REQUEST \
+              "--mount=type=bind,src=$checkout_dir,dst=/opt/yb-build/thirdparty/checkout" \
+              << parameters.docker_image >> \
+              bash -c "
+                cd /opt/yb-build/thirdparty/checkout
+                ./build_and_release.sh
+              "
 
 workflows:
   build-release:
