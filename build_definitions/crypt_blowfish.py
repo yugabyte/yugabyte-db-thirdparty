@@ -33,10 +33,7 @@ class CryptBlowfishDependency(Dependency):
     def build(self, builder):
         log_prefix = builder.log_prefix(self)
         log_output(log_prefix, ['make', 'clean'])
-        if is_mac():
-            log_output(log_prefix, ['make', 'CFLAG_EXTRA="-mmacosx-version-min=10.14"'])
-        else:
-            log_output(log_prefix, ['make'])
+        log_output(log_prefix, ['make'])
         crypt_blowfish_include_dir = os.path.join(builder.prefix_include, 'crypt_blowfish')
         mkdir_if_missing(crypt_blowfish_include_dir)
         # Copy over all the headers into a generic include/ directory.

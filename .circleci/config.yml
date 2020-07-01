@@ -8,7 +8,7 @@ jobs:
 
     parallelism: 2
 
-    # Need docker run with SYS_PTRACE for gcc/Asan address sanitizer to work
+    # Need docker run with SYS_PTRACE for address sanitizer to work
     machine:
       enabled: true
 
