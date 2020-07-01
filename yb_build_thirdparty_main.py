@@ -604,7 +604,6 @@ class Builder:
         self.ld_flags = []
         self.compiler_flags = []
         self.c_flags = []
-        self.extrac_flags = []
         self.cxx_flags = []
         self.libs = []
 
@@ -631,8 +630,7 @@ class Builder:
             self.cxx_flags.append("-stdlib=libc++")
             self.libs += ["-lc++", "-lc++abi"]
             # Build for macOS Mojave or later. See https://bit.ly/37myHbk
-            self.cxx_flags.append("-mmacosx-version-min=10.14")
-            self.extrac_flags.append("-mmacosx-version-min=10.14")
+            self.compiler_flags.append("-mmacosx-version-min=10.14")
         else:
             fatal("Unsupported platform: {}".format(platform.system()))
         # The C++ standard must match CMAKE_CXX_STANDARD our top-level CMakeLists.txt.
@@ -816,7 +814,6 @@ class Builder:
                 self.compiler_flags + self.cxx_flags + dep_additional_cxx_flags)
         os.environ["CFLAGS"] = " ".join(
                 self.compiler_flags + self.c_flags + dep_additional_c_flags)
-        os.environ["EXTRA_CFLAGS"] = " ".join(self.extrac_flags)
         os.environ["LDFLAGS"] = " ".join(self.ld_flags)
         os.environ["LIBS"] = " ".join(self.libs)
 
