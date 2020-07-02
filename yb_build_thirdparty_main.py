@@ -630,7 +630,7 @@ class Builder:
             self.cxx_flags.append("-stdlib=libc++")
             self.libs += ["-lc++", "-lc++abi"]
             # Build for macOS Mojave or later. See https://bit.ly/37myHbk
-            self.cxx_flags.append("-mmacosx-version-min=10.14")
+            self.compiler_flags.append("-mmacosx-version-min=10.14")
         else:
             fatal("Unsupported platform: {}".format(platform.system()))
         # The C++ standard must match CMAKE_CXX_STANDARD our top-level CMakeLists.txt.

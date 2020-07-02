@@ -46,7 +46,7 @@ BUILD_TYPES = [BUILD_TYPE_COMMON, BUILD_TYPE_UNINSTRUMENTED, BUILD_TYPE_CLANG_UN
                BUILD_TYPE_ASAN, BUILD_TYPE_TSAN]
 
 
-TAR_EXTRACT = 'tar xf {}'
+TAR_EXTRACT = 'tar --no-same-owner -xf {}'
 # -o -- force overwriting existing files
 ZIP_EXTRACT = 'unzip -q -o {}'
 ARCHIVE_TYPES = {

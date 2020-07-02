@@ -1,6 +1,14 @@
-version: 2
+version: 2.1
+
 jobs:
   build:
+    parameters:
+      docker_image:
+        type: string
+
+    parallelism: 2
+
+    # Need docker run with SYS_PTRACE for address sanitizer to work
     machine:
       enabled: true
 
@@ -10,7 +18,6 @@ jobs:
       - run:
           name: Build YugabyteDB third-party dependencies
           command: |
-            pwd
             df -H .
             checkout_dir=$PWD
             echo "Building in directory: $checkout_dir"
@@ -21,8 +28,18 @@ jobs:
               -e YB_BUILD_THIRDPARTY_EXTRA_ARGS \
               -e CIRCLE_PULL_REQUEST \
               "--mount=type=bind,src=$checkout_dir,dst=/opt/yb-build/thirdparty/checkout" \
-              yugabyteci/yb_build_infra_centos7:v2020-06-03T06_49_38 \
+              << parameters.docker_image >> \
               bash -c "
                 cd /opt/yb-build/thirdparty/checkout
-                sudo -E -u yugabyteci ./build_and_release.sh
+                ./build_and_release.sh
               "
+
+workflows:
+  build-release:
+    jobs:
+      - build:
+          name: build-centos
+          docker_image: yugabyteci/yb_build_infra_centos7:v2020-06-03T06_49_38
+      - build:
+          name: build-ubuntu
+          docker_image: yugabyteci/yb_build_infra_ubuntu1804:v2020-06-10T22_57_55

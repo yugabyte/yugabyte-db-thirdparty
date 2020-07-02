@@ -27,6 +27,8 @@ class CryptBlowfishDependency(Dependency):
                 'https://github.com/YugaByte/crypt_blowfish/archive/{0}.tar.gz',
                 BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = True
+        self.patches = ['crypt_blowfish-makefile-cflags.patch']
+        self.patch_strip = 0
 
     def build(self, builder):
         log_prefix = builder.log_prefix(self)
