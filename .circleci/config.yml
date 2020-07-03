@@ -6,8 +6,6 @@ jobs:
       docker_image:
         type: string
 
-    parallelism: 2
-
     # Need docker run with SYS_PTRACE for address sanitizer to work
     machine:
       enabled: true
