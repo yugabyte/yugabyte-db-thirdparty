@@ -22,8 +22,10 @@ from build_definitions import *
 class LibEditDependency(Dependency):
     def __init__(self):
         super(LibEditDependency, self).__init__(
-                'libedit', '20191231-3.1', 'https://thrysoee.dk/editline/libedit-{0}.tar.gz',
-                BUILD_GROUP_COMMON)
+              'libedit',
+              '20191231-3.1',
+              'https://github.com/yugabyte/libedit/archive/libedit-{}.tar.gz',
+              BUILD_GROUP_COMMON)
         self.copy_sources = True
 
     def build(self, builder):
