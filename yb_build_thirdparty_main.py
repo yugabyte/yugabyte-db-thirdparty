@@ -112,6 +112,7 @@ class Builder:
             build_definitions.flex.FlexDependency(),
             build_definitions.bison.BisonDependency(),
             build_definitions.icu4c.Icu4cDependency(),
+            build_definitions.libedit.LibEditDependency(),
         ]
 
         if is_linux():
