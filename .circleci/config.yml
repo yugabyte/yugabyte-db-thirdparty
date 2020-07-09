@@ -40,4 +40,4 @@ workflows:
           docker_image: yugabyteci/yb_build_infra_centos7:v2020-06-03T06_49_38
       - build:
           name: build-ubuntu
-          docker_image: yugabyteci/yb_build_infra_ubuntu1804:v2020-06-10T22_57_55
+          docker_image: yugabyteci/yb_build_infra_ubuntu1804:v2020-07-08T16_07_12
