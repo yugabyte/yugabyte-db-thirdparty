@@ -1048,7 +1048,7 @@ class LibTestLinux(LibTestBase):
     def good_libs(self, file_path):
         try:
             libout = subprocess.check_output(['ldd', file_path],
-                                             stderr=subprocess.STDOUT).decode('utf-8')
+                                             stderr=subprocess.STDOUT, env={'LC_ALL': 'en_US.UTF-8'}).decode('utf-8')
         except subprocess.CalledProcessError as ex:
             if ex.returncode > 1:
                 log("Unexpected exit code %d from ldd, file %s", ex.returncode, file_path)
