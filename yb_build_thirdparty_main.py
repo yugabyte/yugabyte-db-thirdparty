@@ -195,13 +195,21 @@ class Builder:
                             action='store_true')
         parser.add_argument('--skip',
                             help='Dependencies to skip')
-        parser.add_argument('dependencies',
-            nargs=argparse.REMAINDER, help='Dependencies to build.')
+        parser.add_argument(
+            '--custom-llvm-prefix',
+            help='Use a pre-built version of LLVM/Clang instead of trying to build it. '
+                 'This is the installation directory, not the build directory, of LLVM/Clang. '
+                 'We expect clang and clang++ executables to be in the bin subdirectory of this. '
+                 'In this mode, we will build all dependencies with Clang. We will still build '
+                 'ASAN/TSAN instrumented versions of libc++ and other dependencies.')
+
         parser.add_argument('-j', '--make-parallelism',
                             help='How many cores should the build use. This is passed to '
                                  'Make/Ninja child processes. This can also be specified using the '
                                  'YB_MAKE_PARALLELISM environment variable.',
                             type=int)
+        parser.add_argument('dependencies',
+            nargs=argparse.REMAINDER, help='Dependencies to build.')
         self.args = parser.parse_args()
 
         if self.args.dependencies and self.args.skip:
@@ -233,6 +241,14 @@ class Builder:
         if self.args.make_parallelism:
             os.environ['YB_MAKE_PARALLELISM'] = str(self.args.make_parallelism)
 
+        # Validate the supplied LLVM/Clang installation directory.
+        self.custom_llvm_prefix = self.args.custom_llvm_prefix
+        if self.custom_llvm_prefix:
+            for clang_compiler_name in ['clang', 'clang++']:
+                compiler_path = os.path.join(self.custom_llvm_prefix, 'bin', clang_compiler_name)
+                if not os.path.exists(compiler_path):
+                    raise ValueError('Compiler not found at %s' % compiler_path)
+
     def run(self):
         self.set_compiler('clang' if is_mac() else 'gcc')
         if self.args.clean:
@@ -258,6 +274,8 @@ class Builder:
     def find_compiler_by_type(self, compiler_type):
         compilers = None
         if compiler_type == 'gcc':
+            if self.custom_llvm_prefix:
+                raise ValueError('Not allowed to use GCC in the Clang-only mode')
             compilers = self.find_gcc()
         elif compiler_type == 'gcc8':
             compilers = self.find_gcc8()
@@ -1047,8 +1065,9 @@ class LibTestLinux(LibTestBase):
 
     def good_libs(self, file_path):
         try:
-            libout = subprocess.check_output(['ldd', file_path],
-                                             stderr=subprocess.STDOUT, env={'LC_ALL': 'en_US.UTF-8'}).decode('utf-8')
+            libout = subprocess.check_output(
+                ['ldd', file_path],
+                stderr=subprocess.STDOUT, env={'LC_ALL': 'en_US.UTF-8'}).decode('utf-8')
         except subprocess.CalledProcessError as ex:
             if ex.returncode > 1:
                 log("Unexpected exit code %d from ldd, file %s", ex.returncode, file_path)
@@ -1073,6 +1092,8 @@ def main():
     builder.init()
     builder.run()
 
+    # Check that the executables and libraries we have built don't depend on any unexpected dynamic
+    # libraries installed on this system.
     if is_mac():
         tester = LibTestMac()
     elif is_linux():

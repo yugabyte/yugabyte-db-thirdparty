@@ -42,8 +42,12 @@ BUILD_TYPE_TSAN = 'tsan'
 BUILD_TYPE_CLANG_UNINSTRUMENTED = 'clang_uninstrumented'
 # BUILD_TYPE_GCC8_UNINSTRUMENTED has been temporarily removed, since it relies on broken Linuxbrew
 # distribution. See https://github.com/yugabyte/yugabyte-db/issues/3044#issuecomment-560639105
-BUILD_TYPES = [BUILD_TYPE_COMMON, BUILD_TYPE_UNINSTRUMENTED, BUILD_TYPE_CLANG_UNINSTRUMENTED,
-               BUILD_TYPE_ASAN, BUILD_TYPE_TSAN]
+BUILD_TYPES = [
+    BUILD_TYPE_COMMON,
+    BUILD_TYPE_UNINSTRUMENTED,
+    BUILD_TYPE_CLANG_UNINSTRUMENTED,
+    BUILD_TYPE_ASAN,
+    BUILD_TYPE_TSAN]
 
 
 TAR_EXTRACT = 'tar --no-same-owner -xf {}'
@@ -232,6 +236,7 @@ class ExtraDownload(object):
         self.dir_name = dir_name
         if post_exec is not None:
             self.post_exec = post_exec
+
 
 class PushDir:
     def __init__(self, dir_name):
