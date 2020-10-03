@@ -15,18 +15,20 @@
 import os
 import sys
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from yugabyte_db_thirdparty.builder_interface import BuilderInterface
+from build_definitions import *  # noqa
 
-from build_definitions import *
 
 class GFlagsDependency(Dependency):
-    def __init__(self):
+    def __init__(self) -> None:
         super(GFlagsDependency, self).__init__(
-                'gflags', '2.1.2', 'https://github.com/gflags/gflags/archive/v{0}.tar.gz',
-                BUILD_GROUP_INSTRUMENTED)
+            name='gflags',
+            version='2.1.2',
+            url_pattern='https://github.com/gflags/gflags/archive/v{0}.tar.gz',
+            build_group=BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = False
 
-    def build(self, builder):
+    def build(self, builder: BuilderInterface) -> None:
         builder.build_with_cmake(self,
                                  ['-DCMAKE_BUILD_TYPE=Release',
                                   '-DCMAKE_POSITION_INDEPENDENT_CODE=On',

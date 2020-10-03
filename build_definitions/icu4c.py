@@ -16,27 +16,29 @@ import os
 import sys
 import glob
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from yugabyte_db_thirdparty.builder_interface import BuilderInterface
+from build_definitions import *  # noqa
 
-from build_definitions import *
 
 class Icu4cDependency(Dependency):
     VERSION_MAJOR = 67
     VERSION_MINOR = 1
     VERSION_WITH_UNDERSCORE = '%d_%d' % (VERSION_MAJOR, VERSION_MINOR)
     VERSION_WITH_DASH = '%d-%d' % (VERSION_MAJOR, VERSION_MINOR)
+    CUSTOM_URL_PATTERN = \
+        'http://github.com/unicode-org/icu/releases/download/release-%s/icu4c-%s-src.tgz'
 
-    def __init__(self):
+    def __init__(self) -> None:
         super(Icu4cDependency, self).__init__(
-            'icu4c',
-            Icu4cDependency.VERSION_WITH_UNDERSCORE,
-            'http://github.com/unicode-org/icu/releases/download/release-%s/icu4c-%s-src.tgz' % (
+            name='icu4c',
+            version=Icu4cDependency.VERSION_WITH_UNDERSCORE,
+            url_pattern=Icu4cDependency.CUSTOM_URL_PATTERN % (
                 Icu4cDependency.VERSION_WITH_DASH,
                 Icu4cDependency.VERSION_WITH_UNDERSCORE),
-            BUILD_GROUP_COMMON)
+            build_group=BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = True
 
-    def build(self, builder):
+    def build(self, builder: BuilderInterface) -> None:
         configure_extra_args = [
             '--disable-samples',
             '--disable-tests',
@@ -45,9 +47,10 @@ class Icu4cDependency(Dependency):
         ]
 
         builder.build_with_configure(
-                builder.log_prefix(self),
-                source_subdir='source',
-                extra_args=configure_extra_args)
+            log_prefix=builder.log_prefix(self),
+            src_subdir_name='source',
+            extra_args=configure_extra_args
+        )
 
         if is_mac():
             lib_dir = os.path.realpath(os.path.join(builder.prefix, "lib"))
@@ -79,7 +82,7 @@ class Icu4cDependency(Dependency):
                             ])
                         else:
                             log("Making %s refer to %s using @loader_path",
-                                 icu_lib, dependency_name)
+                                icu_lib, dependency_name)
                             subprocess.check_call([
                                 'install_name_tool',
                                 '-change',

@@ -16,24 +16,29 @@ import os
 import subprocess
 import sys
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from yugabyte_db_thirdparty.builder_interface import BuilderInterface
+from build_definitions import *  # noqa
 
-from build_definitions import *
 
 class SnappyDependency(Dependency):
-    def __init__(self):
+    def __init__(self) -> None:
         super(SnappyDependency, self).__init__(
-                'snappy', '1.1.3', 'https://github.com/google/snappy/archive/{0}.tar.gz',
-                BUILD_GROUP_INSTRUMENTED)
+            name='snappy',
+            version='1.1.3',
+            url_pattern='https://github.com/google/snappy/archive/{0}.tar.gz',
+            build_group=BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = True
         self.patch_version = 1
         self.patch_strip = 1
         self.patches = ['snappy-define-guard-macro.patch']
         self.post_patch = ['autoreconf', '-fvi']
 
-    def build(self, builder):
+    def build(self, builder: BuilderInterface) -> None:
         log_prefix = builder.log_prefix(self)
-        builder.build_with_configure(log_prefix, ['--with-pic'])
+        builder.build_with_configure(
+            log_prefix=log_prefix,
+            extra_args=['--with-pic']
+        )
         # Copy over all the headers into a generic include/ directory.
         mkdir_if_missing('include')
         subprocess.check_call('ls | egrep "snappy.*.h" | xargs -I{} rsync -av "{}" "include/"',

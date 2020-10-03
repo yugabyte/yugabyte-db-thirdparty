@@ -15,13 +15,13 @@
 import os
 import sys
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from yugabyte_db_thirdparty.builder_interface import BuilderInterface
+from build_definitions import *  # noqa
 
-from build_definitions import *
 
 # C++ Cassandra driver
 class CassandraCppDriverDependency(Dependency):
-    def __init__(self):
+    def __init__(self) -> None:
         super(CassandraCppDriverDependency, self).__init__(
                 'cassandra-cpp-driver', '2.9.0-yb-8',
                 'https://github.com/YugaByte/cassandra-cpp-driver/archive/{0}.tar.gz',
@@ -30,9 +30,11 @@ class CassandraCppDriverDependency(Dependency):
         self.patch_version = 0
         self.patch_strip = 1
 
-    def build(self, builder):
+    def build(self, builder: BuilderInterface) -> None:
         cxx_flags = []
         if not is_mac():
+            # TODO: this will modify rpath and flags not just for this dependency but for all
+            #       dependencies that are built after it as well.
             builder.prepend_rpath(os.path.join(builder.tp_installed_common_dir, "lib"))
             cxx_flags = builder.compiler_flags + builder.cxx_flags + builder.ld_flags
             builder.add_checked_flag(cxx_flags, '-Wno-error=implicit-fallthrough')
@@ -51,17 +53,20 @@ class CassandraCppDriverDependency(Dependency):
         else:
             log("File does not exist, maybe already removed: %s", find_openssl_cmake_module_path)
 
-        builder.build_with_cmake(
-                self,
-                ['-DCMAKE_BUILD_TYPE={}'.format(builder.cmake_build_type()),
-                 '-DCMAKE_POSITION_INDEPENDENT_CODE=On',
-                 '-DCMAKE_INSTALL_PREFIX={}'.format(builder.prefix),
-                 '-DBUILD_SHARED_LIBS=On'] +
-                (['-DCMAKE_CXX_FLAGS=' + ' '.join(cxx_flags)] if not is_mac() else []) +
-                    builder.get_openssl_related_cmake_args())
+        cmake_args = [
+            '-DCMAKE_BUILD_TYPE={}'.format(builder.cmake_build_type_for_test_only_dependencies()),
+            '-DCMAKE_POSITION_INDEPENDENT_CODE=On',
+            '-DCMAKE_INSTALL_PREFIX={}'.format(builder.prefix),
+            '-DBUILD_SHARED_LIBS=On'
+        ] + (
+            ['-DCMAKE_CXX_FLAGS=' + ' '.join(cxx_flags)] if not is_mac() else []
+        ) + (
+            builder.get_openssl_related_cmake_args()
+        )
+        builder.build_with_cmake(self, cmake_args)
 
         if is_mac():
-          lib_file = 'libcassandra.' + builder.dylib_suffix
-          path = os.path.join(builder.prefix_lib, lib_file)
-          log_output(builder.log_prefix(self),
-                     ['install_name_tool', '-id', '@rpath/' + lib_file, path])
+            lib_file = 'libcassandra.' + builder.dylib_suffix
+            path = os.path.join(builder.prefix_lib, lib_file)
+            log_output(builder.log_prefix(self),
+                       ['install_name_tool', '-id', '@rpath/' + lib_file, path])

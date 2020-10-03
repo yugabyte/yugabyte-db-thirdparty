@@ -15,21 +15,23 @@
 import os
 import sys
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from yugabyte_db_thirdparty.builder_interface import BuilderInterface
+from build_definitions import *  # noqa
 
-from build_definitions import *
 
 class CRCUtilDependency(Dependency):
-    def __init__(self):
+    def __init__(self) -> None:
         super(CRCUtilDependency, self).__init__(
-                'crcutil', '440ba7babeff77ffad992df3a10c767f184e946e', None,
-                BUILD_GROUP_INSTRUMENTED)
+            name='crcutil',
+            version='440ba7babeff77ffad992df3a10c767f184e946e',
+            url_pattern=None,
+            build_group=BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = True
         self.patch_version = 2
         self.patch_strip = 0
         self.patches = ['crcutil-fix-libtoolize-on-osx.patch', 'crcutil-fix-offsetof.patch']
 
-    def get_additional_c_cxx_flags(self, builder):
+    def get_additional_c_cxx_flags(self, builder: BuilderInterface) -> List[str]:
         if builder.building_with_clang():
             return []
         # -mcrc32 (https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html)
@@ -38,7 +40,9 @@ class CRCUtilDependency(Dependency):
         # instruction.
         return ['-mcrc32']
 
-    def build(self, builder):
+    def build(self, builder: BuilderInterface) -> None:
         log_prefix = builder.log_prefix(self)
         log_output(log_prefix, ['./autogen.sh'])
-        builder.build_with_configure(log_prefix)
+        builder.build_with_configure(
+            log_prefix=log_prefix
+        )

@@ -15,25 +15,30 @@
 import os
 import sys
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from yugabyte_db_thirdparty.builder_interface import BuilderInterface
+from build_definitions import *  # noqa
 
-from build_definitions import *
 
 class IncludeWhatYouUseDependency(Dependency):
-    def __init__(self):
+    URL_PATTERN = 'https://github.com/include-what-you-use/include-what-you-use/archive/{0}.tar.gz'
+
+    def __init__(self) -> None:
         super(IncludeWhatYouUseDependency, self).__init__(
-                'include-what-you-use', '0.11',
-                'https://github.com/include-what-you-use/include-what-you-use/archive/{0}.tar.gz',
-                BUILD_GROUP_COMMON)
+            name='include-what-you-use',
+            version='0.11',
+            url_pattern=IncludeWhatYouUseDependency.URL_PATTERN,
+            build_group=BUILD_GROUP_COMMON)
         self.copy_sources = True
 
-    def build(self, builder):
-        builder.build_with_cmake(self,
-                                 ['-DCMAKE_BUILD_TYPE=release',
-                                  '-DBUILD_TOOLS=0',
-                                  '-DCMAKE_PREFIX_PATH='.format(builder.prefix),
-                                  '-DCMAKE_INSTALL_PREFIX:PATH={}'.format(builder.prefix)])
+    def build(self, builder: BuilderInterface) -> None:
+        builder.build_with_cmake(
+            self,
+            [
+                '-DCMAKE_BUILD_TYPE=release',
+                '-DBUILD_TOOLS=0',
+                '-DCMAKE_PREFIX_PATH={}'.format(builder.prefix),
+                '-DCMAKE_INSTALL_PREFIX:PATH={}'.format(builder.prefix)
+            ])
 
-
-    def should_build(self, builder):
+    def should_build(self, builder: BuilderInterface) -> bool:
         return builder.will_need_clang()

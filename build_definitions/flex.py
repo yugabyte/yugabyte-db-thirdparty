@@ -15,17 +15,21 @@
 import os
 import sys
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from yugabyte_db_thirdparty.builder_interface import BuilderInterface
+from build_definitions import *  # noqa
 
-from build_definitions import *
 
 class FlexDependency(Dependency):
-    def __init__(self):
+    def __init__(self) -> None:
         super(FlexDependency, self).__init__(
-                'flex', '2.6.3',
-                'https://github.com/westes/flex/releases/download/v{0}/flex-{0}.tar.gz',
-                BUILD_GROUP_COMMON)
+            name='flex',
+            version='2.6.3',
+            url_pattern='https://github.com/westes/flex/releases/download/v{0}/flex-{0}.tar.gz',
+            build_group=BUILD_GROUP_COMMON)
         self.copy_sources = True
 
-    def build(self, builder):
-        builder.build_with_configure(builder.log_prefix(self), ['--with-pic'])
+    def build(self, builder: BuilderInterface) -> None:
+        builder.build_with_configure(
+            log_prefix=builder.log_prefix(self),
+            extra_args=['--with-pic']
+        )

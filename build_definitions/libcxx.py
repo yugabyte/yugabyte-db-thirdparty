@@ -16,38 +16,50 @@ import os
 import multiprocessing
 import subprocess
 import sys
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from build_definitions import *
 import build_definitions.llvm
 
+from yugabyte_db_thirdparty.builder_interface import BuilderInterface
+from build_definitions import *  # noqa
+
+
 class LibCXXDependency(Dependency):
-    def __init__(self):
+    def __init__(self) -> None:
         super(LibCXXDependency, self).__init__(
-                'libcxx', build_definitions.llvm.LLVMDependency.VERSION, 'mkdir',
-                BUILD_GROUP_INSTRUMENTED)
+            name='libcxx',
+            version=build_definitions.llvm.LLVMDependency.VERSION,
+            # This is a special "URL pattern" we support.
+            url_pattern='mkdir',
+            build_group=BUILD_GROUP_INSTRUMENTED)
 
         url_prefix = "http://releases.llvm.org/{0}/"
 
         self.extra_downloads = [
-            ExtraDownload('llvm', self.version, url_prefix + 'llvm-{0}.src.tar.xz',
-                          'temp',
-                          [
-                              ['rm', '-rf', '../llvm'],
-                              ['mv', 'llvm-{}.src'.format(self.version), '../llvm']
-                          ]),
-            ExtraDownload('libcxx', self.version, url_prefix + 'libcxx-{0}.src.tar.xz',
-                          'temp',
-                          ['mv', 'libcxx-{}.src'.format(self.version), '../llvm/projects/libcxx']),
-            ExtraDownload('libcxxabi', self.version, url_prefix + 'libcxxabi-{0}.src.tar.xz',
-                          'temp',
-                          ['mv', 'libcxxabi-{}.src'.format(self.version),
+            ExtraDownload(
+                name='llvm',
+                version=self.version,
+                url_pattern=url_prefix + 'llvm-{0}.src.tar.xz',
+                dir_name='temp',
+                post_exec=[
+                    ['rm', '-rf', '../llvm'],
+                    ['mv', 'llvm-{}.src'.format(self.version), '../llvm']
+                ]),
+            ExtraDownload(
+                name='libcxx',
+                version=self.version,
+                url_pattern=url_prefix + 'libcxx-{0}.src.tar.xz',
+                dir_name='temp',
+                post_exec=['mv', 'libcxx-{}.src'.format(self.version), '../llvm/projects/libcxx']),
+            ExtraDownload(
+                name='libcxxabi',
+                version=self.version,
+                url_pattern=url_prefix + 'libcxxabi-{0}.src.tar.xz',
+                dir_name='temp',
+                post_exec=['mv', 'libcxxabi-{}.src'.format(self.version),
                            '../llvm/projects/libcxxabi']),
         ]
         self.copy_sources = False
 
-    def build(self, builder):
+    def build(self, builder: BuilderInterface) -> None:
         log_prefix = builder.log_prefix(self)
         prefix = os.path.join(builder.prefix, 'libcxx')
         os.environ["YB_REMOTE_COMPILATION"] = "0"
@@ -68,7 +80,8 @@ class LibCXXDependency(Dependency):
             args.append("-DLLVM_USE_SANITIZER=Thread")
 
         log_output(log_prefix, args)
-        log_output(log_prefix,
+        log_output(
+                log_prefix,
                 ['make', '-j{}'.format(multiprocessing.cpu_count()), 'install-libcxxabi',
                  'install-libcxx'])
 
@@ -77,5 +90,5 @@ class LibCXXDependency(Dependency):
                 "cp projects/libcxx/include/c++build/* {}/include/c++/v1".format(prefix),
                 shell=True)
 
-    def should_build(self, builder):
+    def should_build(self, builder: BuilderInterface) -> bool:
         return builder.building_with_clang()

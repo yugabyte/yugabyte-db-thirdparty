@@ -15,18 +15,24 @@
 import os
 import sys
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from yugabyte_db_thirdparty.builder_interface import BuilderInterface
+from build_definitions import *  # noqa
 
-from build_definitions import *
 
 class LibUnwindDependency(Dependency):
-    def __init__(self):
+    def __init__(self) -> None:
         super(LibUnwindDependency, self).__init__(
-                'libunwind', '1.1a', None, BUILD_GROUP_COMMON)
+            name='libunwind',
+            version='1.1a',
+            url_pattern=None,
+            build_group=BUILD_GROUP_COMMON)
         self.copy_sources = True
 
-    def build(self, builder):
+    def build(self, builder: BuilderInterface) -> None:
         # Disable minidebuginfo, which depends on liblzma, until/unless we decide to
         # add liblzma to thirdparty.
         log_prefix = builder.log_prefix(self)
-        builder.build_with_configure(log_prefix, ['--with-pic', '--disable-minidebuginfo'])
+        builder.build_with_configure(
+            log_prefix=log_prefix,
+            extra_args=['--with-pic', '--disable-minidebuginfo']
+        )
