@@ -15,23 +15,24 @@
 import os
 import sys
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from yugabyte_db_thirdparty.builder_interface import BuilderInterface
+from build_definitions import *  # noqa
 
-from build_definitions import *
 
 class GPerfToolsDependency(Dependency):
-    def __init__(self):
+    def __init__(self) -> None:
         super(GPerfToolsDependency, self).__init__(
-                'gperftools', '2.7',
-                'https://github.com/gperftools/gperftools/releases/download/gperftools-{0}/'
+            name='gperftools',
+            version='2.7',
+            url_pattern='https://github.com/gperftools/gperftools/releases/download/gperftools-{0}/'
                         'gperftools-{0}.tar.gz',
-                BUILD_GROUP_INSTRUMENTED)
+            build_group=BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = True
         self.patch_version = 0
         self.patch_strip = 1
         self.post_patch = ['autoreconf', '-fvi']
 
-    def build(self, builder):
+    def build(self, builder: BuilderInterface) -> None:
         log_prefix = builder.log_prefix(self)
         os.environ["YB_REMOTE_COMPILATION"] = "0"
         log_output(log_prefix, ['./configure', '--prefix={}'.format(builder.prefix),
@@ -39,5 +40,5 @@ class GPerfToolsDependency(Dependency):
         log_output(log_prefix, ['make', 'clean'])
         log_output(log_prefix, ['make', 'install', '-j', '1'])
 
-    def should_build(self, builder):
+    def should_build(self, builder: BuilderInterface) -> bool:
         return builder.is_release_build()

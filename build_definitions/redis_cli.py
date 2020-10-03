@@ -17,19 +17,21 @@ import os
 import sys
 import glob
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from yugabyte_db_thirdparty.builder_interface import BuilderInterface
+from build_definitions import *  # noqa
 
-from build_definitions import *
 
 class RedisCliDependency(Dependency):
-    def __init__(self):
+    def __init__(self) -> None:
         super(RedisCliDependency, self).__init__(
-                'redis_cli', '4.0.1', 'https://github.com/YugaByte/redis/archive/{0}.tar.gz',
-                BUILD_GROUP_COMMON)
+            name='redis_cli',
+            version='4.0.1',
+            url_pattern='https://github.com/YugaByte/redis/archive/{0}.tar.gz',
+            build_group=BUILD_GROUP_COMMON)
         self.dir = 'redis-{}'.format(self.version)
         self.copy_sources = True
 
-    def build(self, builder):
+    def build(self, builder: BuilderInterface) -> None:
         log_prefix = builder.log_prefix(self)
         log_output(log_prefix, ['make', '-j{}'.format(multiprocessing.cpu_count()), 'redis-cli'])
         log_output(log_prefix, ['cp', 'src/redis-cli', builder.prefix_bin])

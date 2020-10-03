@@ -15,18 +15,22 @@
 import os
 import sys
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from yugabyte_db_thirdparty.builder_interface import BuilderInterface
+from build_definitions import *  # noqa
 
-from build_definitions import *
 
 class LibBacktraceDependency(Dependency):
-    def __init__(self):
+    def __init__(self) -> None:
         super(LibBacktraceDependency, self).__init__(
-                'libbacktrace', 'ba79a27ee9a62b1be86d0ddae7614c316b7f6fbb',
-                'https://github.com/yugabyte/libbacktrace/archive/{0}.zip',
-                BUILD_GROUP_INSTRUMENTED)
+            name='libbacktrace',
+            version='ba79a27ee9a62b1be86d0ddae7614c316b7f6fbb',
+            url_pattern='https://github.com/yugabyte/libbacktrace/archive/{0}.zip',
+            build_group=BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = True
 
-    def build(self, builder):
+    def build(self, builder: BuilderInterface) -> None:
         log_prefix = builder.log_prefix(self)
-        builder.build_with_configure(log_prefix, ['--with-pic'])
+        builder.build_with_configure(
+            log_prefix=log_prefix,
+            extra_args=['--with-pic']
+        )

@@ -15,15 +15,20 @@
 import os
 import sys
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from yugabyte_db_thirdparty.builder_interface import BuilderInterface
+from build_definitions import *  # noqa
 
-from build_definitions import *
 
 class ZLibDependency(Dependency):
-    def __init__(self):
+    def __init__(self) -> None:
         super(ZLibDependency, self).__init__(
-                'zlib', '1.2.11', 'https://zlib.net/zlib-{0}.tar.gz', BUILD_GROUP_COMMON)
+            name='zlib',
+            version='1.2.11',
+            url_pattern='https://zlib.net/zlib-{0}.tar.gz',
+            build_group=BUILD_GROUP_COMMON)
         self.copy_sources = True
 
-    def build(self, builder):
-        builder.build_with_configure(builder.log_prefix(self))
+    def build(self, builder: BuilderInterface) -> None:
+        builder.build_with_configure(
+            log_prefix=builder.log_prefix(self)
+        )

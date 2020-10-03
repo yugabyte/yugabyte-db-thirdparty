@@ -15,30 +15,32 @@
 import os
 import sys
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from yugabyte_db_thirdparty.builder_interface import BuilderInterface
+from build_definitions import *  # noqa
 
-from build_definitions import *
 
 class OpenSSLDependency(Dependency):
-    def __init__(self):
+    def __init__(self) -> None:
         super(OpenSSLDependency, self).__init__(
-                'openssl', '1.0.2u',
-                'https://www.openssl.org/source/openssl-{0}.tar.gz',
-                BUILD_GROUP_COMMON)
+            name='openssl',
+            version='1.0.2u',
+            url_pattern='https://www.openssl.org/source/openssl-{0}.tar.gz',
+            build_group=BUILD_GROUP_COMMON)
         self.copy_sources = True
 
-    def build(self, builder):
+    def build(self, builder: BuilderInterface) -> None:
         common_configure_options = ['shared']
         if is_mac():
             # On macOS x86_64, OpenSSL 1.0.2 fails to detect the proper architecture.
             configure_cmd = [
                 '/bin/bash', './Configure', 'darwin64-x86_64-cc'] + common_configure_options
         else:
-            install_path = os.path.join(builder.tp_installed_common_dir,"lib")
+            install_path = os.path.join(builder.tp_installed_common_dir, "lib")
             configure_cmd = ['./config'] + common_configure_options + ['-Wl,-rpath=' + install_path]
 
         builder.build_with_configure(
-                builder.log_prefix(self),
-                configure_cmd=configure_cmd,
-                # https://bit.ly/openssl_install_without_manpages
-                install=['install_sw'])
+            log_prefix=builder.log_prefix(self),
+            configure_cmd=configure_cmd,
+            # https://bit.ly/openssl_install_without_manpages
+            install=['install_sw']
+        )

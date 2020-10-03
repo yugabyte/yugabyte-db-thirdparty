@@ -15,22 +15,26 @@
 import os
 import sys
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from yugabyte_db_thirdparty.builder_interface import BuilderInterface
+from build_definitions import *  # noqa
 
-from build_definitions import *
 
 class LZ4Dependency(Dependency):
-    def __init__(self):
+    def __init__(self) -> None:
         super(LZ4Dependency, self).__init__(
-                'lz4', 'r130', 'https://github.com/lz4/lz4/archive/{0}.tar.gz', BUILD_GROUP_COMMON)
+            name='lz4',
+            version='r130',
+            url_pattern='https://github.com/lz4/lz4/archive/{0}.tar.gz',
+            build_group=BUILD_GROUP_COMMON)
         self.copy_sources = False
         self.patch_version = 1
         self.patch_strip = 1
         self.patches = ['lz4-0001-Fix-cmake-build-to-use-gnu-flags-on-clang.patch']
 
-    def build(self, builder):
-        builder.build_with_cmake(self,
-                                 ['-DCMAKE_BUILD_TYPE=release',
-                                  '-DBUILD_TOOLS=0',
-                                  '-DCMAKE_INSTALL_PREFIX:PATH={}'.format(builder.prefix)],
-                                 src_dir='cmake_unofficial')
+    def build(self, builder: BuilderInterface) -> None:
+        builder.build_with_cmake(
+            self,
+            ['-DCMAKE_BUILD_TYPE=release',
+             '-DBUILD_TOOLS=0',
+             '-DCMAKE_INSTALL_PREFIX:PATH={}'.format(builder.prefix)],
+            src_subdir_name='cmake_unofficial')

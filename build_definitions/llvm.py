@@ -16,34 +16,45 @@ import os
 import subprocess
 import sys
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from yugabyte_db_thirdparty.builder_interface import BuilderInterface
+from build_definitions import *  # noqa
 
-from build_definitions import *
 
 class LLVMDependency(Dependency):
     VERSION = '7.1.0'
 
-    def __init__(self):
-        url_prefix="http://releases.llvm.org/{0}/"
+    def __init__(self) -> None:
+        url_prefix = "http://releases.llvm.org/{0}/"
         super(LLVMDependency, self).__init__(
-                'llvm', LLVMDependency.VERSION, url_prefix + 'llvm-{0}.src.tar.xz',
-                BUILD_GROUP_COMMON)
+            name='llvm',
+            version=LLVMDependency.VERSION,
+            url_pattern=url_prefix + 'llvm-{0}.src.tar.xz',
+            build_group=BUILD_GROUP_COMMON)
         self.dir_name += ".src"
         self.extra_downloads = [
-            ExtraDownload('cfe', self.version, url_prefix + 'cfe-{0}.src.tar.xz',
-                                        'tools', ['mv', 'cfe-{}.src'.format(self.version), 'cfe']),
-            ExtraDownload('compiler-rt', self.version, url_prefix + 'compiler-rt-{0}.src.tar.xz',
-                          'projects',
-                          ['mv', 'compiler-rt-{}.src'.format(self.version), 'compiler-rt']),
             ExtraDownload(
-                'clang-tools-extra', self.version, url_prefix + 'clang-tools-extra-{0}.src.tar.xz',
-                'tools/cfe/tools',
-                ['mv', 'clang-tools-extra-{}.src'.format(self.version), 'extra']),
+                    name='cfe',
+                    version=self.version,
+                    url_pattern=url_prefix + 'cfe-{0}.src.tar.xz',
+                    dir_name='tools',
+                    post_exec=['mv', 'cfe-{}.src'.format(self.version), 'cfe']),
+            ExtraDownload(
+                    name='compiler-rt',
+                    version=self.version,
+                    url_pattern=url_prefix + 'compiler-rt-{0}.src.tar.xz',
+                    dir_name='projects',
+                    post_exec=['mv', 'compiler-rt-{}.src'.format(self.version), 'compiler-rt']),
+            ExtraDownload(
+                    name='clang-tools-extra',
+                    version=self.version,
+                    url_pattern=url_prefix + 'clang-tools-extra-{0}.src.tar.xz',
+                    dir_name='tools/cfe/tools',
+                    post_exec=['mv', 'clang-tools-extra-{}.src'.format(self.version), 'extra']),
         ]
 
         self.copy_sources = False
 
-    def build(self, builder):
+    def build(self, builder: BuilderInterface) -> None:
         prefix = builder.get_prefix('llvm7')
 
         # The LLVM build can fail if a different version is already installed
@@ -51,7 +62,8 @@ class LLVMDependency(Dependency):
         # of the one being built.
         subprocess.check_call(
                 "rm -Rf {0}/include/{{llvm*,clang*}} {0}/lib/lib{{LLVM,LTO,clang}}* {0}/lib/clang/ "
-                        "{0}/lib/cmake/{{llvm,clang}}".format(prefix), shell=True)
+                "{0}/lib/cmake/{{llvm,clang}}".format(prefix),
+                shell=True)
 
         python_executable = which('python')
         if not os.path.exists(python_executable):
@@ -61,20 +73,22 @@ class LLVMDependency(Dependency):
         if '-g' in cxx_flags:
             cxx_flags.remove('-g')
 
+        cmake_args = [
+                '-DCMAKE_BUILD_TYPE=Release',
+                '-DCMAKE_INSTALL_PREFIX={}'.format(prefix),
+                '-DLLVM_INCLUDE_DOCS=OFF',
+                '-DLLVM_INCLUDE_EXAMPLES=OFF',
+                '-DLLVM_INCLUDE_TESTS=OFF',
+                '-DLLVM_INCLUDE_UTILS=OFF',
+                '-DLLVM_TARGETS_TO_BUILD=X86',
+                '-DLLVM_ENABLE_RTTI=ON',
+                '-DCMAKE_CXX_FLAGS={}'.format(" ".join(cxx_flags)),
+                '-DPYTHON_EXECUTABLE={}'.format(python_executable),
+                '-DCLANG_BUILD_EXAMPLES=ON'
+        ]
         builder.build_with_cmake(self,
-                                 ['-DCMAKE_BUILD_TYPE=Release',
-                                  '-DCMAKE_INSTALL_PREFIX={}'.format(prefix),
-                                  '-DLLVM_INCLUDE_DOCS=OFF',
-                                  '-DLLVM_INCLUDE_EXAMPLES=OFF',
-                                  '-DLLVM_INCLUDE_TESTS=OFF',
-                                  '-DLLVM_INCLUDE_UTILS=OFF',
-                                  '-DLLVM_TARGETS_TO_BUILD=X86',
-                                  '-DLLVM_ENABLE_RTTI=ON',
-                                  '-DCMAKE_CXX_FLAGS={}'.format(" ".join(cxx_flags)),
-                                  '-DPYTHON_EXECUTABLE={}'.format(python_executable),
-                                  '-DCLANG_BUILD_EXAMPLES=ON'
-                                 ],
-                                 use_ninja='auto')
+                                 cmake_args,
+                                 use_ninja_if_available=True)
 
         link_path = os.path.join(builder.tp_dir, 'clang-toolchain')
         remove_path(link_path)
@@ -82,5 +96,5 @@ class LLVMDependency(Dependency):
         log("Link %s => %s", link_path, list_dest)
         os.symlink(list_dest, link_path)
 
-    def should_build(self, builder):
+    def should_build(self, builder: BuilderInterface) -> bool:
         return builder.will_need_clang()

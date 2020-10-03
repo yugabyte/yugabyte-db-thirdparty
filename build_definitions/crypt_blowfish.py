@@ -13,24 +13,25 @@
 #
 
 import os
-import subprocess
 import sys
+import subprocess
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from yugabyte_db_thirdparty.builder_interface import BuilderInterface
+from build_definitions import *  # noqa
 
-from build_definitions import *
 
 class CryptBlowfishDependency(Dependency):
-    def __init__(self):
+    def __init__(self) -> None:
         super(CryptBlowfishDependency, self).__init__(
-                'crypt_blowfish', '79ee670d1a2977328c481d6578387928ff92896a',
-                'https://github.com/YugaByte/crypt_blowfish/archive/{0}.tar.gz',
-                BUILD_GROUP_INSTRUMENTED)
+            name='crypt_blowfish',
+            version='79ee670d1a2977328c481d6578387928ff92896a',
+            url_pattern='https://github.com/YugaByte/crypt_blowfish/archive/{0}.tar.gz',
+            build_group=BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = True
         self.patches = ['crypt_blowfish-makefile-cflags.patch']
         self.patch_strip = 0
 
-    def build(self, builder):
+    def build(self, builder: BuilderInterface) -> None:
         log_prefix = builder.log_prefix(self)
         log_output(log_prefix, ['make', 'clean'])
         log_output(log_prefix, ['make'])

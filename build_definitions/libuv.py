@@ -15,22 +15,25 @@
 import os
 import sys
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from yugabyte_db_thirdparty.builder_interface import BuilderInterface
+from build_definitions import *  # noqa
 
-from build_definitions import *
 
 class LibUvDependency(Dependency):
-    def __init__(self):
+    def __init__(self) -> None:
         super(LibUvDependency, self).__init__(
-                'libuv', '1.23.0', 'https://github.com/libuv/libuv/archive/v{0}.tar.gz',
-                BUILD_GROUP_INSTRUMENTED)
+            name='libuv',
+            version='1.23.0',
+            url_pattern='https://github.com/libuv/libuv/archive/v{0}.tar.gz',
+            build_group=BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = True
 
-    def build(self, builder):
+    def build(self, builder: BuilderInterface) -> None:
         builder.build_with_cmake(
             self,
             [
-                '-DCMAKE_BUILD_TYPE={}'.format(builder.cmake_build_type()),
+                '-DCMAKE_BUILD_TYPE={}'.format(
+                    builder.cmake_build_type_for_test_only_dependencies()),
                 '-DCMAKE_POSITION_INDEPENDENT_CODE=On',
                 '-DCMAKE_INSTALL_PREFIX={}'.format(builder.prefix),
                 '-DBUILD_SHARED_LIBS=On'

@@ -15,17 +15,22 @@
 import os
 import sys
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from yugabyte_db_thirdparty.builder_interface import BuilderInterface
+from build_definitions import *  # noqa
 
-from build_definitions import *
 
 class LibEvDependency(Dependency):
-    def __init__(self):
+    def __init__(self) -> None:
         super(LibEvDependency, self).__init__(
-                'libev', '4.27', 'http://dist.schmorp.de/libev/Attic/libev-{0}.tar.gz',
-                BUILD_GROUP_COMMON)
+            name='libev',
+            version='4.27',
+            url_pattern='http://dist.schmorp.de/libev/Attic/libev-{0}.tar.gz',
+            build_group=BUILD_GROUP_COMMON)
         self.copy_sources = True
 
-    def build(self, builder):
+    def build(self, builder: BuilderInterface) -> None:
         log_prefix = builder.log_prefix(self)
-        builder.build_with_configure(log_prefix, ['--with-pic'])
+        builder.build_with_configure(
+            log_prefix=log_prefix,
+            extra_args=['--with-pic']
+        )

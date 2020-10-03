@@ -16,18 +16,20 @@ import os
 import multiprocessing
 import sys
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from yugabyte_db_thirdparty.builder_interface import BuilderInterface
+from build_definitions import *  # noqa
 
-from build_definitions import *
 
 class HiRedisDependency(Dependency):
-    def __init__(self):
+    def __init__(self) -> None:
         super(HiRedisDependency, self).__init__(
-                'hiredis', '0.13.3', "https://github.com/redis/hiredis/archive/v{0}.zip",
-                BUILD_GROUP_COMMON)
+            name='hiredis',
+            version='0.13.3',
+            url_pattern="https://github.com/redis/hiredis/archive/v{0}.zip",
+            build_group=BUILD_GROUP_COMMON)
         self.copy_sources = True
 
-    def build(self, builder):
+    def build(self, builder: BuilderInterface) -> None:
         log_prefix = builder.log_prefix(self)
         jobs = multiprocessing.cpu_count()
         log_output(log_prefix,

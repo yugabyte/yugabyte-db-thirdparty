@@ -16,19 +16,21 @@ import os
 import subprocess
 import sys
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from yugabyte_db_thirdparty.builder_interface import BuilderInterface
+from build_definitions import *  # noqa
 
-from build_definitions import *
 
 class GMockDependency(Dependency):
-    def __init__(self):
+    def __init__(self) -> None:
         super(GMockDependency, self).__init__(
-                'gmock', '1.8.0', 'https://github.com/google/googletest/archive/release-{0}.tar.gz',
-                BUILD_GROUP_INSTRUMENTED)
+            name='gmock',
+            version='1.8.0',
+            url_pattern='https://github.com/google/googletest/archive/release-{0}.tar.gz',
+            build_group=BUILD_GROUP_INSTRUMENTED)
         self.dir = "googletest-release-{}".format(self.version)
         self.copy_sources = False
 
-    def build(self, builder):
+    def build(self, builder: BuilderInterface) -> None:
         self.do_build(builder, 'static')
         log("Installing gmock (static)")
         lib_dir = builder.prefix_lib
@@ -45,7 +47,8 @@ class GMockDependency(Dependency):
         subprocess.check_call(
                 ['rsync', '-av', os.path.join(src_dir, 'googletest', 'include/'), include_dir])
 
-    def do_build(self, builder, mode):
+    def do_build(self, builder: BuilderInterface, mode: str) -> None:
+        assert mode in ['shared', 'static']
         build_dir = os.path.join(os.getcwd(), mode)
         mkdir_if_missing(build_dir)
         cmake_opts = ['-DCMAKE_BUILD_TYPE=Debug',
@@ -57,4 +60,4 @@ class GMockDependency(Dependency):
             builder.build_with_cmake(
                     self,
                     cmake_opts,
-                    install=False)
+                    should_install=False)
