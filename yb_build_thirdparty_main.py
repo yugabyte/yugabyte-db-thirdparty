@@ -95,55 +95,6 @@ class Builder:
         self.src_dir = os.path.dirname(self.tp_dir)
         if not os.path.isdir(self.src_dir):
             fatal('YB src directory "{}" does not exist'.format(self.src_dir))
-        self.build_support_dir = os.path.join(self.src_dir, 'build-support')
-        self.enterprise_root = os.path.join(self.src_dir, 'ent')
-
-        self.dependencies = [
-            build_definitions.zlib.ZLibDependency(),
-            build_definitions.lz4.LZ4Dependency(),
-            build_definitions.openssl.OpenSSLDependency(),
-            build_definitions.libev.LibEvDependency(),
-            build_definitions.rapidjson.RapidJsonDependency(),
-            build_definitions.squeasel.SqueaselDependency(),
-            build_definitions.curl.CurlDependency(),
-            build_definitions.hiredis.HiRedisDependency(),
-            build_definitions.cqlsh.CQLShDependency(),
-            build_definitions.redis_cli.RedisCliDependency(),
-            build_definitions.flex.FlexDependency(),
-            build_definitions.bison.BisonDependency(),
-            build_definitions.icu4c.Icu4cDependency(),
-            build_definitions.libedit.LibEditDependency(),
-        ]
-
-        if is_linux():
-            self.dependencies += [
-                build_definitions.libuuid.LibUuidDependency(),
-                build_definitions.llvm.LLVMDependency(),
-                build_definitions.libcxx.LibCXXDependency(),
-
-                build_definitions.libunwind.LibUnwindDependency(),
-                build_definitions.libbacktrace.LibBacktraceDependency(),
-                build_definitions.include_what_you_use.IncludeWhatYouUseDependency(),
-            ]
-
-        self.dependencies += [
-            build_definitions.protobuf.ProtobufDependency(),
-            build_definitions.crypt_blowfish.CryptBlowfishDependency(),
-            build_definitions.boost.BoostDependency(),
-
-            build_definitions.gflags.GFlagsDependency(),
-            build_definitions.glog.GLogDependency(),
-            build_definitions.gperftools.GPerfToolsDependency(),
-            build_definitions.gmock.GMockDependency(),
-            build_definitions.snappy.SnappyDependency(),
-            build_definitions.crcutil.CRCUtilDependency(),
-            build_definitions.libcds.LibCDSDependency(),
-
-            build_definitions.libuv.LibUvDependency(),
-            build_definitions.cassandra_cpp_driver.CassandraCppDriverDependency(),
-        ]
-
-        self.selected_dependencies = []
 
         self.using_linuxbrew = False
         self.linuxbrew_dir = None
@@ -151,7 +102,6 @@ class Builder:
         self.cxx = None
         self.args = None
 
-        self.detect_linuxbrew()
         self.load_expected_checksums()
 
     def set_compiler(self, compiler_type):
@@ -173,7 +123,7 @@ class Builder:
         os.environ['CC'] = c_compiler
         os.environ['CXX'] = cxx_compiler
 
-    def init(self):
+    def parse_args(self):
         os.environ['YB_IS_THIRDPARTY_BUILD'] = '1'
 
         parser = argparse.ArgumentParser(prog=sys.argv[0])
@@ -216,6 +166,82 @@ class Builder:
             raise ValueError(
                 "--skip is not compatible with specifying a list of dependencies to build")
 
+        if self.args.make_parallelism:
+            os.environ['YB_MAKE_PARALLELISM'] = str(self.args.make_parallelism)
+
+        # Validate the supplied LLVM/Clang installation directory.
+        self.custom_llvm_prefix = self.args.custom_llvm_prefix
+        if self.custom_llvm_prefix:
+            for clang_compiler_name in ['clang', 'clang++']:
+                compiler_path = os.path.join(self.custom_llvm_prefix, 'bin', clang_compiler_name)
+                if not os.path.exists(compiler_path):
+                    raise ValueError('Compiler not found at %s' % compiler_path)
+
+    def use_only_clang(self):
+        return is_mac() or self.custom_llvm_prefix
+
+    def finish_initialization(self):
+        self.detect_linuxbrew()
+        self.populate_dependencies()
+        self.select_dependencies_to_build()
+
+    def populate_dependencies(self):
+        self.dependencies = [
+            build_definitions.zlib.ZLibDependency(),
+            build_definitions.lz4.LZ4Dependency(),
+            build_definitions.openssl.OpenSSLDependency(),
+            build_definitions.libev.LibEvDependency(),
+            build_definitions.rapidjson.RapidJsonDependency(),
+            build_definitions.squeasel.SqueaselDependency(),
+            build_definitions.curl.CurlDependency(),
+            build_definitions.hiredis.HiRedisDependency(),
+            build_definitions.cqlsh.CQLShDependency(),
+            build_definitions.redis_cli.RedisCliDependency(),
+            build_definitions.flex.FlexDependency(),
+            build_definitions.bison.BisonDependency(),
+            build_definitions.icu4c.Icu4cDependency(),
+            build_definitions.libedit.LibEditDependency(),
+        ]
+
+        if is_linux():
+            self.dependencies += [
+                build_definitions.libuuid.LibUuidDependency(),
+            ]
+
+            if not self.custom_llvm_prefix:
+                self.dependencies.append(build_definitions.llvm.LLVMDependency())
+
+            self.dependencies += [
+                build_definitions.libcxx.LibCXXDependency(),
+            ]
+
+            if not self.custom_llvm_prefix:
+                self.dependencies.append(build_definitions.libunwind.LibUnwindDependency())
+            self.dependencies.append(build_definitions.libbacktrace.LibBacktraceDependency())
+
+            if not self.custom_llvm_prefix:
+                self.dependencies.append(
+                    build_definitions.include_what_you_use.IncludeWhatYouUseDependency())
+
+        self.dependencies += [
+            build_definitions.protobuf.ProtobufDependency(),
+            build_definitions.crypt_blowfish.CryptBlowfishDependency(),
+            build_definitions.boost.BoostDependency(),
+
+            build_definitions.gflags.GFlagsDependency(),
+            build_definitions.glog.GLogDependency(),
+            build_definitions.gperftools.GPerfToolsDependency(),
+            build_definitions.gmock.GMockDependency(),
+            build_definitions.snappy.SnappyDependency(),
+            build_definitions.crcutil.CRCUtilDependency(),
+            build_definitions.libcds.LibCDSDependency(),
+
+            build_definitions.libuv.LibUvDependency(),
+            build_definitions.cassandra_cpp_driver.CassandraCppDriverDependency(),
+        ]
+
+    def select_dependencies_to_build(self):
+        self.selected_dependencies = []
         if self.args.dependencies:
             names = set([dep.name for dep in self.dependencies])
             for dep in self.args.dependencies:
@@ -238,19 +264,8 @@ class Builder:
         else:
             self.selected_dependencies = self.dependencies
 
-        if self.args.make_parallelism:
-            os.environ['YB_MAKE_PARALLELISM'] = str(self.args.make_parallelism)
-
-        # Validate the supplied LLVM/Clang installation directory.
-        self.custom_llvm_prefix = self.args.custom_llvm_prefix
-        if self.custom_llvm_prefix:
-            for clang_compiler_name in ['clang', 'clang++']:
-                compiler_path = os.path.join(self.custom_llvm_prefix, 'bin', clang_compiler_name)
-                if not os.path.exists(compiler_path):
-                    raise ValueError('Compiler not found at %s' % compiler_path)
-
     def run(self):
-        self.set_compiler('clang' if is_mac() else 'gcc')
+        self.set_compiler('clang' if self.use_only_clang() else 'gcc')
         if self.args.clean:
             self.clean()
         self.prepare_out_dirs()
@@ -266,7 +281,8 @@ class Builder:
             # GCC8 has been temporarily removed, since it relies on broken Linuxbrew distribution.
             # See https://github.com/yugabyte/yugabyte-db/issues/3044#issuecomment-560639105
             # self.build(BUILD_TYPE_GCC8_UNINSTRUMENTED)
-        self.build(BUILD_TYPE_CLANG_UNINSTRUMENTED)
+        if not self.custom_llvm_prefix:
+            self.build(BUILD_TYPE_CLANG_UNINSTRUMENTED)
         if is_linux() and not self.args.skip_sanitizers:
             self.build(BUILD_TYPE_ASAN)
             self.build(BUILD_TYPE_TSAN)
@@ -274,8 +290,8 @@ class Builder:
     def find_compiler_by_type(self, compiler_type):
         compilers = None
         if compiler_type == 'gcc':
-            if self.custom_llvm_prefix:
-                raise ValueError('Not allowed to use GCC in the Clang-only mode')
+            if self.use_only_clang():
+                raise ValueError('Not allowed to use GCC')
             compilers = self.find_gcc()
         elif compiler_type == 'gcc8':
             compilers = self.find_gcc8()
@@ -322,8 +338,8 @@ class Builder:
 
     def find_clang(self):
         clang_dir = None
-        if 'YB_CLANG_PREFIX' in os.environ:
-            clang_dir = os.environ['YB_CLANG_PREFIX']
+        if self.custom_llvm_prefix:
+            clang_dir = self.custom_llvm_prefix
         else:
             candidate_dirs = [
                 os.path.join(self.tp_dir, 'clang-toolchain'),
@@ -342,7 +358,7 @@ class Builder:
         return os.path.join(clang_bin_dir, 'clang'), os.path.join(clang_bin_dir, 'clang++')
 
     def detect_linuxbrew(self):
-        if not is_linux():
+        if not is_linux() or self.custom_llvm_prefix:
             return
 
         self.linuxbrew_dir = os.getenv('YB_LINUXBREW_DIR')
@@ -619,7 +635,12 @@ class Builder:
                 remove_path(lib64_dir)
             os.symlink('lib', lib64_dir)
 
-    def init_flags(self):
+    def init_compiler_independent_flags(self):
+        """
+        Initialize compiler and linker flags for a particular build type. We try to limit this
+        function to flags that will work for most compilers we are using, which include various
+        versions of GCC and Clang.
+        """
         self.ld_flags = []
         self.compiler_flags = []
         self.c_flags = []
@@ -652,7 +673,8 @@ class Builder:
             self.compiler_flags.append("-mmacosx-version-min=10.14")
         else:
             fatal("Unsupported platform: {}".format(platform.system()))
-        # The C++ standard must match CMAKE_CXX_STANDARD our top-level CMakeLists.txt.
+        # The C++ standard must match CMAKE_CXX_STANDARD in the top-level CMakeLists.txt file in
+        # the YugabyteDB source tree.
         self.cxx_flags.append('-std=c++14')
 
     def add_linuxbrew_flags(self):
@@ -670,6 +692,7 @@ class Builder:
         self.prepend_rpath(lib_dir)
 
     def add_rpath(self, path):
+        log("Adding RPATH: %s", path)
         self.ld_flags.append("-Wl,-rpath,{}".format(path))
 
     def prepend_rpath(self, path):
@@ -685,6 +708,7 @@ class Builder:
             jobs=None,
             configure_cmd=['./configure'],
             install=['install'],
+            run_autogen=False,
             autoconf=False,
             source_subdir=None):
         os.environ["YB_REMOTE_COMPILATION"] = "0"
@@ -694,6 +718,8 @@ class Builder:
 
         with PushDir(dir_for_build):
             log("Building in %s", dir_for_build)
+            if run_autogen:
+                log_output(log_prefix, ['./autogen.sh'])
             if autoconf:
                 log_output(log_prefix, ['autoreconf', '-i'])
 
@@ -746,7 +772,7 @@ class Builder:
                 return
 
         self.set_build_type(build_type)
-        self.setup_compiler()
+        self.init_flags()
         # This is needed at least for glog to be able to find gflags.
         self.add_rpath(os.path.join(self.tp_installed_dir, self.build_type, 'lib'))
         build_group = (
@@ -785,10 +811,31 @@ class Builder:
         log("C compiler: %s", self.get_c_compiler())
         log("C++ compiler: %s", self.get_cxx_compiler())
 
-    def setup_compiler(self):
-        self.init_flags()
+    def init_flags(self):
+        """
+        Initializes compiler and linker flags.
+        """
+        self.init_compiler_independent_flags()
+
         if is_mac() or not self.building_with_clang():
+            # No further special setup is required for Clang on macOS, or for GCC on Linux.
             return
+
+        # -----------------------------------------------------------------------------------------
+        # Special setup for Clang on Linux.
+        # -----------------------------------------------------------------------------------------
+
+        # This is needed for icu4c to find libc++ when building with Clang 10.0.1.
+        if self.custom_llvm_prefix:
+            # TODO: avoid this because a lot of other libraries come in!
+            # Including libunwind which conflicts with thirdparty-supplied libunwind.
+            # We need to probably use the same libunwind that ships with LLVM.
+            # However, more libraries that we don't need that might interfere with something
+            # could be picked up from this directory.
+            # Ideally, we should build libc++ separately (and we'll need that for ASAN/TSAN anyway)
+            # and put it in a separate directory.
+            self.add_rpath(os.path.join(self.custom_llvm_prefix, 'lib'))
+
         if self.build_type == BUILD_TYPE_ASAN:
             self.compiler_flags += ['-fsanitize=address', '-fsanitize=undefined',
                                     '-DADDRESS_SANITIZER']
@@ -796,8 +843,27 @@ class Builder:
             self.compiler_flags += ['-fsanitize=thread', '-DTHREAD_SANITIZER']
         elif self.build_type == BUILD_TYPE_CLANG_UNINSTRUMENTED:
             pass
+        elif (self.build_type in [BUILD_TYPE_COMMON, BUILD_TYPE_UNINSTRUMENTED] and
+              self.custom_llvm_prefix):
+            # 
+            self.ld_flags.extend([
+                '-stdlib=libc++',
+                '-rtlib=compiler-rt'
+            ])
+            # Needed for Cassandra C++ driver.
+            self.cxx_flags.insert(0, '-Wno-error=unused-command-line-argument')
+            self.cxx_flags.insert(0, '-Wno-error=deprecated-declarations')
+            # Building with a custom Clang version. Use the standard library that comes with that
+            # Clang version.
+            return
         else:
-            fatal("Wrong instrumentation type: {}".format(self.build_type))
+            fatal(
+                "Wrong instrumentation type for Clang on Linux: %s. "
+                "Custom LLVM/Clang installationprefix: %s",
+                self.build_type,
+                self.custom_llvm_prefix)
+
+        # This is used to build code with libc++ and Clang 7 built as part of thirdparty.
         stdlib_suffix = self.build_type
         stdlib_path = os.path.join(self.tp_installed_dir, stdlib_suffix, 'libcxx')
         stdlib_include = os.path.join(stdlib_path, 'include', 'c++', 'v1')
@@ -811,6 +877,8 @@ class Builder:
         self.cxx_flags.insert(0, '-Wno-error=unused-command-line-argument')
         self.prepend_lib_dir_and_rpath(stdlib_lib)
         if self.using_linuxbrew:
+            # This is needed when using Clang 7 built with Linuxbrew GCC, which we are still using
+            # as of 10/2020.
             self.compiler_flags.append('--gcc-toolchain={}'.format(self.linuxbrew_dir))
 
     def build_dependency(self, dep):
@@ -936,9 +1004,9 @@ class Builder:
 
     # Returns true if we are using clang to build current build_type.
     def building_with_clang(self):
-        if is_mac():
-            # We only support clang on macOS.
+        if self.use_only_clang():
             return True
+
         return self.build_type == BUILD_TYPE_ASAN or self.build_type == BUILD_TYPE_TSAN or \
                self.build_type == BUILD_TYPE_CLANG_UNINSTRUMENTED
 
@@ -976,6 +1044,7 @@ class Builder:
             '-DOPENSSL_LIBRARIES=%s;%s' % (openssl_crypto_library, openssl_ssl_library)
         ]
         return openssl_options
+
 
 class LibTestBase:
     """
@@ -1089,7 +1158,8 @@ def main():
         log_separator()
 
     builder = Builder()
-    builder.init()
+    builder.parse_args()
+    builder.finish_initialization()
     builder.run()
 
     # Check that the executables and libraries we have built don't depend on any unexpected dynamic
