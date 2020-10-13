@@ -45,7 +45,7 @@ for python_file_path in "${python_files[@]}"; do
   echo >&2
 
   log "Checking coding style in '$python_file_path'"
-  pycodestyle "$python_file_path"
+  pycodestyle "--config=$YB_THIRDPARTY_DIR/pycodestyle.cfg" "$python_file_path"
   echo >&2
 done
 
