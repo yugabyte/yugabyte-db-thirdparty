@@ -23,10 +23,10 @@ import subprocess
 import traceback
 
 
-YELLOW_COLOR="\033[0;33m"
-RED_COLOR="\033[0;31m"
-CYAN_COLOR="\033[0;36m"
-NO_COLOR="\033[0m"
+YELLOW_COLOR = "\033[0;33m"
+RED_COLOR = "\033[0;31m"
+CYAN_COLOR = "\033[0;36m"
+NO_COLOR = "\033[0m"
 SEPARATOR = "-" * 80
 
 
@@ -188,7 +188,7 @@ def make_archive_name(name, version, download_url):
         return '{}-{}{}'.format(name, version, '.tar.gz')
     for ext in ARCHIVE_TYPES:
         if download_url.endswith(ext):
-          return '{}-{}{}'.format(name, version, ext)
+            return '{}-{}{}'.format(name, version, ext)
     return None
 
 

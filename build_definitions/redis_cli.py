@@ -19,7 +19,8 @@ import glob
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from build_definitions import *
+from build_definitions import *  # noqa
+
 
 class RedisCliDependency(Dependency):
     def __init__(self):

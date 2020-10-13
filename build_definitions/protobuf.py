@@ -17,13 +17,14 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from build_definitions import *
+from build_definitions import *  # noqa
+
 
 class ProtobufDependency(Dependency):
     def __init__(self):
         super(ProtobufDependency, self).__init__(
             'protobuf', '3.5.1',
-            'https://github.com/mbautin/protobuf/releases/download/v{0}/protobuf-cpp-{0}.tar.gz',
+            'https://github.com/yugabyte/protobuf/releases/download/v{0}/protobuf-cpp-{0}.tar.gz',
             BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = True
 

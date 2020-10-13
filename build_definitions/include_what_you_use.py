@@ -17,7 +17,8 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from build_definitions import *
+from build_definitions import *  # noqa
+
 
 class IncludeWhatYouUseDependency(Dependency):
     def __init__(self):
@@ -28,12 +29,14 @@ class IncludeWhatYouUseDependency(Dependency):
         self.copy_sources = True
 
     def build(self, builder):
-        builder.build_with_cmake(self,
-                                 ['-DCMAKE_BUILD_TYPE=release',
-                                  '-DBUILD_TOOLS=0',
-                                  '-DCMAKE_PREFIX_PATH='.format(builder.prefix),
-                                  '-DCMAKE_INSTALL_PREFIX:PATH={}'.format(builder.prefix)])
-
+        builder.build_with_cmake(
+            self,
+            [
+                '-DCMAKE_BUILD_TYPE=release',
+                '-DBUILD_TOOLS=0',
+                '-DCMAKE_PREFIX_PATH={}'.format(builder.prefix),
+                '-DCMAKE_INSTALL_PREFIX:PATH={}'.format(builder.prefix)
+            ])
 
     def should_build(self, builder):
         return builder.will_need_clang()

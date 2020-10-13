@@ -16,11 +16,12 @@ import os
 import multiprocessing
 import subprocess
 import sys
+import build_definitions.llvm
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from build_definitions import *
-import build_definitions.llvm
+from build_definitions import *  # noqa
+
 
 class LibCXXDependency(Dependency):
     def __init__(self):
@@ -68,7 +69,8 @@ class LibCXXDependency(Dependency):
             args.append("-DLLVM_USE_SANITIZER=Thread")
 
         log_output(log_prefix, args)
-        log_output(log_prefix,
+        log_output(
+                log_prefix,
                 ['make', '-j{}'.format(multiprocessing.cpu_count()), 'install-libcxxabi',
                  'install-libcxx'])
 

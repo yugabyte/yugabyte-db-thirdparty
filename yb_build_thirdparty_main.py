@@ -27,7 +27,7 @@ import sys
 import time
 from datetime import datetime
 
-from build_definitions import *
+from build_definitions import *  # noqa
 import build_definitions
 import_submodules(build_definitions)
 
@@ -67,6 +67,8 @@ def where_is_program(program_name):
 
 
 g_is_ninja_available = None
+
+
 def is_ninja_available():
     global g_is_ninja_available
     if g_is_ninja_available is None:
@@ -109,7 +111,7 @@ class Builder:
             if compiler_type != 'clang':
                 raise ValueError(
                     "Cannot set compiler type to %s on macOS, only clang is supported" %
-                        compiler_type)
+                    compiler_type)
             self.compiler_type = 'clang'
         else:
             self.compiler_type = compiler_type
@@ -158,8 +160,10 @@ class Builder:
                                  'Make/Ninja child processes. This can also be specified using the '
                                  'YB_MAKE_PARALLELISM environment variable.',
                             type=int)
-        parser.add_argument('dependencies',
-            nargs=argparse.REMAINDER, help='Dependencies to build.')
+        parser.add_argument(
+            'dependencies',
+            nargs=argparse.REMAINDER,
+            help='Dependencies to build.')
         self.args = parser.parse_args()
 
         if self.args.dependencies and self.args.skip:
@@ -446,7 +450,6 @@ class Builder:
             return None
         return os.path.join(self.tp_download_dir, dep.archive_name)
 
-
     def source_path(self, dep):
         return os.path.join(self.tp_src_dir, dep.dir_name)
 
@@ -466,9 +469,8 @@ class Builder:
                     continue
                 sum, fname = line.split(None, 1)
                 if not re.match('^[0-9a-f]{64}$', sum):
-                    fatal("Invalid checksum: '{}' for archive name: '{}' in {}. Expected to be a "
-                                  "SHA-256 sum (64 hex characters)."
-                                  .format(sum, fname, checksum_file))
+                    fatal("Invalid checksum: '%s' for archive name: '%s' in %s. Expected to be a "
+                          "SHA-256 sum (64 hex characters).", sum, fname, checksum_file)
                 self.filename2checksum[fname] = sum
 
     def get_expected_checksum(self, filename, downloaded_path):
@@ -768,8 +770,7 @@ class Builder:
         # This is needed at least for glog to be able to find gflags.
         self.add_rpath(os.path.join(self.tp_installed_dir, self.build_type, 'lib'))
         build_group = (
-            BUILD_GROUP_COMMON if build_type == BUILD_TYPE_COMMON
-                               else BUILD_GROUP_INSTRUMENTED
+            BUILD_GROUP_COMMON if build_type == BUILD_TYPE_COMMON else BUILD_GROUP_INSTRUMENTED
         )
 
         for dep in self.selected_dependencies:
@@ -946,8 +947,8 @@ class Builder:
         for path in input_files_for_stamp:
             abs_path = os.path.join(self.tp_dir, path)
             if not os.path.exists(abs_path):
-                fatal("File '{}' does not exist -- expecting it to exist when creating a 'stamp' " \
-                            "for the build configuration of '{}'.".format(abs_path, dep.name))
+                fatal("File '%s' does not exist -- expecting it to exist when creating a 'stamp' "
+                      "for the build configuration of '%s'.", abs_path, dep.name)
 
         with PushDir(self.tp_dir):
             git_commit_sha1 = subprocess.check_output(
@@ -994,8 +995,11 @@ class Builder:
         if self.use_only_clang():
             return True
 
-        return self.build_type == BUILD_TYPE_ASAN or self.build_type == BUILD_TYPE_TSAN or \
-               self.build_type == BUILD_TYPE_CLANG_UNINSTRUMENTED
+        return self.build_type in [
+            BUILD_TYPE_ASAN,
+            BUILD_TYPE_TSAN,
+            BUILD_TYPE_CLANG_UNINSTRUMENTED
+        ]
 
     # Returns true if we will need clang to complete full thirdparty build, requested by user.
     def will_need_clang(self):
@@ -1106,17 +1110,19 @@ class LibTestLinux(LibTestBase):
     def __init__(self):
         super().__init__()
         self.tool = "ldd"
-        self.lib_re_list = [ "^\tlinux-vdso",
-                            "^\t/lib64/",
-                            "^\t/opt/yb-build/brew/linuxbrew",
-                            "^\tstatically linked",
-                            "^\tnot a dynamic executable",
-                            "ldd: warning: you do not have execution permission",
-                            "^.* => /lib64/",
-                            "^.* => /lib/",
-                            "^.* => /usr/lib/x86_64-linux-gnu/",
-                            "^.* => /opt/yb-build/brew/linuxbrew",
-                            f"^.* => {self.tp_dir}"]
+        self.lib_re_list = [
+            "^\tlinux-vdso",
+            "^\t/lib64/",
+            "^\t/opt/yb-build/brew/linuxbrew",
+            "^\tstatically linked",
+            "^\tnot a dynamic executable",
+            "ldd: warning: you do not have execution permission",
+            "^.* => /lib64/",
+            "^.* => /lib/",
+            "^.* => /usr/lib/x86_64-linux-gnu/",
+            "^.* => /opt/yb-build/brew/linuxbrew",
+            f"^.* => {self.tp_dir}"
+        ]
 
     def good_libs(self, file_path):
         try:

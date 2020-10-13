@@ -18,27 +18,37 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from build_definitions import *
+from build_definitions import *  # noqa
+
 
 class LLVMDependency(Dependency):
     VERSION = '7.1.0'
 
     def __init__(self):
-        url_prefix="http://releases.llvm.org/{0}/"
+        url_prefix = "http://releases.llvm.org/{0}/"
         super(LLVMDependency, self).__init__(
                 'llvm', LLVMDependency.VERSION, url_prefix + 'llvm-{0}.src.tar.xz',
                 BUILD_GROUP_COMMON)
         self.dir_name += ".src"
         self.extra_downloads = [
-            ExtraDownload('cfe', self.version, url_prefix + 'cfe-{0}.src.tar.xz',
-                                        'tools', ['mv', 'cfe-{}.src'.format(self.version), 'cfe']),
-            ExtraDownload('compiler-rt', self.version, url_prefix + 'compiler-rt-{0}.src.tar.xz',
-                          'projects',
-                          ['mv', 'compiler-rt-{}.src'.format(self.version), 'compiler-rt']),
             ExtraDownload(
-                'clang-tools-extra', self.version, url_prefix + 'clang-tools-extra-{0}.src.tar.xz',
-                'tools/cfe/tools',
-                ['mv', 'clang-tools-extra-{}.src'.format(self.version), 'extra']),
+                    'cfe',
+                    self.version,
+                    url_prefix + 'cfe-{0}.src.tar.xz',
+                    'tools',
+                    ['mv', 'cfe-{}.src'.format(self.version), 'cfe']),
+            ExtraDownload(
+                    'compiler-rt',
+                    self.version,
+                    url_prefix + 'compiler-rt-{0}.src.tar.xz',
+                    'projects',
+                    ['mv', 'compiler-rt-{}.src'.format(self.version), 'compiler-rt']),
+            ExtraDownload(
+                    'clang-tools-extra',
+                    self.version,
+                    url_prefix + 'clang-tools-extra-{0}.src.tar.xz',
+                    'tools/cfe/tools',
+                    ['mv', 'clang-tools-extra-{}.src'.format(self.version), 'extra']),
         ]
 
         self.copy_sources = False
@@ -51,7 +61,8 @@ class LLVMDependency(Dependency):
         # of the one being built.
         subprocess.check_call(
                 "rm -Rf {0}/include/{{llvm*,clang*}} {0}/lib/lib{{LLVM,LTO,clang}}* {0}/lib/clang/ "
-                        "{0}/lib/cmake/{{llvm,clang}}".format(prefix), shell=True)
+                "{0}/lib/cmake/{{llvm,clang}}".format(prefix),
+                shell=True)
 
         python_executable = which('python')
         if not os.path.exists(python_executable):
@@ -61,19 +72,21 @@ class LLVMDependency(Dependency):
         if '-g' in cxx_flags:
             cxx_flags.remove('-g')
 
+        cmake_args = [
+                '-DCMAKE_BUILD_TYPE=Release',
+                '-DCMAKE_INSTALL_PREFIX={}'.format(prefix),
+                '-DLLVM_INCLUDE_DOCS=OFF',
+                '-DLLVM_INCLUDE_EXAMPLES=OFF',
+                '-DLLVM_INCLUDE_TESTS=OFF',
+                '-DLLVM_INCLUDE_UTILS=OFF',
+                '-DLLVM_TARGETS_TO_BUILD=X86',
+                '-DLLVM_ENABLE_RTTI=ON',
+                '-DCMAKE_CXX_FLAGS={}'.format(" ".join(cxx_flags)),
+                '-DPYTHON_EXECUTABLE={}'.format(python_executable),
+                '-DCLANG_BUILD_EXAMPLES=ON'
+        ]
         builder.build_with_cmake(self,
-                                 ['-DCMAKE_BUILD_TYPE=Release',
-                                  '-DCMAKE_INSTALL_PREFIX={}'.format(prefix),
-                                  '-DLLVM_INCLUDE_DOCS=OFF',
-                                  '-DLLVM_INCLUDE_EXAMPLES=OFF',
-                                  '-DLLVM_INCLUDE_TESTS=OFF',
-                                  '-DLLVM_INCLUDE_UTILS=OFF',
-                                  '-DLLVM_TARGETS_TO_BUILD=X86',
-                                  '-DLLVM_ENABLE_RTTI=ON',
-                                  '-DCMAKE_CXX_FLAGS={}'.format(" ".join(cxx_flags)),
-                                  '-DPYTHON_EXECUTABLE={}'.format(python_executable),
-                                  '-DCLANG_BUILD_EXAMPLES=ON'
-                                 ],
+                                 cmake_args,
                                  use_ninja='auto')
 
         link_path = os.path.join(builder.tp_dir, 'clang-toolchain')

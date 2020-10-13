@@ -17,14 +17,15 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from build_definitions import *
+from build_definitions import *  # noqa
+
 
 class GPerfToolsDependency(Dependency):
     def __init__(self):
         super(GPerfToolsDependency, self).__init__(
                 'gperftools', '2.7',
                 'https://github.com/gperftools/gperftools/releases/download/gperftools-{0}/'
-                        'gperftools-{0}.tar.gz',
+                'gperftools-{0}.tar.gz',
                 BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = True
         self.patch_version = 0

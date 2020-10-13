@@ -18,7 +18,8 @@ import glob
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from build_definitions import *
+from build_definitions import *  # noqa
+
 
 class Icu4cDependency(Dependency):
     VERSION_MAJOR = 67
@@ -79,7 +80,7 @@ class Icu4cDependency(Dependency):
                             ])
                         else:
                             log("Making %s refer to %s using @loader_path",
-                                 icu_lib, dependency_name)
+                                icu_lib, dependency_name)
                             subprocess.check_call([
                                 'install_name_tool',
                                 '-change',

@@ -17,7 +17,8 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from build_definitions import *
+from build_definitions import *  # noqa
+
 
 # C++ Cassandra driver
 class CassandraCppDriverDependency(Dependency):
@@ -51,17 +52,20 @@ class CassandraCppDriverDependency(Dependency):
         else:
             log("File does not exist, maybe already removed: %s", find_openssl_cmake_module_path)
 
-        builder.build_with_cmake(
-                self,
-                ['-DCMAKE_BUILD_TYPE={}'.format(builder.cmake_build_type()),
-                 '-DCMAKE_POSITION_INDEPENDENT_CODE=On',
-                 '-DCMAKE_INSTALL_PREFIX={}'.format(builder.prefix),
-                 '-DBUILD_SHARED_LIBS=On'] +
-                (['-DCMAKE_CXX_FLAGS=' + ' '.join(cxx_flags)] if not is_mac() else []) +
-                    builder.get_openssl_related_cmake_args())
+        cmake_args = [
+            '-DCMAKE_BUILD_TYPE={}'.format(builder.cmake_build_type()),
+            '-DCMAKE_POSITION_INDEPENDENT_CODE=On',
+            '-DCMAKE_INSTALL_PREFIX={}'.format(builder.prefix),
+            '-DBUILD_SHARED_LIBS=On'
+        ] + (
+            ['-DCMAKE_CXX_FLAGS=' + ' '.join(cxx_flags)] if not is_mac() else []
+        ) + (
+            builder.get_openssl_related_cmake_args()
+        )
+        builder.build_with_cmake(self, cmake_args)
 
         if is_mac():
-          lib_file = 'libcassandra.' + builder.dylib_suffix
-          path = os.path.join(builder.prefix_lib, lib_file)
-          log_output(builder.log_prefix(self),
-                     ['install_name_tool', '-id', '@rpath/' + lib_file, path])
+            lib_file = 'libcassandra.' + builder.dylib_suffix
+            path = os.path.join(builder.prefix_lib, lib_file)
+            log_output(builder.log_prefix(self),
+                       ['install_name_tool', '-id', '@rpath/' + lib_file, path])

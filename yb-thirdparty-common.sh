@@ -34,7 +34,7 @@ compute_sha256sum() {
       shasum $portable_arg --algorithm 256 "$@"
     else
       sha256sum "$@"
-    fi 
+    fi
   ) | awk '{print $1}' )
   if [[ ! $sha256_sum =~ ^[0-9a-f]{64} ]]; then
     log "Got an incorrect SHA256 sum: $sha256_sum. Expected 64 hex digits."
@@ -84,11 +84,23 @@ check_bash_scripts() {
   # Use the fact that there are no spaces in the shell script names in this repository.
   # shellcheck disable=SC2207
   bash_scripts=( $( find . -mindepth 1 -maxdepth 1 -type f -name "*.sh" ) )
-  
+
   local shell_script
   for shell_script in "${bash_scripts[@]}"; do
     shellcheck -x "$shell_script"
   done
+}
+
+
+activate_virtualenv() {
+  if [[ ! -d $YB_THIRDPARTY_DIR/venv ]]; then
+    python3 -m venv "$YB_THIRDPARTY_DIR/venv"
+  fi
+  set +u
+  # shellcheck disable=SC1090
+  . "$YB_THIRDPARTY_DIR/venv/bin/activate"
+  set -u
+  ( set -x; cd "$YB_THIRDPARTY_DIR" && pip3 install -r requirements.txt )
 }
 
 detect_os

@@ -18,7 +18,8 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from build_definitions import *
+from build_definitions import *  # noqa
+
 
 class CryptBlowfishDependency(Dependency):
     def __init__(self):
