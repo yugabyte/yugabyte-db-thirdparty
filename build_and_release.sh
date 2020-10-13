@@ -61,6 +61,12 @@ else
 fi
 
 # -------------------------------------------------------------------------------------------------
+# Check for errors in Python code of this repository
+# -------------------------------------------------------------------------------------------------
+
+"$YB_THIRDPARTY_DIR/check_python_files.sh"
+
+# -------------------------------------------------------------------------------------------------
 
 if [[ -n ${CIRCLE_PULL_REQUEST:-} ]]; then
   echo "CIRCLE_PULL_REQUEST is set: $CIRCLE_PULL_REQUEST. Will not upload artifacts."
