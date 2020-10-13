@@ -34,21 +34,29 @@ BUILD_GROUP_COMMON = 1
 BUILD_GROUP_INSTRUMENTED = 2
 
 
+# -------------------------------------------------------------------------------------------------
+# Build types
+# -------------------------------------------------------------------------------------------------
+
 BUILD_TYPE_COMMON = 'common'
+
+# This build type is built with GCC on Linux, unless --custom-llvm-prefix is specified.
+# In the latter case this is built with Clang and BUILD_TYPE_CLANG_UNINSTRUMENTED is unused.
 BUILD_TYPE_UNINSTRUMENTED = 'uninstrumented'
-BUILD_TYPE_GCC8_UNINSTRUMENTED = 'gcc8_uninstrumented'
+
+# Clang-based builds with ASAN+UBSAN and TSAN enabled.
 BUILD_TYPE_ASAN = 'asan'
 BUILD_TYPE_TSAN = 'tsan'
+
 BUILD_TYPE_CLANG_UNINSTRUMENTED = 'clang_uninstrumented'
-# BUILD_TYPE_GCC8_UNINSTRUMENTED has been temporarily removed, since it relies on broken Linuxbrew
-# distribution. See https://github.com/yugabyte/yugabyte-db/issues/3044#issuecomment-560639105
+
 BUILD_TYPES = [
     BUILD_TYPE_COMMON,
     BUILD_TYPE_UNINSTRUMENTED,
     BUILD_TYPE_CLANG_UNINSTRUMENTED,
     BUILD_TYPE_ASAN,
-    BUILD_TYPE_TSAN]
-
+    BUILD_TYPE_TSAN
+]
 
 TAR_EXTRACT = 'tar --no-same-owner -xf {}'
 # -o -- force overwriting existing files

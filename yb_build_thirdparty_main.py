@@ -278,9 +278,6 @@ class Builder:
         self.build(BUILD_TYPE_COMMON)
         if is_linux():
             self.build(BUILD_TYPE_UNINSTRUMENTED)
-            # GCC8 has been temporarily removed, since it relies on broken Linuxbrew distribution.
-            # See https://github.com/yugabyte/yugabyte-db/issues/3044#issuecomment-560639105
-            # self.build(BUILD_TYPE_GCC8_UNINSTRUMENTED)
         if not self.custom_llvm_prefix:
             self.build(BUILD_TYPE_CLANG_UNINSTRUMENTED)
         if is_linux() and not self.args.skip_sanitizers:
@@ -293,8 +290,6 @@ class Builder:
             if self.use_only_clang():
                 raise ValueError('Not allowed to use GCC')
             compilers = self.find_gcc()
-        elif compiler_type == 'gcc8':
-            compilers = self.find_gcc8()
         elif compiler_type == 'clang':
             compilers = self.find_clang()
         else:
@@ -317,9 +312,6 @@ class Builder:
 
     def find_gcc(self):
         return self.do_find_gcc('gcc', 'g++')
-
-    def find_gcc8(self):
-        return self.do_find_gcc('gcc-8', 'g++-8')
 
     def do_find_gcc(self, c_compiler, cxx_compiler):
         if 'YB_GCC_PREFIX' in os.environ:
@@ -800,8 +792,6 @@ class Builder:
         self.prefix_include = os.path.join(self.prefix, 'include')
         if self.building_with_clang():
             compiler = 'clang'
-        elif build_type == BUILD_TYPE_GCC8_UNINSTRUMENTED:
-            compiler = 'gcc8'
         else:
             compiler = 'gcc'
         self.set_compiler(compiler)
@@ -845,7 +835,6 @@ class Builder:
             pass
         elif (self.build_type in [BUILD_TYPE_COMMON, BUILD_TYPE_UNINSTRUMENTED] and
               self.custom_llvm_prefix):
-            # 
             self.ld_flags.extend([
                 '-stdlib=libc++',
                 '-rtlib=compiler-rt'
@@ -995,9 +984,7 @@ class Builder:
         return build_dir
 
     def is_release_build(self):
-        return self.build_type == BUILD_TYPE_GCC8_UNINSTRUMENTED or \
-               self.build_type == BUILD_TYPE_UNINSTRUMENTED or \
-               self.build_type == BUILD_TYPE_CLANG_UNINSTRUMENTED
+        return self.build_type in [BUILD_TYPE_UNINSTRUMENTED, BUILD_TYPE_CLANG_UNINSTRUMENTED]
 
     def cmake_build_type(self):
         return 'Release' if self.is_release_build() else 'Debug'
@@ -1012,8 +999,7 @@ class Builder:
 
     # Returns true if we will need clang to complete full thirdparty build, requested by user.
     def will_need_clang(self):
-        return self.args.build_type != BUILD_TYPE_UNINSTRUMENTED and \
-               self.args.build_type != BUILD_TYPE_GCC8_UNINSTRUMENTED
+        return self.args.build_type != BUILD_TYPE_UNINSTRUMENTED
 
     def check_cxx_compiler_flag(self, flag):
         process = subprocess.Popen([self.get_cxx_compiler(), '-x', 'c++', flag, '-'],
