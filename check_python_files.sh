@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
 set -euo pipefail
+
+# shellcheck source=./yb-thirdparty-common.sh
 . "${BASH_SOURCE%/*}/yb-thirdparty-common.sh"
 
 activate_virtualenv
@@ -12,12 +14,13 @@ fi
 
 cd "$YB_THIRDPARTY_DIR"
 
-python_files=( $(
+python_files=()
+while IFS='' read -r line; do python_files+=( "$line" ); done < <(
   (
     find build_definitions -name "*.py"
     find . -maxdepth 1 -name "*.py"
   ) | sort
-) )
+)
 
 declare -i -r num_files=${#python_files[@]}
 
