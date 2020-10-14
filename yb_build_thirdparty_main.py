@@ -80,6 +80,32 @@ def compute_file_sha256(path):
     return hashsum_file(hashlib.sha256(), path)
 
 
+DEVTOOLSET_ENV_VARS = """
+    INFOPATH
+    LD_LIBRARY_PATH
+    MANPATH
+    PATH
+    PCP_DIR
+    PERL5LIB
+    PKG_CONFIG_PATH
+    PYTHONPATH
+""".strip().split("\n")
+
+
+def activate_devtoolset(devtoolset_number: int) -> None:
+    devtoolset_env_str = subprocess.check_output(
+        ['bash', '-c', '. /opt/rh/devtoolset-%s/enable && env' % devtoolset_number]).decode('utf-8')
+
+    for line in devtoolset_env_str.split("\n"):
+        line = line.strip()
+        if not line:
+            continue
+        k, v = line.split("=", 1)
+        if k in DEVTOOLSET_ENV_VARS:
+            log("Setting %s to: %s", k, v)
+            os.environ[k] = v
+
+
 class Builder:
     """
     This class manages the overall process of building third-party dependencies, including the set
@@ -154,6 +180,11 @@ class Builder:
                  'We expect clang and clang++ executables to be in the bin subdirectory of this. '
                  'In this mode, we will build all dependencies with Clang. We will still build '
                  'ASAN/TSAN instrumented versions of libc++ and other dependencies.')
+        parser.add_argument(
+            '--devtoolset',
+            type=int,
+            choices=[6, 7, 8, 9, 10],
+            help='Specifies a CentOS devtoolset')
 
         parser.add_argument('-j', '--make-parallelism',
                             help='How many cores should the build use. This is passed to '
@@ -173,6 +204,9 @@ class Builder:
         if self.args.make_parallelism:
             os.environ['YB_MAKE_PARALLELISM'] = str(self.args.make_parallelism)
 
+        if self.args.custom_llvm_prefix is not None and self.args.devtoolset is not None:
+            raise ValueError("--custom-llvm-prefix is not compatible with --devtoolset")
+
         # Validate the supplied LLVM/Clang installation directory.
         self.custom_llvm_prefix = self.args.custom_llvm_prefix
         if self.custom_llvm_prefix:
@@ -180,6 +214,10 @@ class Builder:
                 compiler_path = os.path.join(self.custom_llvm_prefix, 'bin', clang_compiler_name)
                 if not os.path.exists(compiler_path):
                     raise ValueError('Compiler not found at %s' % compiler_path)
+
+        self.devtoolset = self.args.devtoolset
+        if self.devtoolset:
+            activate_devtoolset(self.devtoolset)
 
     def use_only_clang(self):
         return is_mac() or self.custom_llvm_prefix
