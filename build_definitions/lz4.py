@@ -21,15 +21,18 @@ from build_definitions import *  # noqa
 
 
 class LZ4Dependency(Dependency):
-    def __init__(self):
+    def __init__(self) -> None:
         super(LZ4Dependency, self).__init__(
-                'lz4', 'r130', 'https://github.com/lz4/lz4/archive/{0}.tar.gz', BUILD_GROUP_COMMON)
+            name='lz4',
+            version='r130',
+            url_pattern='https://github.com/lz4/lz4/archive/{0}.tar.gz',
+            build_group=BUILD_GROUP_COMMON)
         self.copy_sources = False
         self.patch_version = 1
         self.patch_strip = 1
         self.patches = ['lz4-0001-Fix-cmake-build-to-use-gnu-flags-on-clang.patch']
 
-    def build(self, builder):
+    def build(self, builder: BuilderInterface) -> None:
         builder.build_with_cmake(
             self,
             ['-DCMAKE_BUILD_TYPE=release',

@@ -21,14 +21,15 @@ from build_definitions import *  # noqa
 
 
 class OpenSSLDependency(Dependency):
-    def __init__(self):
+    def __init__(self) -> None:
         super(OpenSSLDependency, self).__init__(
-                'openssl', '1.0.2u',
-                'https://www.openssl.org/source/openssl-{0}.tar.gz',
-                BUILD_GROUP_COMMON)
+            name='openssl',
+            version='1.0.2u',
+            url_pattern='https://www.openssl.org/source/openssl-{0}.tar.gz',
+            build_group=BUILD_GROUP_COMMON)
         self.copy_sources = True
 
-    def build(self, builder):
+    def build(self, builder: BuilderInterface) -> None:
         common_configure_options = ['shared']
         if is_mac():
             # On macOS x86_64, OpenSSL 1.0.2 fails to detect the proper architecture.

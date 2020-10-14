@@ -31,18 +31,19 @@ using {0} : {1} :
 
 
 class BoostDependency(Dependency):
-    def __init__(self):
+    def __init__(self) -> None:
         super(BoostDependency, self).__init__(
-            'boost', '1.69.0',
-            'https://dl.bintray.com/boostorg/release/{0}/source/boost_{1}.tar.bz2',
-            BUILD_GROUP_INSTRUMENTED)
+            name='boost',
+            version='1.69.0',
+            url_pattern='https://dl.bintray.com/boostorg/release/{0}/source/boost_{1}.tar.bz2',
+            build_group=BUILD_GROUP_INSTRUMENTED)
         self.dir = '{}_{}'.format(self.name, self.underscored_version)
         self.copy_sources = True
         self.patches = ['boost-1-69-remove-pending-integer_log2-include.patch',
                         'boost-1-69-mac-compiler-flags.patch']
         self.patch_strip = 1
 
-    def build(self, builder):
+    def build(self, builder: BuilderInterface) -> None:
         libs = ['system', 'thread']
 
         log_prefix = builder.log_prefix(self)
@@ -84,5 +85,5 @@ class BoostDependency(Dependency):
                     log_output(log_prefix, ['install_name_tool', '-change', sublib_file,
                                             sublib_path, path])
 
-    def libfile(self, lib, builder):
+    def libfile(self, lib: str, builder: BuilderInterface) -> str:
         return 'libboost_{}.{}'.format(lib, builder.dylib_suffix)

@@ -21,12 +21,15 @@ from build_definitions import *  # noqa
 
 
 class LibUnwindDependency(Dependency):
-    def __init__(self):
+    def __init__(self) -> None:
         super(LibUnwindDependency, self).__init__(
-                'libunwind', '1.1a', None, BUILD_GROUP_COMMON)
+            name='libunwind',
+            version='1.1a',
+            url_pattern=None,
+            build_group=BUILD_GROUP_COMMON)
         self.copy_sources = True
 
-    def build(self, builder):
+    def build(self, builder: BuilderInterface) -> None:
         # Disable minidebuginfo, which depends on liblzma, until/unless we decide to
         # add liblzma to thirdparty.
         log_prefix = builder.log_prefix(self)

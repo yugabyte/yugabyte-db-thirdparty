@@ -22,17 +22,19 @@ from build_definitions import *  # noqa
 
 
 class SnappyDependency(Dependency):
-    def __init__(self):
+    def __init__(self) -> None:
         super(SnappyDependency, self).__init__(
-                'snappy', '1.1.3', 'https://github.com/google/snappy/archive/{0}.tar.gz',
-                BUILD_GROUP_INSTRUMENTED)
+            name='snappy',
+            version='1.1.3',
+            url_pattern='https://github.com/google/snappy/archive/{0}.tar.gz',
+            build_group=BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = True
         self.patch_version = 1
         self.patch_strip = 1
         self.patches = ['snappy-define-guard-macro.patch']
         self.post_patch = ['autoreconf', '-fvi']
 
-    def build(self, builder):
+    def build(self, builder: BuilderInterface) -> None:
         log_prefix = builder.log_prefix(self)
         builder.build_with_configure(
             log_prefix=log_prefix,

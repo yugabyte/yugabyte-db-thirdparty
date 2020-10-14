@@ -22,7 +22,7 @@ import shutil
 import subprocess
 import traceback
 
-from typing import Any, List, Optional, Dict
+from typing import Any, List, Optional, Dict, Union
 
 
 YELLOW_COLOR = "\033[0;33m"
@@ -196,7 +196,7 @@ def mkdir_if_missing(path: str) -> None:
     os.makedirs(path)
 
 
-def make_archive_name(name: str, version: str, download_url: str) -> Optional[str]:
+def make_archive_name(name: str, version: str, download_url: Optional[str]) -> Optional[str]:
     if download_url is None:
         return '{}-{}{}'.format(name, version, '.tar.gz')
     for ext in ARCHIVE_TYPES:
@@ -221,19 +221,112 @@ def import_submodules(package: Any, recursive: bool = True) -> Dict[str, Any]:
     return results
 
 
-class BuilderBase:
-    pass
+class BuilderInterface:
+    prefix: str
+    compiler_flags: List[str]
+    c_flags: List[str]
+    cxx_flags: List[str]
+    compiler_type: str
+    prefix_lib: str
+    prefix_bin: str
+    ld_flags: List[str]
+    dylib_suffix: str
+    tp_installed_common_dir: str
+    prefix_include: str
+    tp_dir: str
+    build_type: str
+
+    def build_with_configure(
+            self,
+            log_prefix: str,
+            extra_args: List[str] = [],
+            configure_cmd: List[str] = ['./configure'],
+            install: List[str] = ['install'],
+            run_autogen: bool = False,
+            autoconf: bool = False,
+            source_subdir: Optional[str] = None) -> None:
+        raise NotImplementedError()
+
+    def build_with_cmake(
+            self,
+            dep: 'Dependency',
+            extra_args: List[str] = [],
+            use_ninja_if_available: bool = False,
+            src_dir_name: Optional[str] = None,
+            should_install: bool = True) -> None:
+        raise NotImplementedError()
+
+    def log_prefix(self, dep: 'Dependency') -> str:
+        raise NotImplementedError()
+
+    def get_c_compiler(self) -> str:
+        raise NotImplementedError()
+
+    def get_cxx_compiler(self) -> str:
+        raise NotImplementedError()
+
+    def prepend_rpath(self, path: str) -> None:
+        # TODO: should dependencies really be calling this?
+        raise NotImplementedError()
+
+    def source_path(self, dep: 'Dependency') -> str:
+        raise NotImplementedError()
+
+    def cmake_build_type_for_test_only_dependencies(self) -> str:
+        raise NotImplementedError()
+
+    def get_openssl_related_cmake_args(self) -> List[str]:
+        raise NotImplementedError()
+
+    def add_checked_flag(self, flags: List[str], flag: str) -> None:
+        raise NotImplementedError()
+
+    def building_with_clang(self) -> bool:
+        raise NotImplementedError()
+
+    def get_openssl_dir(self) -> str:
+        raise NotImplementedError()
+
+    def is_release_build(self) -> bool:
+        raise NotImplementedError()
+
+    def will_need_clang(self) -> bool:
+        raise NotImplementedError()
+
+    def get_prefix(self, qualifier: Optional[str] = None) -> str:
+        raise NotImplementedError()
 
 
-class Dependency(object):
+class ExtraDownload:
+    def __init__(
+            self,
+            name: str,
+            version: str,
+            url_pattern: str,
+            dir_name: str,
+            post_exec: Union[None, List[str], List[List[str]]] = None) -> None:
+        self.name = name
+        self.version = version
+        self.download_url = url_pattern.format(version)
+        self.archive_name = make_archive_name(name, version, self.download_url)
+        self.dir_name = dir_name
+        self.post_exec = post_exec
+
+
+class Dependency:
     download_url: Optional[str]
     extra_downloads: List[ExtraDownload]
     patches: List[str]
     patch_strip: Optional[int]
-    post_patch: Optional[str]
+    post_patch: List[str]
     copy_sources: bool
 
-    def __init__(self, name: str, version: str, url_pattern: str, build_group: str) -> None:
+    def __init__(
+            self,
+            name: str,
+            version: str,
+            url_pattern: Optional[str],
+            build_group: int) -> None:
         self.name = name
         self.version = version
         self.dir_name = '{}-{}'.format(name, version)
@@ -248,40 +341,23 @@ class Dependency(object):
         self.extra_downloads = []
         self.patches = []
         self.patch_strip = None
-        self.post_patch = None
+        self.post_patch = []
         self.copy_sources = False
 
-    def get_additional_c_cxx_flags(self, builder: BuilderBase) -> List[str]:
+    def get_additional_c_cxx_flags(self, builder: BuilderInterface) -> List[str]:
         return []
 
-    def get_additional_c_flags(self, builder: BuilderBase) -> List[str]:
+    def get_additional_c_flags(self, builder: BuilderInterface) -> List[str]:
         return []
 
-    def get_additional_cxx_flags(self, builder: BuilderBase) -> List[str]:
+    def get_additional_cxx_flags(self, builder: BuilderInterface) -> List[str]:
         return []
 
-    def should_build(self, builder: BuilderBase) -> bool:
+    def should_build(self, builder: BuilderInterface) -> bool:
         return True
 
-    def build(self, builder: BuilderBase) -> None:
+    def build(self, builder: BuilderInterface) -> None:
         raise NotImplementedError()
-
-
-class ExtraDownload(object):
-    def __init__(
-            self,
-            name: str,
-            version: str,
-            url_pattern: str,
-            dir_name: str,
-            post_exec: Optional[str]) -> None:
-        self.name = name
-        self.version = version
-        self.download_url = url_pattern.format(version)
-        self.archive_name = make_archive_name(name, version, self.download_url)
-        self.dir_name = dir_name
-        if post_exec is not None:
-            self.post_exec = post_exec
 
 
 class PushDir:
@@ -300,3 +376,7 @@ class PushDir:
         # TODO: use more precise argument types above.
         assert self.prev is not None
         os.chdir(self.prev)
+
+
+def get_build_def_module(submodule_name: str) -> Any:
+    return getattr(sys.modules['build_definitions'], submodule_name)

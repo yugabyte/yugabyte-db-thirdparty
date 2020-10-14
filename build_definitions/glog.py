@@ -22,10 +22,12 @@ from build_definitions import *  # noqa
 
 
 class GLogDependency(Dependency):
-    def __init__(self):
+    def __init__(self) -> None:
         super(GLogDependency, self).__init__(
-                'glog', '0.4.0', 'https://github.com/google/glog/archive/v{0}.tar.gz',
-                BUILD_GROUP_INSTRUMENTED)
+            name='glog',
+            version='0.4.0',
+            url_pattern='https://github.com/google/glog/archive/v{0}.tar.gz',
+            build_group=BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = True
         self.patch_version = 1
         self.patch_strip = 0
@@ -34,7 +36,7 @@ class GLogDependency(Dependency):
                         'glog-symbolize-and-demangle.patch']
         self.post_patch = ['autoreconf', '-fvi']
 
-    def build(self, builder):
+    def build(self, builder: BuilderInterface) -> None:
         log_prefix = builder.log_prefix(self)
         log_output(log_prefix, ['autoreconf', '--force', '--install'])
         args = ['./configure', '--prefix={}'.format(builder.prefix), '--with-pic',

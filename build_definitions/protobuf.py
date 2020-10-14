@@ -21,14 +21,14 @@ from build_definitions import *  # noqa
 
 
 class ProtobufDependency(Dependency):
-    def __init__(self):
+    def __init__(self) -> None:
         super(ProtobufDependency, self).__init__(
             'protobuf', '3.5.1',
             'https://github.com/google/protobuf/releases/download/v{0}/protobuf-cpp-{0}.tar.gz',
             BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = True
 
-    def build(self, builder):
+    def build(self, builder: BuilderInterface) -> None:
         log_prefix = builder.log_prefix(self)
         builder.build_with_configure(
             log_prefix=log_prefix,

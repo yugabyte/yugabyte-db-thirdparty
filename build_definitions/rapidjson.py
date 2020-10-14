@@ -21,13 +21,15 @@ from build_definitions import *  # noqa
 
 
 class RapidJsonDependency(Dependency):
-    def __init__(self):
+    def __init__(self) -> None:
         super(RapidJsonDependency, self).__init__(
-                'rapidjson', '1.1.0', 'https://github.com/Tencent/rapidjson/archive/v{0}.zip',
-                BUILD_GROUP_COMMON)
+            name='rapidjson',
+            version='1.1.0',
+            url_pattern='https://github.com/Tencent/rapidjson/archive/v{0}.zip',
+            build_group=BUILD_GROUP_COMMON)
         self.copy_sources = False
 
-    def build(self, builder):
+    def build(self, builder: BuilderInterface) -> None:
         log_prefix = builder.log_prefix(self)
         log_output(log_prefix,
                    ['rsync', '-av', '--delete',

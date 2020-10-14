@@ -27,7 +27,7 @@ import sys
 import time
 from datetime import datetime
 
-from typing import Set, List, Dict, Optional, Tuple
+from typing import Set, List, Dict, Optional, Tuple, Union, cast
 
 from build_definitions import *  # noqa
 import build_definitions
@@ -120,7 +120,7 @@ def activate_devtoolset(devtoolset_number: int) -> None:
             log("Did not set env var %s for devtoolset-%d", var_name, devtoolset_number)
 
 
-class Builder(BuilderBase):
+class Builder(BuilderInterface):
     args: Optional[argparse.Namespace]
     cc: Optional[str]
     cxx: Optional[str]
@@ -277,59 +277,62 @@ class Builder(BuilderBase):
         self.select_dependencies_to_build()
 
     def populate_dependencies(self) -> None:
+        # We have to use get_build_def_module to access submodules of build_definitions,
+        # otherwise MyPy gets confused.
+
         self.dependencies = [
-            build_definitions.zlib.ZLibDependency(),
-            build_definitions.lz4.LZ4Dependency(),
-            build_definitions.openssl.OpenSSLDependency(),
-            build_definitions.libev.LibEvDependency(),
-            build_definitions.rapidjson.RapidJsonDependency(),
-            build_definitions.squeasel.SqueaselDependency(),
-            build_definitions.curl.CurlDependency(),
-            build_definitions.hiredis.HiRedisDependency(),
-            build_definitions.cqlsh.CQLShDependency(),
-            build_definitions.redis_cli.RedisCliDependency(),
-            build_definitions.flex.FlexDependency(),
-            build_definitions.bison.BisonDependency(),
-            build_definitions.icu4c.Icu4cDependency(),
-            build_definitions.libedit.LibEditDependency(),
+            get_build_def_module('zlib').ZLibDependency(),
+            get_build_def_module('lz4').LZ4Dependency(),
+            get_build_def_module('openssl').OpenSSLDependency(),
+            get_build_def_module('libev').LibEvDependency(),
+            get_build_def_module('rapidjson').RapidJsonDependency(),
+            get_build_def_module('squeasel').SqueaselDependency(),
+            get_build_def_module('curl').CurlDependency(),
+            get_build_def_module('hiredis').HiRedisDependency(),
+            get_build_def_module('cqlsh').CQLShDependency(),
+            get_build_def_module('redis_cli').RedisCliDependency(),
+            get_build_def_module('flex').FlexDependency(),
+            get_build_def_module('bison').BisonDependency(),
+            get_build_def_module('icu4c').Icu4cDependency(),
+            get_build_def_module('libedit').LibEditDependency(),
         ]
 
         if is_linux():
             self.dependencies += [
-                build_definitions.libuuid.LibUuidDependency(),
+                get_build_def_module('libuuid').LibUuidDependency(),
             ]
 
             if not self.use_only_gcc():
                 if not self.custom_clang_prefix:
-                    self.dependencies.append(build_definitions.llvm.LLVMDependency())
+                    self.dependencies.append(get_build_def_module('llvm').LLVMDependency())
 
-                self.dependencies.append(build_definitions.libcxx.LibCXXDependency())
+                self.dependencies.append(get_build_def_module('libcxx').LibCXXDependency())
 
             if not self.custom_clang_prefix:
-                self.dependencies.append(build_definitions.libunwind.LibUnwindDependency())
+                self.dependencies.append(get_build_def_module('libunwind').LibUnwindDependency())
 
-            self.dependencies.append(build_definitions.libbacktrace.LibBacktraceDependency())
+            self.dependencies.append(get_build_def_module('libbacktrace').LibBacktraceDependency())
 
             if not self.custom_clang_prefix and not self.use_only_gcc():
                 # TODO: We can enable include-what-you-use in the custom Clang mode
                 self.dependencies.append(
-                    build_definitions.include_what_you_use.IncludeWhatYouUseDependency())
+                    get_build_def_module('include_what_you_use').IncludeWhatYouUseDependency())
 
         self.dependencies += [
-            build_definitions.protobuf.ProtobufDependency(),
-            build_definitions.crypt_blowfish.CryptBlowfishDependency(),
-            build_definitions.boost.BoostDependency(),
+            get_build_def_module('protobuf').ProtobufDependency(),
+            get_build_def_module('crypt_blowfish').CryptBlowfishDependency(),
+            get_build_def_module('boost').BoostDependency(),
 
-            build_definitions.gflags.GFlagsDependency(),
-            build_definitions.glog.GLogDependency(),
-            build_definitions.gperftools.GPerfToolsDependency(),
-            build_definitions.gmock.GMockDependency(),
-            build_definitions.snappy.SnappyDependency(),
-            build_definitions.crcutil.CRCUtilDependency(),
-            build_definitions.libcds.LibCDSDependency(),
+            get_build_def_module('gflags').GFlagsDependency(),
+            get_build_def_module('glog').GLogDependency(),
+            get_build_def_module('gperftools').GPerfToolsDependency(),
+            get_build_def_module('gmock').GMockDependency(),
+            get_build_def_module('snappy').SnappyDependency(),
+            get_build_def_module('crcutil').CRCUtilDependency(),
+            get_build_def_module('libcds').LibCDSDependency(),
 
-            build_definitions.libuv.LibUvDependency(),
-            build_definitions.cassandra_cpp_driver.CassandraCppDriverDependency(),
+            get_build_def_module('libuv').LibUvDependency(),
+            get_build_def_module('cassandra_cpp_driver').CassandraCppDriverDependency(),
         ]
 
     def select_dependencies_to_build(self) -> None:
@@ -524,10 +527,11 @@ class Builder(BuilderBase):
                 self.ensure_file_downloaded(extra.download_url, archive_path)
                 output_path = os.path.join(src_path, extra.dir_name)
                 self.extract_archive(archive_path, output_path)
-                if hasattr(extra, 'post_exec'):
+                if extra.post_exec is not None:
                     with PushDir(output_path):
+                        assert isinstance(extra.post_exec, list)
                         if isinstance(extra.post_exec[0], str):
-                            subprocess.check_call(extra.post_exec)
+                            subprocess.check_call(cast(List[str], extra.post_exec))
                         else:
                             for command in extra.post_exec:
                                 subprocess.check_call(command)
@@ -546,7 +550,7 @@ class Builder(BuilderBase):
                     exit_code = process.wait()
                     if exit_code:
                         fatal("Patch {} failed with code: {}".format(dep.name, exit_code))
-                if dep.post_patch is not None:
+                if dep.post_patch:
                     subprocess.check_call(dep.post_patch)
 
         with open(patch_level_path, 'wb') as out:
@@ -1137,8 +1141,13 @@ class Builder(BuilderBase):
             BUILD_TYPE_CLANG_UNINSTRUMENTED
         ]
 
-    # Returns true if we will need clang to complete full thirdparty build, requested by user.
     def will_need_clang(self) -> bool:
+        """
+        Returns true if we will need Clang to complete the full thirdparty build type requested by
+        the user.
+        """
+        if self.use_only_gcc():
+            return False
         assert self.args is not None
         return self.args.build_type != BUILD_TYPE_UNINSTRUMENTED
 

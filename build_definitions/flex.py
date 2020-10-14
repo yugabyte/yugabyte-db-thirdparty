@@ -21,14 +21,15 @@ from build_definitions import *  # noqa
 
 
 class FlexDependency(Dependency):
-    def __init__(self):
+    def __init__(self) -> None:
         super(FlexDependency, self).__init__(
-                'flex', '2.6.3',
-                'https://github.com/westes/flex/releases/download/v{0}/flex-{0}.tar.gz',
-                BUILD_GROUP_COMMON)
+            name='flex',
+            version='2.6.3',
+            url_pattern='https://github.com/westes/flex/releases/download/v{0}/flex-{0}.tar.gz',
+            build_group=BUILD_GROUP_COMMON)
         self.copy_sources = True
 
-    def build(self, builder):
+    def build(self, builder: BuilderInterface) -> None:
         builder.build_with_configure(
             log_prefix=builder.log_prefix(self),
             extra_args=['--with-pic']

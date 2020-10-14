@@ -22,7 +22,7 @@ from build_definitions import *  # noqa
 
 # C++ Cassandra driver
 class CassandraCppDriverDependency(Dependency):
-    def __init__(self):
+    def __init__(self) -> None:
         super(CassandraCppDriverDependency, self).__init__(
                 'cassandra-cpp-driver', '2.9.0-yb-8',
                 'https://github.com/YugaByte/cassandra-cpp-driver/archive/{0}.tar.gz',
@@ -31,9 +31,11 @@ class CassandraCppDriverDependency(Dependency):
         self.patch_version = 0
         self.patch_strip = 1
 
-    def build(self, builder):
+    def build(self, builder: BuilderInterface) -> None:
         cxx_flags = []
         if not is_mac():
+            # TODO: this will modify rpath and flags not just for this dependency but for all
+            #       dependencies that are built after it as well.
             builder.prepend_rpath(os.path.join(builder.tp_installed_common_dir, "lib"))
             cxx_flags = builder.compiler_flags + builder.cxx_flags + builder.ld_flags
             builder.add_checked_flag(cxx_flags, '-Wno-error=implicit-fallthrough')

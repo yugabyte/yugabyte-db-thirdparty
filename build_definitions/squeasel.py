@@ -21,15 +21,18 @@ from build_definitions import *  # noqa
 
 
 class SqueaselDependency(Dependency):
-    def __init__(self):
+    def __init__(self) -> None:
         super(SqueaselDependency, self).__init__(
-                'squeasel', '8ac777a122fccf0358cb8562e900f8e9edd9ed11', None, BUILD_GROUP_COMMON)
+            name='squeasel',
+            version='8ac777a122fccf0358cb8562e900f8e9edd9ed11',
+            url_pattern=None,
+            build_group=BUILD_GROUP_COMMON)
         self.copy_sources = True
         self.patches = ['squeasel_bound_addrs_ipv6.patch']
         self.patch_version = 1
         self.patch_strip = 0
 
-    def build(self, builder):
+    def build(self, builder: BuilderInterface) -> None:
         log_prefix = builder.log_prefix(self)
         compile_command = [
             builder.get_c_compiler(), '-std=c99', '-O3', '-DNDEBUG', '-DUSE_IPV6', '-fPIC', '-c',

@@ -21,13 +21,15 @@ from build_definitions import *  # noqa
 
 
 class LibUvDependency(Dependency):
-    def __init__(self):
+    def __init__(self) -> None:
         super(LibUvDependency, self).__init__(
-                'libuv', '1.23.0', 'https://github.com/libuv/libuv/archive/v{0}.tar.gz',
-                BUILD_GROUP_INSTRUMENTED)
+            name='libuv',
+            version='1.23.0',
+            url_pattern='https://github.com/libuv/libuv/archive/v{0}.tar.gz',
+            build_group=BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = True
 
-    def build(self, builder):
+    def build(self, builder: BuilderInterface) -> None:
         builder.build_with_cmake(
             self,
             [

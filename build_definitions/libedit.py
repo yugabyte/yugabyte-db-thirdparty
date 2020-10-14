@@ -21,15 +21,15 @@ from build_definitions import *  # noqa
 
 
 class LibEditDependency(Dependency):
-    def __init__(self):
+    def __init__(self) -> None:
         super(LibEditDependency, self).__init__(
-              'libedit',
-              '20191231-3.1',
-              'https://github.com/yugabyte/libedit/archive/libedit-{}.tar.gz',
-              BUILD_GROUP_COMMON)
+              name='libedit',
+              version='20191231-3.1',
+              url_pattern='https://github.com/yugabyte/libedit/archive/libedit-{}.tar.gz',
+              build_group=BUILD_GROUP_COMMON)
         self.copy_sources = True
 
-    def build(self, builder):
+    def build(self, builder: BuilderInterface) -> None:
         log_prefix = builder.log_prefix(self)
         builder.build_with_configure(
             log_prefix=log_prefix,

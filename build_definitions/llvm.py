@@ -24,36 +24,38 @@ from build_definitions import *  # noqa
 class LLVMDependency(Dependency):
     VERSION = '7.1.0'
 
-    def __init__(self):
+    def __init__(self) -> None:
         url_prefix = "http://releases.llvm.org/{0}/"
         super(LLVMDependency, self).__init__(
-                'llvm', LLVMDependency.VERSION, url_prefix + 'llvm-{0}.src.tar.xz',
-                BUILD_GROUP_COMMON)
+            name='llvm',
+            version=LLVMDependency.VERSION,
+            url_pattern=url_prefix + 'llvm-{0}.src.tar.xz',
+            build_group=BUILD_GROUP_COMMON)
         self.dir_name += ".src"
         self.extra_downloads = [
             ExtraDownload(
-                    'cfe',
-                    self.version,
-                    url_prefix + 'cfe-{0}.src.tar.xz',
-                    'tools',
-                    ['mv', 'cfe-{}.src'.format(self.version), 'cfe']),
+                    name='cfe',
+                    version=self.version,
+                    url_pattern=url_prefix + 'cfe-{0}.src.tar.xz',
+                    dir_name='tools',
+                    post_exec=['mv', 'cfe-{}.src'.format(self.version), 'cfe']),
             ExtraDownload(
-                    'compiler-rt',
-                    self.version,
-                    url_prefix + 'compiler-rt-{0}.src.tar.xz',
-                    'projects',
-                    ['mv', 'compiler-rt-{}.src'.format(self.version), 'compiler-rt']),
+                    name='compiler-rt',
+                    version=self.version,
+                    url_pattern=url_prefix + 'compiler-rt-{0}.src.tar.xz',
+                    dir_name='projects',
+                    post_exec=['mv', 'compiler-rt-{}.src'.format(self.version), 'compiler-rt']),
             ExtraDownload(
-                    'clang-tools-extra',
-                    self.version,
-                    url_prefix + 'clang-tools-extra-{0}.src.tar.xz',
-                    'tools/cfe/tools',
-                    ['mv', 'clang-tools-extra-{}.src'.format(self.version), 'extra']),
+                    name='clang-tools-extra',
+                    version=self.version,
+                    url_pattern=url_prefix + 'clang-tools-extra-{0}.src.tar.xz',
+                    dir_name='tools/cfe/tools',
+                    post_exec=['mv', 'clang-tools-extra-{}.src'.format(self.version), 'extra']),
         ]
 
         self.copy_sources = False
 
-    def build(self, builder):
+    def build(self, builder: BuilderInterface) -> None:
         prefix = builder.get_prefix('llvm7')
 
         # The LLVM build can fail if a different version is already installed
@@ -95,5 +97,5 @@ class LLVMDependency(Dependency):
         log("Link %s => %s", link_path, list_dest)
         os.symlink(list_dest, link_path)
 
-    def should_build(self, builder):
+    def should_build(self, builder: BuilderInterface) -> bool:
         return builder.will_need_clang()

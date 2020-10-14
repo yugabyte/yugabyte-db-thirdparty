@@ -21,13 +21,15 @@ from build_definitions import *  # noqa
 
 
 class CurlDependency(Dependency):
-    def __init__(self):
+    def __init__(self) -> None:
         super(CurlDependency, self).__init__(
-                'curl', '7.70.0', "https://curl.haxx.se/download/curl-{0}.tar.gz",
-                BUILD_GROUP_COMMON)
+            name='curl',
+            version='7.70.0',
+            url_pattern="https://curl.haxx.se/download/curl-{0}.tar.gz",
+            build_group=BUILD_GROUP_COMMON)
         self.copy_sources = True
 
-    def build(self, builder):
+    def build(self, builder: BuilderInterface) -> None:
         disabled_features = ['ftp', 'file', 'ldap', 'ldaps', 'rtsp', 'dict', 'telnet', 'tftp',
                              'pop3', 'imap', 'smtp', 'gopher', 'manual', 'librtmp', 'ipv6']
         extra_args = ['--disable-' + feature for feature in disabled_features]

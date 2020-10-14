@@ -21,14 +21,15 @@ from build_definitions import *  # noqa
 
 
 class BisonDependency(Dependency):
-    def __init__(self):
+    def __init__(self) -> None:
         super(BisonDependency, self).__init__(
-                'bison', '3.4.1',
-                'https://ftp.gnu.org/gnu/bison/bison-{0}.tar.gz',
-                BUILD_GROUP_COMMON)
+            name='bison',
+            version='3.4.1',
+            url_pattern='https://ftp.gnu.org/gnu/bison/bison-{0}.tar.gz',
+            build_group=BUILD_GROUP_COMMON)
         self.copy_sources = True
 
-    def build(self, builder):
+    def build(self, builder: BuilderInterface) -> None:
         builder.build_with_configure(
             log_prefix=builder.log_prefix(self),
             extra_args=['--with-pic']
