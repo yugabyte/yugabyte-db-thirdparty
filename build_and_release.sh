@@ -15,20 +15,21 @@ else
   cat /proc/cpuinfo
 fi
 
-
 # -------------------------------------------------------------------------------------------------
+# Display various settings
+# -------------------------------------------------------------------------------------------------
+
 # Current user
-# -------------------------------------------------------------------------------------------------
-
 USER=$(whoami)
 log "Current user: $USER"
 
-# -------------------------------------------------------------------------------------------------
 # PATH
-# -------------------------------------------------------------------------------------------------
-
 export PATH=/usr/local/bin:$PATH
 log "PATH: $PATH"
+
+# Build type for the entire third-party archive.
+YB_THIRDPARTY_BUILD_TYPE=${YB_THIRDPARTY_BUILD_TYPE:-default}
+echo "YB_THIRDPARTY_BUILD_TYPE: $YB_THIRDPARTY_BUILD_TYPE"
 
 # -------------------------------------------------------------------------------------------------
 # Installed tools
@@ -104,7 +105,7 @@ fi
   git remote set-url origin "$origin_url"
 )
 
-if "$is_centos"; then
+if "$is_centos" && [[ $YB_THIRDPARTY_BUILD_TYPE != devtoolset-* ]]; then
   # Grab a recent URL from https://github.com/YugaByte/brew-build/releases
   brew_url=$(<linuxbrew_url.txt)
   if [[ $brew_url != https://*.tar.gz ]]; then
@@ -170,11 +171,17 @@ echo
 
 cd "$repo_dir"
 
+build_thirdparty_cmd=( ./build_thirdparty.sh )
+
 (
   if [[ -n ${YB_LINUXBREW_DIR:-} ]]; then
     export PATH=$YB_LINUXBREW_DIR/bin:$PATH
   fi
-  time ./build_thirdparty.sh "$@"
+  if [[ $YB_THIRDPARTY_BUILD_TYPE == devtoolset-* ]]; then
+    build_thirdparty_cmd+=( --devtoolset=${YB_THIRDPARTY_BUILD_TYPE:-devtoolset-} )
+  fi
+  set -x
+  time "${build_thirdparty_cmd[@]}"
 )
 
 log "Build finished. See timing information above."

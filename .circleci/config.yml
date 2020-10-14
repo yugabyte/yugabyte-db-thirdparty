@@ -29,6 +29,7 @@ jobs:
               << parameters.docker_image >> \
               bash -c "
                 cd /opt/yb-build/thirdparty/checkout
+                export YB_THIRDPARTY_BUILD_TYPE=<< parameters.thirdparty_build_type >>
                 ./build_and_release.sh
               "
 
@@ -36,8 +37,14 @@ workflows:
   build-release:
     jobs:
       - build:
-          name: build-centos
+          name: build-centos-linuxbrew
           docker_image: yugabyteci/yb_build_infra_centos7:v2020-06-03T06_49_38
+          thirdparty_build_type: linuxbrew
+      - build:
+          name: build-centos-devtoolset-8
+          docker_image: yugabyteci/yb_build_infra_centos7:v2020-06-03T06_49_38
+          thirdparty_build_type: devtoolset-8
       - build:
           name: build-ubuntu
           docker_image: yugabyteci/yb_build_infra_ubuntu1804:v2020-10-13T22_08_51
+          thirdparty_build_type: default

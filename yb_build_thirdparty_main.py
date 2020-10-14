@@ -180,7 +180,7 @@ class Builder:
         parser.add_argument('--skip',
                             help='Dependencies to skip')
         parser.add_argument(
-            '--custom-llvm-prefix',
+            '--custom-clang-prefix',
             help='Use a pre-built version of LLVM/Clang instead of trying to build it. '
                  'This is the installation directory, not the build directory, of LLVM/Clang. '
                  'We expect clang and clang++ executables to be in the bin subdirectory of this. '
@@ -213,26 +213,26 @@ class Builder:
         # -----------------------------------------------------------------------------------------
         # Special build types:
         #
-        # - custom_llvm_prefix means we use a Clang/LLVM distribution built outside of this
+        # - custom_clang_prefix means we use a Clang/LLVM distribution built outside of this
         #   thirdparty dependency management system and compile everything with it. We use only
         #   Clang in that case.
 
         # - devtoolset means we activate that devtoolset in CentOS 7 and use the GCC from it. We
         #   only use GCC in this case.
 
-        self.custom_llvm_prefix = self.args.custom_llvm_prefix
+        self.custom_clang_prefix = self.args.custom_clang_prefix
         self.devtoolset = self.args.devtoolset
 
-        if self.custom_llvm_prefix and self.devtoolset:
-            raise ValueError("--custom-llvm-prefix is not compatible with --devtoolset")
+        if self.custom_clang_prefix and self.devtoolset:
+            raise ValueError("--custom-clang-prefix is not compatible with --devtoolset")
 
         # -----------------------------------------------------------------------------------------
-        # Special handling for custom_llvm_prefix
+        # Special handling for custom_clang_prefix
 
         # Validate the supplied LLVM/Clang installation directory.
-        if self.custom_llvm_prefix:
+        if self.custom_clang_prefix:
             for clang_compiler_name in ['clang', 'clang++']:
-                compiler_path = os.path.join(self.custom_llvm_prefix, 'bin', clang_compiler_name)
+                compiler_path = os.path.join(self.custom_clang_prefix, 'bin', clang_compiler_name)
                 if not os.path.exists(compiler_path):
                     raise ValueError('Compiler not found at %s' % compiler_path)
 
@@ -246,7 +246,7 @@ class Builder:
             activate_devtoolset(self.devtoolset)
 
     def use_only_clang(self):
-        return is_mac() or self.custom_llvm_prefix
+        return is_mac() or self.custom_clang_prefix
 
     def use_only_gcc(self):
         return bool(self.devtoolset)
@@ -279,18 +279,19 @@ class Builder:
                 build_definitions.libuuid.LibUuidDependency(),
             ]
 
-            if not self.custom_llvm_prefix:
-                self.dependencies.append(build_definitions.llvm.LLVMDependency())
+            if not self.use_only_gcc():
+                if not self.custom_clang_prefix:
+                    self.dependencies.append(build_definitions.llvm.LLVMDependency())
 
-            self.dependencies += [
-                build_definitions.libcxx.LibCXXDependency(),
-            ]
+                self.dependencies.append(build_definitions.libcxx.LibCXXDependency())
 
-            if not self.custom_llvm_prefix:
+            if not self.custom_clang_prefix:
                 self.dependencies.append(build_definitions.libunwind.LibUnwindDependency())
+
             self.dependencies.append(build_definitions.libbacktrace.LibBacktraceDependency())
 
-            if not self.custom_llvm_prefix:
+            if not self.custom_clang_prefix and not self.use_only_gcc():
+                # TODO: We can enable include-what-you-use in the custom Clang mode
                 self.dependencies.append(
                     build_definitions.include_what_you_use.IncludeWhatYouUseDependency())
 
@@ -350,7 +351,7 @@ class Builder:
         if is_linux():
             self.build(BUILD_TYPE_UNINSTRUMENTED)
         if not self.use_only_gcc():
-            if not self.custom_llvm_prefix:
+            if not self.custom_clang_prefix:
                 # In the mode where we're using LLVM built outside of this thirdparty project, we do
                 # not use the clang_uninstrumented build type, because the uninstrumented type is
                 # itself build with Clang (everything is built with Clang). On macOS, however,
@@ -409,8 +410,8 @@ class Builder:
 
     def find_clang(self):
         clang_dir = None
-        if self.custom_llvm_prefix:
-            clang_dir = self.custom_llvm_prefix
+        if self.custom_clang_prefix:
+            clang_dir = self.custom_clang_prefix
         else:
             candidate_dirs = [
                 os.path.join(self.tp_dir, 'clang-toolchain'),
@@ -429,7 +430,7 @@ class Builder:
         return os.path.join(clang_bin_dir, 'clang'), os.path.join(clang_bin_dir, 'clang++')
 
     def detect_linuxbrew(self):
-        if not is_linux() or self.custom_llvm_prefix or self.devtoolset:
+        if not is_linux() or self.custom_clang_prefix or self.devtoolset:
             return
 
         self.linuxbrew_dir = os.getenv('YB_LINUXBREW_DIR')
@@ -895,7 +896,7 @@ class Builder:
         # -----------------------------------------------------------------------------------------
 
         # This is needed for icu4c to find libc++ when building with Clang 10.0.1.
-        if self.custom_llvm_prefix:
+        if self.custom_clang_prefix:
             # TODO: avoid this because a lot of other libraries come in!
             # Including libunwind which conflicts with thirdparty-supplied libunwind.
             # We need to probably use the same libunwind that ships with LLVM.
@@ -903,7 +904,7 @@ class Builder:
             # could be picked up from this directory.
             # Ideally, we should build libc++ separately (and we'll need that for ASAN/TSAN anyway)
             # and put it in a separate directory.
-            self.add_rpath(os.path.join(self.custom_llvm_prefix, 'lib'))
+            self.add_rpath(os.path.join(self.custom_clang_prefix, 'lib'))
 
         if self.build_type == BUILD_TYPE_ASAN:
             self.compiler_flags += [
@@ -916,7 +917,7 @@ class Builder:
         elif self.build_type == BUILD_TYPE_CLANG_UNINSTRUMENTED:
             pass
         elif (self.build_type in [BUILD_TYPE_COMMON, BUILD_TYPE_UNINSTRUMENTED] and
-              self.custom_llvm_prefix):
+              self.custom_clang_prefix):
             self.ld_flags.extend([
                 '-stdlib=libc++',
                 '-rtlib=compiler-rt'
@@ -932,7 +933,7 @@ class Builder:
                 "Wrong instrumentation type for Clang on Linux: %s. "
                 "Custom LLVM/Clang installationprefix: %s",
                 self.build_type,
-                self.custom_llvm_prefix)
+                self.custom_clang_prefix)
 
         # This is used to build code with libc++ and Clang 7 built as part of thirdparty.
         stdlib_suffix = self.build_type

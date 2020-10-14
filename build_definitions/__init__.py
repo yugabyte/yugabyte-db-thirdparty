@@ -40,7 +40,7 @@ BUILD_GROUP_INSTRUMENTED = 2
 
 BUILD_TYPE_COMMON = 'common'
 
-# This build type is built with GCC on Linux, unless --custom-llvm-prefix is specified.
+# This build type is built with GCC on Linux, unless --custom-clang-prefix is specified.
 # In the latter case this is built with Clang and BUILD_TYPE_CLANG_UNINSTRUMENTED is not used.
 BUILD_TYPE_UNINSTRUMENTED = 'uninstrumented'
 
