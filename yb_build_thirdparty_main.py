@@ -80,7 +80,7 @@ def compute_file_sha256(path):
     return hashsum_file(hashlib.sha256(), path)
 
 
-DEVTOOLSET_ENV_VARS = """
+DEVTOOLSET_ENV_VARS = set([s.strip() for s in """
     INFOPATH
     LD_LIBRARY_PATH
     MANPATH
@@ -89,7 +89,7 @@ DEVTOOLSET_ENV_VARS = """
     PERL5LIB
     PKG_CONFIG_PATH
     PYTHONPATH
-""".strip().split("\n")
+""".strip().split("\n")])
 
 
 def activate_devtoolset(devtoolset_number: int) -> None:
@@ -97,6 +97,7 @@ def activate_devtoolset(devtoolset_number: int) -> None:
     devtoolset_env_str = subprocess.check_output(
         ['bash', '-c', '. /opt/rh/devtoolset-%d/enable && env' % devtoolset_number]).decode('utf-8')
 
+    found_vars = set()
     for line in devtoolset_env_str.split("\n"):
         line = line.strip()
         if not line:
@@ -105,8 +106,10 @@ def activate_devtoolset(devtoolset_number: int) -> None:
         if k in DEVTOOLSET_ENV_VARS:
             log("Setting %s to: %s", k, v)
             os.environ[k] = v
-        else:
-            log("Not setting environment variable %s for devtoolset-%d", k, devtoolset_number)
+            found_vars.add(s)
+    for var_name in DEVTOOLSET_ENV_VARS:
+        if var_name not in found_vars:
+            log("Did not set env var %s for devtoolset-%d", var_name, devtoolset_number)
 
 
 class Builder:
