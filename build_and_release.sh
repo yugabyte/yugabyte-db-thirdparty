@@ -181,7 +181,7 @@ build_thirdparty_cmd=( ./build_thirdparty.sh )
     export PATH=$YB_LINUXBREW_DIR/bin:$PATH
   fi
   if [[ $YB_THIRDPARTY_BUILD_TYPE == devtoolset-* ]]; then
-    build_thirdparty_cmd+=( --devtoolset=${YB_THIRDPARTY_BUILD_TYPE:-devtoolset-} )
+    build_thirdparty_cmd+=( "--devtoolset=${YB_THIRDPARTY_BUILD_TYPE:-devtoolset-}" )
   fi
   set -x
   time "${build_thirdparty_cmd[@]}"
