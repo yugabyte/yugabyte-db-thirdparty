@@ -93,8 +93,9 @@ DEVTOOLSET_ENV_VARS = """
 
 
 def activate_devtoolset(devtoolset_number: int) -> None:
+    log("Enabling devtoolset-%s", devtoolset_number)
     devtoolset_env_str = subprocess.check_output(
-        ['bash', '-c', '. /opt/rh/devtoolset-%s/enable && env' % devtoolset_number]).decode('utf-8')
+        ['bash', '-c', '. /opt/rh/devtoolset-%d/enable && env' % devtoolset_number]).decode('utf-8')
 
     for line in devtoolset_env_str.split("\n"):
         line = line.strip()
@@ -104,6 +105,8 @@ def activate_devtoolset(devtoolset_number: int) -> None:
         if k in DEVTOOLSET_ENV_VARS:
             log("Setting %s to: %s", k, v)
             os.environ[k] = v
+        else:
+            log("Not setting environment variable %s for devtoolset-%d", k, devtoolset_number)
 
 
 class Builder:
@@ -204,23 +207,46 @@ class Builder:
         if self.args.make_parallelism:
             os.environ['YB_MAKE_PARALLELISM'] = str(self.args.make_parallelism)
 
-        if self.args.custom_llvm_prefix is not None and self.args.devtoolset is not None:
+        # -----------------------------------------------------------------------------------------
+        # Special build types:
+        #
+        # - custom_llvm_prefix means we use a Clang/LLVM distribution built outside of this
+        #   thirdparty dependency management system and compile everything with it. We use only
+        #   Clang in that case.
+
+        # - devtoolset means we activate that devtoolset in CentOS 7 and use the GCC from it. We
+        #   only use GCC in this case.
+
+        self.custom_llvm_prefix = self.args.custom_llvm_prefix
+        self.devtoolset = self.args.devtoolset
+
+        if self.custom_llvm_prefix and self.devtoolset:
             raise ValueError("--custom-llvm-prefix is not compatible with --devtoolset")
 
+        # -----------------------------------------------------------------------------------------
+        # Special handling for custom_llvm_prefix
+
         # Validate the supplied LLVM/Clang installation directory.
-        self.custom_llvm_prefix = self.args.custom_llvm_prefix
         if self.custom_llvm_prefix:
             for clang_compiler_name in ['clang', 'clang++']:
                 compiler_path = os.path.join(self.custom_llvm_prefix, 'bin', clang_compiler_name)
                 if not os.path.exists(compiler_path):
                     raise ValueError('Compiler not found at %s' % compiler_path)
 
-        self.devtoolset = self.args.devtoolset
+        # -----------------------------------------------------------------------------------------
+        # Special handling for devtoolset
+
+        if self.devtoolset and not is_centos():
+            raise ValueError("--devtoolset can only be used on CentOS Linux")
+
         if self.devtoolset:
             activate_devtoolset(self.devtoolset)
 
     def use_only_clang(self):
         return is_mac() or self.custom_llvm_prefix
+
+    def use_only_gcc(self):
+        return bool(self.devtoolset)
 
     def finish_initialization(self):
         self.detect_linuxbrew()
@@ -320,13 +346,17 @@ class Builder:
         self.build(BUILD_TYPE_COMMON)
         if is_linux():
             self.build(BUILD_TYPE_UNINSTRUMENTED)
-        if not self.custom_llvm_prefix:
-            # In the mode where we're using LLVM built outside of this thirdparty project, we do not
-            # use the clang_uninstrumented
-            self.build(BUILD_TYPE_CLANG_UNINSTRUMENTED)
-        if is_linux() and not self.args.skip_sanitizers:
-            self.build(BUILD_TYPE_ASAN)
-            self.build(BUILD_TYPE_TSAN)
+        if not self.use_only_gcc():
+            if not self.custom_llvm_prefix:
+                # In the mode where we're using LLVM built outside of this thirdparty project, we do
+                # not use the clang_uninstrumented build type, because the uninstrumented type is
+                # itself build with Clang (everything is built with Clang). On macOS, however,
+                # we still use the clang_uninstrumented build type for historical reasons. This will
+                # probably change at some point.
+                self.build(BUILD_TYPE_CLANG_UNINSTRUMENTED)
+            if is_linux() and not self.args.skip_sanitizers:
+                self.build(BUILD_TYPE_ASAN)
+                self.build(BUILD_TYPE_TSAN)
 
     def find_compiler_by_type(self, compiler_type):
         compilers = None
@@ -335,6 +365,8 @@ class Builder:
                 raise ValueError('Not allowed to use GCC')
             compilers = self.find_gcc()
         elif compiler_type == 'clang':
+            if self.use_only_gcc():
+                raise ValueError('Not allowed to use Clang')
             compilers = self.find_clang()
         else:
             fatal("Unknown compiler type {}".format(compiler_type))
@@ -1046,6 +1078,8 @@ class Builder:
     def building_with_clang(self):
         if self.use_only_clang():
             return True
+        if self.devtoolset:
+            return False
 
         return self.build_type in [
             BUILD_TYPE_ASAN,

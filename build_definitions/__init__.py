@@ -41,7 +41,7 @@ BUILD_GROUP_INSTRUMENTED = 2
 BUILD_TYPE_COMMON = 'common'
 
 # This build type is built with GCC on Linux, unless --custom-llvm-prefix is specified.
-# In the latter case this is built with Clang and BUILD_TYPE_CLANG_UNINSTRUMENTED is unused.
+# In the latter case this is built with Clang and BUILD_TYPE_CLANG_UNINSTRUMENTED is not used.
 BUILD_TYPE_UNINSTRUMENTED = 'uninstrumented'
 
 # Clang-based builds with ASAN+UBSAN and TSAN enabled.
@@ -154,13 +154,23 @@ def is_jenkins():
     return 'BUILD_ID' in os.environ and 'JOB_NAME' in os.environ and is_jenkins_user()
 
 
-def is_ubuntu():
-    etc_issue_path = '/etc/issue'
-    if not os.path.exists(etc_issue_path):
+def does_file_start_with_string(file_path: str, s: str) -> bool:
+    if not os.path.exists(file_path):
         return False
-    with open(etc_issue_path) as etc_issue_file:
-        contents = etc_issue_file.read()
-        return contents.startswith('Ubuntu')
+    with open(file_path) as f:
+        return f.read().strip().startswith(s)
+
+
+IS_UBUNTU = does_file_start_with_string('/etc/issue', 'Ubuntu')
+IS_CENTOS = does_file_start_with_string('/etc/centos-release', 'CentOS')
+
+
+def is_ubuntu():
+    return IS_UBUNTU
+
+
+def is_centos():
+    return IS_CENTOS
 
 
 def remove_path(path):
