@@ -86,6 +86,9 @@ git_sha1=$( git rev-parse HEAD )
 tag=v$( date +%Y%m%d%H%M%S )-${git_sha1:0:10}
 
 archive_dir_name=yugabyte-db-thirdparty-$tag-$os_name
+if [[ $YB_THIRDPARTY_BUILD_TYPE != "default" ]]; then
+  archive_dir_name+="-$YB_THIRDPARTY_BUILD_TYPE"
+fi
 build_dir_parent=/opt/yb-build/thirdparty
 repo_dir=$build_dir_parent/$archive_dir_name
 
