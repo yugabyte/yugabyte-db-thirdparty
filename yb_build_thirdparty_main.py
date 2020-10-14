@@ -106,7 +106,7 @@ def activate_devtoolset(devtoolset_number: int) -> None:
         if k in DEVTOOLSET_ENV_VARS:
             log("Setting %s to: %s", k, v)
             os.environ[k] = v
-            found_vars.add(s)
+            found_vars.add(k)
     for var_name in DEVTOOLSET_ENV_VARS:
         if var_name not in found_vars:
             log("Did not set env var %s for devtoolset-%d", var_name, devtoolset_number)
