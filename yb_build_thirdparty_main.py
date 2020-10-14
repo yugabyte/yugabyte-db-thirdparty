@@ -394,7 +394,7 @@ class Builder:
         return os.path.join(clang_bin_dir, 'clang'), os.path.join(clang_bin_dir, 'clang++')
 
     def detect_linuxbrew(self):
-        if not is_linux() or self.custom_llvm_prefix:
+        if not is_linux() or self.custom_llvm_prefix or self.devtoolset:
             return
 
         self.linuxbrew_dir = os.getenv('YB_LINUXBREW_DIR')
