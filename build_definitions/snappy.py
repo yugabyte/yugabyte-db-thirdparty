@@ -34,7 +34,10 @@ class SnappyDependency(Dependency):
 
     def build(self, builder):
         log_prefix = builder.log_prefix(self)
-        builder.build_with_configure(log_prefix, ['--with-pic'])
+        builder.build_with_configure(
+            log_prefix=log_prefix,
+            extra_args=['--with-pic']
+        )
         # Copy over all the headers into a generic include/ directory.
         mkdir_if_missing('include')
         subprocess.check_call('ls | egrep "snappy.*.h" | xargs -I{} rsync -av "{}" "include/"',

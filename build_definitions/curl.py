@@ -41,4 +41,7 @@ class CurlDependency(Dependency):
             '--without-nghttp2'
         ]
 
-        builder.build_with_configure(builder.log_prefix(self), extra_args)
+        builder.build_with_configure(
+            log_prefix=builder.log_prefix(self),
+            extra_args=extra_args
+        )

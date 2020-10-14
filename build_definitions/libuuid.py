@@ -30,6 +30,7 @@ class LibUuidDependency(Dependency):
 
     def build(self, builder):
         builder.build_with_configure(
-                builder.log_prefix(self),
-                extra_args=['--with-pic'],
-                autoconf=True)
+            log_prefix=builder.log_prefix(self),
+            extra_args=['--with-pic'],
+            autoconf=True
+        )

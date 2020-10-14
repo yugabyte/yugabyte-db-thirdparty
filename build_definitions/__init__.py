@@ -22,6 +22,8 @@ import shutil
 import subprocess
 import traceback
 
+from typing import Any, List, Optional, Dict
+
 
 YELLOW_COLOR = "\033[0;33m"
 RED_COLOR = "\033[0;31m"
@@ -70,7 +72,7 @@ ARCHIVE_TYPES = {
 }
 
 
-def _args_to_message(*args):
+def _args_to_message(*args: Any) -> str:
     n_args = len(args)
     if n_args == 0:
         message = ""
@@ -81,30 +83,31 @@ def _args_to_message(*args):
     return message
 
 
-def fatal(*args):
+def fatal(*args: Any) -> None:
     log(*args)
     traceback.print_stack()
     sys.exit(1)
 
 
-def log(*args):
+def log(*args: Any) -> None:
     sys.stderr.write(_args_to_message(*args) + "\n")
 
 
-def colored_log(color, *args):
+def colored_log(color: str, *args: Any) -> None:
     sys.stderr.write(color + _args_to_message(*args) + NO_COLOR + "\n")
 
 
-def print_line_with_colored_prefix(prefix, line):
+def print_line_with_colored_prefix(prefix: str, line: str) -> None:
     log("%s[%s] %s%s", CYAN_COLOR, prefix, NO_COLOR, line.rstrip())
 
 
-def log_output(prefix, args, log_cmd=True):
+def log_output(prefix: str, args: List[Any], log_cmd: bool = True) -> None:
     try:
         print_line_with_colored_prefix(
             prefix, "Running command: {} (current directory: {})".format(
                 args, os.getcwd()))
         process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        assert process.stdout is not None
         for line in process.stdout:
             print_line_with_colored_prefix(prefix, line.decode('utf-8'))
 
@@ -118,19 +121,19 @@ def log_output(prefix, args, log_cmd=True):
         raise
 
 
-def unset_if_set(name):
+def unset_env_var_if_set(name: str) -> None:
     if name in os.environ:
         log('Unsetting %s for third-party build (was set to "%s").', name, os.environ[name])
         del os.environ[name]
 
 
-def log_separator():
+def log_separator() -> None:
     log("")
     log(SEPARATOR)
     log("")
 
 
-def heading(title):
+def heading(title: str) -> None:
     log("")
     log(SEPARATOR)
     log(title)
@@ -138,19 +141,19 @@ def heading(title):
     log("")
 
 
-def is_mac():
+def is_mac() -> bool:
     return platform.system().lower() == 'darwin'
 
 
-def is_linux():
+def is_linux() -> bool:
     return platform.system().lower() == 'linux'
 
 
-def is_jenkins_user():
+def is_jenkins_user() -> bool:
     return os.environ['USER'] == "jenkins"
 
 
-def is_jenkins():
+def is_jenkins() -> bool:
     return 'BUILD_ID' in os.environ and 'JOB_NAME' in os.environ and is_jenkins_user()
 
 
@@ -165,15 +168,15 @@ IS_UBUNTU = does_file_start_with_string('/etc/issue', 'Ubuntu')
 IS_CENTOS = does_file_start_with_string('/etc/centos-release', 'CentOS')
 
 
-def is_ubuntu():
+def is_ubuntu() -> bool:
     return IS_UBUNTU
 
 
-def is_centos():
+def is_centos() -> bool:
     return IS_CENTOS
 
 
-def remove_path(path):
+def remove_path(path: str) -> None:
     if not os.path.exists(path):
         return
     if os.path.islink(path):
@@ -184,7 +187,7 @@ def remove_path(path):
         os.remove(path)
 
 
-def mkdir_if_missing(path):
+def mkdir_if_missing(path: str) -> None:
     if os.path.exists(path):
         if not os.path.isdir(path):
             fatal("Trying to create dir {}, but file with the same path already exists"
@@ -193,7 +196,7 @@ def mkdir_if_missing(path):
     os.makedirs(path)
 
 
-def make_archive_name(name, version, download_url):
+def make_archive_name(name: str, version: str, download_url: str) -> Optional[str]:
     if download_url is None:
         return '{}-{}{}'.format(name, version, '.tar.gz')
     for ext in ARCHIVE_TYPES:
@@ -202,11 +205,11 @@ def make_archive_name(name, version, download_url):
     return None
 
 
-def which(exe):
+def which(exe: str) -> str:
     return subprocess.check_output(['which', exe]).rstrip().decode('utf-8')
 
 
-def import_submodules(package, recursive=True):
+def import_submodules(package: Any, recursive: bool = True) -> Dict[str, Any]:
     if isinstance(package, str):
         package = importlib.import_module(package)
     results = {}
@@ -218,8 +221,19 @@ def import_submodules(package, recursive=True):
     return results
 
 
+class BuilderBase:
+    pass
+
+
 class Dependency(object):
-    def __init__(self, name, version, url_pattern, build_group):
+    download_url: Optional[str]
+    extra_downloads: List[ExtraDownload]
+    patches: List[str]
+    patch_strip: Optional[int]
+    post_patch: Optional[str]
+    copy_sources: bool
+
+    def __init__(self, name: str, version: str, url_pattern: str, build_group: str) -> None:
         self.name = name
         self.version = version
         self.dir_name = '{}-{}'.format(name, version)
@@ -231,22 +245,36 @@ class Dependency(object):
         self.build_group = build_group
         self.archive_name = make_archive_name(name, version, self.download_url)
         self.patch_version = 0
+        self.extra_downloads = []
+        self.patches = []
+        self.patch_strip = None
+        self.post_patch = None
+        self.copy_sources = False
 
-    def get_additional_c_cxx_flags(self, builder):
+    def get_additional_c_cxx_flags(self, builder: BuilderBase) -> List[str]:
         return []
 
-    def get_additional_c_flags(self, builder):
+    def get_additional_c_flags(self, builder: BuilderBase) -> List[str]:
         return []
 
-    def get_additional_cxx_flags(self, builder):
+    def get_additional_cxx_flags(self, builder: BuilderBase) -> List[str]:
         return []
 
-    def should_build(self, builder):
+    def should_build(self, builder: BuilderBase) -> bool:
         return True
+
+    def build(self, builder: BuilderBase) -> None:
+        raise NotImplementedError()
 
 
 class ExtraDownload(object):
-    def __init__(self, name, version, url_pattern, dir_name, post_exec=None):
+    def __init__(
+            self,
+            name: str,
+            version: str,
+            url_pattern: str,
+            dir_name: str,
+            post_exec: Optional[str]) -> None:
         self.name = name
         self.version = version
         self.download_url = url_pattern.format(version)
@@ -257,13 +285,18 @@ class ExtraDownload(object):
 
 
 class PushDir:
-    def __init__(self, dir_name):
+    dir_name: str
+    prev: Optional[str]
+
+    def __init__(self, dir_name: str) -> None:
         self.dir_name = dir_name
         self.prev = None
 
-    def __enter__(self):
+    def __enter__(self) -> None:
         self.prev = os.getcwd()
         os.chdir(self.dir_name)
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, type: Any, value: Any, traceback: Any) -> None:
+        # TODO: use more precise argument types above.
+        assert self.prev is not None
         os.chdir(self.prev)

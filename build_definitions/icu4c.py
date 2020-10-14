@@ -46,9 +46,10 @@ class Icu4cDependency(Dependency):
         ]
 
         builder.build_with_configure(
-                builder.log_prefix(self),
-                source_subdir='source',
-                extra_args=configure_extra_args)
+            log_prefix=builder.log_prefix(self),
+            source_subdir='source',
+            extra_args=configure_extra_args
+        )
 
         if is_mac():
             lib_dir = os.path.realpath(os.path.join(builder.prefix, "lib"))

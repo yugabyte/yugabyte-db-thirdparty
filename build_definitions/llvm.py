@@ -87,7 +87,7 @@ class LLVMDependency(Dependency):
         ]
         builder.build_with_cmake(self,
                                  cmake_args,
-                                 use_ninja='auto')
+                                 use_ninja_if_available=True)
 
         link_path = os.path.join(builder.tp_dir, 'clang-toolchain')
         remove_path(link_path)

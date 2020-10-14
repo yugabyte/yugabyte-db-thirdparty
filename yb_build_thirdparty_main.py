@@ -27,6 +27,8 @@ import sys
 import time
 from datetime import datetime
 
+from typing import Set, List, Dict, Optional, Tuple
+
 from build_definitions import *  # noqa
 import build_definitions
 import_submodules(build_definitions)
@@ -38,14 +40,15 @@ INITIAL_DOWNLOAD_RETRY_SLEEP_TIME_SEC = 1.0
 DOWNLOAD_RETRY_SLEEP_INCREASE_SEC = 0.5
 
 
-def hashsum_file(hash, filename, block_size=65536):
+def hashsum_file(hash: Any, filename: str, block_size: int = 65536) -> str:
+    # TODO: use a more precise argument type for hash.
     with open(filename, "rb") as f:
         for block in iter(lambda: f.read(block_size), b""):
             hash.update(block)
     return hash.hexdigest()
 
 
-def indent_lines(s, num_spaces=4):
+def indent_lines(s: Optional[str], num_spaces: int = 4) -> Optional[str]:
     if s is None:
         return s
     return "\n".join([
@@ -53,34 +56,39 @@ def indent_lines(s, num_spaces=4):
     ])
 
 
-def get_make_parallelism():
+def get_make_parallelism() -> int:
     return int(os.environ.get('YB_MAKE_PARALLELISM', multiprocessing.cpu_count()))
 
 
-# This is the equivalent of shutil.which in Python 3.
-def where_is_program(program_name):
+def where_is_program(program_name: str) -> Optional[str]:
+    '''
+    This is the equivalent of shutil.which in Python 3.
+    TODO: deduplicate. We have this function and also the which() function in __init__.py.
+    '''
     path = os.getenv('PATH')
+    assert path is not None
     for path_dir in path.split(os.path.pathsep):
         full_path = os.path.join(path_dir, program_name)
         if os.path.exists(full_path) and os.access(full_path, os.X_OK):
             return full_path
+    return None
 
 
-g_is_ninja_available = None
+g_is_ninja_available: Optional[bool] = None
 
 
-def is_ninja_available():
+def is_ninja_available() -> bool:
     global g_is_ninja_available
     if g_is_ninja_available is None:
         g_is_ninja_available = bool(where_is_program('ninja'))
     return g_is_ninja_available
 
 
-def compute_file_sha256(path):
+def compute_file_sha256(path: str) -> str:
     return hashsum_file(hashlib.sha256(), path)
 
 
-DEVTOOLSET_ENV_VARS = set([s.strip() for s in """
+DEVTOOLSET_ENV_VARS: Set[str] = set([s.strip() for s in """
     INFOPATH
     LD_LIBRARY_PATH
     MANPATH
@@ -112,12 +120,24 @@ def activate_devtoolset(devtoolset_number: int) -> None:
             log("Did not set env var %s for devtoolset-%d", var_name, devtoolset_number)
 
 
-class Builder:
+class Builder(BuilderBase):
+    args: Optional[argparse.Namespace]
+    cc: Optional[str]
+    cxx: Optional[str]
+    linuxbrew_dir: Optional[str]
+    using_linuxbrew: bool
+    tp_download_dir: str
+    ld_flags: List[str]
+    compiler_flags: List[str]
+    c_flags: List[str]
+    cxx_flags: List[str]
+    libs: List[str]
+
     """
     This class manages the overall process of building third-party dependencies, including the set
     of dependencies to build, build types, and the directories to install dependencies.
     """
-    def __init__(self):
+    def __init__(self) -> None:
         self.tp_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
         self.tp_build_dir = os.path.join(self.tp_dir, 'build')
         self.tp_src_dir = os.path.join(self.tp_dir, 'src')
@@ -138,7 +158,7 @@ class Builder:
 
         self.load_expected_checksums()
 
-    def set_compiler(self, compiler_type):
+    def set_compiler(self, compiler_type: str) -> None:
         if is_mac():
             if compiler_type != 'clang':
                 raise ValueError(
@@ -157,7 +177,7 @@ class Builder:
         os.environ['CC'] = c_compiler
         os.environ['CXX'] = cxx_compiler
 
-    def parse_args(self):
+    def parse_args(self) -> None:
         os.environ['YB_IS_THIRDPARTY_BUILD'] = '1'
 
         parser = argparse.ArgumentParser(prog=sys.argv[0])
@@ -245,18 +265,18 @@ class Builder:
         if self.devtoolset:
             activate_devtoolset(self.devtoolset)
 
-    def use_only_clang(self):
+    def use_only_clang(self) -> bool:
         return is_mac() or self.custom_clang_prefix
 
-    def use_only_gcc(self):
+    def use_only_gcc(self) -> bool:
         return bool(self.devtoolset)
 
-    def finish_initialization(self):
+    def finish_initialization(self) -> None:
         self.detect_linuxbrew()
         self.populate_dependencies()
         self.select_dependencies_to_build()
 
-    def populate_dependencies(self):
+    def populate_dependencies(self) -> None:
         self.dependencies = [
             build_definitions.zlib.ZLibDependency(),
             build_definitions.lz4.LZ4Dependency(),
@@ -312,7 +332,8 @@ class Builder:
             build_definitions.cassandra_cpp_driver.CassandraCppDriverDependency(),
         ]
 
-    def select_dependencies_to_build(self):
+    def select_dependencies_to_build(self) -> None:
+        assert self.args is not None
         self.selected_dependencies = []
         if self.args.dependencies:
             names = set([dep.name for dep in self.dependencies])
@@ -336,7 +357,8 @@ class Builder:
         else:
             self.selected_dependencies = self.dependencies
 
-    def run(self):
+    def run(self) -> None:
+        assert self.args is not None
         self.set_compiler('clang' if self.use_only_clang() else 'gcc')
         if self.args.clean:
             self.clean()
@@ -362,8 +384,8 @@ class Builder:
                 self.build(BUILD_TYPE_ASAN)
                 self.build(BUILD_TYPE_TSAN)
 
-    def find_compiler_by_type(self, compiler_type):
-        compilers = None
+    def find_compiler_by_type(self, compiler_type: str) -> None:
+        compilers: Tuple[str, str]
         if compiler_type == 'gcc':
             if self.use_only_clang():
                 raise ValueError('Not allowed to use GCC')
@@ -374,6 +396,7 @@ class Builder:
             compilers = self.find_clang()
         else:
             fatal("Unknown compiler type {}".format(compiler_type))
+        assert len(compilers) == 2
 
         for compiler in compilers:
             if compiler is None or not os.path.exists(compiler):
@@ -382,22 +405,22 @@ class Builder:
         self.cc = compilers[0]
         self.cxx = compilers[1]
 
-    def get_c_compiler(self):
+    def get_c_compiler(self) -> str:
         assert self.cc is not None
         return self.cc
 
-    def get_cxx_compiler(self):
+    def get_cxx_compiler(self) -> str:
         assert self.cxx is not None
         return self.cxx
 
-    def find_gcc(self):
+    def find_gcc(self) -> Tuple[str, str]:
         return self.do_find_gcc('gcc', 'g++')
 
-    def do_find_gcc(self, c_compiler, cxx_compiler):
+    def do_find_gcc(self, c_compiler: str, cxx_compiler: str) -> Tuple[str, str]:
         if 'YB_GCC_PREFIX' in os.environ:
             gcc_dir = os.environ['YB_GCC_PREFIX']
         elif self.using_linuxbrew:
-            gcc_dir = self.linuxbrew_dir
+            gcc_dir = self.get_linuxbrew_dir()
         else:
             return which(c_compiler), which(cxx_compiler)
 
@@ -408,7 +431,7 @@ class Builder:
 
         return os.path.join(gcc_bin_dir, 'gcc'), os.path.join(gcc_bin_dir, 'g++')
 
-    def find_clang(self):
+    def find_clang(self) -> Tuple[str, str]:
         clang_dir = None
         if self.custom_clang_prefix:
             clang_dir = self.custom_clang_prefix
@@ -429,7 +452,7 @@ class Builder:
 
         return os.path.join(clang_bin_dir, 'clang'), os.path.join(clang_bin_dir, 'clang++')
 
-    def detect_linuxbrew(self):
+    def detect_linuxbrew(self) -> None:
         if not is_linux() or self.custom_clang_prefix or self.devtoolset:
             return
 
@@ -439,7 +462,14 @@ class Builder:
             self.using_linuxbrew = True
             os.environ['PATH'] = os.path.join(self.linuxbrew_dir, 'bin') + ':' + os.environ['PATH']
 
-    def clean(self):
+    def get_linuxbrew_dir(self) -> str:
+        assert self.linuxbrew_dir is not None
+        return self.linuxbrew_dir
+
+    def clean(self) -> None:
+        """
+        TODO: deduplicate this vs. the clean_thirdparty.sh script.
+        """
         heading('Clean')
         for dependency in self.selected_dependencies:
             for dir_name in BUILD_TYPES:
@@ -459,7 +489,7 @@ class Builder:
                 log("Removing %s archive: %s", dependency.name, archive_path)
                 remove_path(archive_path)
 
-    def download_dependency(self, dep):
+    def download_dependency(self, dep: Dependency) -> None:
         src_path = self.source_path(dep)
         patch_level_path = os.path.join(src_path, 'patchlevel-{}'.format(dep.patch_version))
         if os.path.exists(patch_level_path):
@@ -488,6 +518,7 @@ class Builder:
 
         if hasattr(dep, 'extra_downloads'):
             for extra in dep.extra_downloads:
+                assert extra.archive_name is not None
                 archive_path = os.path.join(self.tp_download_dir, extra.archive_name)
                 log("Downloading %s from %s", extra.archive_name, extra.download_url)
                 self.ensure_file_downloaded(extra.download_url, archive_path)
@@ -509,30 +540,31 @@ class Builder:
                                                stdin=subprocess.PIPE)
                     with open(os.path.join(self.tp_dir, 'patches', patch), 'rt') as inp:
                         patch = inp.read()
+                    assert process.stdin is not None
                     process.stdin.write(patch.encode('utf-8'))
                     process.stdin.close()
                     exit_code = process.wait()
                     if exit_code:
                         fatal("Patch {} failed with code: {}".format(dep.name, exit_code))
-                if hasattr(dep, 'post_patch'):
+                if dep.post_patch is not None:
                     subprocess.check_call(dep.post_patch)
 
         with open(patch_level_path, 'wb') as out:
             # Just create an empty file.
             pass
 
-    def archive_path(self, dep):
+    def archive_path(self, dep: Dependency) -> Optional[str]:
         if dep.archive_name is None:
             return None
         return os.path.join(self.tp_download_dir, dep.archive_name)
 
-    def source_path(self, dep):
+    def source_path(self, dep: Dependency) -> str:
         return os.path.join(self.tp_src_dir, dep.dir_name)
 
-    def get_checksum_file(self):
+    def get_checksum_file(self) -> str:
         return os.path.join(self.tp_dir, CHECKSUM_FILE_NAME)
 
-    def load_expected_checksums(self):
+    def load_expected_checksums(self) -> None:
         checksum_file = self.get_checksum_file()
         if not os.path.exists(checksum_file):
             fatal("Expected checksum file not found at {}".format(checksum_file))
@@ -549,7 +581,8 @@ class Builder:
                           "SHA-256 sum (64 hex characters).", sum, fname, checksum_file)
                 self.filename2checksum[fname] = sum
 
-    def get_expected_checksum(self, filename, downloaded_path):
+    def get_expected_checksum(self, filename: str, downloaded_path: str) -> str:
+        assert self.args is not None
         if filename not in self.filename2checksum:
             if self.args.add_checksum:
                 checksum_file = self.get_checksum_file()
@@ -568,7 +601,7 @@ class Builder:
             fatal("No expected checksum provided for {}".format(filename))
         return self.filename2checksum[filename]
 
-    def ensure_file_downloaded(self, url, path):
+    def ensure_file_downloaded(self, url: str, path: str) -> None:
         filename = os.path.basename(path)
 
         mkdir_if_missing(self.tp_download_dir)
@@ -608,11 +641,15 @@ class Builder:
                   "Has %s, but expected: %s",
                   path, url, compute_file_sha256(path), expected_checksum)
 
-    def verify_checksum(self, filename, expected_checksum):
+    def verify_checksum(self, filename: str, expected_checksum: str) -> bool:
         real_checksum = hashsum_file(hashlib.sha256(), filename)
         return real_checksum == expected_checksum
 
-    def extract_archive(self, archive_filename, out_dir, out_name=None):
+    def extract_archive(
+            self,
+            archive_filename: str,
+            out_dir: str,
+            out_name: Optional[str] = None) -> None:
         """
         Extract the given archive into a subdirectory of out_dir, optionally renaming it to
         the specified name out_name. The archive is expected to contain exactly one directory.
@@ -623,7 +660,7 @@ class Builder:
         function returns.
         """
 
-        def dest_dir_already_exists(full_out_path):
+        def dest_dir_already_exists(full_out_path: str) -> bool:
             if os.path.exists(full_out_path):
                 log("Directory already exists: %s, skipping extracting %s" % (
                         full_out_path, archive_filename))
@@ -653,6 +690,7 @@ class Builder:
                 break
         if not archive_extension:
             fatal("Unknown archive type for: {}".format(archive_filename))
+        assert archive_extension is not None
 
         try:
             with PushDir(tmp_out_dir):
@@ -686,7 +724,7 @@ class Builder:
             log("Removing temporary directory: %s", tmp_out_dir)
             shutil.rmtree(tmp_out_dir)
 
-    def prepare_out_dirs(self):
+    def prepare_out_dirs(self) -> None:
         dirs = [os.path.join(self.tp_installed_dir, type) for type in BUILD_TYPES]
         libcxx_dirs = [os.path.join(dir, 'libcxx') for dir in dirs]
         for dir in dirs + libcxx_dirs:
@@ -705,7 +743,7 @@ class Builder:
                 remove_path(lib64_dir)
             os.symlink('lib', lib64_dir)
 
-    def init_compiler_independent_flags(self):
+    def init_compiler_independent_flags(self) -> None:
         """
         Initialize compiler and linker flags for a particular build type. We try to limit this
         function to flags that will work for most compilers we are using, which include various
@@ -747,40 +785,39 @@ class Builder:
         # the YugabyteDB source tree.
         self.cxx_flags.append('-std=c++14')
 
-    def add_linuxbrew_flags(self):
+    def add_linuxbrew_flags(self) -> None:
         if self.using_linuxbrew:
-            lib_dir = os.path.join(self.linuxbrew_dir, 'lib')
+            lib_dir = os.path.join(self.get_linuxbrew_dir(), 'lib')
             self.ld_flags.append(" -Wl,-dynamic-linker={}".format(os.path.join(lib_dir, 'ld.so')))
             self.add_lib_dir_and_rpath(lib_dir)
 
-    def add_lib_dir_and_rpath(self, lib_dir):
+    def add_lib_dir_and_rpath(self, lib_dir: str) -> None:
         self.ld_flags.append("-L{}".format(lib_dir))
         self.add_rpath(lib_dir)
 
-    def prepend_lib_dir_and_rpath(self, lib_dir):
+    def prepend_lib_dir_and_rpath(self, lib_dir: str) -> None:
         self.ld_flags.insert(0, "-L{}".format(lib_dir))
         self.prepend_rpath(lib_dir)
 
-    def add_rpath(self, path):
+    def add_rpath(self, path: str) -> None:
         log("Adding RPATH: %s", path)
         self.ld_flags.append("-Wl,-rpath,{}".format(path))
 
-    def prepend_rpath(self, path):
+    def prepend_rpath(self, path: str) -> None:
         self.ld_flags.insert(0, "-Wl,-rpath,{}".format(path))
 
-    def log_prefix(self, dep):
+    def log_prefix(self, dep: Dependency) -> str:
         return '{} ({})'.format(dep.name, self.build_type)
 
     def build_with_configure(
             self,
-            log_prefix,
-            extra_args=None,
-            jobs=None,
-            configure_cmd=['./configure'],
-            install=['install'],
-            run_autogen=False,
-            autoconf=False,
-            source_subdir=None):
+            log_prefix: str,
+            extra_args: List[str] = [],
+            configure_cmd: List[str] = ['./configure'],
+            install: List[str] = ['install'],
+            run_autogen: bool = False,
+            autoconf: bool = False,
+            source_subdir: Optional[str] = None) -> None:
         os.environ["YB_REMOTE_COMPILATION"] = "0"
         dir_for_build = os.getcwd()
         if source_subdir:
@@ -793,50 +830,57 @@ class Builder:
             if autoconf:
                 log_output(log_prefix, ['autoreconf', '-i'])
 
-            configure_args = configure_cmd.copy() + ['--prefix={}'.format(self.prefix)]
-            if extra_args is not None:
-                configure_args += extra_args
+            configure_args = (
+                configure_cmd.copy() + ['--prefix={}'.format(self.prefix)] + extra_args
+            )
             log_output(log_prefix, configure_args)
-
-            if not jobs:
-                jobs = get_make_parallelism()
-            log_output(log_prefix, ['make', '-j{}'.format(jobs)])
+            log_output(log_prefix, ['make', '-j{}'.format(get_make_parallelism())])
             if install:
                 log_output(log_prefix, ['make'] + install)
 
-    def build_with_cmake(self, dep, extra_args=None, use_ninja=False, **kwargs):
-        if use_ninja == 'auto':
-            use_ninja = is_ninja_available()
-            log('Ninja is %s', 'available' if use_ninja else 'unavailable')
+    def build_with_cmake(
+            self,
+            dep: Dependency,
+            extra_args: List[str] = [],
+            use_ninja_if_available: bool = False,
+            src_dir_name: Optional[str] = None,
+            should_install: bool = True) -> None:
+        build_tool = 'make'
+        if use_ninja_if_available:
+            ninja_available = is_ninja_available()
+            log('Ninja is %s', 'available' if ninja_available else 'unavailable')
+            if ninja_available:
+                build_tool = 'ninja'
 
-        log("Building dependency %s using CMake with arguments: %s, use_ninja=%s",
-            dep, extra_args, use_ninja)
+        log("Building dependency %s using CMake with arguments: %s, build_tool=%s",
+            dep, extra_args, build_tool)
         log_prefix = self.log_prefix(dep)
         os.environ["YB_REMOTE_COMPILATION"] = "0"
 
         remove_path('CMakeCache.txt')
         remove_path('CMakeFiles')
 
-        src_dir = self.source_path(dep)
-        if 'src_dir' in kwargs:
-            src_dir = os.path.join(src_dir, kwargs['src_dir'])
-        args = ['cmake', src_dir]
-        if use_ninja:
+        src_path = self.source_path(dep)
+        if src_dir_name is not None:
+            src_path = os.path.join(src_path, src_dir_name)
+
+        args = ['cmake', src_path]
+        if build_tool == 'ninja':
             args += ['-G', 'Ninja']
         if extra_args is not None:
             args += extra_args
 
         log_output(log_prefix, args)
 
-        build_tool = 'ninja' if use_ninja else 'make'
         build_tool_cmd = [build_tool, '-j{}'.format(get_make_parallelism())]
 
         log_output(log_prefix, build_tool_cmd)
 
-        if 'install' not in kwargs or kwargs['install']:
+        if should_install:
             log_output(log_prefix, [build_tool, 'install'])
 
-    def build(self, build_type):
+    def build(self, build_type: str) -> None:
+        assert self.args is not None
         if (build_type != BUILD_TYPE_COMMON and
                 self.args.build_type is not None and
                 build_type != self.args.build_type):
@@ -856,12 +900,12 @@ class Builder:
             if dep.build_group == build_group and dep.should_build(self):
                 self.build_dependency(dep)
 
-    def get_prefix(self, qualifier=None):
+    def get_prefix(self, qualifier: Optional[str] = None) -> str:
         return os.path.join(
             self.tp_installed_dir + ('_' + qualifier if qualifier else ''),
             self.build_type)
 
-    def set_build_type(self, build_type):
+    def set_build_type(self, build_type: str) -> None:
         self.build_type = build_type
         self.find_prefix = self.tp_installed_common_dir
         self.prefix = self.get_prefix()
@@ -881,7 +925,7 @@ class Builder:
         log("C compiler: %s", self.get_c_compiler())
         log("C++ compiler: %s", self.get_cxx_compiler())
 
-    def init_flags(self):
+    def init_flags(self) -> None:
         """
         Initializes compiler and linker flags.
         """
@@ -951,9 +995,9 @@ class Builder:
         if self.using_linuxbrew:
             # This is needed when using Clang 7 built with Linuxbrew GCC, which we are still using
             # as of 10/2020.
-            self.compiler_flags.append('--gcc-toolchain={}'.format(self.linuxbrew_dir))
+            self.compiler_flags.append('--gcc-toolchain={}'.format(self.get_linuxbrew_dir()))
 
-    def build_dependency(self, dep):
+    def build_dependency(self, dep: Dependency) -> None:
         if not self.should_rebuild_dependency(dep):
             return
         log("")
@@ -987,7 +1031,7 @@ class Builder:
     # file and the current value of the "stamp" (based on Git SHA1 and local changes) for the
     # component. The result is returned in should_rebuild_component_rv variable, which should have
     # been made local by the caller.
-    def should_rebuild_dependency(self, dep):
+    def should_rebuild_dependency(self, dep: Dependency) -> bool:
         stamp_path = self.get_build_stamp_path_for_dependency(dep)
         old_build_stamp = None
         if os.path.exists(stamp_path):
@@ -1014,13 +1058,13 @@ class Builder:
                 dep.name, indent_lines(new_build_stamp))
             return True
 
-    def get_build_stamp_path_for_dependency(self, dep):
+    def get_build_stamp_path_for_dependency(self, dep: Dependency) -> str:
         return os.path.join(self.tp_build_dir, self.build_type, '.build-stamp-{}'.format(dep.name))
 
     # Come up with a string that allows us to tell when to rebuild a particular third-party
     # dependency. The result is returned in the get_build_stamp_for_component_rv variable, which
     # should have been made local by the caller.
-    def get_build_stamp_for_dependency(self, dep):
+    def get_build_stamp_for_dependency(self, dep: Dependency) -> str:
         input_files_for_stamp = ['yb_build_thirdparty_main.py',
                                  'build_thirdparty.sh',
                                  os.path.join('build_definitions',
@@ -1034,9 +1078,11 @@ class Builder:
 
         with PushDir(self.tp_dir):
             git_commit_sha1 = subprocess.check_output(
-                    ['git', 'log', '--pretty=%H', '-n', '1'] + input_files_for_stamp).strip()
+                ['git', 'log', '--pretty=%H', '-n', '1'] + input_files_for_stamp
+            ).strip().decode('utf-8')
             build_stamp = 'git_commit_sha1={}\n'.format(git_commit_sha1)
-            for git_extra_args in ([], ['--cached']):
+            for git_extra_arg in (None, '--cached'):
+                git_extra_args = [git_extra_arg] if git_extra_arg else []
                 git_diff = subprocess.check_output(
                     ['git', 'diff'] + git_extra_args + input_files_for_stamp)
                 git_diff_sha256 = hashlib.sha256(git_diff).hexdigest()
@@ -1045,7 +1091,7 @@ class Builder:
                     git_diff_sha256)
             return build_stamp
 
-    def save_build_stamp_for_dependency(self, dep):
+    def save_build_stamp_for_dependency(self, dep: Dependency) -> None:
         stamp = self.get_build_stamp_for_dependency(dep)
         stamp_path = self.get_build_stamp_path_for_dependency(dep)
 
@@ -1053,7 +1099,7 @@ class Builder:
         with open(stamp_path, "wt") as out:
             out.write(stamp)
 
-    def create_build_dir_and_prepare(self, dep):
+    def create_build_dir_and_prepare(self, dep: Dependency) -> str:
         src_dir = self.source_path(dep)
         if not os.path.isdir(src_dir):
             fatal("Directory '{}' does not exist".format(src_dir))
@@ -1066,20 +1112,20 @@ class Builder:
             subprocess.check_call(['rsync', '-a', src_dir + '/', build_dir])
         return build_dir
 
-    def is_release_build(self):
+    def is_release_build(self) -> bool:
         """
-        Distinguishes between build types that are potentially used in production releases vs.
+        Distinguishes between build types that are potentially used in production releases from
         build types that are only used in testing (e.g. ASAN+UBSAN, TSAN).
         """
         return self.build_type in [
             BUILD_TYPE_COMMON, BUILD_TYPE_UNINSTRUMENTED, BUILD_TYPE_CLANG_UNINSTRUMENTED
         ]
 
-    def cmake_build_type_for_test_only_dependencies(self):
+    def cmake_build_type_for_test_only_dependencies(self) -> str:
         return 'Release' if self.is_release_build() else 'Debug'
 
     # Returns true if we are using clang to build current build_type.
-    def building_with_clang(self):
+    def building_with_clang(self) -> bool:
         if self.use_only_clang():
             return True
         if self.devtoolset:
@@ -1092,24 +1138,27 @@ class Builder:
         ]
 
     # Returns true if we will need clang to complete full thirdparty build, requested by user.
-    def will_need_clang(self):
+    def will_need_clang(self) -> bool:
+        assert self.args is not None
         return self.args.build_type != BUILD_TYPE_UNINSTRUMENTED
 
-    def check_cxx_compiler_flag(self, flag):
-        process = subprocess.Popen([self.get_cxx_compiler(), '-x', 'c++', flag, '-'],
-                                   stdin=subprocess.PIPE)
+    def check_cxx_compiler_flag(self, flag: str) -> bool:
+        process = subprocess.Popen(
+            [self.get_cxx_compiler(), '-x', 'c++', flag, '-'],
+            stdin=subprocess.PIPE)
+        assert process.stdin is not None
         process.stdin.write("int main() { return 0; }".encode('utf-8'))
         process.stdin.close()
         return process.wait() == 0
 
-    def add_checked_flag(self, flags, flag):
+    def add_checked_flag(self, flags: List[str], flag: str) -> None:
         if self.check_cxx_compiler_flag(flag):
             flags.append(flag)
 
-    def get_openssl_dir(self):
+    def get_openssl_dir(self) -> str:
         return os.path.join(self.tp_installed_common_dir)
 
-    def get_openssl_related_cmake_args(self):
+    def get_openssl_related_cmake_args(self) -> List[str]:
         """
         Returns a list of CMake arguments to use to pick up the version of OpenSSL that we should be
         using. Returns an empty list if the default OpenSSL installation should be used.
@@ -1131,14 +1180,18 @@ class LibTestBase:
     Verify correct library paths are used in installed dynamically-linked executables and
     libraries.
     """
-    def __init__(self):
+    lib_re_list: List[str]
+    tool: str
+
+    def __init__(self) -> None:
         self.tp_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
         self.tp_installed_dir = os.path.join(self.tp_dir, 'installed')
+        self.lib_re_list = []
 
-    def init_regex(self):
+    def init_regex(self) -> None:
         self.okay_paths = re.compile("|".join(self.lib_re_list))
 
-    def check_lib_deps(self, file_path, cmdout):
+    def check_lib_deps(self, file_path: str, cmdout: str) -> bool:
         status = True
         for line in cmdout.splitlines():
             if not self.okay_paths.match(line):
@@ -1149,10 +1202,10 @@ class LibTestBase:
         return status
 
     # overridden in platform specific classes
-    def good_libs(self, file_path):
-        pass
+    def good_libs(self, file_path: str) -> bool:
+        raise NotImplementedError()
 
-    def run(self):
+    def run(self) -> None:
         self.init_regex()
         heading("Scanning installed executables and libraries...")
         test_pass = True
@@ -1178,7 +1231,7 @@ class LibTestBase:
 
 
 class LibTestMac(LibTestBase):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.tool = "otool -L"
         self.lib_re_list = ["^\t/usr/",
@@ -1189,7 +1242,7 @@ class LibTestMac(LibTestBase):
                             "^\t@loader_path",
                             f"^\t{self.tp_dir}"]
 
-    def good_libs(self, file_path):
+    def good_libs(self, file_path: str) -> bool:
         libout = subprocess.check_output(['otool', '-L', file_path]).decode('utf-8')
         if 'is not an object file' in libout:
             return True
@@ -1197,7 +1250,7 @@ class LibTestMac(LibTestBase):
 
 
 class LibTestLinux(LibTestBase):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.tool = "ldd"
         self.lib_re_list = [
@@ -1214,7 +1267,7 @@ class LibTestLinux(LibTestBase):
             f"^.* => {self.tp_dir}"
         ]
 
-    def good_libs(self, file_path):
+    def good_libs(self, file_path: str) -> bool:
         try:
             libout = subprocess.check_output(
                 ['ldd', file_path],
@@ -1229,9 +1282,9 @@ class LibTestLinux(LibTestBase):
         return self.check_lib_deps(file_path, libout)
 
 
-def main():
-    unset_if_set('CC')
-    unset_if_set('CXX')
+def main() -> None:
+    unset_env_var_if_set('CC')
+    unset_env_var_if_set('CXX')
 
     if 'YB_BUILD_THIRDPARTY_DUMP_ENV' in os.environ:
         heading('Environment of {}:'.format(sys.argv[0]))
@@ -1246,6 +1299,7 @@ def main():
 
     # Check that the executables and libraries we have built don't depend on any unexpected dynamic
     # libraries installed on this system.
+    tester: LibTestBase
     if is_mac():
         tester = LibTestMac()
     elif is_linux():

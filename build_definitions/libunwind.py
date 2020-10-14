@@ -30,4 +30,7 @@ class LibUnwindDependency(Dependency):
         # Disable minidebuginfo, which depends on liblzma, until/unless we decide to
         # add liblzma to thirdparty.
         log_prefix = builder.log_prefix(self)
-        builder.build_with_configure(log_prefix, ['--with-pic', '--disable-minidebuginfo'])
+        builder.build_with_configure(
+            log_prefix=log_prefix,
+            extra_args=['--with-pic', '--disable-minidebuginfo']
+        )

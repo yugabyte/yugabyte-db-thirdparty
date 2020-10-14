@@ -30,4 +30,7 @@ class LibBacktraceDependency(Dependency):
 
     def build(self, builder):
         log_prefix = builder.log_prefix(self)
-        builder.build_with_configure(log_prefix, ['--with-pic'])
+        builder.build_with_configure(
+            log_prefix=log_prefix,
+            extra_args=['--with-pic']
+        )

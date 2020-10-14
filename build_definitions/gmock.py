@@ -58,4 +58,4 @@ class GMockDependency(Dependency):
             builder.build_with_cmake(
                     self,
                     cmake_opts,
-                    install=False)
+                    should_install=False)

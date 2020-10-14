@@ -30,8 +30,9 @@ class LZ4Dependency(Dependency):
         self.patches = ['lz4-0001-Fix-cmake-build-to-use-gnu-flags-on-clang.patch']
 
     def build(self, builder):
-        builder.build_with_cmake(self,
-                                 ['-DCMAKE_BUILD_TYPE=release',
-                                  '-DBUILD_TOOLS=0',
-                                  '-DCMAKE_INSTALL_PREFIX:PATH={}'.format(builder.prefix)],
-                                 src_dir='cmake_unofficial')
+        builder.build_with_cmake(
+            self,
+            ['-DCMAKE_BUILD_TYPE=release',
+             '-DBUILD_TOOLS=0',
+             '-DCMAKE_INSTALL_PREFIX:PATH={}'.format(builder.prefix)],
+            src_dir_name='cmake_unofficial')
