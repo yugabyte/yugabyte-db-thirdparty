@@ -283,6 +283,8 @@ class Builder:
         if is_linux():
             self.build(BUILD_TYPE_UNINSTRUMENTED)
         if not self.custom_llvm_prefix:
+            # In the mode where we're using LLVM built outside of this thirdparty project, we do not
+            # use the clang_uninstrumented
             self.build(BUILD_TYPE_CLANG_UNINSTRUMENTED)
         if is_linux() and not self.args.skip_sanitizers:
             self.build(BUILD_TYPE_ASAN)
@@ -761,9 +763,12 @@ class Builder:
             log_output(log_prefix, [build_tool, 'install'])
 
     def build(self, build_type):
-        if build_type != BUILD_TYPE_COMMON and self.args.build_type is not None:
-            if build_type != self.args.build_type:
-                return
+        if (build_type != BUILD_TYPE_COMMON and
+                self.args.build_type is not None and
+                build_type != self.args.build_type):
+            log("Skipping build type %s because build type %s is specified in the arguments",
+                build_type, self.args.build_type)
+            return
 
         self.set_build_type(build_type)
         self.init_flags()
@@ -828,8 +833,11 @@ class Builder:
             self.add_rpath(os.path.join(self.custom_llvm_prefix, 'lib'))
 
         if self.build_type == BUILD_TYPE_ASAN:
-            self.compiler_flags += ['-fsanitize=address', '-fsanitize=undefined',
-                                    '-DADDRESS_SANITIZER']
+            self.compiler_flags += [
+                '-fsanitize=address',
+                '-fsanitize=undefined',
+                '-DADDRESS_SANITIZER'
+            ]
         elif self.build_type == BUILD_TYPE_TSAN:
             self.compiler_flags += ['-fsanitize=thread', '-DTHREAD_SANITIZER']
         elif self.build_type == BUILD_TYPE_CLANG_UNINSTRUMENTED:
@@ -985,9 +993,15 @@ class Builder:
         return build_dir
 
     def is_release_build(self):
-        return self.build_type in [BUILD_TYPE_UNINSTRUMENTED, BUILD_TYPE_CLANG_UNINSTRUMENTED]
+        """
+        Distinguishes between build types that are potentially used in production releases vs.
+        build types that are only used in testing (e.g. ASAN+UBSAN, TSAN).
+        """
+        return self.build_type in [
+            BUILD_TYPE_COMMON, BUILD_TYPE_UNINSTRUMENTED, BUILD_TYPE_CLANG_UNINSTRUMENTED
+        ]
 
-    def cmake_build_type(self):
+    def cmake_build_type_for_test_only_dependencies(self):
         return 'Release' if self.is_release_build() else 'Debug'
 
     # Returns true if we are using clang to build current build_type.

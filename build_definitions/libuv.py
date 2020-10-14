@@ -31,7 +31,8 @@ class LibUvDependency(Dependency):
         builder.build_with_cmake(
             self,
             [
-                '-DCMAKE_BUILD_TYPE={}'.format(builder.cmake_build_type()),
+                '-DCMAKE_BUILD_TYPE={}'.format(
+                    builder.cmake_build_type_for_test_only_dependencies()),
                 '-DCMAKE_POSITION_INDEPENDENT_CODE=On',
                 '-DCMAKE_INSTALL_PREFIX={}'.format(builder.prefix),
                 '-DBUILD_SHARED_LIBS=On'
