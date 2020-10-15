@@ -1003,11 +1003,13 @@ class Builder(BuilderInterface):
 
     def init_new_clang_flags(self) -> None:
         """
-        Flags for Clang 10 and beyond.
+        Flags for Clang 10 and beyond. We are using LLVM-supplied libunwind and compiler-rt in this
+        configuration.
         """
         self.ld_flags.append('-rtlib=compiler-rt')
         if self.build_type != BUILD_TYPE_COMMON:
             self.ld_flags.append('-stdlib=libc++')
+            self.ld_flags.append('-lunwind')
 
         # Needed for Cassandra C++ driver.
         # TODO mbautin: only specify these flags when building the Cassandra C++ driver.

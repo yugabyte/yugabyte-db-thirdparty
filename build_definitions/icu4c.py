@@ -36,7 +36,7 @@ class Icu4cDependency(Dependency):
             url_pattern=Icu4cDependency.CUSTOM_URL_PATTERN % (
                 Icu4cDependency.VERSION_WITH_DASH,
                 Icu4cDependency.VERSION_WITH_UNDERSCORE),
-            build_group=BUILD_GROUP_COMMON)
+            build_group=BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = True
 
     def build(self, builder: BuilderInterface) -> None:

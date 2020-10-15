@@ -31,10 +31,21 @@ CYAN_COLOR = "\033[0;36m"
 NO_COLOR = "\033[0m"
 SEPARATOR = "-" * 80
 
+# -------------------------------------------------------------------------------------------------
+# Build groups
+# -------------------------------------------------------------------------------------------------
 
-BUILD_GROUP_COMMON = 1
-BUILD_GROUP_INSTRUMENTED = 2
+# These are broad groups of dependencies.
 
+# Dependencies that are never instrumented with ASAN/UBSAN or TSAN.
+# Also we should not build any C++ code as part of this. Only C code
+# TODO: should we actually instrument some of these?
+BUILD_GROUP_COMMON = 'build_group_common'
+
+# TODO: this should be called BUILD_GROUP_POTENTIALLY_INSTRUMENTED, because we only instrument these
+# dependencies for special builds like ASAN/TSAN.
+BUILD_GROUP_INSTRUMENTED = 'build_group_potentially_instrumented'
+VALID_BUILD_GROUPS = [BUILD_GROUP_COMMON, BUILD_GROUP_INSTRUMENTED]
 
 # -------------------------------------------------------------------------------------------------
 # Build types
@@ -326,7 +337,7 @@ class Dependency:
             name: str,
             version: str,
             url_pattern: Optional[str],
-            build_group: int) -> None:
+            build_group: str) -> None:
         self.name = name
         self.version = version
         self.dir_name = '{}-{}'.format(name, version)
@@ -343,6 +354,10 @@ class Dependency:
         self.patch_strip = None
         self.post_patch = []
         self.copy_sources = False
+
+        if not build_group in VALID_BUILD_GROUPS:
+            raise ValueError("Invalid build group: %s, should be one of: %s" % (
+                build_group, VALID_BUILD_GROUPS))
 
     def get_additional_c_cxx_flags(self, builder: BuilderInterface) -> List[str]:
         return []
