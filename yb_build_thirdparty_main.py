@@ -101,9 +101,17 @@ DEVTOOLSET_ENV_VARS: Set[str] = set([s.strip() for s in """
 
 
 def activate_devtoolset(devtoolset_number: int) -> None:
-    log("Enabling devtoolset-%s", devtoolset_number)
-    devtoolset_env_str = subprocess.check_output(
-        ['bash', '-c', '. /opt/rh/devtoolset-%d/enable && env' % devtoolset_number]).decode('utf-8')
+    devtoolset_enable_script = (
+        '/opt/rh/devtoolset-%d/enable' % devtoolset_number
+    )
+    log("Enabling devtoolset-%s by sourcing the script %s",
+        devtoolset_number, devtoolset_enable_script)
+    if not os.path.exists(devtoolset_enable_script):
+        raise IOError("Devtoolset script does not exist: %s" % devtoolset_enable_script)
+
+    cmd_args = ['bash', '-c', '. %s "&&" env' % devtoolset_enable_script]
+    log("Running command: %s", cmd_args)
+    devtoolset_env_str = subprocess.check_output(cmd_args).decode('utf-8')
 
     found_vars = set()
     for line in devtoolset_env_str.split("\n"):
