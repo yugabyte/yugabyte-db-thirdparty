@@ -49,7 +49,7 @@ class Icu4cDependency(Dependency):
 
         builder.build_with_configure(
             log_prefix=builder.log_prefix(self),
-            source_subdir='source',
+            src_subdir_name='source',
             extra_args=configure_extra_args
         )
 
