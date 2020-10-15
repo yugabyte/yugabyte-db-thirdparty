@@ -977,7 +977,7 @@ class Builder(BuilderInterface):
         elif self.build_type == BUILD_TYPE_CLANG_UNINSTRUMENTED:
             pass
         elif (self.build_type in [BUILD_TYPE_COMMON, BUILD_TYPE_UNINSTRUMENTED] and
-              self.args.single_comiler_type == 'clang'):
+              self.args.single_compiler_type == 'clang'):
             self.init_new_clang_flags()
             return
         else:
