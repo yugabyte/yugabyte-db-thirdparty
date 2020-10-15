@@ -91,7 +91,6 @@ check_bash_scripts() {
   done
 }
 
-
 activate_virtualenv() {
   if [[ ! -d $YB_THIRDPARTY_DIR/venv ]]; then
     python3 -m venv "$YB_THIRDPARTY_DIR/venv"
@@ -100,7 +99,11 @@ activate_virtualenv() {
   # shellcheck disable=SC1090
   . "$YB_THIRDPARTY_DIR/venv/bin/activate"
   set -u
-  ( set -x; cd "$YB_THIRDPARTY_DIR" && pip3 install -r requirements.txt )
+  (
+    set -x
+    cd "$YB_THIRDPARTY_DIR"
+    pip3 install --progress-bar off -r requirements.txt
+  )
 }
 
 detect_os

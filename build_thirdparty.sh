@@ -22,14 +22,7 @@ check_bash_scripts
 
 echo "YB_THIRDPARTY_DIR=$YB_THIRDPARTY_DIR"
 
-if [[ ! -d $YB_THIRDPARTY_DIR/venv ]]; then
-  python3 -m venv "$YB_THIRDPARTY_DIR/venv"
-fi
-set +u
-# shellcheck disable=SC1090
-. "$YB_THIRDPARTY_DIR/venv/bin/activate"
-set -u
-( set -x; cd "$YB_THIRDPARTY_DIR" && pip3 install -r requirements.txt )
+activate_virtualenv
 
 echo "YB_LINUXBREW_DIR=${YB_LINUXBREW_DIR:-undefined}"
 if [[ $OSTYPE == linux* && -n ${YB_LINUXBREW_DIR:-} ]]; then

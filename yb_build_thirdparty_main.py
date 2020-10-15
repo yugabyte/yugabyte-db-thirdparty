@@ -109,7 +109,7 @@ def activate_devtoolset(devtoolset_number: int) -> None:
     if not os.path.exists(devtoolset_enable_script):
         raise IOError("Devtoolset script does not exist: %s" % devtoolset_enable_script)
 
-    cmd_args = ['bash', '-c', '. %s "&&" env' % devtoolset_enable_script]
+    cmd_args = ['bash', '-c', '. "%s" && env' % devtoolset_enable_script]
     log("Running command: %s", cmd_args)
     devtoolset_env_str = subprocess.check_output(cmd_args).decode('utf-8')
 
@@ -123,9 +123,16 @@ def activate_devtoolset(devtoolset_number: int) -> None:
             log("Setting %s to: %s", k, v)
             os.environ[k] = v
             found_vars.add(k)
+    missing_vars = set()
     for var_name in DEVTOOLSET_ENV_VARS:
         if var_name not in found_vars:
             log("Did not set env var %s for devtoolset-%d", var_name, devtoolset_number)
+            missing_vars.add(var_name)
+    if missing_vars:
+        raise IOError(
+            "Invalid environment after running devtoolset script %s. Did not set vars: %s" % (
+                devtoolset_enable_script, ', '.join(sorted(missing_vars))
+            ))
 
 
 class Builder(BuilderInterface):
@@ -416,12 +423,22 @@ class Builder(BuilderInterface):
         self.cc = compilers[0]
         self.cxx = compilers[1]
 
+    def validate_compiler_path(self, compiler_path: str) -> None:
+        if self.devtoolset:
+            devtoolset_substring = '/devtoolset-%d/' % self.devtoolset
+            if devtoolset_substring not in compiler_path:
+                raise ValueError(
+                    "Invalid compiler path: %s. Substring not found: %s" % (
+                        compiler_path, devtoolset_substring))
+
     def get_c_compiler(self) -> str:
         assert self.cc is not None
+        self.validate_compiler_path(self.cc)
         return self.cc
 
     def get_cxx_compiler(self) -> str:
         assert self.cxx is not None
+        self.validate_compiler_path(self.cxx)
         return self.cxx
 
     def find_gcc(self) -> Tuple[str, str]:
