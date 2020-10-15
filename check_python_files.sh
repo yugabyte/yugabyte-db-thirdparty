@@ -7,6 +7,8 @@ set -euo pipefail
 
 activate_virtualenv
 
+file_to_check_regex=${1:-}
+
 mypy_config_path=$YB_THIRDPARTY_DIR/mypy.ini
 if [[ ! -f $mypy_config_path ]]; then
   fatal "mypy configuration file not found: $mypy_config_path"
@@ -30,7 +32,13 @@ fi
 
 log "Checking $num_files Python files"
 
+declare -i num_files_checked=0
 for python_file_path in "${python_files[@]}"; do
+  if [[ -n file_to_check_regex &&
+        ! ${python_file_path%*/} =~ $file_to_check_regex ]]; then
+    log "Skipping file $python_file_path: does not match regex $file_to_check_regex"
+    continue
+  fi
   log "Checking if '$python_file_path' compiles"
   python3 -m py_compile "$python_file_path"
   echo >&2
@@ -50,6 +58,8 @@ for python_file_path in "${python_files[@]}"; do
   log "Checking coding style in '$python_file_path'"
   pycodestyle "--config=$YB_THIRDPARTY_DIR/pycodestyle.cfg" "$python_file_path"
   echo >&2
+
+  (( num_files_checked+=1 ))
 done
 
-log "SUCCESS checking $num_files Python source files"
+log "SUCCESS checking $num_files_checked files out of total $num_files Python source files"

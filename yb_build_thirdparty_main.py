@@ -136,11 +136,10 @@ def activate_devtoolset(devtoolset_number: int) -> None:
 
 
 class Builder(BuilderInterface):
-    args: Optional[argparse.Namespace]
+    args: argparse.Namespace
     cc: Optional[str]
     cxx: Optional[str]
     linuxbrew_dir: Optional[str]
-    using_linuxbrew: bool
     tp_download_dir: str
     ld_flags: List[str]
     compiler_flags: List[str]
@@ -165,11 +164,9 @@ class Builder(BuilderInterface):
         if not os.path.isdir(self.src_dir):
             fatal('YB src directory "{}" does not exist'.format(self.src_dir))
 
-        self.using_linuxbrew = False
         self.linuxbrew_dir = None
         self.cc = None
         self.cxx = None
-        self.args = None
 
         self.load_expected_checksums()
 
@@ -183,7 +180,6 @@ class Builder(BuilderInterface):
         else:
             self.compiler_type = compiler_type
 
-        os.environ['YB_COMPILER_TYPE'] = compiler_type
         self.find_compiler_by_type(compiler_type)
 
         c_compiler = self.get_c_compiler()
@@ -214,17 +210,32 @@ class Builder(BuilderInterface):
                             action='store_true')
         parser.add_argument('--skip',
                             help='Dependencies to skip')
+
         parser.add_argument(
-            '--custom-clang-prefix',
-            help='Use a pre-built version of LLVM/Clang instead of trying to build it. '
-                 'This is the installation directory, not the build directory, of LLVM/Clang. '
-                 'We expect clang and clang++ executables to be in the bin subdirectory of this. '
-                 'In this mode, we will build all dependencies with Clang. We will still build '
-                 'ASAN/TSAN instrumented versions of libc++ and other dependencies.')
+            '--single-compiler-type',
+            type=str,
+            choices=['gcc', 'clang'],
+            default=None,
+            help='Produce a third-party dependencies build using only a single compiler. '
+                 'This also implies that we are not using Linuxbrew.')
+
+        parser.add_argument(
+            '--compiler-prefix',
+            type=str,
+            help='The prefix directory for looking for compiler executables. We will look for '
+                 'compiler executable in the bin subdirectory of this directory.')
+
+        parser.add_argument(
+            '--compiler-suffix',
+            type=str,
+            default='',
+            help='Suffix to append to compiler executables, such as the version number, '
+                 'potentially prefixed with a dash, to obtain names such as gcc-8, g++-8, '
+                 'clang-10, or clang++-10.')
+
         parser.add_argument(
             '--devtoolset',
             type=int,
-            choices=[6, 7, 8, 9, 10],
             help='Specifies a CentOS devtoolset')
 
         parser.add_argument('-j', '--make-parallelism',
@@ -246,50 +257,38 @@ class Builder(BuilderInterface):
             os.environ['YB_MAKE_PARALLELISM'] = str(self.args.make_parallelism)
 
         # -----------------------------------------------------------------------------------------
-        # Special build types:
-        #
-        # - custom_clang_prefix means we use a Clang/LLVM distribution built outside of this
-        #   thirdparty dependency management system and compile everything with it. We use only
-        #   Clang in that case.
+        # Activate that devtoolset in CentOS 7 and use the GCC from it.
+        # We only use GCC in this case.
 
-        # - devtoolset means we activate that devtoolset in CentOS 7 and use the GCC from it. We
-        #   only use GCC in this case.
+        if is_mac():
+            if self.args.single_compiler_type not in [None, 'clang']:
+                raise ValueError("--single-compiler-type=%s is not allowed on macOS" %
+                                 self.args.single_compiler_type)
+            self.args.single_compiler_type = 'clang'
 
-        self.custom_clang_prefix = self.args.custom_clang_prefix
-        self.devtoolset = self.args.devtoolset
-
-        if self.custom_clang_prefix and self.devtoolset:
-            raise ValueError("--custom-clang-prefix is not compatible with --devtoolset")
-
-        # -----------------------------------------------------------------------------------------
-        # Special handling for custom_clang_prefix
-
-        # Validate the supplied LLVM/Clang installation directory.
-        if self.custom_clang_prefix:
-            for clang_compiler_name in ['clang', 'clang++']:
-                compiler_path = os.path.join(self.custom_clang_prefix, 'bin', clang_compiler_name)
-                if not os.path.exists(compiler_path):
-                    raise ValueError('Compiler not found at %s' % compiler_path)
-
-        # -----------------------------------------------------------------------------------------
-        # Special handling for devtoolset
-
-        if self.devtoolset and not is_centos():
-            raise ValueError("--devtoolset can only be used on CentOS Linux")
-
-        if self.devtoolset:
-            activate_devtoolset(self.devtoolset)
+        if self.args.devtoolset is not None:
+            if not is_centos():
+                raise ValueError("--devtoolset can only be used on CentOS Linux")
+            if self.args.single_compiler_type not in [None, 'gcc']:
+                raise ValueError("--devtoolset is not compatible with compiler type: %s" %
+                                 self.args.single_compiler_type)
+            self.args.single_compiler_type = 'gcc'
 
     def use_only_clang(self) -> bool:
-        return is_mac() or self.custom_clang_prefix
+        return is_mac() or self.args.single_compiler == 'clang'
+
+    def use_existing_clang_on_linux(self) -> bool:
+        return self.args.single_compiler == 'clang'
 
     def use_only_gcc(self) -> bool:
-        return bool(self.devtoolset)
+        return bool(self.args.devtoolset) or self.args.single_compiler_type == 'gcc'
 
     def finish_initialization(self) -> None:
         self.detect_linuxbrew()
         self.populate_dependencies()
         self.select_dependencies_to_build()
+        if self.args.devtoolset:
+            activate_devtoolset(self.args.devtoolset)
 
     def populate_dependencies(self) -> None:
         # We have to use get_build_def_module to access submodules of build_definitions,
@@ -318,20 +317,18 @@ class Builder(BuilderInterface):
             ]
 
             if not self.use_only_gcc():
-                if not self.custom_clang_prefix:
+                if self.using_linuxbrew():
                     self.dependencies.append(get_build_def_module('llvm').LLVMDependency())
 
                 self.dependencies.append(get_build_def_module('libcxx').LibCXXDependency())
 
-            if not self.custom_clang_prefix:
+            if not self.use_only_clang():
                 self.dependencies.append(get_build_def_module('libunwind').LibUnwindDependency())
+            if is_linux() and self.use_only_clang():
+                self.dependencies.append(
+                    get_build_def_module('llvm_libunwind').LlvmLibUnwindDependency())
 
             self.dependencies.append(get_build_def_module('libbacktrace').LibBacktraceDependency())
-
-            if not self.custom_clang_prefix and not self.use_only_gcc():
-                # TODO: We can enable include-what-you-use in the custom Clang mode
-                self.dependencies.append(
-                    get_build_def_module('include_what_you_use').IncludeWhatYouUseDependency())
 
         self.dependencies += [
             get_build_def_module('protobuf').ProtobufDependency(),
@@ -351,7 +348,6 @@ class Builder(BuilderInterface):
         ]
 
     def select_dependencies_to_build(self) -> None:
-        assert self.args is not None
         self.selected_dependencies = []
         if self.args.dependencies:
             names = set([dep.name for dep in self.dependencies])
@@ -376,7 +372,6 @@ class Builder(BuilderInterface):
             self.selected_dependencies = self.dependencies
 
     def run(self) -> None:
-        assert self.args is not None
         self.set_compiler('clang' if self.use_only_clang() else 'gcc')
         if self.args.clean:
             self.clean()
@@ -391,12 +386,7 @@ class Builder(BuilderInterface):
         if is_linux():
             self.build(BUILD_TYPE_UNINSTRUMENTED)
         if not self.use_only_gcc():
-            if not self.custom_clang_prefix:
-                # In the mode where we're using LLVM built outside of this thirdparty project, we do
-                # not use the clang_uninstrumented build type, because the uninstrumented type is
-                # itself build with Clang (everything is built with Clang). On macOS, however,
-                # we still use the clang_uninstrumented build type for historical reasons. This will
-                # probably change at some point.
+            if self.using_linuxbrew():
                 self.build(BUILD_TYPE_CLANG_UNINSTRUMENTED)
             if is_linux() and not self.args.skip_sanitizers:
                 self.build(BUILD_TYPE_ASAN)
@@ -421,34 +411,36 @@ class Builder(BuilderInterface):
                 fatal("Compiler executable does not exist: {}".format(compiler))
 
         self.cc = compilers[0]
+        self.validate_compiler_path(self.cc)
         self.cxx = compilers[1]
+        self.validate_compiler_path(self.cxx)
 
     def validate_compiler_path(self, compiler_path: str) -> None:
-        if self.devtoolset:
-            devtoolset_substring = '/devtoolset-%d/' % self.devtoolset
+        if self.args.devtoolset:
+            devtoolset_substring = '/devtoolset-%d/' % self.args.devtoolset
             if devtoolset_substring not in compiler_path:
                 raise ValueError(
                     "Invalid compiler path: %s. Substring not found: %s" % (
                         compiler_path, devtoolset_substring))
+        if not os.path.exists(compiler_path):
+            raise IOError("Compiler does not exist: %s" % compiler_path)
 
     def get_c_compiler(self) -> str:
         assert self.cc is not None
-        self.validate_compiler_path(self.cc)
         return self.cc
 
     def get_cxx_compiler(self) -> str:
         assert self.cxx is not None
-        self.validate_compiler_path(self.cxx)
         return self.cxx
 
     def find_gcc(self) -> Tuple[str, str]:
         return self.do_find_gcc('gcc', 'g++')
 
     def do_find_gcc(self, c_compiler: str, cxx_compiler: str) -> Tuple[str, str]:
-        if 'YB_GCC_PREFIX' in os.environ:
-            gcc_dir = os.environ['YB_GCC_PREFIX']
-        elif self.using_linuxbrew:
+        if self.using_linuxbrew():
             gcc_dir = self.get_linuxbrew_dir()
+        elif self.args.compiler_prefix:
+            gcc_dir = self.args.compiler_prefix
         else:
             return which(c_compiler), which(cxx_compiler)
 
@@ -457,12 +449,13 @@ class Builder(BuilderInterface):
         if not os.path.isdir(gcc_bin_dir):
             fatal("Directory {} does not exist".format(gcc_bin_dir))
 
-        return os.path.join(gcc_bin_dir, 'gcc'), os.path.join(gcc_bin_dir, 'g++')
+        return (os.path.join(gcc_bin_dir, 'gcc') + self.args.compiler_suffix,
+                os.path.join(gcc_bin_dir, 'g++') + self.args.compiler_suffix)
 
     def find_clang(self) -> Tuple[str, str]:
-        clang_dir = None
-        if self.custom_clang_prefix:
-            clang_dir = self.custom_clang_prefix
+        clang_prefix: Optional[str] = None
+        if self.args.compiler_prefix:
+            clang_prefix = self.args.compiler_prefix
         else:
             candidate_dirs = [
                 os.path.join(self.tp_dir, 'clang-toolchain'),
@@ -470,25 +463,32 @@ class Builder(BuilderInterface):
             ]
             for dir in candidate_dirs:
                 bin_dir = os.path.join(dir, 'bin')
-                if os.path.isdir(bin_dir) and os.path.exists(os.path.join(bin_dir, 'clang')):
-                    clang_dir = dir
+                if os.path.exists(os.path.join(bin_dir, 'clang' + self.args.compiler_suffix)):
+                    clang_prefix = dir
                     break
-            if clang_dir is None:
+            if clang_prefix is None:
                 fatal("Failed to find clang at the following locations: {}".format(candidate_dirs))
 
-        clang_bin_dir = os.path.join(clang_dir, 'bin')
+        assert clang_prefix is not None
+        clang_bin_dir = os.path.join(clang_prefix, 'bin')
 
-        return os.path.join(clang_bin_dir, 'clang'), os.path.join(clang_bin_dir, 'clang++')
+        return (os.path.join(clang_bin_dir, 'clang') + self.args.compiler_suffix,
+                os.path.join(clang_bin_dir, 'clang++') + self.args.compiler_suffix)
 
     def detect_linuxbrew(self) -> None:
-        if not is_linux() or self.custom_clang_prefix or self.devtoolset:
+        if (not is_linux() or
+                self.args.single_compiler_type or
+                self.args.compiler_prefix or
+                self.args.compiler_suffix):
             return
 
         self.linuxbrew_dir = os.getenv('YB_LINUXBREW_DIR')
 
         if self.linuxbrew_dir:
-            self.using_linuxbrew = True
             os.environ['PATH'] = os.path.join(self.linuxbrew_dir, 'bin') + ':' + os.environ['PATH']
+
+    def using_linuxbrew(self) -> bool:
+        return self.linuxbrew_dir is not None
 
     def get_linuxbrew_dir(self) -> str:
         assert self.linuxbrew_dir is not None
@@ -611,7 +611,6 @@ class Builder(BuilderInterface):
                 self.filename2checksum[fname] = sum
 
     def get_expected_checksum(self, filename: str, downloaded_path: str) -> str:
-        assert self.args is not None
         if filename not in self.filename2checksum:
             if self.args.add_checksum:
                 checksum_file = self.get_checksum_file()
@@ -815,7 +814,7 @@ class Builder(BuilderInterface):
         self.cxx_flags.append('-std=c++14')
 
     def add_linuxbrew_flags(self) -> None:
-        if self.using_linuxbrew:
+        if self.using_linuxbrew():
             lib_dir = os.path.join(self.get_linuxbrew_dir(), 'lib')
             self.ld_flags.append(" -Wl,-dynamic-linker={}".format(os.path.join(lib_dir, 'ld.so')))
             self.add_lib_dir_and_rpath(lib_dir)
@@ -909,7 +908,6 @@ class Builder(BuilderInterface):
             log_output(log_prefix, [build_tool, 'install'])
 
     def build(self, build_type: str) -> None:
-        assert self.args is not None
         if (build_type != BUILD_TYPE_COMMON and
                 self.args.build_type is not None and
                 build_type != self.args.build_type):
@@ -968,17 +966,6 @@ class Builder(BuilderInterface):
         # Special setup for Clang on Linux.
         # -----------------------------------------------------------------------------------------
 
-        # This is needed for icu4c to find libc++ when building with Clang 10.0.1.
-        if self.custom_clang_prefix:
-            # TODO: avoid this because a lot of other libraries come in!
-            # Including libunwind which conflicts with thirdparty-supplied libunwind.
-            # We need to probably use the same libunwind that ships with LLVM.
-            # However, more libraries that we don't need that might interfere with something
-            # could be picked up from this directory.
-            # Ideally, we should build libc++ separately (and we'll need that for ASAN/TSAN anyway)
-            # and put it in a separate directory.
-            self.add_rpath(os.path.join(self.custom_clang_prefix, 'lib'))
-
         if self.build_type == BUILD_TYPE_ASAN:
             self.compiler_flags += [
                 '-fsanitize=address',
@@ -990,23 +977,11 @@ class Builder(BuilderInterface):
         elif self.build_type == BUILD_TYPE_CLANG_UNINSTRUMENTED:
             pass
         elif (self.build_type in [BUILD_TYPE_COMMON, BUILD_TYPE_UNINSTRUMENTED] and
-              self.custom_clang_prefix):
-            self.ld_flags.extend([
-                '-stdlib=libc++',
-                '-rtlib=compiler-rt'
-            ])
-            # Needed for Cassandra C++ driver.
-            self.cxx_flags.insert(0, '-Wno-error=unused-command-line-argument')
-            self.cxx_flags.insert(0, '-Wno-error=deprecated-declarations')
-            # Building with a custom Clang version. Use the standard library that comes with that
-            # Clang version.
+              self.args.single_comiler_type == 'clang'):
+            self.init_new_clang_flags()
             return
         else:
-            fatal(
-                "Wrong instrumentation type for Clang on Linux: %s. "
-                "Custom LLVM/Clang installationprefix: %s",
-                self.build_type,
-                self.custom_clang_prefix)
+            fatal("Wrong instrumentation type for Clang on Linux: %s", self.build_type)
 
         # This is used to build code with libc++ and Clang 7 built as part of thirdparty.
         stdlib_suffix = self.build_type
@@ -1021,10 +996,24 @@ class Builder(BuilderInterface):
         # -stdlib=libc++ and -nostdinc++ are specified.
         self.cxx_flags.insert(0, '-Wno-error=unused-command-line-argument')
         self.prepend_lib_dir_and_rpath(stdlib_lib)
-        if self.using_linuxbrew:
+        if self.using_linuxbrew():
             # This is needed when using Clang 7 built with Linuxbrew GCC, which we are still using
             # as of 10/2020.
             self.compiler_flags.append('--gcc-toolchain={}'.format(self.get_linuxbrew_dir()))
+
+    def init_new_clang_flags(self) -> None:
+        """
+        Flags for Clang 10 and beyond.
+        """
+        self.ld_flags.extend([
+            '-stdlib=libc++',
+            '-rtlib=compiler-rt'
+        ])
+
+        # Needed for Cassandra C++ driver.
+        # TODO mbautin: only specify these flags when building the Cassandra C++ driver.
+        self.cxx_flags.insert(0, '-Wno-error=unused-command-line-argument')
+        self.cxx_flags.insert(0, '-Wno-error=deprecated-declarations')
 
     def build_dependency(self, dep: Dependency) -> None:
         if not self.should_rebuild_dependency(dep):
@@ -1157,7 +1146,7 @@ class Builder(BuilderInterface):
     def building_with_clang(self) -> bool:
         if self.use_only_clang():
             return True
-        if self.devtoolset:
+        if self.args.devtoolset:
             return False
 
         return self.build_type in [
@@ -1173,7 +1162,6 @@ class Builder(BuilderInterface):
         """
         if self.use_only_gcc():
             return False
-        assert self.args is not None
         return self.args.build_type != BUILD_TYPE_UNINSTRUMENTED
 
     def check_cxx_compiler_flag(self, flag: str) -> bool:
