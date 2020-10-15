@@ -135,6 +135,13 @@ def activate_devtoolset(devtoolset_number: int) -> None:
             ))
 
 
+def get_rpath_flag(path: str) -> str:
+    """
+    Get the linker flag needed to add the given RPATH to the generated executable or library.
+    """
+    return "-Wl,-rpath,{}".format(path)
+
+
 class Builder(BuilderInterface):
     args: argparse.Namespace
     cc: Optional[str]
@@ -829,10 +836,10 @@ class Builder(BuilderInterface):
 
     def add_rpath(self, path: str) -> None:
         log("Adding RPATH: %s", path)
-        self.ld_flags.append("-Wl,-rpath,{}".format(path))
+        self.ld_flags.append(get_rpath_flag(path))
 
     def prepend_rpath(self, path: str) -> None:
-        self.ld_flags.insert(0, "-Wl,-rpath,{}".format(path))
+        self.ld_flags.insert(0, get_rpath_flag(path))
 
     def log_prefix(self, dep: Dependency) -> str:
         return '{} ({})'.format(dep.name, self.build_type)
@@ -919,6 +926,10 @@ class Builder(BuilderInterface):
         self.init_flags()
         # This is needed at least for glog to be able to find gflags.
         self.add_rpath(os.path.join(self.tp_installed_dir, self.build_type, 'lib'))
+        if build_type != BUILD_TYPE_COMMON:
+            # Needed to find libunwind for Clang 10 when using compiler-rt. But in general we should
+            # be able to find these libraries in common/lib.
+            self.add_rpath(os.path.join(self.tp_installed_dir, BUILD_TYPE_COMMON, 'lib'))
         build_group = (
             BUILD_GROUP_COMMON if build_type == BUILD_TYPE_COMMON else BUILD_GROUP_INSTRUMENTED
         )
