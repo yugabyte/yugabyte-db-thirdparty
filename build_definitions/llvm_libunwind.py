@@ -35,5 +35,6 @@ class LlvmLibUnwindDependency(Dependency):
                 '-DBUILD_SHARED_LIBS=ON',
                 '-DLIBUNWIND_USE_COMPILER_RT=ON',
                 '-DLLVM_PATH=%s' % builder.source_path(self),
+                '-DCMAKE_INSTALL_PREFIX={}'.format(builder.prefix),
             ],
             src_subdir_name='libunwind')

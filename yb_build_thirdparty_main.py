@@ -1005,10 +1005,9 @@ class Builder(BuilderInterface):
         """
         Flags for Clang 10 and beyond.
         """
-        self.ld_flags.extend([
-            '-stdlib=libc++',
-            '-rtlib=compiler-rt'
-        ])
+        self.ld_flags.append('-rtlib=compiler-rt')
+        if self.build_type != BUILD_TYPE_COMMON:
+            self.ld_flags.append('-stdlib=libc++')
 
         # Needed for Cassandra C++ driver.
         # TODO mbautin: only specify these flags when building the Cassandra C++ driver.
