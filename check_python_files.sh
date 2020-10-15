@@ -34,7 +34,7 @@ log "Checking $num_files Python files"
 
 declare -i num_files_checked=0
 for python_file_path in "${python_files[@]}"; do
-  if [[ -n file_to_check_regex &&
+  if [[ -n $file_to_check_regex &&
         ! ${python_file_path%*/} =~ $file_to_check_regex ]]; then
     log "Skipping file $python_file_path: does not match regex $file_to_check_regex"
     continue

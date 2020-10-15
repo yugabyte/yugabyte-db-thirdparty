@@ -275,7 +275,7 @@ class Builder(BuilderInterface):
             self.args.single_compiler_type = 'gcc'
 
     def use_only_clang(self) -> bool:
-        return is_mac() or self.args.single_compiler == 'clang'
+        return is_mac() or self.args.single_compiler_type == 'clang'
 
     def use_existing_clang_on_linux(self) -> bool:
         return self.args.single_compiler == 'clang'
