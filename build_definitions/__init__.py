@@ -244,7 +244,7 @@ class BuilderInterface:
             install: List[str] = ['install'],
             run_autogen: bool = False,
             autoconf: bool = False,
-            source_subdir: Optional[str] = None) -> None:
+            src_subdir_name: Optional[str] = None) -> None:
         raise NotImplementedError()
 
     def build_with_cmake(
@@ -252,7 +252,7 @@ class BuilderInterface:
             dep: 'Dependency',
             extra_args: List[str] = [],
             use_ninja_if_available: bool = False,
-            src_dir_name: Optional[str] = None,
+            src_subdir_name: Optional[str] = None,
             should_install: bool = True) -> None:
         raise NotImplementedError()
 

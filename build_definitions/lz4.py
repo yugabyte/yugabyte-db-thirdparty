@@ -38,4 +38,4 @@ class LZ4Dependency(Dependency):
             ['-DCMAKE_BUILD_TYPE=release',
              '-DBUILD_TOOLS=0',
              '-DCMAKE_INSTALL_PREFIX:PATH={}'.format(builder.prefix)],
-            src_dir_name='cmake_unofficial')
+            src_subdir_name='cmake_unofficial')

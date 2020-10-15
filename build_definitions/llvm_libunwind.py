@@ -24,7 +24,7 @@ class LlvmLibUnwindDependency(Dependency):
         super(LlvmLibUnwindDependency, self).__init__(
             name='llvm_libunwind',
             version='10.0.1',
-            url_pattern='https://github.com/llvm/llvm-project/releases/tag/llvmorg-{}',
+            url_pattern='https://github.com/llvm/llvm-project/archive/llvmorg-{}.tar.gz',
             build_group=BUILD_GROUP_COMMON)
 
     def build(self, builder: BuilderInterface) -> None:
@@ -34,5 +34,6 @@ class LlvmLibUnwindDependency(Dependency):
                 '-DCMAKE_BUILD_TYPE=Release',
                 '-DLLVM_ENABLE_PROJECTS=libunwind',
                 '-DBUILD_SHARED_LIBS=ON',
-                '-DLIBUNWIND_USE_COMPILER_RT=ON'
-            ])
+                '-DLIBUNWIND_USE_COMPILER_RT=ON',
+            ],
+            src_subdir_name='llvm')

@@ -845,11 +845,11 @@ class Builder(BuilderInterface):
             install: List[str] = ['install'],
             run_autogen: bool = False,
             autoconf: bool = False,
-            source_subdir: Optional[str] = None) -> None:
+            src_subdir_name: Optional[str] = None) -> None:
         os.environ["YB_REMOTE_COMPILATION"] = "0"
         dir_for_build = os.getcwd()
-        if source_subdir:
-            dir_for_build = os.path.join(dir_for_build, source_subdir)
+        if src_subdir_name:
+            dir_for_build = os.path.join(dir_for_build, src_subdir_name)
 
         with PushDir(dir_for_build):
             log("Building in %s", dir_for_build)
@@ -871,7 +871,7 @@ class Builder(BuilderInterface):
             dep: Dependency,
             extra_args: List[str] = [],
             use_ninja_if_available: bool = False,
-            src_dir_name: Optional[str] = None,
+            src_subdir_name: Optional[str] = None,
             should_install: bool = True) -> None:
         build_tool = 'make'
         if use_ninja_if_available:
@@ -889,8 +889,8 @@ class Builder(BuilderInterface):
         remove_path('CMakeFiles')
 
         src_path = self.source_path(dep)
-        if src_dir_name is not None:
-            src_path = os.path.join(src_path, src_dir_name)
+        if src_subdir_name is not None:
+            src_path = os.path.join(src_path, src_subdir_name)
 
         args = ['cmake', src_path]
         if build_tool == 'ninja':
