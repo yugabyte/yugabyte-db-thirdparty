@@ -355,7 +355,7 @@ class Dependency:
         self.post_patch = []
         self.copy_sources = False
 
-        if not build_group in VALID_BUILD_GROUPS:
+        if build_group not in VALID_BUILD_GROUPS:
             raise ValueError("Invalid build group: %s, should be one of: %s" % (
                 build_group, VALID_BUILD_GROUPS))
 
