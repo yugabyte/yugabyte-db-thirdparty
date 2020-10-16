@@ -1043,8 +1043,7 @@ class Builder(BuilderInterface):
 
         if self.build_type != BUILD_TYPE_COMMON:
             is_libcxx = dep.name.startswith('libcxx')
-            # TODO: how is this used? Does CMake use env vars like LIBS?
-            self.libs += ['-lunwind']
+            self.ld_flags += ['-lunwind']
             if not is_libcxx:
                 self.libs += ['-lc++', '-lc++abi']
 
@@ -1092,21 +1091,14 @@ class Builder(BuilderInterface):
         dep_additional_c_flags = (dep.get_additional_c_flags(self) +
                                   dep.get_additional_c_cxx_flags(self))
 
-        excluded_c_cxx_flags = set(dep.get_excluded_c_cxx_flags(self))
-        excluded_ld_flags = set(dep.get_excluded_ld_flags(self))
-        excluded_libs = set(dep.get_excluded_libs(self))
-        os.environ["CXXFLAGS"] = filter_and_join_strings(
-            self.compiler_flags + self.cxx_flags + dep_additional_cxx_flags,
-            excluded_c_cxx_flags)
-        os.environ["CFLAGS"] = filter_and_join_strings(
-            self.compiler_flags + self.c_flags + dep_additional_c_flags,
-            excluded_c_cxx_flags)
-        os.environ["LDFLAGS"] = filter_and_join_strings(
-            self.ld_flags,
-            excluded_ld_flags)
-        os.environ["LIBS"] = filter_and_join_strings(
-            self.libs,
-            excluded_libs)
+        os.environ["CXXFLAGS"] = ' '.join(
+            self.compiler_flags + self.cxx_flags + dep_additional_cxx_flags)
+        os.environ["CFLAGS"] = ' '.join(
+            self.compiler_flags + self.c_flags + dep_additional_c_flags)
+        os.environ["LDFLAGS"] = ' '.join(
+            self.ld_flags)
+        os.environ["LIBS"] = ' '.join(
+            self.libs)
 
         with PushDir(self.create_build_dir_and_prepare(dep)):
             dep.build(self)

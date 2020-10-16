@@ -28,15 +28,6 @@ class LibCxx10Dependency(Dependency):
             url_pattern='https://github.com/llvm/llvm-project/archive/llvmorg-{}.tar.gz',
             build_group=BUILD_GROUP_INSTRUMENTED)
 
-    def get_excluded_c_cxx_flags(self, builder: BuilderInterface) -> List[str]:
-        return ['-stdlib=libc++']
-
-    def get_excluded_ld_flags(self, builder: BuilderInterface) -> List[str]:
-        return []
-
-    def get_excluded_libs(self, builder: BuilderInterface) -> List[str]:
-        return ['-lc++', '-lc++abi']
-
     def build(self, builder: BuilderInterface) -> None:
         llvm_src_path = builder.source_path(self)
 
