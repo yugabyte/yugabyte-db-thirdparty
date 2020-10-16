@@ -928,8 +928,7 @@ class Builder(BuilderInterface):
             if ninja_available:
                 build_tool = 'ninja'
 
-        log("Building dependency %s using CMake with arguments: %s, build_tool=%s",
-            dep, extra_args, build_tool)
+        log("Building dependency %s using CMake. Build tool: %s", dep, build_tool)
         log_prefix = self.log_prefix(dep)
         os.environ["YB_REMOTE_COMPILATION"] = "0"
 
@@ -946,6 +945,8 @@ class Builder(BuilderInterface):
         if extra_args is not None:
             args += extra_args
 
+        log("CMake command line (one argument per line):\n%s" %
+            " ".join(["    %s" % line for line in args]))
         log_output(log_prefix, args)
 
         build_tool_cmd = [
@@ -1065,7 +1066,10 @@ class Builder(BuilderInterface):
             stdlib_include = os.path.join(stdlib_path, 'include', 'c++', 'v1')
             stdlib_lib = os.path.join(stdlib_path, 'lib')
 
-            if not is_libcxx:
+            if is_libcxx:
+                self.cxx_flags.insert(0, '-isystem')
+                self.cxx_flags.insert(1, stdlib_include)
+            else:
                 self.libs += ['-lc++', '-lc++abi']
 
                 self.cxx_flags.insert(0, '-nostdinc++')
