@@ -1047,18 +1047,19 @@ class Builder(BuilderInterface):
         if self.build_type != BUILD_TYPE_COMMON:
             is_libcxx = dep.name.startswith('libcxx')
             self.ld_flags += ['-lunwind']
+
+            # TODO: dedup with the similar code above used for Clang 7.
+            stdlib_suffix = self.build_type
+            stdlib_path = os.path.join(self.tp_installed_dir, stdlib_suffix, 'libcxx10')
+            stdlib_include = os.path.join(stdlib_path, 'include', 'c++', 'v1')
+            stdlib_lib = os.path.join(stdlib_path, 'lib')
+
             if is_libcxx:
                 self.cxx_flags.insert(0, '-nostdinc++')
                 self.cxx_flags.insert(0, '-isystem')
                 self.cxx_flags.insert(1, stdlib_include)
             else:
                 self.libs += ['-lc++', '-lc++abi']
-
-                # TODO: dedup with the similar code above used for Clang 7.
-                stdlib_suffix = self.build_type
-                stdlib_path = os.path.join(self.tp_installed_dir, stdlib_suffix, 'libcxx10')
-                stdlib_include = os.path.join(stdlib_path, 'include', 'c++', 'v1')
-                stdlib_lib = os.path.join(stdlib_path, 'lib')
 
                 self.cxx_flags.insert(0, '-nostdinc++')
                 self.cxx_flags.insert(0, '-isystem')
