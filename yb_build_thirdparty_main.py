@@ -337,7 +337,6 @@ class Builder(BuilderInterface):
             get_build_def_module('redis_cli').RedisCliDependency(),
             get_build_def_module('flex').FlexDependency(),
             get_build_def_module('bison').BisonDependency(),
-            get_build_def_module('icu4c').Icu4cDependency(),
             get_build_def_module('libedit').LibEditDependency(),
         ]
 
@@ -360,10 +359,9 @@ class Builder(BuilderInterface):
                 self.dependencies.append(get_build_def_module('libunwind').LibUnwindDependency())
 
             self.dependencies.append(get_build_def_module('libbacktrace').LibBacktraceDependency())
-        self.dependencies.append(
-
 
         self.dependencies += [
+            get_build_def_module('icu4c').Icu4cDependency(),
             get_build_def_module('protobuf').ProtobufDependency(),
             get_build_def_module('crypt_blowfish').CryptBlowfishDependency(),
             get_build_def_module('boost').BoostDependency(),
@@ -1016,7 +1014,7 @@ class Builder(BuilderInterface):
             pass
         elif (self.build_type in [BUILD_TYPE_COMMON, BUILD_TYPE_UNINSTRUMENTED] and
               self.args.single_compiler_type == 'clang'):
-            self.init_new_clang_flags()
+            self.init_clang10_or_later_flags()
             return
         else:
             fatal("Wrong instrumentation type for Clang on Linux: %s", self.build_type)
@@ -1039,16 +1037,16 @@ class Builder(BuilderInterface):
             # as of 10/2020.
             self.compiler_flags.append('--gcc-toolchain={}'.format(self.get_linuxbrew_dir()))
 
-    def init_new_clang_flags(self) -> None:
+    def init_clang10_or_later_flags(self) -> None:
         """
         Flags for Clang 10 and beyond. We are using LLVM-supplied libunwind and compiler-rt in this
         configuration.
         """
         self.cxx_flags.append('-rtlib=compiler-rt')
-        self.cxx_flags.insert(0, '-stdlib=libc++')
 
         if self.build_type != BUILD_TYPE_COMMON:
-            self.ld_flags.append('-lunwind')
+            self.cxx_flags.insert(0, '-stdlib=libc++')
+            self.libs += ['-lunwind', '-lc++', '-lc++abi']
 
         # Needed for Cassandra C++ driver.
         # TODO mbautin: only specify these flags when building the Cassandra C++ driver.
