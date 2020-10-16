@@ -46,11 +46,8 @@ class LibCxx10Dependency(Dependency):
             '-DLIBCXXABI_USE_COMPILER_RT=ON',
             '-DLIBCXXABI_USE_LLVM_UNWINDER=ON',
             '-DLIBCXX_USE_COMPILER_RT=ON',
-            # '-DCMAKE_CXX_FLAGS={}'.format(cxx_flags_str),
-            # '-DCMAKE_SHARED_LINKER_FLAGS={}'.format(ld_flags_str),
-            # '-DCMAKE_EXE_LINKER_FLAGS={}'.format(ld_flags_str),
             '-DLLVM_ENABLE_LIBCXX=ON',
-        ]
+        ] + builder.get_common_cmake_flags_args()
         if builder.build_type == BUILD_TYPE_ASAN:
             args.append("-DLLVM_USE_SANITIZER=Address")
             # TODO: add UBSAN.

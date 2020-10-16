@@ -1079,6 +1079,24 @@ class Builder(BuilderInterface):
         log('Setting env var %s to %s', env_var_name, value_str)
         os.environ[env_var_name] = value_str
 
+    def get_effective_cxx_flags(self) -> List[str]:
+        return self.compiler_flags + self.cxx_flags + dep_additional_cxx_flags
+
+    def get_effective_c_flags(self) -> List[str]:
+        return self.compiler_flags + self.c_flags + dep_additional_c_flags
+
+    def get_effective_ld_flags(self) -> List[str]
+        return list(self.ld_flags)
+
+    def get_common_cmake_flags_args(self) -> List[str]:
+        cxx_flags_str = ' '.join(self.get_effective_cxx_flags())
+        ld_flags_str = ' '.join(self.get_effective_ld_flags())
+        return [
+            '-DCMAKE_CXX_FLAGS={}'.format(cxx_flags_str),
+            '-DCMAKE_SHARED_LINKER_FLAGS={}'.format(ld_flags_str),
+            '-DCMAKE_EXE_LINKER_FLAGS={}'.format(ld_flags_str)
+        ]
+
     def build_dependency(self, dep: Dependency) -> None:
         if not self.should_rebuild_dependency(dep):
             return
@@ -1103,13 +1121,9 @@ class Builder(BuilderInterface):
         dep_additional_c_flags = (dep.get_additional_c_flags(self) +
                                   dep.get_additional_c_cxx_flags(self))
 
-        self.log_and_set_env_var(
-            'CXXFLAGS',
-            self.compiler_flags + self.cxx_flags + dep_additional_cxx_flags)
-        self.log_and_set_env_var(
-            'CFLAGS',
-            self.compiler_flags + self.c_flags + dep_additional_c_flags)
-        self.log_and_set_env_var('LDFLAGS', self.ld_flags)
+        self.log_and_set_env_var('CXXFLAGS', self.get_effective_cxx_flags())
+        self.log_and_set_env_var('CFLAGS', self.get_effective_c_flags())
+        self.log_and_set_env_var('LDFLAGS', self.get_effective_ld_flags())
         self.log_and_set_env_var('LIBS', self.libs)
 
         with PushDir(self.create_build_dir_and_prepare(dep)):
