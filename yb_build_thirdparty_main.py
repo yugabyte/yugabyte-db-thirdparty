@@ -43,6 +43,11 @@ MAX_FETCH_ATTEMPTS = 10
 INITIAL_DOWNLOAD_RETRY_SLEEP_TIME_SEC = 1.0
 DOWNLOAD_RETRY_SLEEP_INCREASE_SEC = 0.5
 
+PLACEHOLDER_RPATH = (
+    "/tmp/making_sure_we_have_enough_room_to_set_rpath_later_{}_end_of_rpath".format('_' * 256))
+
+PLACEHOLDER_RPATH_FOR_LOG = '/tmp/long_placeholder_rpath'
+
 
 def hashsum_file(hash: Any, filename: str, block_size: int = 65536) -> str:
     # TODO: use a more precise argument type for hash.
@@ -148,6 +153,10 @@ def get_rpath_flag(path: str) -> str:
     Get the linker flag needed to add the given RPATH to the generated executable or library.
     """
     return "-Wl,-rpath,{}".format(path)
+
+
+def sanitize_flags_line_for_log(line: str) -> str:
+    return line.replace(PLACEHOLDER_RPATH, PLACEHOLDER_RPATH_FOR_LOG)
 
 
 class Builder(BuilderInterface):
@@ -833,9 +842,7 @@ class Builder(BuilderInterface):
         if is_linux():
             # On Linux, ensure we set a long enough rpath so we can change it later with chrpath or
             # a similar tool.
-            self.add_rpath(
-                    "/tmp/making_sure_we_have_enough_room_to_set_rpath_later_{}_end_of_rpath"
-                    .format('_' * 256))
+            self.add_rpath(PLACEHOLDER_RPATH)
 
             self.dylib_suffix = "so"
         elif is_mac():
@@ -946,7 +953,7 @@ class Builder(BuilderInterface):
             args += extra_args
 
         log("CMake command line (one argument per line):\n%s" %
-            " ".join(["    %s\n" % line for line in args]))
+            "\n".join([(" " * 4 + sanitize_flags_line_for_log(line)) for line in args]))
         log_output(log_prefix, args)
 
         build_tool_cmd = [
