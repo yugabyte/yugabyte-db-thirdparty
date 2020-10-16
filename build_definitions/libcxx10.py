@@ -45,7 +45,7 @@ class LibCxx10Dependency(Dependency):
 
         args = [
             '-DCMAKE_BUILD_TYPE=Release',
-            '-DLLVM_ENABLE_PROJECTS=libcxx;libcxxabi',
+            '-DLLVM_ENABLE_PROJECTS=unwind;libcxx;libcxxabi',
             '-DLIBCXXABI_LIBCXX_PATH=%s' % os.path.join(llvm_src_path, 'libcxx'),
             '-DLLVM_TARGETS_TO_BUILD=X86',
             '-DBUILD_SHARED_LIBS=ON',
