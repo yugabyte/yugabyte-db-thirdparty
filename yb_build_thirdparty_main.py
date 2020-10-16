@@ -1085,7 +1085,7 @@ class Builder(BuilderInterface):
     def get_effective_c_flags(self) -> List[str]:
         return self.compiler_flags + self.c_flags + dep_additional_c_flags
 
-    def get_effective_ld_flags(self) -> List[str]
+    def get_effective_ld_flags(self) -> List[str]:
         return list(self.ld_flags)
 
     def get_common_cmake_flags_args(self) -> List[str]:
