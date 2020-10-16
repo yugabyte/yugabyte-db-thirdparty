@@ -1073,10 +1073,7 @@ class Builder(BuilderInterface):
             stdlib_include = os.path.join(stdlib_path, 'include', 'c++', 'v1')
             stdlib_lib = os.path.join(stdlib_path, 'lib')
 
-            if is_libcxx:
-                self.cxx_flags.insert(0, '-isystem')
-                self.cxx_flags.insert(1, stdlib_include)
-            else:
+            if not is_libcxx:
                 self.libs += ['-lc++', '-lc++abi']
 
                 self.cxx_flags.insert(0, '-nostdinc++')
