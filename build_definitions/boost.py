@@ -15,8 +15,7 @@
 import os
 import sys
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
+from yugabyte_db_thirdparty.builder_interface import BuilderInterface
 from build_definitions import *  # noqa
 
 
@@ -59,9 +58,6 @@ class BoostDependency(Dependency):
                    not lstripped.startswith('project : default-build <toolset>gcc ;'):
                     out.write(line)
             cxx_flags = builder.compiler_flags + builder.cxx_flags
-            # TODO: why did we have to remove the -nostdinc++ flag anyway?
-            if False and '-nostdinc++' in cxx_flags:
-                 cxx_flags.remove('-nostdinc++')
             compiler_type = builder.compiler_type
             compiler_version = ''
             if compiler_type == 'gcc8':

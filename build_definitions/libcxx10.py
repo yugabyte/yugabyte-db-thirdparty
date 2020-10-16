@@ -15,8 +15,7 @@
 import os
 import sys
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
+from yugabyte_db_thirdparty.builder_interface import BuilderInterface
 from build_definitions import *  # noqa
 
 
@@ -47,7 +46,7 @@ class LibCxx10Dependency(Dependency):
             '-DLIBCXXABI_USE_LLVM_UNWINDER=ON',
             '-DLIBCXX_USE_COMPILER_RT=ON',
             '-DLLVM_ENABLE_LIBCXX=ON',
-        ] + builder.get_common_cmake_flags_args()
+        ] + builder.get_common_cmake_flag_args(self)
         if builder.build_type == BUILD_TYPE_ASAN:
             args.append("-DLLVM_USE_SANITIZER=Address")
             # TODO: add UBSAN.

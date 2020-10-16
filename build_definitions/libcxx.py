@@ -18,8 +18,7 @@ import subprocess
 import sys
 import build_definitions.llvm
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
+from yugabyte_db_thirdparty.builder_interface import BuilderInterface
 from build_definitions import *  # noqa
 
 

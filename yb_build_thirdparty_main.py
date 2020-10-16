@@ -29,9 +29,12 @@ from datetime import datetime
 
 from typing import Set, List, Dict, Optional, Tuple, Union, cast
 
-from build_definitions import *  # noqa
 from yugabyte_db_thirdparty.shared_library_checking import get_lib_tester
+from yugabyte_db_thirdparty.builder_interface import BuilderInterface
+from overrides import overrides  # type: ignore
 import build_definitions
+from build_definitions import *  # noqa
+
 import_submodules(build_definitions)
 
 CHECKSUM_FILE_NAME = 'thirdparty_src_checksums.txt'
@@ -460,10 +463,12 @@ class Builder(BuilderInterface):
         if not os.path.exists(compiler_path):
             raise IOError("Compiler does not exist: %s" % compiler_path)
 
+    @overrides
     def get_c_compiler(self) -> str:
         assert self.cc is not None
         return self.cc
 
+    @overrides
     def get_cxx_compiler(self) -> str:
         assert self.cxx is not None
         return self.cxx
@@ -622,6 +627,7 @@ class Builder(BuilderInterface):
             return None
         return os.path.join(self.tp_download_dir, dep.archive_name)
 
+    @overrides
     def source_path(self, dep: Dependency) -> str:
         return os.path.join(self.tp_src_dir, dep.dir_name)
 
@@ -867,12 +873,15 @@ class Builder(BuilderInterface):
         log("Adding RPATH: %s", path)
         self.ld_flags.append(get_rpath_flag(path))
 
+    @overrides
     def prepend_rpath(self, path: str) -> None:
         self.ld_flags.insert(0, get_rpath_flag(path))
 
+    @overrides
     def log_prefix(self, dep: Dependency) -> str:
         return '{} ({})'.format(dep.name, self.build_type)
 
+    @overrides
     def build_with_configure(
             self,
             log_prefix: str,
@@ -902,6 +911,7 @@ class Builder(BuilderInterface):
             if install:
                 log_output(log_prefix, ['make'] + install)
 
+    @overrides
     def build_with_cmake(
             self,
             dep: Dependency,
@@ -964,6 +974,7 @@ class Builder(BuilderInterface):
             if dep.build_group == build_group and dep.should_build(self):
                 self.build_dependency(dep)
 
+    @overrides
     def get_prefix(self, qualifier: Optional[str] = None) -> str:
         return os.path.join(
             self.tp_installed_dir + ('_' + qualifier if qualifier else ''),
@@ -1080,18 +1091,23 @@ class Builder(BuilderInterface):
         log('Setting env var %s to %s', env_var_name, value_str)
         os.environ[env_var_name] = value_str
 
-    def get_effective_cxx_flags(self) -> List[str]:
+    def get_effective_cxx_flags(self, dep: Dependency) -> List[str]:
+        dep_additional_cxx_flags = (dep.get_additional_cxx_flags(self) +
+                                    dep.get_additional_c_cxx_flags(self))
         return self.compiler_flags + self.cxx_flags + dep_additional_cxx_flags
 
-    def get_effective_c_flags(self) -> List[str]:
+    def get_effective_c_flags(self, dep: Dependency) -> List[str]:
+        dep_additional_c_flags = (dep.get_additional_c_flags(self) +
+                                  dep.get_additional_c_cxx_flags(self))
         return self.compiler_flags + self.c_flags + dep_additional_c_flags
 
-    def get_effective_ld_flags(self) -> List[str]:
+    def get_effective_ld_flags(self, dep: Dependency) -> List[str]:
         return list(self.ld_flags)
 
-    def get_common_cmake_flags_args(self) -> List[str]:
-        cxx_flags_str = ' '.join(self.get_effective_cxx_flags())
-        ld_flags_str = ' '.join(self.get_effective_ld_flags())
+    @overrides
+    def get_common_cmake_flag_args(self, dep: Dependency) -> List[str]:
+        cxx_flags_str = ' '.join(self.get_effective_cxx_flags(dep))
+        ld_flags_str = ' '.join(self.get_effective_ld_flags(dep))
         return [
             '-DCMAKE_CXX_FLAGS={}'.format(cxx_flags_str),
             '-DCMAKE_SHARED_LINKER_FLAGS={}'.format(ld_flags_str),
@@ -1116,15 +1132,9 @@ class Builder(BuilderInterface):
 
         self.download_dependency(dep)
 
-        # Additional flags coming from the dependency itself.
-        dep_additional_cxx_flags = (dep.get_additional_cxx_flags(self) +
-                                    dep.get_additional_c_cxx_flags(self))
-        dep_additional_c_flags = (dep.get_additional_c_flags(self) +
-                                  dep.get_additional_c_cxx_flags(self))
-
-        self.log_and_set_env_var('CXXFLAGS', self.get_effective_cxx_flags())
-        self.log_and_set_env_var('CFLAGS', self.get_effective_c_flags())
-        self.log_and_set_env_var('LDFLAGS', self.get_effective_ld_flags())
+        self.log_and_set_env_var('CXXFLAGS', self.get_effective_cxx_flags(dep))
+        self.log_and_set_env_var('CFLAGS', self.get_effective_c_flags(dep))
+        self.log_and_set_env_var('LDFLAGS', self.get_effective_ld_flags(dep))
         self.log_and_set_env_var('LIBS', self.libs)
 
         with PushDir(self.create_build_dir_and_prepare(dep)):
@@ -1219,6 +1229,7 @@ class Builder(BuilderInterface):
             subprocess.check_call(['rsync', '-a', src_dir + '/', build_dir])
         return build_dir
 
+    @overrides
     def is_release_build(self) -> bool:
         """
         Distinguishes between build types that are potentially used in production releases from
@@ -1228,14 +1239,18 @@ class Builder(BuilderInterface):
             BUILD_TYPE_COMMON, BUILD_TYPE_UNINSTRUMENTED, BUILD_TYPE_CLANG_UNINSTRUMENTED
         ]
 
+    @overrides
     def cmake_build_type_for_test_only_dependencies(self) -> str:
         return 'Release' if self.is_release_build() else 'Debug'
 
-    # Returns true if we are using clang to build current build_type.
+    @overrides
     def building_with_clang(self) -> bool:
+        """
+        Returns true if we are using clang to build current build_type.
+        """
         if self.use_only_clang():
             return True
-        if self.args.devtoolset:
+        if self.use_only_gcc():
             return False
 
         return self.build_type in [
@@ -1244,6 +1259,7 @@ class Builder(BuilderInterface):
             BUILD_TYPE_CLANG_UNINSTRUMENTED
         ]
 
+    @overrides
     def will_need_clang(self) -> bool:
         """
         Returns true if we will need Clang to complete the full thirdparty build type requested by
@@ -1262,13 +1278,16 @@ class Builder(BuilderInterface):
         process.stdin.close()
         return process.wait() == 0
 
+    @overrides
     def add_checked_flag(self, flags: List[str], flag: str) -> None:
         if self.check_cxx_compiler_flag(flag):
             flags.append(flag)
 
+    @overrides
     def get_openssl_dir(self) -> str:
         return os.path.join(self.tp_installed_common_dir)
 
+    @overrides
     def get_openssl_related_cmake_args(self) -> List[str]:
         """
         Returns a list of CMake arguments to use to pick up the version of OpenSSL that we should be

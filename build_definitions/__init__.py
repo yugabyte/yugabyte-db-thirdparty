@@ -23,7 +23,7 @@ import subprocess
 import traceback
 
 from typing import Any, List, Optional, Dict, Union, NoReturn
-
+from yugabyte_db_thirdparty import builder_interface
 
 YB_THIRDPARTY_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -238,84 +238,6 @@ def import_submodules(package: Any, recursive: bool = True) -> Dict[str, Any]:
     return results
 
 
-class BuilderInterface:
-    prefix: str
-    compiler_flags: List[str]
-    c_flags: List[str]
-    cxx_flags: List[str]
-    compiler_type: str
-    prefix_lib: str
-    prefix_bin: str
-    ld_flags: List[str]
-    dylib_suffix: str
-    tp_installed_common_dir: str
-    prefix_include: str
-    tp_dir: str
-    build_type: str
-
-    def build_with_configure(
-            self,
-            log_prefix: str,
-            extra_args: List[str] = [],
-            configure_cmd: List[str] = ['./configure'],
-            install: List[str] = ['install'],
-            run_autogen: bool = False,
-            autoconf: bool = False,
-            src_subdir_name: Optional[str] = None) -> None:
-        raise NotImplementedError()
-
-    def build_with_cmake(
-            self,
-            dep: 'Dependency',
-            extra_args: List[str] = [],
-            use_ninja_if_available: bool = False,
-            src_subdir_name: Optional[str] = None,
-            extra_build_tool_args: List[str] = [],
-            should_install: bool = True,
-            install_targets: List[str] = []) -> None:
-        raise NotImplementedError()
-
-    def log_prefix(self, dep: 'Dependency') -> str:
-        raise NotImplementedError()
-
-    def get_c_compiler(self) -> str:
-        raise NotImplementedError()
-
-    def get_cxx_compiler(self) -> str:
-        raise NotImplementedError()
-
-    def prepend_rpath(self, path: str) -> None:
-        # TODO: should dependencies really be calling this?
-        raise NotImplementedError()
-
-    def source_path(self, dep: 'Dependency') -> str:
-        raise NotImplementedError()
-
-    def cmake_build_type_for_test_only_dependencies(self) -> str:
-        raise NotImplementedError()
-
-    def get_openssl_related_cmake_args(self) -> List[str]:
-        raise NotImplementedError()
-
-    def add_checked_flag(self, flags: List[str], flag: str) -> None:
-        raise NotImplementedError()
-
-    def building_with_clang(self) -> bool:
-        raise NotImplementedError()
-
-    def get_openssl_dir(self) -> str:
-        raise NotImplementedError()
-
-    def is_release_build(self) -> bool:
-        raise NotImplementedError()
-
-    def will_need_clang(self) -> bool:
-        raise NotImplementedError()
-
-    def get_prefix(self, qualifier: Optional[str] = None) -> str:
-        raise NotImplementedError()
-
-
 class ExtraDownload:
     def __init__(
             self,
@@ -367,28 +289,30 @@ class Dependency:
             raise ValueError("Invalid build group: %s, should be one of: %s" % (
                 build_group, VALID_BUILD_GROUPS))
 
-    def get_additional_c_cxx_flags(self, builder: BuilderInterface) -> List[str]:
+    def get_additional_c_cxx_flags(
+            self,
+            builder: 'builder_interface.BuilderInterface') -> List[str]:
         return []
 
-    def get_additional_c_flags(self, builder: BuilderInterface) -> List[str]:
+    def get_additional_c_flags(self, builder: 'builder_interface.BuilderInterface') -> List[str]:
         return []
 
-    def get_additional_cxx_flags(self, builder: BuilderInterface) -> List[str]:
+    def get_additional_cxx_flags(self, builder: 'builder_interface.BuilderInterface') -> List[str]:
         return []
 
-    def get_excluded_c_cxx_flags(self, builder: BuilderInterface) -> List[str]:
+    def get_excluded_c_cxx_flags(self, builder: 'builder_interface.BuilderInterface') -> List[str]:
         return []
 
-    def get_excluded_ld_flags(self, builder: BuilderInterface) -> List[str]:
+    def get_excluded_ld_flags(self, builder: 'builder_interface.BuilderInterface') -> List[str]:
         return []
 
-    def get_excluded_libs(self, builder: BuilderInterface) -> List[str]:
+    def get_excluded_libs(self, builder: 'builder_interface.BuilderInterface') -> List[str]:
         return []
 
-    def should_build(self, builder: BuilderInterface) -> bool:
+    def should_build(self, builder: 'builder_interface.BuilderInterface') -> bool:
         return True
 
-    def build(self, builder: BuilderInterface) -> None:
+    def build(self, builder: 'builder_interface.BuilderInterface') -> None:
         raise NotImplementedError()
 
 
