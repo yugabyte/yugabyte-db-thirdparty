@@ -39,7 +39,7 @@ class LibCxx10Dependency(Dependency):
 
         static_linker_flags = [
             flag for flag in ld_flags
-            if not flag.startswith('-L')
+            if not flag.startswith('-L') and not flag.startswith('-W')
         ]
         static_linker_flags_str = ' '.join(static_linker_flags)
 
