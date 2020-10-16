@@ -37,6 +37,12 @@ class LibCxx10Dependency(Dependency):
         ]
         ld_flags_str = ' '.join(ld_flags)
 
+        static_linker_flags = [
+            flag for flag in ld_flags
+            if not flag.startswith('-L')
+        ]
+        static_linker_flags_str = ' '.join(static_linker_flags_str)
+
         cxx_flags = [
             flag for flag in builder.cxx_flags
             if flag not in ['-stdlib=libc++']
@@ -59,7 +65,7 @@ class LibCxx10Dependency(Dependency):
             '-DCMAKE_CXX_FLAGS={}'.format(cxx_flags_str),
             '-DCMAKE_MODULE_LINKER_FLAGS={}'.format(ld_flags_str),
             '-DCMAKE_SHARED_LINKER_FLAGS={}'.format(ld_flags_str),
-            '-DCMAKE_STATIC_LINKER_FLAGS={}'.format(ld_flags_str),
+            '-DCMAKE_STATIC_LINKER_FLAGS={}'.format(static_linker_flags_str),
         ]
         if builder.build_type == BUILD_TYPE_ASAN:
             args.append("-DLLVM_USE_SANITIZER=Address;Undefined")
@@ -71,7 +77,7 @@ class LibCxx10Dependency(Dependency):
             extra_args=args,
             src_subdir_name='llvm',
             use_ninja_if_available=True,
-            extra_build_tool_args=['libcxxabi', 'libcxx'])
+            extra_build_tool_args=['cxxabi', 'cxx'])
         # builder.build_with_cmake(
         #     self,
         #     extra_args=args,
