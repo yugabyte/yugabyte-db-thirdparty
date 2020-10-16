@@ -52,8 +52,10 @@ class LibCxx10Dependency(Dependency):
         builder.build_with_cmake(
             self,
             extra_args=args,
-            src_subdir_name='libcxxabi')
-        builder.build_with_cmake(
-            self,
-            extra_args=args,
-            src_subdir_name='libcxx')
+            src_subdir_name='llvm',
+            use_ninja_if_available=True,
+            extra_build_tool_args=['libcxxabi', 'libcxx'])
+        # builder.build_with_cmake(
+        #     self,
+        #     extra_args=args,
+        #     src_subdir_name='libcxx')

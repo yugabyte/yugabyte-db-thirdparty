@@ -904,6 +904,7 @@ class Builder(BuilderInterface):
             extra_args: List[str] = [],
             use_ninja_if_available: bool = False,
             src_subdir_name: Optional[str] = None,
+            extra_build_tool_args: List[str] = [],
             should_install: bool = True) -> None:
         build_tool = 'make'
         if use_ninja_if_available:
@@ -932,7 +933,9 @@ class Builder(BuilderInterface):
 
         log_output(log_prefix, args)
 
-        build_tool_cmd = [build_tool, '-j{}'.format(get_make_parallelism())]
+        build_tool_cmd = [
+            build_tool, '-j{}'.format(get_make_parallelism())
+        ] + extra_build_tool_args
 
         log_output(log_prefix, build_tool_cmd)
 
@@ -1042,7 +1045,7 @@ class Builder(BuilderInterface):
         Flags for Clang 10 and beyond. We are using LLVM-supplied libunwind and compiler-rt in this
         configuration.
         """
-        self.cxx_flags.append('-rtlib=compiler-rt')
+        self.ld_flags.append('-rtlib=compiler-rt')
 
         if self.build_type != BUILD_TYPE_COMMON:
             self.cxx_flags.insert(0, '-stdlib=libc++')
