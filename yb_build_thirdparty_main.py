@@ -955,8 +955,7 @@ class Builder(BuilderInterface):
         # This is needed at least for glog to be able to find gflags.
         self.add_rpath(os.path.join(self.tp_installed_dir, self.build_type, 'lib'))
         if build_type != BUILD_TYPE_COMMON:
-            # Needed to find libunwind for Clang 10 when using compiler-rt. But in general we should
-            # be able to find these libraries in common/lib.
+            # Needed to find libunwind for Clang 10 when using compiler-rt.
             self.add_rpath(os.path.join(self.tp_installed_dir, BUILD_TYPE_COMMON, 'lib'))
         build_group = (
             BUILD_GROUP_COMMON if build_type == BUILD_TYPE_COMMON else BUILD_GROUP_INSTRUMENTED
