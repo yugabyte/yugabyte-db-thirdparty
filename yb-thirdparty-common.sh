@@ -111,4 +111,15 @@ detect_os
 # We ignore the previously set YB_THIRDPARTY_DIR value, because if we are executing Bash scripts
 # within this third-party directory, we most likely want to work in this exact directory.
 YB_THIRDPARTY_DIR=$( cd "${BASH_SOURCE[0]%/*}" && pwd )
+
+PYTHONPATH=${PYTHONPATH:-}
+if [[ -n $PYTHONPATH ]]; then
+  PYTHONPATH=:$PYTHONPATH
+fi
+
+# Eventually most Python scripts should move to the python directory, but right now we add both
+# the "python" directory and the thirdparty root directory to PYTHONPATH.
+PYTHONPATH=$YB_THIRDPARTY_DIR:$YB_THIRDPARTY_DIR/python$PYTHONPATH
+
+export PYTHONPATH
 export YB_THIRDPARTY_DIR

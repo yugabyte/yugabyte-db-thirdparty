@@ -7,6 +7,8 @@ set -euo pipefail
 
 activate_virtualenv
 
+export MYPYPATH=$PYTHONPATH
+
 file_to_check_regex=${1:-}
 
 mypy_config_path=$YB_THIRDPARTY_DIR/mypy.ini
@@ -20,6 +22,7 @@ python_files=()
 while IFS='' read -r line; do python_files+=( "$line" ); done < <(
   (
     find build_definitions -name "*.py"
+    find python -name "*.py"
     find . -maxdepth 1 -name "*.py"
   ) | sort
 )
@@ -46,8 +49,16 @@ for python_file_path in "${python_files[@]}"; do
   if [[ $python_file_path == build_definitions/* ]]; then
     base_name=${python_file_path##*/}
     base_name=${base_name%.py}
-    log "Trying to import '$python_file_path'"
+    log "Trying to import '$python_file_path' from build_definitions"
     ( set -x; python3 -c "from build_definitions import $base_name" )
+    echo >&2
+  fi
+
+  if [[ $python_file_path == python/yugabyte_db_thirdparty/* ]]; then
+    base_name=${python_file_path##*/}
+    base_name=${base_name%.py}
+    log "Trying to import '$python_file_path' from yugabyte_db_thirdparty"
+    ( set -x; python3 -c "from yugabyte_db_thirdparty import $base_name" )
     echo >&2
   fi
 

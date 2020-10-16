@@ -30,6 +30,7 @@ from datetime import datetime
 from typing import Set, List, Dict, Optional, Tuple, Union, cast
 
 from build_definitions import *  # noqa
+from yugabyte_db_thirdparty.shared_library_checking import get_lib_tester
 import build_definitions
 import_submodules(build_definitions)
 
@@ -192,8 +193,12 @@ class Builder(BuilderInterface):
         c_compiler = self.get_c_compiler()
         cxx_compiler = self.get_cxx_compiler()
 
-        os.environ['CC'] = c_compiler
-        os.environ['CXX'] = cxx_compiler
+        os.environ['YB_THIRDPARTY_REAL_C_COMPILER'] = c_compiler
+        os.environ['YB_THIRDPARTY_REAL_CXX_COMPILER'] = cxx_compiler
+
+        python_scripts_dir = os.path.join(YB_THIRDPARTY_DIR, 'python', 'yugabyte_db_thirdparty')
+        os.environ['CC'] = os.path.join(python_scripts_dir, 'compiler_wrapper_cc.py')
+        os.environ['CXX'] = os.path.join(python_scripts_dir, 'compiler_wrapper_cxx.py')
 
     def parse_args(self) -> None:
         os.environ['YB_IS_THIRDPARTY_BUILD'] = '1'
@@ -812,6 +817,7 @@ class Builder(BuilderInterface):
             # default, so we specify it explicitly.
             self.cxx_flags.append("-stdlib=libc++")
             self.libs += ["-lc++", "-lc++abi"]
+
             # Build for macOS Mojave or later. See https://bit.ly/37myHbk
             self.compiler_flags.append("-mmacosx-version-min=10.14")
         else:
@@ -1017,11 +1023,10 @@ class Builder(BuilderInterface):
         Flags for Clang 10 and beyond. We are using LLVM-supplied libunwind and compiler-rt in this
         configuration.
         """
-        # TODO: should this be compiler flag instead of a linker-only flag?
-        self.ld_flags.append('-rtlib=compiler-rt')
+        self.cxx_flags.append('-rtlib=compiler-rt')
+        self.cxx_flags.insert(0, '-stdlib=libc++')
 
         if self.build_type != BUILD_TYPE_COMMON:
-            self.cxx_flags.append('-stdlib=libc++')
             self.ld_flags.append('-lunwind')
 
         # Needed for Cassandra C++ driver.
@@ -1211,113 +1216,6 @@ class Builder(BuilderInterface):
         return openssl_options
 
 
-class LibTestBase:
-    """
-    Verify correct library paths are used in installed dynamically-linked executables and
-    libraries.
-    """
-    lib_re_list: List[str]
-    tool: str
-
-    def __init__(self) -> None:
-        self.tp_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
-        self.tp_installed_dir = os.path.join(self.tp_dir, 'installed')
-        self.lib_re_list = []
-
-    def init_regex(self) -> None:
-        self.okay_paths = re.compile("|".join(self.lib_re_list))
-
-    def check_lib_deps(self, file_path: str, cmdout: str) -> bool:
-        status = True
-        for line in cmdout.splitlines():
-            if not self.okay_paths.match(line):
-                if status:
-                    log(file_path + ":")
-                log("Bad path: %s", line)
-                status = False
-        return status
-
-    # overridden in platform specific classes
-    def good_libs(self, file_path: str) -> bool:
-        raise NotImplementedError()
-
-    def run(self) -> None:
-        self.init_regex()
-        heading("Scanning installed executables and libraries...")
-        test_pass = True
-        # files to examine are much reduced if we look only at bin and lib directories
-        dir_pattern = re.compile('^(lib|libcxx|[s]bin)$')
-        dirs = [os.path.join(self.tp_installed_dir, type) for type in BUILD_TYPES]
-        for installed_dir in dirs:
-            with os.scandir(installed_dir) as candidate_dirs:
-                for candidate in candidate_dirs:
-                    if dir_pattern.match(candidate.name):
-                        examine_path = os.path.join(installed_dir, candidate.name)
-                        for dirpath, dirnames, files in os.walk(examine_path):
-                            for file_name in files:
-                                full_path = os.path.join(dirpath, file_name)
-                                if os.path.islink(full_path):
-                                    continue
-                                if not self.good_libs(full_path):
-                                    test_pass = False
-        if not test_pass:
-            fatal(f"Found problematic library dependencies, using tool: {self.tool}")
-        else:
-            log("No problems found with library dependencies.")
-
-
-class LibTestMac(LibTestBase):
-    def __init__(self) -> None:
-        super().__init__()
-        self.tool = "otool -L"
-        self.lib_re_list = ["^\t/usr/",
-                            "^\t/System/Library/",
-                            "^Archive ",
-                            "^/",
-                            "^\t@rpath",
-                            "^\t@loader_path",
-                            f"^\t{self.tp_dir}"]
-
-    def good_libs(self, file_path: str) -> bool:
-        libout = subprocess.check_output(['otool', '-L', file_path]).decode('utf-8')
-        if 'is not an object file' in libout:
-            return True
-        return self.check_lib_deps(file_path, libout)
-
-
-class LibTestLinux(LibTestBase):
-    def __init__(self) -> None:
-        super().__init__()
-        self.tool = "ldd"
-        self.lib_re_list = [
-            "^\tlinux-vdso",
-            "^\t/lib64/",
-            "^\t/opt/yb-build/brew/linuxbrew",
-            "^\tstatically linked",
-            "^\tnot a dynamic executable",
-            "ldd: warning: you do not have execution permission",
-            "^.* => /lib64/",
-            "^.* => /lib/",
-            "^.* => /usr/lib/x86_64-linux-gnu/",
-            "^.* => /opt/yb-build/brew/linuxbrew",
-            f"^.* => {self.tp_dir}"
-        ]
-
-    def good_libs(self, file_path: str) -> bool:
-        try:
-            libout = subprocess.check_output(
-                ['ldd', file_path],
-                stderr=subprocess.STDOUT, env={'LC_ALL': 'en_US.UTF-8'}).decode('utf-8')
-        except subprocess.CalledProcessError as ex:
-            if ex.returncode > 1:
-                log("Unexpected exit code %d from ldd, file %s", ex.returncode, file_path)
-                log(ex.stdout.decode('utf-8'))
-                return False
-            else:
-                libout = ex.stdout.decode('utf-8')
-        return self.check_lib_deps(file_path, libout)
-
-
 def main() -> None:
     unset_env_var_if_set('CC')
     unset_env_var_if_set('CXX')
@@ -1335,14 +1233,7 @@ def main() -> None:
 
     # Check that the executables and libraries we have built don't depend on any unexpected dynamic
     # libraries installed on this system.
-    tester: LibTestBase
-    if is_mac():
-        tester = LibTestMac()
-    elif is_linux():
-        tester = LibTestLinux()
-    else:
-        fatal(f"Unsupported platform: {platform.system()}")
-    tester.run()
+    get_lib_tester().run()
 
 
 if __name__ == "__main__":

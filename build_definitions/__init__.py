@@ -22,7 +22,13 @@ import shutil
 import subprocess
 import traceback
 
-from typing import Any, List, Optional, Dict, Union
+from typing import Any, List, Optional, Dict, Union, NoReturn
+
+
+YB_THIRDPARTY_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+if not os.path.isdir(os.path.join(YB_THIRDPARTY_DIR, 'python', 'yugabyte_db_thirdparty')):
+    raise IOError("Could not identify correct third-party directory, got %s" % YB_THIRDPARTY_DIR)
 
 
 YELLOW_COLOR = "\033[0;33m"
@@ -94,7 +100,7 @@ def _args_to_message(*args: Any) -> str:
     return message
 
 
-def fatal(*args: Any) -> None:
+def fatal(*args: Any) -> NoReturn:
     log(*args)
     traceback.print_stack()
     sys.exit(1)

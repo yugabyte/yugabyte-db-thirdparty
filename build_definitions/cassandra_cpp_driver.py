@@ -40,6 +40,7 @@ class CassandraCppDriverDependency(Dependency):
             cxx_flags = builder.compiler_flags + builder.cxx_flags + builder.ld_flags
             builder.add_checked_flag(cxx_flags, '-Wno-error=implicit-fallthrough')
             builder.add_checked_flag(cxx_flags, '-Wno-error=class-memaccess')
+        if builder.
 
         # FindOpenSSL.cmake in cassandra-cpp-driver is buggy (e.g. it cannot recognize the version
         # 1.1.1g of OpenSSL, because it has a regexp hardcoded with [a-f], as if for hex characters,
