@@ -1003,7 +1003,7 @@ class Builder(BuilderInterface):
         # Special setup for Clang on Linux.
         # -----------------------------------------------------------------------------------------
 
-        is_libcxx = self.dep.startswith('libcxx')
+        is_libcxx = dep.name.startswith('libcxx')
 
         if not is_libcxx:
             if self.build_type == BUILD_TYPE_ASAN:
