@@ -26,7 +26,7 @@ class LibCxx10Dependency(Dependency):
             name='libcxx10',
             version='10.0.1',
             url_pattern='https://github.com/llvm/llvm-project/archive/llvmorg-{}.tar.gz',
-            build_group=BUILD_GROUP_COMMON)
+            build_group=BUILD_GROUP_INSTRUMENTED)
 
     def build(self, builder: BuilderInterface) -> None:
         llvm_src_path = builder.source_path(self)
@@ -53,3 +53,7 @@ class LibCxx10Dependency(Dependency):
             self,
             extra_args=args,
             src_subdir_name='libcxxabi')
+        builder.build_with_cmake(
+            self,
+            extra_args=args,
+            src_subdir_name='libcxx')
