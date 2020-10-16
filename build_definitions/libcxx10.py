@@ -57,9 +57,9 @@ class LibCxx10Dependency(Dependency):
             '-DLIBCXXABI_USE_LLVM_UNWINDER=ON',
             '-DLIBCXX_USE_COMPILER_RT=ON',
             '-DCMAKE_CXX_FLAGS={}'.format(cxx_flags_str),
-            '-DCMAKE_MODULE_LINKER_FLAGS={}'.format(linker_flags_str),
-            '-DCMAKE_SHARED_LINKER_FLAGS={}'.format(linker_flags_str),
-            '-DCMAKE_STATIC_LINKER_FLAGS={}'.format(linker_flags_str),
+            '-DCMAKE_MODULE_LINKER_FLAGS={}'.format(ld_flags_str),
+            '-DCMAKE_SHARED_LINKER_FLAGS={}'.format(ld_flags_str),
+            '-DCMAKE_STATIC_LINKER_FLAGS={}'.format(ld_flags_str),
         ]
         if builder.build_type == BUILD_TYPE_ASAN:
             args.append("-DLLVM_USE_SANITIZER=Address;Undefined")
