@@ -28,6 +28,15 @@ class LibCxx10Dependency(Dependency):
             url_pattern='https://github.com/llvm/llvm-project/archive/llvmorg-{}.tar.gz',
             build_group=BUILD_GROUP_INSTRUMENTED)
 
+    def get_excluded_c_cxx_flags(self, builder: BuilderInterface) -> List[str]:
+        return ['-stdlib=libc++']
+
+    def get_excluded_ld_flags(self, builder: BuilderInterface) -> List[str]:
+        return []
+
+    def get_excluded_libs(self, builder: BuilderInterface) -> List[str]:
+        return ['-lc++', '-lc++abi']
+
     def build(self, builder: BuilderInterface) -> None:
         llvm_src_path = builder.source_path(self)
 
@@ -37,11 +46,11 @@ class LibCxx10Dependency(Dependency):
         ]
         ld_flags_str = ' '.join(ld_flags)
 
-        cxx_flags = [
-            flag for flag in builder.cxx_flags_for_libcxx
-            if flag not in ['-stdlib=libc++']
-        ]
-        cxx_flags_str = ' '.join(cxx_flags)
+        # cxx_flags = [
+        #     flag for flag in builder.cxx_flags_for_libcxx
+        #     if flag not in
+        # ]
+        # cxx_flags_str = ' '.join(cxx_flags)
 
         prefix = os.path.join(builder.prefix, 'libcxx10')
 
@@ -58,9 +67,9 @@ class LibCxx10Dependency(Dependency):
             '-DLIBCXXABI_USE_COMPILER_RT=ON',
             '-DLIBCXXABI_USE_LLVM_UNWINDER=ON',
             '-DLIBCXX_USE_COMPILER_RT=ON',
-            '-DCMAKE_CXX_FLAGS={}'.format(cxx_flags_str),
-            '-DCMAKE_SHARED_LINKER_FLAGS={}'.format(ld_flags_str),
-            '-DCMAKE_EXE_LINKER_FLAGS={}'.format(ld_flags_str),
+            # '-DCMAKE_CXX_FLAGS={}'.format(cxx_flags_str),
+            # '-DCMAKE_SHARED_LINKER_FLAGS={}'.format(ld_flags_str),
+            # '-DCMAKE_EXE_LINKER_FLAGS={}'.format(ld_flags_str),
             '-DLLVM_ENABLE_LIBCXX=ON',
         ]
         if builder.build_type == BUILD_TYPE_ASAN:

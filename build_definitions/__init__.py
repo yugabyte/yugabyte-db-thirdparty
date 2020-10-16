@@ -376,6 +376,15 @@ class Dependency:
     def get_additional_cxx_flags(self, builder: BuilderInterface) -> List[str]:
         return []
 
+    def get_excluded_c_cxx_flags(self, builder: BuilderInterface) -> List[str]:
+        return []
+
+    def get_excluded_ld_flags(self, builder: BuilderInterface) -> List[str]:
+        return []
+
+    def get_excluded_libs(self, builder: BuilderInterface) -> List[str]:
+        return []
+
     def should_build(self, builder: BuilderInterface) -> bool:
         return True
 

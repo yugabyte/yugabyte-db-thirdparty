@@ -89,6 +89,10 @@ def compute_file_sha256(path: str) -> str:
     return hashsum_file(hashlib.sha256(), path)
 
 
+def filter_and_join_strings(str_list: List[str], to_exclude: Set[str]) -> str:
+    return ' '.join([s for s in str_list if s not in to_exclude])
+
+
 DEVTOOLSET_ENV_VARS: Set[str] = set([s.strip() for s in """
     INFOPATH
     LD_LIBRARY_PATH
@@ -952,12 +956,6 @@ class Builder(BuilderInterface):
             return
 
         self.set_build_type(build_type)
-        self.init_flags()
-        # This is needed at least for glog to be able to find gflags.
-        self.add_rpath(os.path.join(self.tp_installed_dir, self.build_type, 'lib'))
-        if build_type != BUILD_TYPE_COMMON:
-            # Needed to find libunwind for Clang 10 when using compiler-rt.
-            self.add_rpath(os.path.join(self.tp_installed_dir, BUILD_TYPE_COMMON, 'lib'))
         build_group = (
             BUILD_GROUP_COMMON if build_type == BUILD_TYPE_COMMON else BUILD_GROUP_INSTRUMENTED
         )
@@ -991,7 +989,7 @@ class Builder(BuilderInterface):
         log("C compiler: %s", self.get_c_compiler())
         log("C++ compiler: %s", self.get_cxx_compiler())
 
-    def init_flags(self) -> None:
+    def init_flags(self, dep: Dependency) -> None:
         """
         Initializes compiler and linker flags.
         """
@@ -1011,15 +1009,12 @@ class Builder(BuilderInterface):
                 '-fsanitize=undefined',
                 '-DADDRESS_SANITIZER'
             ]
-        elif self.build_type == BUILD_TYPE_TSAN:
+        if self.build_type == BUILD_TYPE_TSAN:
             self.compiler_flags += ['-fsanitize=thread', '-DTHREAD_SANITIZER']
-        elif self.build_type == BUILD_TYPE_CLANG_UNINSTRUMENTED:
-            pass
-        elif self.args.single_compiler_type == 'clang':
-            self.init_clang10_or_later_flags()
+
+        if self.args.single_compiler_type == 'clang':
+            self.init_clang10_or_later_flags(dep)
             return
-        else:
-            fatal("Wrong instrumentation type for Clang on Linux: %s", self.build_type)
 
         # This is used to build code with libc++ and Clang 7 built as part of thirdparty.
         stdlib_suffix = self.build_type
@@ -1039,7 +1034,7 @@ class Builder(BuilderInterface):
             # as of 10/2020.
             self.compiler_flags.append('--gcc-toolchain={}'.format(self.get_linuxbrew_dir()))
 
-    def init_clang10_or_later_flags(self) -> None:
+    def init_clang10_or_later_flags(self, dep: Dependency) -> None:
         """
         Flags for Clang 10 and beyond. We are using LLVM-supplied libunwind and compiler-rt in this
         configuration.
@@ -1047,20 +1042,22 @@ class Builder(BuilderInterface):
         self.ld_flags.append('-rtlib=compiler-rt')
 
         if self.build_type != BUILD_TYPE_COMMON:
+            is_libcxx = dep.name.startswith('libcxx')
             # TODO: how is this used? Does CMake use env vars like LIBS?
-            self.libs += ['-lunwind', '-lc++', '-lc++abi']
+            self.libs += ['-lunwind']
+            if not is_libcxx:
+                self.libs += ['-lc++', '-lc++abi']
 
-            # TODO: dedup with the similar code above used for Clang 7.
-            stdlib_suffix = self.build_type
-            stdlib_path = os.path.join(self.tp_installed_dir, stdlib_suffix, 'libcxx10')
-            stdlib_include = os.path.join(stdlib_path, 'include', 'c++', 'v1')
-            stdlib_lib = os.path.join(stdlib_path, 'lib')
+                # TODO: dedup with the similar code above used for Clang 7.
+                stdlib_suffix = self.build_type
+                stdlib_path = os.path.join(self.tp_installed_dir, stdlib_suffix, 'libcxx10')
+                stdlib_include = os.path.join(stdlib_path, 'include', 'c++', 'v1')
+                stdlib_lib = os.path.join(stdlib_path, 'lib')
 
-            self.cxx_flags_for_libcxx = list(self.cxx_flags)
-            self.cxx_flags.insert(0, '-nostdinc++')
-            self.cxx_flags.insert(0, '-isystem')
-            self.cxx_flags.insert(1, stdlib_include)
-            self.cxx_flags.insert(0, '-stdlib=libc++')
+                self.cxx_flags.insert(0, '-nostdinc++')
+                self.cxx_flags.insert(0, '-isystem')
+                self.cxx_flags.insert(1, stdlib_include)
+                self.cxx_flags.insert(0, '-stdlib=libc++')
 
         # Needed for Cassandra C++ driver.
         # TODO mbautin: only specify these flags when building the Cassandra C++ driver.
@@ -1074,6 +1071,14 @@ class Builder(BuilderInterface):
     def build_dependency(self, dep: Dependency) -> None:
         if not self.should_rebuild_dependency(dep):
             return
+
+        self.init_flags(dep)
+        # This is needed at least for glog to be able to find gflags.
+        self.add_rpath(os.path.join(self.tp_installed_dir, self.build_type, 'lib'))
+        if self.build_type != BUILD_TYPE_COMMON:
+            # Needed to find libunwind for Clang 10 when using compiler-rt.
+            self.add_rpath(os.path.join(self.tp_installed_dir, BUILD_TYPE_COMMON, 'lib'))
+
         log("")
         colored_log(YELLOW_COLOR, SEPARATOR)
         colored_log(YELLOW_COLOR, "Building %s (%s)", dep.name, self.build_type)
@@ -1087,12 +1092,21 @@ class Builder(BuilderInterface):
         dep_additional_c_flags = (dep.get_additional_c_flags(self) +
                                   dep.get_additional_c_cxx_flags(self))
 
-        os.environ["CXXFLAGS"] = " ".join(
-                self.compiler_flags + self.cxx_flags + dep_additional_cxx_flags)
-        os.environ["CFLAGS"] = " ".join(
-                self.compiler_flags + self.c_flags + dep_additional_c_flags)
-        os.environ["LDFLAGS"] = " ".join(self.ld_flags)
-        os.environ["LIBS"] = " ".join(self.libs)
+        excluded_c_cxx_flags = set(dep.get_excluded_c_cxx_flags(self))
+        excluded_ld_flags = set(dep.get_excluded_ld_flags(self))
+        excluded_libs = set(dep.get_excluded_libs(self))
+        os.environ["CXXFLAGS"] = filter_and_join_strings(
+            self.compiler_flags + self.cxx_flags + dep_additional_cxx_flags,
+            excluded_c_cxx_flags)
+        os.environ["CFLAGS"] = filter_and_join_strings(
+            self.compiler_flags + self.c_flags + dep_additional_c_flags,
+            excluded_c_cxx_flags)
+        os.environ["LDFLAGS"] = filter_and_join_strings(
+            self.ld_flags,
+            excluded_ld_flags)
+        os.environ["LIBS"] = filter_and_join_strings(
+            self.libs,
+            excluded_libs)
 
         with PushDir(self.create_build_dir_and_prepare(dep)):
             dep.build(self)

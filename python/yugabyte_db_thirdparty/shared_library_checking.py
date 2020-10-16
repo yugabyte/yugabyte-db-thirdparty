@@ -61,7 +61,7 @@ class LibTestBase:
         status = True
         for line in cmdout.splitlines():
             if (not self.okay_paths.match(line) or
-                (self.bad_lib_re_list and self.bad_lib_re.match(line))):
+                    (self.bad_lib_re_list and self.bad_lib_re.match(line))):
                 if status:
                     log(file_path + ":")
                 log("Bad path: %s", line)
