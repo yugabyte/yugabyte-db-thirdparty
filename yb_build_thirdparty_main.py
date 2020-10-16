@@ -1015,8 +1015,7 @@ class Builder(BuilderInterface):
             self.compiler_flags += ['-fsanitize=thread', '-DTHREAD_SANITIZER']
         elif self.build_type == BUILD_TYPE_CLANG_UNINSTRUMENTED:
             pass
-        elif (self.build_type in [BUILD_TYPE_COMMON, BUILD_TYPE_UNINSTRUMENTED] and
-              self.args.single_compiler_type == 'clang'):
+        elif self.args.single_compiler_type == 'clang':
             self.init_clang10_or_later_flags()
             return
         else:
@@ -1048,8 +1047,20 @@ class Builder(BuilderInterface):
         self.ld_flags.append('-rtlib=compiler-rt')
 
         if self.build_type != BUILD_TYPE_COMMON:
-            self.cxx_flags.insert(0, '-stdlib=libc++')
+            # TODO: how is this used? Does CMake use env vars like LIBS?
             self.libs += ['-lunwind', '-lc++', '-lc++abi']
+
+            # TODO: dedup with the similar code above used for Clang 7.
+            stdlib_suffix = self.build_type
+            stdlib_path = os.path.join(self.tp_installed_dir, stdlib_suffix, 'libcxx10')
+            stdlib_include = os.path.join(stdlib_path, 'include', 'c++', 'v1')
+            stdlib_lib = os.path.join(stdlib_path, 'lib')
+
+            self.cxx_flags_for_libcxx = list(self.cxx_flags)
+            self.cxx_flags.insert(0, '-nostdinc++')
+            self.cxx_flags.insert(0, '-isystem')
+            self.cxx_flags.insert(1, stdlib_include)
+            self.cxx_flags.insert(0, '-stdlib=libc++')
 
         # Needed for Cassandra C++ driver.
         # TODO mbautin: only specify these flags when building the Cassandra C++ driver.

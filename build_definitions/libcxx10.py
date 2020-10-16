@@ -38,7 +38,7 @@ class LibCxx10Dependency(Dependency):
         ld_flags_str = ' '.join(ld_flags)
 
         cxx_flags = [
-            flag for flag in builder.cxx_flags
+            flag for flag in builder.cxx_flags_for_libcxx
             if flag not in ['-stdlib=libc++']
         ]
         cxx_flags_str = ' '.join(cxx_flags)
