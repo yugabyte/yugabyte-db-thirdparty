@@ -43,21 +43,24 @@ class LibCxx10Dependency(Dependency):
         ]
         cxx_flags_str = ' '.join(cxx_flags)
 
+        prefix = os.path.join(builder.prefix, 'libcxx10')
+
         args = [
             '-DCMAKE_BUILD_TYPE=Release',
             '-DLLVM_ENABLE_PROJECTS=libunwind;libcxx;libcxxabi',
-            '-DLIBCXXABI_LIBCXX_PATH=%s' % os.path.join(llvm_src_path, 'libcxx'),
+            # '-DLIBCXXABI_LIBCXX_PATH=%s' % os.path.join(llvm_src_path, 'libcxx'),
             '-DLLVM_TARGETS_TO_BUILD=X86',
             '-DBUILD_SHARED_LIBS=ON',
             '-DLLVM_ENABLE_RTTI=ON',
             '-DLIBUNWIND_USE_COMPILER_RT=ON',
-            '-DLLVM_PATH=%s' % llvm_src_path,
-            '-DCMAKE_INSTALL_PREFIX={}'.format(builder.prefix),
+            # '-DLLVM_PATH=%s' % llvm_src_path,
+            '-DCMAKE_INSTALL_PREFIX={}'.format(prefix),
             '-DLIBCXXABI_USE_COMPILER_RT=ON',
             '-DLIBCXXABI_USE_LLVM_UNWINDER=ON',
             '-DLIBCXX_USE_COMPILER_RT=ON',
             '-DCMAKE_CXX_FLAGS={}'.format(cxx_flags_str),
-            '-DCMAKE_SHARED_LINKER_FLAGS={}'.format(ld_flags_str)
+            '-DCMAKE_SHARED_LINKER_FLAGS={}'.format(ld_flags_str),
+            '-DCMAKE_EXE_LINKER_FLAGS={}'.format(ld_flags_str)
         ]
         if builder.build_type == BUILD_TYPE_ASAN:
             args.append("-DLLVM_USE_SANITIZER=Address;Undefined")
@@ -69,7 +72,8 @@ class LibCxx10Dependency(Dependency):
             extra_args=args,
             src_subdir_name='llvm',
             use_ninja_if_available=True,
-            extra_build_tool_args=['cxxabi', 'cxx'])
+            extra_build_tool_args=['cxxabi', 'cxx'],
+            install_targets=['install-cxxabi', 'install-cxx'])
         # builder.build_with_cmake(
         #     self,
         #     extra_args=args,

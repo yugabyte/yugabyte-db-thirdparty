@@ -271,7 +271,8 @@ class BuilderInterface:
             use_ninja_if_available: bool = False,
             src_subdir_name: Optional[str] = None,
             extra_build_tool_args: List[str] = [],
-            should_install: bool = True) -> None:
+            should_install: bool = True,
+            install_targets: List[str] = []) -> None:
         raise NotImplementedError()
 
     def log_prefix(self, dep: 'Dependency') -> str:

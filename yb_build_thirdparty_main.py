@@ -905,7 +905,8 @@ class Builder(BuilderInterface):
             use_ninja_if_available: bool = False,
             src_subdir_name: Optional[str] = None,
             extra_build_tool_args: List[str] = [],
-            should_install: bool = True) -> None:
+            should_install: bool = True,
+            install_targets: List[str] = []) -> None:
         build_tool = 'make'
         if use_ninja_if_available:
             ninja_available = is_ninja_available()
@@ -940,7 +941,7 @@ class Builder(BuilderInterface):
         log_output(log_prefix, build_tool_cmd)
 
         if should_install:
-            log_output(log_prefix, [build_tool, 'install'])
+            log_output(log_prefix, [build_tool] + install_targets)
 
     def build(self, build_type: str) -> None:
         if (build_type != BUILD_TYPE_COMMON and
