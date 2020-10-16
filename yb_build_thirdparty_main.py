@@ -946,7 +946,7 @@ class Builder(BuilderInterface):
             args += extra_args
 
         log("CMake command line (one argument per line):\n%s" %
-            " ".join(["    %s" % line for line in args]))
+            " ".join(["    %s\n" % line for line in args]))
         log_output(log_prefix, args)
 
         build_tool_cmd = [
