@@ -59,8 +59,9 @@ class BoostDependency(Dependency):
                    not lstripped.startswith('project : default-build <toolset>gcc ;'):
                     out.write(line)
             cxx_flags = builder.compiler_flags + builder.cxx_flags
-            if '-nostdinc++' in cxx_flags:
-                cxx_flags.remove('-nostdinc++')
+            # TODO: why did we have to remove the -nostdinc++ flag anyway?
+            if False and '-nostdinc++' in cxx_flags:
+                 cxx_flags.remove('-nostdinc++')
             compiler_type = builder.compiler_type
             compiler_version = ''
             if compiler_type == 'gcc8':
