@@ -1067,6 +1067,11 @@ class Builder(BuilderInterface):
         # fail immediately at that point.
         os.environ['YB_THIRDPARTY_DISALLOW_LIBSTDCXX'] = '1'
 
+    def log_and_set_env_var(self, env_var_name: str, items: List[str]) -> None:
+        value_str = ' '.join(items)
+        log('Setting env var %s to %s', env_var_name, value_str)
+        os.environ[env_var_name] = value_str
+
     def build_dependency(self, dep: Dependency) -> None:
         if not self.should_rebuild_dependency(dep):
             return
@@ -1091,14 +1096,14 @@ class Builder(BuilderInterface):
         dep_additional_c_flags = (dep.get_additional_c_flags(self) +
                                   dep.get_additional_c_cxx_flags(self))
 
-        os.environ["CXXFLAGS"] = ' '.join(
+        self.log_and_set_env_var(
+            'CXXFLAGS',
             self.compiler_flags + self.cxx_flags + dep_additional_cxx_flags)
-        os.environ["CFLAGS"] = ' '.join(
+        self.log_and_set_env_var(
+            'CFLAGS',
             self.compiler_flags + self.c_flags + dep_additional_c_flags)
-        os.environ["LDFLAGS"] = ' '.join(
-            self.ld_flags)
-        os.environ["LIBS"] = ' '.join(
-            self.libs)
+        self.log_and_set_env_var('LDFLAGS', self.ld_flags)
+        self.log_and_set_env_var('LIBS', self.libs)
 
         with PushDir(self.create_build_dir_and_prepare(dep)):
             dep.build(self)
