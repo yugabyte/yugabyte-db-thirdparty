@@ -41,7 +41,7 @@ class LibCxx10Dependency(Dependency):
             flag for flag in ld_flags
             if not flag.startswith('-L')
         ]
-        static_linker_flags_str = ' '.join(static_linker_flags_str)
+        static_linker_flags_str = ' '.join(static_linker_flags)
 
         cxx_flags = [
             flag for flag in builder.cxx_flags
