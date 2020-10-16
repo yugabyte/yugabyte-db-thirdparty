@@ -193,13 +193,17 @@ class Builder(BuilderInterface):
         c_compiler = self.get_c_compiler()
         cxx_compiler = self.get_cxx_compiler()
 
-        os.environ['YB_THIRDPARTY_REAL_C_COMPILER'] = c_compiler
-        os.environ['YB_THIRDPARTY_REAL_CXX_COMPILER'] = cxx_compiler
-        os.environ['YB_THIRDPARTY_USE_CCACHE'] = '1' if self.args.use_ccache else '0'
+        if self.args.use_compiler_wrapper:
+            os.environ['YB_THIRDPARTY_REAL_C_COMPILER'] = c_compiler
+            os.environ['YB_THIRDPARTY_REAL_CXX_COMPILER'] = cxx_compiler
+            os.environ['YB_THIRDPARTY_USE_CCACHE'] = '1' if self.args.use_ccache else '0'
 
-        python_scripts_dir = os.path.join(YB_THIRDPARTY_DIR, 'python', 'yugabyte_db_thirdparty')
-        os.environ['CC'] = os.path.join(python_scripts_dir, 'compiler_wrapper_cc.py')
-        os.environ['CXX'] = os.path.join(python_scripts_dir, 'compiler_wrapper_cxx.py')
+            python_scripts_dir = os.path.join(YB_THIRDPARTY_DIR, 'python', 'yugabyte_db_thirdparty')
+            os.environ['CC'] = os.path.join(python_scripts_dir, 'compiler_wrapper_cc.py')
+            os.environ['CXX'] = os.path.join(python_scripts_dir, 'compiler_wrapper_cxx.py')
+        else:
+            os.environ['CC'] = c_compiler
+            os.environ['CXX'] = cxx_compiler
 
     def parse_args(self) -> None:
         os.environ['YB_IS_THIRDPARTY_BUILD'] = '1'
@@ -261,6 +265,12 @@ class Builder(BuilderInterface):
             '--use-ccache',
             action='store_true',
             help='Use ccache to speed up compilation')
+
+        parser.add_argument(
+            '--use-compiler-wrapper',
+            action='store_true',
+            help='Use a compiler wrapper script. Allows additional validation but '
+                 'makes the build slower.')
 
         parser.add_argument(
             'dependencies',
@@ -337,18 +347,21 @@ class Builder(BuilderInterface):
             ]
 
             if not self.use_only_gcc():
-                if self.using_linuxbrew():
+                if not self.use_only_clang():
                     self.dependencies.append(get_build_def_module('llvm').LLVMDependency())
-
                 self.dependencies.append(get_build_def_module('libcxx').LibCXXDependency())
 
-            if not self.use_only_clang():
+            if self.use_only_clang():
+                self.dependencies.extend([
+                    get_build_def_module('llvm_libunwind').LlvmLibUnwindDependency(),
+                    get_build_def_module('libcxx10').LibCxx10Dependency()
+                ])
+            else:
                 self.dependencies.append(get_build_def_module('libunwind').LibUnwindDependency())
-            if is_linux() and self.use_only_clang():
-                self.dependencies.append(
-                    get_build_def_module('llvm_libunwind').LlvmLibUnwindDependency())
 
             self.dependencies.append(get_build_def_module('libbacktrace').LibBacktraceDependency())
+        self.dependencies.append(
+
 
         self.dependencies += [
             get_build_def_module('protobuf').ProtobufDependency(),
