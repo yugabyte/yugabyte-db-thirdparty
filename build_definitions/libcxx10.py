@@ -52,7 +52,8 @@ class LibCxx10Dependency(Dependency):
             '-DLLVM_ENABLE_LIBCXX=ON',
         ]
         if builder.build_type == BUILD_TYPE_ASAN:
-            args.append("-DLLVM_USE_SANITIZER=Address;Undefined")
+            args.append("-DLLVM_USE_SANITIZER=Address")
+            # TODO: add UBSAN.
         elif builder.build_type == BUILD_TYPE_TSAN:
             args.append("-DLLVM_USE_SANITIZER=Thread")
 
