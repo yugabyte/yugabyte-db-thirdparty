@@ -195,6 +195,7 @@ class Builder(BuilderInterface):
 
         os.environ['YB_THIRDPARTY_REAL_C_COMPILER'] = c_compiler
         os.environ['YB_THIRDPARTY_REAL_CXX_COMPILER'] = cxx_compiler
+        os.environ['YB_THIRDPARTY_USE_CCACHE'] = '1' if self.args.use_ccache else '0'
 
         python_scripts_dir = os.path.join(YB_THIRDPARTY_DIR, 'python', 'yugabyte_db_thirdparty')
         os.environ['CC'] = os.path.join(python_scripts_dir, 'compiler_wrapper_cc.py')
@@ -255,10 +256,17 @@ class Builder(BuilderInterface):
                                  'Make/Ninja child processes. This can also be specified using the '
                                  'YB_MAKE_PARALLELISM environment variable.',
                             type=int)
+
+        parser.add_argument(
+            '--use-ccache',
+            action='store_true',
+            help='Use ccache to speed up compilation')
+
         parser.add_argument(
             'dependencies',
             nargs=argparse.REMAINDER,
             help='Dependencies to build.')
+
         self.args = parser.parse_args()
 
         if self.args.dependencies and self.args.skip:
@@ -398,7 +406,7 @@ class Builder(BuilderInterface):
         if is_linux():
             self.build(BUILD_TYPE_UNINSTRUMENTED)
         if not self.use_only_gcc():
-            if self.using_linuxbrew():
+            if self.using_linuxbrew() or is_mac():
                 self.build(BUILD_TYPE_CLANG_UNINSTRUMENTED)
             if is_linux() and not self.args.skip_sanitizers:
                 self.build(BUILD_TYPE_ASAN)
@@ -1033,6 +1041,10 @@ class Builder(BuilderInterface):
         # TODO mbautin: only specify these flags when building the Cassandra C++ driver.
         self.cxx_flags.insert(0, '-Wno-error=unused-command-line-argument')
         self.cxx_flags.insert(0, '-Wno-error=deprecated-declarations')
+
+        # After linking every library or executable, we will check if it depends on libstdc++ and
+        # fail immediately at that point.
+        os.environ['YB_THIRDPARTY_DISALLOW_LIBSTDCXX'] = '1'
 
     def build_dependency(self, dep: Dependency) -> None:
         if not self.should_rebuild_dependency(dep):
