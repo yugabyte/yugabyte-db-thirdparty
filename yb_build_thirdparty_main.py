@@ -910,7 +910,7 @@ class Builder(BuilderInterface):
             src_subdir_name: Optional[str] = None,
             extra_build_tool_args: List[str] = [],
             should_install: bool = True,
-            install_targets: List[str] = []) -> None:
+            install_targets: List[str] = ['install']) -> None:
         build_tool = 'make'
         if use_ninja_if_available:
             ninja_available = is_ninja_available()

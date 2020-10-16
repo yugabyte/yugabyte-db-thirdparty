@@ -31,18 +31,6 @@ class LibCxx10Dependency(Dependency):
     def build(self, builder: BuilderInterface) -> None:
         llvm_src_path = builder.source_path(self)
 
-        ld_flags = [
-            flag for flag in builder.ld_flags
-            if flag not in ['-lc++', '-lc++abi']
-        ]
-        ld_flags_str = ' '.join(ld_flags)
-
-        # cxx_flags = [
-        #     flag for flag in builder.cxx_flags_for_libcxx
-        #     if flag not in
-        # ]
-        # cxx_flags_str = ' '.join(cxx_flags)
-
         prefix = os.path.join(builder.prefix, 'libcxx10')
 
         args = [
