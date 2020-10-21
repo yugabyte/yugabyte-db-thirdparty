@@ -8,14 +8,6 @@ jobs:
       extra_build_args:
         type: string
 
-      # To avoid repeating Docker images for each operating system, we specify them once here.
-      docker_image_ubuntu:
-        type: string
-        default: yugabyteci/yb_build_infra_ubuntu1804:v2020-10-13T22_08_51
-      docker_image_centos:
-        type: string
-        default: yugabyteci/yb_build_infra_centos7:v2020-10-17T18_09_58
-
     # Need docker run with SYS_PTRACE for address sanitizer to work
     machine:
       enabled: true
@@ -51,15 +43,15 @@ workflows:
     jobs:
       - build:
           name: build-centos-linuxbrew
-          docker_image: << parameters.docker_image_centos >>
+          docker_image: yugabyteci/yb_build_infra_centos7:v2020-10-17T18_09_58
       - build:
           name: build-centos-devtoolset-8
-          docker_image: << parameters.docker_image_centos >>
+          docker_image: yugabyteci/yb_build_infra_centos7:v2020-10-17T18_09_58
           build_thirdparty_args: "--devtoolset=8"
       - build:
           name: build-ubuntu
-          docker_image: << parameters.docker_image_ubuntu >>
+          docker_image: yugabyteci/yb_build_infra_ubuntu1804:v2020-10-13T22_08_51
       - build:
           name: build-ubuntu-clang10
-          docker_image: << parameters.docker_image_ubuntu >>
+          docker_image: yugabyteci/yb_build_infra_ubuntu1804:v2020-10-13T22_08_51
           build_thirdparty_args: "--single-compiler-type=clang --compiler-suffix=-10"
