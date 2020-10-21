@@ -59,4 +59,7 @@ workflows:
           name: ubuntu-clang10
           archive_name_suffix: clang10
           docker_image: yugabyteci/yb_build_infra_ubuntu1804:v2020-10-13T22_08_51
-          build_thirdparty_args: "--single-compiler-type=clang --compiler-suffix=-10"
+          build_thirdparty_args: >-
+            --single-compiler-type=clang
+            --compiler-prefix=/usr
+            --compiler-suffix=-10
