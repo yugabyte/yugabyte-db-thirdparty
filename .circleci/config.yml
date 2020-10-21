@@ -33,7 +33,7 @@ jobs:
               "--mount=type=bind,src=$checkout_dir,dst=/opt/yb-build/thirdparty/checkout" \
               << parameters.docker_image >> \
               bash -c "
-                set -euxo pipefail
+                set -euo pipefail
                 cd /opt/yb-build/thirdparty/checkout
                 export YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX="<< parameters.archive_name_suffix >>"
                 export YB_BUILD_THIRDPARTY_ARGS="<< parameters.build_thirdparty_args >>"
