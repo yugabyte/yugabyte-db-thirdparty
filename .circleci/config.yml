@@ -35,8 +35,8 @@ jobs:
               bash -c "
                 set -euo pipefail
                 cd /opt/yb-build/thirdparty/checkout
-                export YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX="<< parameters.archive_name_suffix >>"
-                export YB_BUILD_THIRDPARTY_ARGS="<< parameters.build_thirdparty_args >>"
+                export YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX='<< parameters.archive_name_suffix >>'
+                export YB_BUILD_THIRDPARTY_ARGS='<< parameters.build_thirdparty_args >>'
                 ./build_and_release.sh
               "
 
