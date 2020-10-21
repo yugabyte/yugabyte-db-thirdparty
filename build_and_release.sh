@@ -25,8 +25,8 @@ log "Current user: $USER"
 export PATH=/usr/local/bin:$PATH
 log "PATH: $PATH"
 
-YB_THIRDPARTY_BUILD_NAME=${YB_THIRDPARTY_BUILD_NAME:-}
-log "YB_THIRDPARTY_BUILD_NAME: ${YB_THIRDPARTY_BUILD_NAME:-undefined}"
+YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX=${YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX:-}
+log "YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX: ${YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX:-undefined}"
 
 YB_BUILD_THIRDPARTY_ARGS=${YB_BUILD_THIRDPARTY_ARGS:-}
 log "YB_BUILD_THIRDPARTY_ARGS: ${YB_BUILD_THIRDPARTY_ARGS:-undefined}"
@@ -35,8 +35,8 @@ if [[ -n ${YB_LINUXBREW_DIR:-} ]]; then
   if "$is_mac"; then
     log "Un-setting YB_LINUXBREW_DIR on macOS"
     unset YB_LINUXBREW_DIR
-  elif [[ $YB_THIRDPARTY_BUILD_NAME != *linuxbrew* ]]; then
-    log "Un-setting YB_LINUXBREW_DIR for build name $YB_THIRDPARTY_BUILD_NAME"
+  elif [[ $YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX != *linuxbrew* ]]; then
+    log "Un-setting YB_LINUXBREW_DIR for build name $YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX"
     unset YB_LINUXBREW_DIR
   fi
 fi
@@ -97,8 +97,8 @@ git_sha1=$( git rev-parse HEAD )
 tag=v$( date +%Y%m%d%H%M%S )-${git_sha1:0:10}
 
 archive_dir_name=yugabyte-db-thirdparty-$tag-$os_name
-if [[ ${YB_THIRDPARTY_BUILD_NAME:-} == build-* ]]; then
-  archive_dir_name+=${YB_THIRDPARTY_BUILD_NAME#build}
+if [[ -n $YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX]]; then
+  archive_dir_name+="-$YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX"
 fi
 build_dir_parent=/opt/yb-build/thirdparty
 repo_dir=$build_dir_parent/$archive_dir_name
@@ -119,7 +119,7 @@ fi
   git remote set-url origin "$origin_url"
 )
 
-if "$is_centos" && [[ $YB_THIRDPARTY_BUILD_VARIANT == *linuxbrew* ]]; then
+if "$is_centos" && [[ $YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX == *linuxbrew* ]]; then
   # Grab a recent URL from https://github.com/YugaByte/brew-build/releases
   brew_url=$(<linuxbrew_url.txt)
   if [[ $brew_url != https://*.tar.gz ]]; then
