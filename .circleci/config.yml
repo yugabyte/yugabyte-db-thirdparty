@@ -5,8 +5,9 @@ jobs:
     parameters:
       docker_image:
         type: string
-      extra_build_args:
+      build_thirdparty_args:
         type: string
+        default: ""
 
     # Need docker run with SYS_PTRACE for address sanitizer to work
     machine:
@@ -32,8 +33,6 @@ jobs:
               bash -c "
                 cd /opt/yb-build/thirdparty/checkout
                 export YB_THIRDPARTY_BUILD_NAME=<< parameters.name >>
-                export YB_THIRDPARTY_SINGLE_COMPILER_TYPE=<< parameters.single_compiler_type >>
-                export YB_THIRDPARTY_COMPILER_SUFFIX=<< parameters.compiler_suffix >>
                 export YB_BUILD_THIRDPARTY_ARGS=<< parameters.build_thirdparty_args >>
                 ./build_and_release.sh
               "
