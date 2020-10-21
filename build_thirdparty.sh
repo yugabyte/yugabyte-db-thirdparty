@@ -36,8 +36,5 @@ echo "YB_CUSTOM_HOMEBREW_DIR=${YB_CUSTOM_HOMEBREW_DIR:-undefined}"
 
 set -x
 
-# YB_BUILD_THIRDPARTY_EXTRA_ARGS is an environment variable that could be set in the cloud-based
-# CI provider.
-
 # shellcheck disable=SC2086
-python3 "$YB_THIRDPARTY_DIR/yb_build_thirdparty_main.py" "$@" ${YB_BUILD_THIRDPARTY_EXTRA_ARGS:-}
+python3 "$YB_THIRDPARTY_DIR/yb_build_thirdparty_main.py" "$@"

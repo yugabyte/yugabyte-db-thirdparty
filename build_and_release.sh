@@ -25,16 +25,12 @@ log "Current user: $USER"
 export PATH=/usr/local/bin:$PATH
 log "PATH: $PATH"
 
-
 YB_THIRDPARTY_BUILD_NAME=${YB_THIRDPARTY_BUILD_NAME:-}
-YB_THIRDPARTY_SINGLE_COMPILER_TYPE=${YB_THIRDPARTY_SINGLE_COMPILER_TYPE:-}
-YB_THIRDPARTY_COMPILER_SUFFIX=${YB_THIRDPARTY_COMPILER_SUFFIX:-}
-YB_THIRDPARTY_DEVTOOLSET=${YB_THIRDPARTY_DEVTOOLSET:-}
-
 log "YB_THIRDPARTY_BUILD_NAME: ${YB_THIRDPARTY_BUILD_NAME:-undefined}"
-log "YB_THIRDPARTY_SINGLE_COMPILER_TYPE: ${YB_THIRDPARTY_SINGLE_COMPILER_TYPE:-undefined}"
-log "YB_THIRDPARTY_COMPILER_SUFFIX: ${YB_THIRDPARTY_COMPILER_SUFFIX:-undefined}"
-log "YB_THIRDPARTY_DEVTOOLSET: ${YB_THIRDPARTY_DEVTOOLSET:-undefined}"
+
+YB_BUILD_THIRDPARTY_ARGS=${YB_BUILD_THIRDPARTY_ARGS:-}
+log "YB_BUILD_THIRDPARTY_ARGS: ${YB_BUILD_THIRDPARTY_ARGS:-undefined}"
+
 if [[ -n ${YB_LINUXBREW_DIR:-} ]]; then
   if "$is_mac"; then
     log "Un-setting YB_LINUXBREW_DIR on macOS"
@@ -189,15 +185,14 @@ echo
 
 cd "$repo_dir"
 
-build_thirdparty_cmd=( ./build_thirdparty.sh )
-if [[ -n $YB_THIRDPARTY_SINGLE_COMPILER_TYPE ]]; then
-  build_thirdparty_cmd+=( "--single-compiler-type=$YB_THIRDPARTY_SINGLE_COMPILER_TYPE" )
+# We intentionally don't escape variables here so they get split into multiple arguments.
+build_thirdparty_cmd_str=./build_thirdparty.sh
+if [[ -n ${YB_BUILD_THIRDPARTY_ARGS:-} ]]; then
+  build_thirdparty_cmd_str+=" $YB_BUILD_THIRDPARTY_ARGS"
 fi
-if [[ -n $YB_THIRDPARTY_COMPILER_SUFFIX ]]; then
-  build_thirdparty_cmd+=( "--compiler-suffix=$YB_THIRDPARTY_COMPILER_SUFFIX" )
-fi
-if [[ -n $YB_THIRDPARTY_COMPILER_DEVTOOLSET ]]; then
-  build_thirdparty_cmd+=( "--devtoolset=$YB_THIRDPARTY_COMPILER_DEVTOOLSET" )
+
+if [[ -n ${YB_BUILD_THIRDPARTY_EXTRA_ARGS:-} ]]; then
+  build_thirdparty_cmd_str+=" $YB_BUILD_THIRDPARTY_EXTRA_ARGS"
 fi
 
 (
@@ -205,7 +200,7 @@ fi
     export PATH=$YB_LINUXBREW_DIR/bin:$PATH
   fi
   set -x
-  time "${build_thirdparty_cmd[@]}"
+  time $build_thirdparty_cmd_str
 )
 
 log "Build finished. See timing information above."

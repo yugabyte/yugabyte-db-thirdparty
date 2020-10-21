@@ -5,11 +5,7 @@ jobs:
     parameters:
       docker_image:
         type: string
-      single_compiler_type:
-        type: string
-      compiler_suffix:
-        type: string
-      devtoolset:
+      extra_build_args:
         type: string
       docker_image_default_ubuntu:
         type: string
@@ -44,7 +40,7 @@ jobs:
                 export YB_THIRDPARTY_BUILD_NAME=<< parameters.name >>
                 export YB_THIRDPARTY_SINGLE_COMPILER_TYPE=<< parameters.single_compiler_type >>
                 export YB_THIRDPARTY_COMPILER_SUFFIX=<< parameters.compiler_suffix >>
-                export YB_THIRDPARTY_DEVTOOLSET=< parameters.devtoolset >>
+                export YB_BUILD_THIRDPARTY_ARGS=<< parameters.build_thirdparty_args >>
                 ./build_and_release.sh
               "
 
@@ -57,12 +53,11 @@ workflows:
       - build:
           name: build-centos-devtoolset-8
           docker_image: << parameters.docker_image_default_centos >>
-          devtoolset
+          build_thirdparty_args: "--devtoolset=8"
       - build:
           name: build-ubuntu
           docker_image: << parameters.docker_image_default_ubuntu >>
       - build:
           name: build-ubuntu-clang10
           docker_image: << parameters.docker_image_default_ubuntu >>
-          single_compiler_type: clang
-          compiler_suffix: "-10"
+          build_thirdparty_args: "--single-compiler-type=clang --compiler-suffix=-10"
