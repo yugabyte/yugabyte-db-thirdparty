@@ -9,9 +9,7 @@ set -euo pipefail
 # OS detection
 # -------------------------------------------------------------------------------------------------
 
-if "$is_mac"; then
-  unset YB_LINUXBREW_DIR
-else
+if ! "$is_mac"; then
   cat /proc/cpuinfo
 fi
 
@@ -27,9 +25,26 @@ log "Current user: $USER"
 export PATH=/usr/local/bin:$PATH
 log "PATH: $PATH"
 
-# Build type for the entire third-party archive.
-YB_THIRDPARTY_BUILD_TYPE=${YB_THIRDPARTY_BUILD_TYPE:-default}
-echo "YB_THIRDPARTY_BUILD_TYPE: $YB_THIRDPARTY_BUILD_TYPE"
+
+YB_THIRDPARTY_BUILD_NAME=${YB_THIRDPARTY_BUILD_NAME:-}
+YB_THIRDPARTY_SINGLE_COMPILER_TYPE=${YB_THIRDPARTY_SINGLE_COMPILER_TYPE:-}
+YB_THIRDPARTY_COMPILER_SUFFIX=${YB_THIRDPARTY_COMPILER_SUFFIX:-}
+YB_THIRDPARTY_DEVTOOLSET=${YB_THIRDPARTY_DEVTOOLSET:-}
+
+log "YB_THIRDPARTY_BUILD_NAME: ${YB_THIRDPARTY_BUILD_NAME:-undefined}"
+log "YB_THIRDPARTY_SINGLE_COMPILER_TYPE: ${YB_THIRDPARTY_SINGLE_COMPILER_TYPE:-undefined}"
+log "YB_THIRDPARTY_COMPILER_SUFFIX: ${YB_THIRDPARTY_COMPILER_SUFFIX:-undefined}"
+log "YB_THIRDPARTY_DEVTOOLSET: ${YB_THIRDPARTY_DEVTOOLSET:-undefined}"
+if [[ -n ${YB_LINUXBREW_DIR:-} ]]; then
+  if "$is_mac"; then
+    log "Un-setting YB_LINUXBREW_DIR on macOS"
+    unset YB_LINUXBREW_DIR
+  elif [[ $YB_THIRDPARTY_BUILD_NAME != *linuxbrew* ]]; then
+    log "Un-setting YB_LINUXBREW_DIR for build name $YB_THIRDPARTY_BUILD_NAME"
+    unset YB_LINUXBREW_DIR
+  fi
+fi
+log "YB_LINUXBREW_DIR=${YB_LINUXBREW_DIR:-undefined}"
 
 # -------------------------------------------------------------------------------------------------
 # Installed tools
@@ -86,8 +101,8 @@ git_sha1=$( git rev-parse HEAD )
 tag=v$( date +%Y%m%d%H%M%S )-${git_sha1:0:10}
 
 archive_dir_name=yugabyte-db-thirdparty-$tag-$os_name
-if [[ $YB_THIRDPARTY_BUILD_TYPE != "default" ]]; then
-  archive_dir_name+="-$YB_THIRDPARTY_BUILD_TYPE"
+if [[ ${YB_THIRDPARTY_BUILD_NAME:-} == build-* ]]; then
+  archive_dir_name+=${YB_THIRDPARTY_BUILD_NAME#build}
 fi
 build_dir_parent=/opt/yb-build/thirdparty
 repo_dir=$build_dir_parent/$archive_dir_name
@@ -108,7 +123,7 @@ fi
   git remote set-url origin "$origin_url"
 )
 
-if "$is_centos" && [[ $YB_THIRDPARTY_BUILD_TYPE != devtoolset-* ]]; then
+if "$is_centos" && [[ $YB_THIRDPARTY_BUILD_VARIANT == *linuxbrew* ]]; then
   # Grab a recent URL from https://github.com/YugaByte/brew-build/releases
   brew_url=$(<linuxbrew_url.txt)
   if [[ $brew_url != https://*.tar.gz ]]; then
@@ -175,13 +190,19 @@ echo
 cd "$repo_dir"
 
 build_thirdparty_cmd=( ./build_thirdparty.sh )
+if [[ -n $YB_THIRDPARTY_SINGLE_COMPILER_TYPE ]]; then
+  build_thirdparty_cmd+=( "--single-compiler-type=$YB_THIRDPARTY_SINGLE_COMPILER_TYPE" )
+fi
+if [[ -n $YB_THIRDPARTY_COMPILER_SUFFIX ]]; then
+  build_thirdparty_cmd+=( "--compiler-suffix=$YB_THIRDPARTY_COMPILER_SUFFIX" )
+fi
+if [[ -n $YB_THIRDPARTY_COMPILER_DEVTOOLSET ]]; then
+  build_thirdparty_cmd+=( "--devtoolset=$YB_THIRDPARTY_COMPILER_DEVTOOLSET" )
+fi
 
 (
   if [[ -n ${YB_LINUXBREW_DIR:-} ]]; then
     export PATH=$YB_LINUXBREW_DIR/bin:$PATH
-  fi
-  if [[ $YB_THIRDPARTY_BUILD_TYPE == devtoolset-* ]]; then
-    build_thirdparty_cmd+=( "--devtoolset=${YB_THIRDPARTY_BUILD_TYPE#devtoolset-}" )
   fi
   set -x
   time "${build_thirdparty_cmd[@]}"

@@ -821,7 +821,7 @@ class Builder(BuilderInterface):
                 remove_path(lib64_dir)
             os.symlink('lib', lib64_dir)
 
-    def init_compiler_independent_flags(self) -> None:
+    def init_compiler_independent_flags(self, dep: Dependency) -> None:
         """
         Initialize compiler and linker flags for a particular build type. We try to limit this
         function to flags that will work for most compilers we are using, which include various
@@ -858,6 +858,7 @@ class Builder(BuilderInterface):
             self.compiler_flags.append("-mmacosx-version-min=10.14")
         else:
             fatal("Unsupported platform: {}".format(platform.system()))
+
         # The C++ standard must match CMAKE_CXX_STANDARD in the top-level CMakeLists.txt file in
         # the YugabyteDB source tree.
         self.cxx_flags.append('-std=c++14')
@@ -1012,7 +1013,7 @@ class Builder(BuilderInterface):
         """
         Initializes compiler and linker flags.
         """
-        self.init_compiler_independent_flags()
+        self.init_compiler_independent_flags(dep)
 
         if is_mac() or not self.building_with_clang():
             # No further special setup is required for Clang on macOS, or for GCC on Linux.

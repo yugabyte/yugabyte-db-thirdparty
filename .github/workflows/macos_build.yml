@@ -31,10 +31,11 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Build YugabyteDB third-party dependencies
-        env: 
+        env:
           GITHUB_TOKEN: ${{ secrets.CUSTOM_GITHUB_TOKEN }}
         run: |
           brew install autoconf automake pkg-config
           sudo mkdir -p /opt/yb-build/{thirdparty,brew,tmp}
           sudo chmod 777 /opt/yb-build/{thirdparty,brew,tmp}
+          export YB_THIRDPARTY_BUILD_VARIANT=clang
           ./build_and_release.sh
