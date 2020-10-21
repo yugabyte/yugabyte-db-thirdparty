@@ -3,6 +3,8 @@ version: 2.1
 jobs:
   build:
     parameters:
+      name:
+        type: string
       docker_image:
         type: string
       build_thirdparty_args:
