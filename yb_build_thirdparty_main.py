@@ -1032,10 +1032,14 @@ class Builder(BuilderInterface):
             self.compiler_flags += [
                 '-fsanitize=address',
                 '-fsanitize=undefined',
-                '-DADDRESS_SANITIZER'
             ]
+            if not is_libcxx:
+                self.compiler_flags.append('-DADDRESS_SANITIZER')
+
         if self.build_type == BUILD_TYPE_TSAN:
-            self.compiler_flags += ['-fsanitize=thread', '-DTHREAD_SANITIZER']
+            self.compiler_flags += ['-fsanitize=thread']
+            if not is_libcxx:
+                self.compiler_flags.append('-DTHREAD_SANITIZER')
 
         if self.args.single_compiler_type == 'clang':
             self.init_clang10_or_later_flags(dep)
