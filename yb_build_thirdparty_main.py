@@ -706,8 +706,13 @@ class Builder(BuilderInterface):
             expected_checksum = self.filename2checksum[path]
             other_paths_with_same_checksum = [
                 other_path for other_path in self.filename2checksum
-                if self.filename2checksum[other_path] == expected_checksum
+                if self.filename2checksum[other_path] == expected_checksum and other_path != path
             ]
+            if other_paths_with_same_checksum:
+                logging.info(
+                    "Considering other downloads with the same checksum: %s",
+                    other_paths_with_same_checksum)
+
             for other_path in other_paths_with_same_checksum:
                 if os.path.exists(other_path) and not os.path.islink(other_path):
                     log("File %s with the same expected checksum as %s (%s) already exists, "

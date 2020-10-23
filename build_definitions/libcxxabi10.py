@@ -27,7 +27,7 @@ class LibCxxABI10Dependency(Dependency):
             url_pattern='https://github.com/llvm/llvm-project/archive/llvmorg-{}.tar.gz',
             build_group=BUILD_GROUP_INSTRUMENTED)
 
-    def get_additional_cxx_flags(self) -> List[str]:
+    def get_additional_cxx_flags(self, builder: BuilderInterface) -> List[str]:
         return ['-stdlib=libc++']
 
     def build(self, builder: BuilderInterface) -> None:
