@@ -376,7 +376,7 @@ class Builder(BuilderInterface):
             if self.use_only_clang():
                 self.dependencies.extend([
                     get_build_def_module('llvm_libunwind').LlvmLibUnwindDependency(),
-                    get_build_def_module('libcxx10').LibCxx10Dependency()
+                    get_build_def_module('libcxx10').LibCxx10Dependency(),
                     get_build_def_module('libcxxabi10').LibCxxABI10Dependency()
                 ])
             else:
@@ -702,6 +702,22 @@ class Builder(BuilderInterface):
                 return
             log("File %s already exists but has wrong checksum, removing", path)
             remove_path(path)
+        elif path in self.filename2checksum:
+            expected_checksum = self.filename2checksum[path]
+            other_paths_with_same_checksum = [
+                other_path for other_path in self.filename2checksum
+                if self.filename2checksum[other_path] == expected_checksum
+            ]
+            for other_path in other_paths_with_same_checksum:
+                if os.path.exists(other_path) and not os.path.islink(other_path):
+                    log("File %s with the same expected checksum as %s (%s) already exists, "
+                        "verifying its checksum",
+                        other_path, path, expected_checksum)
+                    if self.verify_checksum(other_path, expected_checksum):
+                        log("Checksum is correct for %s, creating symlink %s -> %s"),
+                            other_path, path, other_path)
+                        os.symlink(other_path, path)
+                        return
 
         log("Fetching %s", filename)
         sleep_time_sec = INITIAL_DOWNLOAD_RETRY_SLEEP_TIME_SEC
