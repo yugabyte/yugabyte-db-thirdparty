@@ -160,6 +160,11 @@ def sanitize_flags_line_for_log(line: str) -> str:
     return line.replace(PLACEHOLDER_RPATH, PLACEHOLDER_RPATH_FOR_LOG)
 
 
+def assert_list_contains(items: List[str], required_item: str):
+    if required_item not in items:
+        raise ValueError("%s not found in %s", required_item, items)
+
+
 class Builder(BuilderInterface):
     args: argparse.Namespace
     cc: Optional[str]
@@ -976,10 +981,10 @@ class Builder(BuilderInterface):
         for command_item in compile_commands:
             command_args = command_item['command'].split()
             if self.build_type == BUILD_TYPE_ASAN:
-                assert '-fsanitize=address' in command_args
-                assert '-fsanitize=undefined' in command_args
+                assert_list_contains(command_args, '-fsanitize=address')
+                assert_list_contains(command_args, '-fsanitize=undefined')
             if self.build_type == BUILD_TYPE_TSAN:
-                assert '-fsanitize=thread' in command_args
+                assert_list_contains(command_args, '-fsanitize=thread')
 
     def build(self, build_type: str) -> None:
         if (build_type != BUILD_TYPE_COMMON and
@@ -1040,21 +1045,18 @@ class Builder(BuilderInterface):
 
         is_libcxx = dep.name.startswith('libcxx')
 
-        if not is_libcxx:
-            # For libc++ that is part of LLVM 10.0.1, specifying -fsanitize flags globally leads
-            # to a compilation failure. We specify LLVM_USE_SANITIZER in the build instead.
-            if self.build_type == BUILD_TYPE_ASAN:
-                self.compiler_flags += [
-                    '-fsanitize=address',
-                    '-fsanitize=undefined',
-                    '-DADDRESS_SANITIZER'
-                ]
+        if self.build_type == BUILD_TYPE_ASAN:
+            self.compiler_flags += [
+                '-fsanitize=address',
+                '-fsanitize=undefined',
+                '-DADDRESS_SANITIZER'
+            ]
 
-            if self.build_type == BUILD_TYPE_TSAN:
-                self.compiler_flags += [
-                    '-fsanitize=thread',
-                    '-DTHREAD_SANITIZER'
-                ]
+        if self.build_type == BUILD_TYPE_TSAN:
+            self.compiler_flags += [
+                '-fsanitize=thread',
+                '-DTHREAD_SANITIZER'
+            ]
 
         if self.args.single_compiler_type == 'clang':
             self.init_clang10_or_later_flags(dep)
@@ -1170,9 +1172,7 @@ class Builder(BuilderInterface):
         self.log_and_set_env_var('CFLAGS', self.get_effective_c_flags(dep))
         self.log_and_set_env_var('LDFLAGS', self.get_effective_ld_flags(dep))
         self.log_and_set_env_var('LIBS', self.libs)
-        self.log_and_set_env_var(
-            'CPPFLAGS',
-            [flag for flag in self.compiler_flags if flag.startswith('-I')])
+        self.log_and_set_env_var('CPPFLAGS', self.get_effective_preprocessor_flags())
         os.environ["CPPFLAGS"] = " ".join(self.preprocessor_flags)
 
         with PushDir(self.create_build_dir_and_prepare(dep)):
