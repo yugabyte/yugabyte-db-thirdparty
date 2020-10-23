@@ -1028,18 +1028,21 @@ class Builder(BuilderInterface):
 
         is_libcxx = dep.name.startswith('libcxx')
 
-        if self.build_type == BUILD_TYPE_ASAN:
-            self.compiler_flags += [
-                '-fsanitize=address',
-                '-fsanitize=undefined',
-            ]
-            if not is_libcxx:
-                self.compiler_flags.append('-DADDRESS_SANITIZER')
+        if not is_libcxx:
+            # For libc++ that is part of LLVM 10.0.1, specifying -fsanitize flags globally leads
+            # to a compilation failure. We specify LLVM_USE_SANITIZER in the build instead.
+            if self.build_type == BUILD_TYPE_ASAN:
+                self.compiler_flags += [
+                    '-fsanitize=address',
+                    '-fsanitize=undefined',
+                    '-DADDRESS_SANITIZER'
+                ]
 
-        if self.build_type == BUILD_TYPE_TSAN:
-            self.compiler_flags += ['-fsanitize=thread']
-            if not is_libcxx:
-                self.compiler_flags.append('-DTHREAD_SANITIZER')
+            if self.build_type == BUILD_TYPE_TSAN:
+                self.compiler_flags += [
+                    '-fsanitize=thread',
+                    '-DTHREAD_SANITIZER'
+                ]
 
         if self.args.single_compiler_type == 'clang':
             self.init_clang10_or_later_flags(dep)
@@ -1115,12 +1118,19 @@ class Builder(BuilderInterface):
     def get_effective_ld_flags(self, dep: Dependency) -> List[str]:
         return list(self.ld_flags)
 
+    def get_effective_preprocessor_flags(self, dep: Dependency) -> List[str]:
+        return list(self.preprocessor_flags)
+
     @overrides
     def get_common_cmake_flag_args(self, dep: Dependency) -> List[str]:
+        c_flags_str = ' '.join(self.get_effective_c_flags(dep))
         cxx_flags_str = ' '.join(self.get_effective_cxx_flags(dep))
+        preprocessor_flags_str = ' '.join(self.get_effective_preprocessor_flags(dep))
         ld_flags_str = ' '.join(self.get_effective_ld_flags(dep))
         return [
+            '-DCMAKE_C_FLAGS={}'.format(c_flags_str),
             '-DCMAKE_CXX_FLAGS={}'.format(cxx_flags_str),
+            '-DCMAKE_CPP_FLAGS={}'.format(preprocessor_flags_str),
             '-DCMAKE_SHARED_LINKER_FLAGS={}'.format(ld_flags_str),
             '-DCMAKE_EXE_LINKER_FLAGS={}'.format(ld_flags_str)
         ]

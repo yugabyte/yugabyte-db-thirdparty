@@ -45,6 +45,7 @@ class LibCxx10Dependency(Dependency):
             '-DLIBCXXABI_USE_LLVM_UNWINDER=ON',
             '-DLIBCXX_USE_COMPILER_RT=ON',
             '-DLLVM_PATH=%s' % llvm_src_path,
+            '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON',
         ] + builder.get_common_cmake_flag_args(self)
         if builder.build_type == BUILD_TYPE_ASAN:
             args.append("-DLLVM_USE_SANITIZER=Address;Undefined")
