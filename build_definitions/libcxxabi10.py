@@ -19,13 +19,16 @@ from yugabyte_db_thirdparty.builder_interface import BuilderInterface
 from build_definitions import *  # noqa
 
 
-class LibCxx10Dependency(Dependency):
+class LibCxxABI10Dependency(Dependency):
     def __init__(self) -> None:
-        super(LibCxx10Dependency, self).__init__(
-            name='libcxx10',
+        super(LibCxxABI10Dependency, self).__init__(
+            name='libcxxabi10',
             version='10.0.1',
             url_pattern='https://github.com/llvm/llvm-project/archive/llvmorg-{}.tar.gz',
             build_group=BUILD_GROUP_INSTRUMENTED)
+
+    def get_additional_cxx_flags(self) -> List[str]:
+        return ['-stdlib=libc++']
 
     def build(self, builder: BuilderInterface) -> None:
         llvm_src_path = builder.source_path(self)
@@ -34,7 +37,6 @@ class LibCxx10Dependency(Dependency):
 
         args = [
             '-DCMAKE_BUILD_TYPE=Release',
-            '-DLLVM_ENABLE_PROJECTS=libcxx;libcxxabi',
             '-DLIBCXXABI_LIBCXX_PATH=%s' % os.path.join(llvm_src_path, 'libcxx'),
             '-DLLVM_TARGETS_TO_BUILD=X86',
             '-DBUILD_SHARED_LIBS=ON',
@@ -50,5 +52,5 @@ class LibCxx10Dependency(Dependency):
         builder.build_with_cmake(
             self,
             extra_args=args,
-            src_subdir_name='libcxx',
+            src_subdir_name='libcxxabi',
             use_ninja_if_available=True)

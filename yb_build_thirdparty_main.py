@@ -377,6 +377,7 @@ class Builder(BuilderInterface):
                 self.dependencies.extend([
                     get_build_def_module('llvm_libunwind').LlvmLibUnwindDependency(),
                     get_build_def_module('libcxx10').LibCxx10Dependency()
+                    get_build_def_module('libcxxabi10').LibCxxABI10Dependency()
                 ])
             else:
                 self.dependencies.append(get_build_def_module('libunwind').LibUnwindDependency())
