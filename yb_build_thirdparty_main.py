@@ -954,6 +954,7 @@ class Builder(BuilderInterface):
         args = ['cmake', src_path]
         if build_tool == 'ninja':
             args += ['-G', 'Ninja']
+        args += builder.get_common_cmake_flag_args(dep)
         if extra_args is not None:
             args += extra_args
 
