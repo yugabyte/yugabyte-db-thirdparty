@@ -51,14 +51,18 @@ class LibCxx10Dependency(Dependency):
         elif builder.build_type == BUILD_TYPE_TSAN:
             args.append("-DLLVM_USE_SANITIZER=Thread")
 
-        builder.build_with_cmake(
-            self,
-            extra_args=args,
-            src_subdir_name='libcxxabi',
-            use_ninja_if_available=True)
+        libcxxabi_build_dir = os.path.join(os.getcwd(), 'libcxxabi')
+        with PushDir(libcxxabi_build_dir):
+            builder.build_with_cmake(
+                self,
+                extra_args=args,
+                src_subdir_name='libcxxabi',
+                use_ninja_if_available=True)
 
-        builder.build_with_cmake(
-            self,
-            extra_args=args,
-            src_subdir_name='libcxx',
-            use_ninja_if_available=True)
+        libcxx_build_dir = os.path.join(os.getcwd(), 'libcxx')
+        with PushDir(libcxx_build_dir):
+            builder.build_with_cmake(
+                self,
+                extra_args=args,
+                src_subdir_name='libcxx',
+                use_ninja_if_available=True)
