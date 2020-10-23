@@ -52,6 +52,7 @@ class LibCxx10Dependency(Dependency):
             args.append("-DLLVM_USE_SANITIZER=Thread")
 
         libcxxabi_build_dir = os.path.join(os.getcwd(), 'libcxxabi')
+        mkdir_if_missing(libcxxabi_build_dir)
         with PushDir(libcxxabi_build_dir):
             builder.build_with_cmake(
                 self,
@@ -60,6 +61,7 @@ class LibCxx10Dependency(Dependency):
                 use_ninja_if_available=True)
 
         libcxx_build_dir = os.path.join(os.getcwd(), 'libcxx')
+        mkdir_if_missing(libcxx_build_dir)
         with PushDir(libcxx_build_dir):
             builder.build_with_cmake(
                 self,
