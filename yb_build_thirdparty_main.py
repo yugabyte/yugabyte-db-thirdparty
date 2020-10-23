@@ -25,6 +25,7 @@ import re
 import subprocess
 import sys
 import time
+import json
 from datetime import datetime
 
 from typing import Set, List, Dict, Optional, Tuple, Union, cast
@@ -969,6 +970,16 @@ class Builder(BuilderInterface):
         if should_install:
             log_output(log_prefix, [build_tool] + install_targets)
 
+        with open('compile_commands.json') as compile_commands_file:
+            compile_commands = json.load(compile_commands_file)
+        for command_item in compile_commands:
+            command_args = command_item['command'].split()
+            if self.build_type == BUILD_TYPE_ASAN:
+                assert '-fsanitize=address' in command_args
+                assert '-fsanitize=undefined' in command_args
+            if self.build_type == BUILD_TYPE_STAN:
+                assert '-fsanitize=thread' in command_args
+
     def build(self, build_type: str) -> None:
         if (build_type != BUILD_TYPE_COMMON and
                 self.args.build_type is not None and
@@ -1132,7 +1143,8 @@ class Builder(BuilderInterface):
             '-DCMAKE_CXX_FLAGS={}'.format(cxx_flags_str),
             '-DCMAKE_CPP_FLAGS={}'.format(preprocessor_flags_str),
             '-DCMAKE_SHARED_LINKER_FLAGS={}'.format(ld_flags_str),
-            '-DCMAKE_EXE_LINKER_FLAGS={}'.format(ld_flags_str)
+            '-DCMAKE_EXE_LINKER_FLAGS={}'.format(ld_flags_str),
+            '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON',
         ]
 
     def build_dependency(self, dep: Dependency) -> None:
