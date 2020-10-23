@@ -47,8 +47,7 @@ class LibCxx10Dependency(Dependency):
             '-DLLVM_PATH=%s' % llvm_src_path,
         ] + builder.get_common_cmake_flag_args(self)
         if builder.build_type == BUILD_TYPE_ASAN:
-            args.append("-DLLVM_USE_SANITIZER=Address")
-            # TODO: add UBSAN.
+            args.append("-DLLVM_USE_SANITIZER=Address;Undefined")
         elif builder.build_type == BUILD_TYPE_TSAN:
             args.append("-DLLVM_USE_SANITIZER=Thread")
 
