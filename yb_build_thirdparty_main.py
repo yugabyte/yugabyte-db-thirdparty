@@ -714,7 +714,7 @@ class Builder(BuilderInterface):
                         "verifying its checksum",
                         other_path, path, expected_checksum)
                     if self.verify_checksum(other_path, expected_checksum):
-                        log("Checksum is correct for %s, creating symlink %s -> %s"),
+                        log("Checksum is correct for %s, creating symlink %s -> %s",
                             other_path, path, other_path)
                         os.symlink(other_path, path)
                         return
