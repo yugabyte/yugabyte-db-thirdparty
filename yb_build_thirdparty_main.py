@@ -978,7 +978,7 @@ class Builder(BuilderInterface):
             if self.build_type == BUILD_TYPE_ASAN:
                 assert '-fsanitize=address' in command_args
                 assert '-fsanitize=undefined' in command_args
-            if self.build_type == BUILD_TYPE_STAN:
+            if self.build_type == BUILD_TYPE_TSAN:
                 assert '-fsanitize=thread' in command_args
 
     def build(self, build_type: str) -> None:
