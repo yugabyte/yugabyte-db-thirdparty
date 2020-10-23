@@ -1028,15 +1028,14 @@ class Builder(BuilderInterface):
 
         is_libcxx = dep.name.startswith('libcxx')
 
-        if not is_libcxx:
-            if self.build_type == BUILD_TYPE_ASAN:
-                self.compiler_flags += [
-                    '-fsanitize=address',
-                    '-fsanitize=undefined',
-                    '-DADDRESS_SANITIZER'
-                ]
-            if self.build_type == BUILD_TYPE_TSAN:
-                self.compiler_flags += ['-fsanitize=thread', '-DTHREAD_SANITIZER']
+        if self.build_type == BUILD_TYPE_ASAN:
+            self.compiler_flags += [
+                '-fsanitize=address',
+                '-fsanitize=undefined',
+                '-DADDRESS_SANITIZER'
+            ]
+        if self.build_type == BUILD_TYPE_TSAN:
+            self.compiler_flags += ['-fsanitize=thread', '-DTHREAD_SANITIZER']
 
         if self.args.single_compiler_type == 'clang':
             self.init_clang10_or_later_flags(dep)
