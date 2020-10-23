@@ -34,9 +34,8 @@ class LibCxx10Dependency(Dependency):
 
         args = [
             '-DCMAKE_BUILD_TYPE=Release',
-            # We have to build libunwind here, otherwise LLVM CMake configuration does not work.
-            # But we don't actually install it.
-            '-DLLVM_ENABLE_PROJECTS=libunwind;libcxx;libcxxabi',
+            '-DLLVM_ENABLE_PROJECTS=libcxx;libcxxabi',
+            '-DLIBCXXABI_LIBCXX_PATH=%s' % os.path.join(llvm_src_path, 'libcxx'),
             '-DLLVM_TARGETS_TO_BUILD=X86',
             '-DBUILD_SHARED_LIBS=ON',
             '-DLLVM_ENABLE_RTTI=ON',
@@ -45,7 +44,7 @@ class LibCxx10Dependency(Dependency):
             '-DLIBCXXABI_USE_COMPILER_RT=ON',
             '-DLIBCXXABI_USE_LLVM_UNWINDER=ON',
             '-DLIBCXX_USE_COMPILER_RT=ON',
-            '-DLLVM_ENABLE_LIBCXX=ON',
+            '-DLLVM_PATH=%s' % llvm_src_path,
         ] + builder.get_common_cmake_flag_args(self)
         if builder.build_type == BUILD_TYPE_ASAN:
             args.append("-DLLVM_USE_SANITIZER=Address")
@@ -56,11 +55,11 @@ class LibCxx10Dependency(Dependency):
         builder.build_with_cmake(
             self,
             extra_args=args,
-            src_subdir_name='llvm',
-            use_ninja_if_available=True,
-            extra_build_tool_args=['cxxabi', 'cxx'],
-            install_targets=['install-cxxabi', 'install-cxx'])
-        # builder.build_with_cmake(
-        #     self,
-        #     extra_args=args,
-        #     src_subdir_name='libcxx')
+            src_subdir_name='libcxxabi',
+            use_ninja_if_available=True)
+
+        builder.build_with_cmake(
+            self,
+            extra_args=args,
+            src_subdir_name='libcxx',
+            use_ninja_if_available=True)
