@@ -113,6 +113,7 @@ class Builder:
             build_definitions.bison.BisonDependency(),
             build_definitions.icu4c.Icu4cDependency(),
             build_definitions.libedit.LibEditDependency(),
+            build_definitions.openldap.OpenLDAPDependency(),
         ]
 
         if is_linux():
@@ -602,6 +603,7 @@ class Builder:
             os.symlink('lib', lib64_dir)
 
     def init_flags(self):
+        self.preprocessor_flags = []
         self.ld_flags = []
         self.compiler_flags = []
         self.c_flags = []
@@ -610,9 +612,10 @@ class Builder:
 
         self.add_linuxbrew_flags()
         # -fPIC is there to always generate position-independent code, even for static libraries.
-        self.compiler_flags += \
-            ['-fno-omit-frame-pointer', '-fPIC', '-O2', '-Wall',
-             '-I{}'.format(os.path.join(self.tp_installed_common_dir, 'include'))]
+        self.preprocessor_flags.append(
+            '-I{}'.format(os.path.join(self.tp_installed_common_dir, 'include')))
+        self.compiler_flags += self.preprocessor_flags
+        self.compiler_flags += ['-fno-omit-frame-pointer', '-fPIC', '-O2', '-Wall']
         self.ld_flags.append('-L{}'.format(os.path.join(self.tp_installed_common_dir, 'lib')))
         if is_linux():
             # On Linux, ensure we set a long enough rpath so we can change it later with chrpath or
@@ -817,6 +820,7 @@ class Builder:
                 self.compiler_flags + self.c_flags + dep_additional_c_flags)
         os.environ["LDFLAGS"] = " ".join(self.ld_flags)
         os.environ["LIBS"] = " ".join(self.libs)
+        os.environ["CPPFLAGS"] = " ".join(self.preprocessor_flags)
 
         with PushDir(self.create_build_dir_and_prepare(dep)):
             dep.build(self)
