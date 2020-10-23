@@ -15,12 +15,12 @@
 import os
 import sys
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
+from yugabyte_db_thirdparty.builder_interface import BuilderInterface
 from build_definitions import *
 
+
 class OpenLDAPDependency(Dependency):
-    def __init__(self):
+    def __init__(self) -> None:
         super(OpenLDAPDependency, self).__init__(
               'openldap',
               '2_4_54',
@@ -28,7 +28,7 @@ class OpenLDAPDependency(Dependency):
               BUILD_GROUP_COMMON)
         self.copy_sources = True
 
-    def build(self, builder):
+    def build(self, builder: BuilderInterface) -> None:
         # build client only
         disabled_features = ('slapd', 'bdb', 'hdb', 'mdb', 'monitor', 'relay', 'syncprov')
 
