@@ -1172,7 +1172,7 @@ class Builder(BuilderInterface):
         self.log_and_set_env_var('CFLAGS', self.get_effective_c_flags(dep))
         self.log_and_set_env_var('LDFLAGS', self.get_effective_ld_flags(dep))
         self.log_and_set_env_var('LIBS', self.libs)
-        self.log_and_set_env_var('CPPFLAGS', self.get_effective_preprocessor_flags())
+        self.log_and_set_env_var('CPPFLAGS', self.get_effective_preprocessor_flags(dep))
         os.environ["CPPFLAGS"] = " ".join(self.preprocessor_flags)
 
         with PushDir(self.create_build_dir_and_prepare(dep)):
