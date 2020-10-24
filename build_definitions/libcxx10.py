@@ -15,16 +15,14 @@
 import os
 import sys
 
+from build_definitions.libcxx10base import LibCxx10BaseDependency
+
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
 
-class LibCxx10Dependency(Dependency):
+class LibCxx10Dependency(LibCxx10BaseDependency):
     def __init__(self) -> None:
-        super(LibCxx10Dependency, self).__init__(
-            name='libcxx10',
-            version='10.0.1',
-            url_pattern='https://github.com/llvm/llvm-project/archive/llvmorg-{}.tar.gz',
-            build_group=BUILD_GROUP_INSTRUMENTED)
+        super(LibCxx10Dependency, self).__init__('libcxx10')
 
     def build(self, builder: BuilderInterface) -> None:
         llvm_src_path = builder.source_path(self)

@@ -50,19 +50,28 @@ def compute_file_sha256(path: str) -> str:
 
 def replace_string_in_file(
         path: str,
-        string_to_replace: str,
-        what_to_replace_with: str,
-        backup_extension: str) -> None:
+        str_to_replace: str,
+        str_to_replace_with: str,
+        backup_extension: str = '.bak') -> int:
+    """
+    Replaces all occurrences of a string in a file with a given new string. Returns the number of
+    modified lines.
+    """
     if not backup_extension.startswith('.'):
         backup_extension = '.' + backup_extension
     shutil.copyfile(path, path + backup_extension)
     processed_lines = []
+    num_modified_lines = 0
     with open(path) as input_file:
         for line in input_file:
-            processed_lines.append(line.replace(string_to_replace, what_to_replace_with))
+            modified_line = line.replace(str_to_replace, str_to_replace_with)
+            if line != modified_line:
+                num_modified_lines += 1
+            processed_lines.append(modified_line)
     with open(path, 'w') as output_file:
         for line in processed_lines:
             output_file.write(line)
+    return num_modified_lines
 
 
 def remove_path(path: str) -> None:

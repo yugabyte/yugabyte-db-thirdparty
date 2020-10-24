@@ -15,16 +15,14 @@
 import os
 import sys
 
+from build_definitions.libcxx10base import LibCxx10BaseDependency
+
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
 
-class LibCxxABI10Dependency(Dependency):
+class LibCxxABI10Dependency(LibCxx10BaseDependency):
     def __init__(self) -> None:
-        super(LibCxxABI10Dependency, self).__init__(
-            name='libcxxabi10',
-            version='10.0.1',
-            url_pattern='https://github.com/llvm/llvm-project/archive/llvmorg-{}.tar.gz',
-            build_group=BUILD_GROUP_INSTRUMENTED)
+        super(LibCxxABI10Dependency, self).__init__('libcxxabi10')
 
     def get_additional_cxx_flags(self, builder: BuilderInterface) -> List[str]:
         return ['-stdlib=libc++']
