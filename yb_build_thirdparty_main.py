@@ -712,7 +712,7 @@ class Builder(BuilderInterface):
         else:
             log("No expected checksum found for path %s", path)
 
-        log("Fetching %s", filename)
+        log("Fetching %s", file_name)
         sleep_time_sec = INITIAL_DOWNLOAD_RETRY_SLEEP_TIME_SEC
         for attempt_index in range(1, MAX_FETCH_ATTEMPTS + 1):
             try:
@@ -730,19 +730,19 @@ class Builder(BuilderInterface):
 
         if not os.path.exists(path):
             fatal("Downloaded '%s' but but unable to find '%s'", url, path)
-        expected_checksum = self.get_expected_checksum(filename, downloaded_path=path)
+        expected_checksum = self.get_expected_checksum(file_name, downloaded_path=path)
         if not self.verify_checksum(path, expected_checksum):
             fatal("File '%s' has wrong checksum after downloading from '%s'. "
                   "Has %s, but expected: %s",
                   path, url, compute_file_sha256(path), expected_checksum)
 
-    def verify_checksum(self, filename: str, expected_checksum: str) -> bool:
-        real_checksum = hashsum_file(hashlib.sha256(), filename)
+    def verify_checksum(self, file_name: str, expected_checksum: str) -> bool:
+        real_checksum = hashsum_file(hashlib.sha256(), file_name)
         return real_checksum == expected_checksum
 
     def extract_archive(
             self,
-            archive_filename: str,
+            archive_file_name: str,
             out_dir: str,
             out_name: Optional[str] = None) -> None:
         """
@@ -758,7 +758,7 @@ class Builder(BuilderInterface):
         def dest_dir_already_exists(full_out_path: str) -> bool:
             if os.path.exists(full_out_path):
                 log("Directory already exists: %s, skipping extracting %s" % (
-                        full_out_path, archive_filename))
+                        full_out_path, archive_file_name))
                 return True
             return False
 
@@ -771,7 +771,7 @@ class Builder(BuilderInterface):
         # Extract the archive into a temporary directory.
         tmp_out_dir = os.path.join(
             out_dir, 'tmp-extract-%s-%s-%d' % (
-                os.path.basename(archive_filename),
+                os.path.basename(archive_file_name),
                 datetime.now().strftime('%Y-%m-%dT%H_%M_%S'),  # Current second-level timestamp.
                 random.randint(10 ** 8, 10 ** 9 - 1)))  # A random 9-digit integer.
         if os.path.exists(tmp_out_dir):
@@ -780,16 +780,16 @@ class Builder(BuilderInterface):
 
         archive_extension = None
         for ext in ARCHIVE_TYPES:
-            if archive_filename.endswith(ext):
+            if archive_file_name.endswith(ext):
                 archive_extension = ext
                 break
         if not archive_extension:
-            fatal("Unknown archive type for: {}".format(archive_filename))
+            fatal("Unknown archive type for: {}".format(archive_file_name))
         assert archive_extension is not None
 
         try:
             with PushDir(tmp_out_dir):
-                cmd = ARCHIVE_TYPES[archive_extension].format(archive_filename)
+                cmd = ARCHIVE_TYPES[archive_extension].format(archive_file_name)
                 log("Extracting %s in temporary directory %s", cmd, tmp_out_dir)
                 subprocess.check_call(cmd, shell=True)
                 extracted_subdirs = [
@@ -800,7 +800,7 @@ class Builder(BuilderInterface):
                     raise IOError(
                         "Expected the extracted archive %s to contain exactly one "
                         "subdirectory and no files, found: %s" % (
-                            archive_filename, extracted_subdirs))
+                            archive_file_name, extracted_subdirs))
                 extracted_subdir_basename = extracted_subdirs[0]
                 extracted_subdir_path = os.path.join(tmp_out_dir, extracted_subdir_basename)
                 if not os.path.isdir(extracted_subdir_path):
