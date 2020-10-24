@@ -76,7 +76,7 @@ class LibCxx10BaseDependency(Dependency):
         builder.build_with_cmake(
             self,
             extra_args=args,
-            src_subdir_name=self.name,
+            src_subdir_name=self.get_source_dir_name(),
             use_ninja_if_available=True)
 
     def source_dir_name(self) -> str:
@@ -87,7 +87,7 @@ class LibCxxABI10Dependency(LibCxx10BaseDependency):
     def __init__(self) -> None:
         super(LibCxxABI10Dependency, self).__init__('libcxxabi10')
 
-    def source_dir_name(self) -> None:
+    def get_source_dir_name(self) -> None:
         return 'libcxxabi'
 
 
@@ -95,5 +95,5 @@ class LibCxx10Dependency(LibCxx10BaseDependency):
     def __init__(self) -> None:
         super(LibCxx10Dependency, self).__init__('libcxx10')
 
-    def source_dir_name(self) -> None:
+    def get_source_dir_name(self) -> None:
         return 'libcxx'
