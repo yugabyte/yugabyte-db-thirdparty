@@ -160,7 +160,7 @@ def sanitize_flags_line_for_log(line: str) -> str:
     return line.replace(PLACEHOLDER_RPATH, PLACEHOLDER_RPATH_FOR_LOG)
 
 
-def assert_list_contains(items: List[str], required_item: str):
+def assert_list_contains(items: List[str], required_item: str) -> None:
     if required_item not in items:
         raise ValueError("%s not found in %s", required_item, items)
 
@@ -709,8 +709,7 @@ class Builder(BuilderInterface):
                 if self.filename2checksum[other_path] == expected_checksum and other_path != path
             ]
             if other_paths_with_same_checksum:
-                logging.info(
-                    "Considering other downloads with the same checksum: %s",
+                log("Considering other downloads with the same checksum: %s",
                     other_paths_with_same_checksum)
 
             for other_path in other_paths_with_same_checksum:
