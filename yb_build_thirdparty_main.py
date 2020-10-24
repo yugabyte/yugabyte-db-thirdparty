@@ -1220,10 +1220,17 @@ class Builder(BuilderInterface):
     # dependency. The result is returned in the get_build_stamp_for_component_rv variable, which
     # should have been made local by the caller.
     def get_build_stamp_for_dependency(self, dep: Dependency) -> str:
-        input_files_for_stamp = ['yb_build_thirdparty_main.py',
-                                 'build_thirdparty.sh',
-                                 os.path.join('build_definitions',
-                                              '{}.py'.format(dep.name.replace('-', '_')))]
+        module_name = dep.__class__.__module__
+        assert isinstance(module_name, str), "Dependency's module is not a string: %s" % module_name
+        assert module_name.startswith('build_definitions.'), "Invalid module name: %s" % module_name
+        module_name_components = module_name.split('.')
+        assert len(module_name_components) == 2, (
+            "Expected two compoments: %s" % module_name_components)
+        module_name_final = module_name_components[-1]
+        input_files_for_stamp = [
+            'yb_build_thirdparty_main.py',
+            'build_thirdparty.sh',
+            os.path.join('build_definitions', '%s.py' % module_name_final)]
 
         for path in input_files_for_stamp:
             abs_path = os.path.join(self.tp_dir, path)
