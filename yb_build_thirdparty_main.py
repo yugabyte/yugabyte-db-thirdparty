@@ -59,7 +59,6 @@ from yugabyte_db_thirdparty.os_detection import (
     is_linux,
     is_centos,
 )
-from overrides import overrides  # type: ignore
 import build_definitions
 from build_definitions import *  # noqa
 
