@@ -61,7 +61,8 @@ class LibCxx10BaseDependency(Dependency):
     def build(self, builder: BuilderInterface) -> None:
         llvm_src_path = builder.source_path(self)
 
-        prefix = os.path.join(builder.prefix, self.name)
+        # Install both libcxxabi and libcxx into the same directory.
+        prefix = os.path.join(builder.prefix, 'libcxx')
 
         args = [
             '-DCMAKE_BUILD_TYPE=Release',
@@ -75,7 +76,7 @@ class LibCxx10BaseDependency(Dependency):
         builder.build_with_cmake(
             self,
             extra_args=args,
-            src_subdir_name='libcxx',
+            src_subdir_name=self.name,
             use_ninja_if_available=True)
 
 

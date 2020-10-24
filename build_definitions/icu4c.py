@@ -42,6 +42,7 @@ class Icu4cDependency(Dependency):
         configure_extra_args = [
             '--disable-samples',
             '--disable-tests',
+            '--disable-layout',
             '--enable-static',
             '--with-library-bits=64'
         ]

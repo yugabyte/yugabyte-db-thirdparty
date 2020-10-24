@@ -1095,7 +1095,7 @@ class Builder(BuilderInterface):
 
             # TODO: dedup with the similar code above used for Clang 7.
             stdlib_suffix = self.build_type
-            stdlib_path = os.path.join(self.tp_installed_dir, stdlib_suffix, 'libcxx10')
+            stdlib_path = os.path.join(self.tp_installed_dir, stdlib_suffix, 'libcxx')
             stdlib_include = os.path.join(stdlib_path, 'include', 'c++', 'v1')
             stdlib_lib = os.path.join(stdlib_path, 'lib')
 
