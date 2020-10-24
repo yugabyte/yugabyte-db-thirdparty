@@ -50,13 +50,45 @@ class LibCxx10BaseDependency(Dependency):
             num_lines_modified, os.path.abspath(ninja_build_file_path), removed_string)
 
     def get_additional_ld_flags(self, builder: 'BuilderInterface') -> List[str]:
-        if builder.build_type not in [BUILD_TYPE_ASAN]:
-            return []
+        if builder.build_type in [BUILD_TYPE_ASAN, BUILD_TYPE_TSAN]:
+            # We need to link with these libraries in ASAN because otherwise libc++ CMake
+            # configuration step fails and none of C standard library definitons can be found.
+            # However, we then remove -lstdc++ from the generated build.ninja file (see
+            # postprocess_ninja_build_file). The remaining remaining libraries are OK to keep.
+            return ['-ldl', '-lpthread', '-lm', '-lstdc++']
 
-        # We need to link with these libraries in ASAN because otherwise libc++ CMake configuration
-        # step fails and none of C standard library definitons can be found. However, we then remove
-        # -lstdc++ from the generated build.ninja file (see postprocess_ninja_build_file).
-        return ['-ldl', '-lpthread', '-lm', '-lstdc++']
+    def build(self, builder: BuilderInterface) -> None:
+        llvm_src_path = builder.source_path(self)
+
+        prefix = os.path.join(builder.prefix, self.name)
+
+        args = [
+            '-DCMAKE_BUILD_TYPE=Release',
+            '-DBUILD_SHARED_LIBS=ON',
+            '-DCMAKE_INSTALL_PREFIX={}'.format(prefix),
+            '-DLIBCXXABI_USE_LLVM_UNWINDER=ON',
+            '-DLIBCXX_USE_COMPILER_RT=ON',
+            '-DLLVM_PATH=%s' % llvm_src_path,
+        ]
+
+        builder.build_with_cmake(
+            self,
+            extra_args=args,
+            src_subdir_name='libcxx',
+            use_ninja_if_available=True)
+
+
+class LibCxxABI10Dependency(LibCxx10BaseDependency):
+    def __init__(self) -> None:
+        super(LibCxxABI10Dependency, self).__init__('libcxxabi10')
+
+
+class LibCxx10Dependency(LibCxx10BaseDependency):
+    def __init__(self) -> None:
+        super(LibCxx10Dependency, self).__init__('libcxx10')
+
+
+
 
     # def build(self, builder: BuilderInterface) -> None:
     #     llvm_src_path = builder.source_path(self)

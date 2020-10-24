@@ -27,27 +27,22 @@ class LibCxxABI10Dependency(LibCxx10BaseDependency):
     def get_additional_cxx_flags(self, builder: BuilderInterface) -> List[str]:
         return ['-stdlib=libc++']
 
-    def build(self, builder: BuilderInterface) -> None:
-        llvm_src_path = builder.source_path(self)
+    # def build(self, builder: BuilderInterface) -> None:
+    #     llvm_src_path = builder.source_path(self)
 
-        prefix = os.path.join(builder.prefix, 'libcxx10')
+    #     prefix = os.path.join(builder.prefix, self.name)
 
-        args = [
-            '-DCMAKE_BUILD_TYPE=Release',
-            '-DLIBCXXABI_LIBCXX_PATH=%s' % os.path.join(llvm_src_path, 'libcxx'),
-            '-DLLVM_TARGETS_TO_BUILD=X86',
-            '-DBUILD_SHARED_LIBS=ON',
-            '-DLLVM_ENABLE_RTTI=ON',
-            '-DLIBUNWIND_USE_COMPILER_RT=ON',
-            '-DCMAKE_INSTALL_PREFIX={}'.format(prefix),
-            '-DLIBCXXABI_USE_COMPILER_RT=ON',
-            '-DLIBCXXABI_USE_LLVM_UNWINDER=ON',
-            '-DLIBCXX_USE_COMPILER_RT=ON',
-            '-DLLVM_PATH=%s' % llvm_src_path,
-        ]
+    #     args = [
+    #         '-DCMAKE_BUILD_TYPE=Release',
+    #         '-DBUILD_SHARED_LIBS=ON',
+    #         '-DCMAKE_INSTALL_PREFIX={}'.format(prefix),
+    #         '-DLIBCXXABI_USE_LLVM_UNWINDER=ON',
+    #         '-DLIBCXX_USE_COMPILER_RT=ON',
+    #         '-DLLVM_PATH=%s' % llvm_src_path,
+    #     ]
 
-        builder.build_with_cmake(
-            self,
-            extra_args=args,
-            src_subdir_name='libcxxabi',
-            use_ninja_if_available=True)
+    #     builder.build_with_cmake(
+    #         self,
+    #         extra_args=args,
+    #         src_subdir_name=self.name,
+    #         use_ninja_if_available=True)

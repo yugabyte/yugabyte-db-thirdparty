@@ -359,7 +359,7 @@ class Builder(BuilderInterface):
             if self.use_only_clang():
                 self.dependencies.extend([
                     get_build_def_module('llvm_libunwind').LlvmLibUnwindDependency(),
-                    get_build_def_module('libcxxabi10').LibCxxABI10Dependency(),
+                    get_build_def_module('libcxx10').LibCxxABI10Dependency(),
                     get_build_def_module('libcxx10').LibCxx10Dependency(),
                 ])
             else:
@@ -1145,7 +1145,6 @@ class Builder(BuilderInterface):
         return [
             '-DCMAKE_C_FLAGS={}'.format(c_flags_str),
             '-DCMAKE_CXX_FLAGS={}'.format(cxx_flags_str),
-            '-DCMAKE_CPP_FLAGS={}'.format(preprocessor_flags_str),
             '-DCMAKE_SHARED_LINKER_FLAGS={}'.format(ld_flags_str),
             '-DCMAKE_EXE_LINKER_FLAGS={}'.format(ld_flags_str),
             '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON',

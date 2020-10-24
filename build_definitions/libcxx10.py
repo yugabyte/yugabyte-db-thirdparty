@@ -31,14 +31,8 @@ class LibCxx10Dependency(LibCxx10BaseDependency):
 
         args = [
             '-DCMAKE_BUILD_TYPE=Release',
-            '-DLLVM_ENABLE_PROJECTS=libcxx;libcxxabi',
-            '-DLIBCXXABI_LIBCXX_PATH=%s' % os.path.join(llvm_src_path, 'libcxx'),
-            '-DLLVM_TARGETS_TO_BUILD=X86',
             '-DBUILD_SHARED_LIBS=ON',
-            '-DLLVM_ENABLE_RTTI=ON',
-            '-DLIBUNWIND_USE_COMPILER_RT=ON',
             '-DCMAKE_INSTALL_PREFIX={}'.format(prefix),
-            '-DLIBCXXABI_USE_COMPILER_RT=ON',
             '-DLIBCXXABI_USE_LLVM_UNWINDER=ON',
             '-DLIBCXX_USE_COMPILER_RT=ON',
             '-DLLVM_PATH=%s' % llvm_src_path,
