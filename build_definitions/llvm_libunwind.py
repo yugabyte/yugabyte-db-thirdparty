@@ -13,9 +13,9 @@
 
 import os
 import sys
+import subprocess
 
-from yugabyte_db_thirdparty.builder_interface import BuilderInterface
-from build_definitions import *  # noqa
+from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
 
 class LlvmLibUnwindDependency(Dependency):

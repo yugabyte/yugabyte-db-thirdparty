@@ -18,8 +18,8 @@ import subprocess
 import sys
 import build_definitions.llvm
 
-from yugabyte_db_thirdparty.builder_interface import BuilderInterface
-from build_definitions import *  # noqa
+from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
+from build_definitions import ExtraDownload
 
 
 class LibCXXDependency(Dependency):

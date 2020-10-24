@@ -18,14 +18,9 @@ import subprocess
 import platform
 
 from typing import List, Any
-from build_definitions import (
-    log,
-    heading,
-    BUILD_TYPES,
-    fatal,
-    is_mac,
-    is_linux
-)
+from yugabyte_db_thirdparty.os_detection import is_mac, is_linux
+from yugabyte_db_thirdparty.custom_logging import log, fatal, heading
+from build_definitions import BUILD_TYPES
 
 
 def compile_re_list(re_list: List[str]) -> Any:

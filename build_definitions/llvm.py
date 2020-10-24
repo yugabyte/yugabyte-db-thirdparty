@@ -15,9 +15,10 @@
 import os
 import subprocess
 import sys
+import shutil
 
-from yugabyte_db_thirdparty.builder_interface import BuilderInterface
-from build_definitions import *  # noqa
+from build_definitions import ExtraDownload
+from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
 
 class LLVMDependency(Dependency):
@@ -65,8 +66,8 @@ class LLVMDependency(Dependency):
                 "{0}/lib/cmake/{{llvm,clang}}".format(prefix),
                 shell=True)
 
-        python_executable = which('python')
-        if not os.path.exists(python_executable):
+        python_executable = shutil.which('python')
+        if python_executable is None:
             fatal("Could not find Python -- needed to build LLVM.")
 
         cxx_flags = builder.compiler_flags + builder.cxx_flags + builder.ld_flags

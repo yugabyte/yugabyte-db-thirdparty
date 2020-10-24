@@ -32,6 +32,33 @@ from typing import Set, List, Dict, Optional, Tuple, Union, cast
 
 from yugabyte_db_thirdparty.shared_library_checking import get_lib_tester
 from yugabyte_db_thirdparty.builder_interface import BuilderInterface
+from yugabyte_db_thirdparty.dependency import Dependency
+from yugabyte_db_thirdparty.custom_logging import (
+    log,
+    fatal,
+    log_output,
+    colored_log,
+    YELLOW_COLOR,
+    SEPARATOR,
+    log_separator,
+    heading,
+)
+from yugabyte_db_thirdparty.util import (
+    assert_list_contains,
+    indent_lines,
+    hashsum_file,
+    compute_file_sha256,
+    mkdir_if_missing,
+    remove_path,
+    PushDir,
+    which_executable,
+    which_must_exist
+)
+from yugabyte_db_thirdparty.os_detection import (
+    is_mac,
+    is_linux,
+    is_centos,
+)
 from overrides import overrides  # type: ignore
 import build_definitions
 from build_definitions import *  # noqa
@@ -50,38 +77,8 @@ PLACEHOLDER_RPATH = (
 PLACEHOLDER_RPATH_FOR_LOG = '/tmp/long_placeholder_rpath'
 
 
-def hashsum_file(hash: Any, filename: str, block_size: int = 65536) -> str:
-    # TODO: use a more precise argument type for hash.
-    with open(filename, "rb") as f:
-        for block in iter(lambda: f.read(block_size), b""):
-            hash.update(block)
-    return hash.hexdigest()
-
-
-def indent_lines(s: Optional[str], num_spaces: int = 4) -> Optional[str]:
-    if s is None:
-        return s
-    return "\n".join([
-        ' ' * num_spaces + line for line in s.split("\n")
-    ])
-
-
 def get_make_parallelism() -> int:
     return int(os.environ.get('YB_MAKE_PARALLELISM', multiprocessing.cpu_count()))
-
-
-def where_is_program(program_name: str) -> Optional[str]:
-    '''
-    This is the equivalent of shutil.which in Python 3.
-    TODO: deduplicate. We have this function and also the which() function in __init__.py.
-    '''
-    path = os.getenv('PATH')
-    assert path is not None
-    for path_dir in path.split(os.path.pathsep):
-        full_path = os.path.join(path_dir, program_name)
-        if os.path.exists(full_path) and os.access(full_path, os.X_OK):
-            return full_path
-    return None
 
 
 g_is_ninja_available: Optional[bool] = None
@@ -90,16 +87,8 @@ g_is_ninja_available: Optional[bool] = None
 def is_ninja_available() -> bool:
     global g_is_ninja_available
     if g_is_ninja_available is None:
-        g_is_ninja_available = bool(where_is_program('ninja'))
+        g_is_ninja_available = bool(which_executable('ninja'))
     return g_is_ninja_available
-
-
-def compute_file_sha256(path: str) -> str:
-    return hashsum_file(hashlib.sha256(), path)
-
-
-def filter_and_join_strings(str_list: List[str], to_exclude: Set[str]) -> str:
-    return ' '.join([s for s in str_list if s not in to_exclude])
 
 
 DEVTOOLSET_ENV_VARS: Set[str] = set([s.strip() for s in """
@@ -158,11 +147,6 @@ def get_rpath_flag(path: str) -> str:
 
 def sanitize_flags_line_for_log(line: str) -> str:
     return line.replace(PLACEHOLDER_RPATH, PLACEHOLDER_RPATH_FOR_LOG)
-
-
-def assert_list_contains(items: List[str], required_item: str) -> None:
-    if required_item not in items:
-        raise ValueError("%s not found in %s", required_item, items)
 
 
 class Builder(BuilderInterface):
@@ -376,8 +360,8 @@ class Builder(BuilderInterface):
             if self.use_only_clang():
                 self.dependencies.extend([
                     get_build_def_module('llvm_libunwind').LlvmLibUnwindDependency(),
+                    get_build_def_module('libcxxabi10').LibCxxABI10Dependency(),
                     get_build_def_module('libcxx10').LibCxx10Dependency(),
-                    get_build_def_module('libcxxabi10').LibCxxABI10Dependency()
                 ])
             else:
                 self.dependencies.append(get_build_def_module('libunwind').LibUnwindDependency())
@@ -431,7 +415,7 @@ class Builder(BuilderInterface):
         if self.args.clean:
             self.clean()
         self.prepare_out_dirs()
-        self.curl_path = which('curl')
+        self.curl_path = which_must_exist('curl')
         os.environ['PATH'] = ':'.join([
                 os.path.join(self.tp_installed_common_dir, 'bin'),
                 os.path.join(self.tp_installed_llvm7_common_dir, 'bin'),
@@ -499,7 +483,9 @@ class Builder(BuilderInterface):
         elif self.args.compiler_prefix:
             gcc_dir = self.args.compiler_prefix
         else:
-            return which(c_compiler), which(cxx_compiler)
+            c_compiler_path = which_must_exist(c_compiler)
+            cxx_compiler_path = which_must_exist(cxx_compiler)
+            return c_compiler_path, cxx_compiler_path
 
         gcc_bin_dir = os.path.join(gcc_dir, 'bin')
 
@@ -722,6 +708,8 @@ class Builder(BuilderInterface):
                             other_path, path, other_path)
                         os.symlink(other_path, path)
                         return
+        else:
+            log("No expected checksum found for path %s", path)
 
         log("Fetching %s", filename)
         sleep_time_sec = INITIAL_DOWNLOAD_RETRY_SLEEP_TIME_SEC
@@ -1064,7 +1052,9 @@ class Builder(BuilderInterface):
         # Special setup for Clang on Linux.
         # -----------------------------------------------------------------------------------------
 
-        is_libcxx = dep.name.startswith('libcxx')
+        if self.args.single_compiler_type == 'clang':
+            self.init_clang10_or_later_flags(dep)
+            return
 
         if self.build_type == BUILD_TYPE_ASAN:
             self.compiler_flags += [
@@ -1078,10 +1068,6 @@ class Builder(BuilderInterface):
                 '-fsanitize=thread',
                 '-DTHREAD_SANITIZER'
             ]
-
-        if self.args.single_compiler_type == 'clang':
-            self.init_clang10_or_later_flags(dep)
-            return
 
         # This is used to build code with libc++ and Clang 7 built as part of thirdparty.
         stdlib_suffix = self.build_type
@@ -1107,6 +1093,21 @@ class Builder(BuilderInterface):
         configuration.
         """
         self.ld_flags.append('-rtlib=compiler-rt')
+
+        if self.build_type == BUILD_TYPE_ASAN:
+            self.compiler_flags += [
+                '-fsanitize=address',
+                '-fsanitize=undefined',
+                '-DADDRESS_SANITIZER'
+            ]
+            if dep.name in ['libcxx10', 'libcxxabi10']:
+                self.ld_flags += ['-ldl', '-lpthread', '-lm', '-lstdc++']
+
+        if self.build_type == BUILD_TYPE_TSAN:
+            self.compiler_flags += [
+                '-fsanitize=thread',
+                '-DTHREAD_SANITIZER'
+            ]
 
         if self.build_type != BUILD_TYPE_COMMON:
             is_libcxx = dep.name.startswith('libcxx')

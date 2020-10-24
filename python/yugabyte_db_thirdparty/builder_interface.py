@@ -10,9 +10,10 @@
 # or implied. See the License for the specific language governing permissions and limitations
 # under the License.
 
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 
-import build_definitions
+if TYPE_CHECKING:
+    from .dependency import Dependency
 
 
 class BuilderInterface:
@@ -47,7 +48,7 @@ class BuilderInterface:
 
     def build_with_cmake(
             self,
-            dep: 'build_definitions.Dependency',
+            dep: 'Dependency',
             extra_args: List[str] = [],
             use_ninja_if_available: bool = False,
             src_subdir_name: Optional[str] = None,
@@ -56,7 +57,7 @@ class BuilderInterface:
             install_targets: List[str] = []) -> None:
         raise NotImplementedError()
 
-    def log_prefix(self, dep: 'build_definitions.Dependency') -> str:
+    def log_prefix(self, dep: 'Dependency') -> str:
         raise NotImplementedError()
 
     def get_c_compiler(self) -> str:
@@ -69,7 +70,7 @@ class BuilderInterface:
         # TODO: should dependencies really be calling this?
         raise NotImplementedError()
 
-    def source_path(self, dep: 'build_definitions.Dependency') -> str:
+    def source_path(self, dep: 'Dependency') -> str:
         raise NotImplementedError()
 
     def cmake_build_type_for_test_only_dependencies(self) -> str:
@@ -96,5 +97,5 @@ class BuilderInterface:
     def get_prefix(self, qualifier: Optional[str] = None) -> str:
         raise NotImplementedError()
 
-    def get_common_cmake_flag_args(self, dep: 'build_definitions.Dependency') -> List[str]:
+    def get_common_cmake_flag_args(self, dep: 'Dependency') -> List[str]:
         raise NotImplementedError()
