@@ -15,8 +15,6 @@
 import os
 import sys
 
-from overrides import overrides  # type: ignore
-
 from build_definitions import BUILD_TYPE_ASAN, BUILD_TYPE_TSAN
 
 from yugabyte_db_thirdparty.util import replace_string_in_file
@@ -35,7 +33,6 @@ class LibCxx10BaseDependency(Dependency):
             url_pattern='https://github.com/llvm/llvm-project/archive/llvmorg-{}.tar.gz',
             build_group=BUILD_GROUP_INSTRUMENTED)
 
-    @overrides
     def postprocess_ninja_build_file(
             self,
             builder: BuilderInterface,
@@ -43,6 +40,7 @@ class LibCxx10BaseDependency(Dependency):
         super().postprocess_ninja_build_file(builder, ninja_build_file_path)
         if builder.build_type not in [BUILD_TYPE_ASAN, BUILD_TYPE_TSAN]:
             return
+
         removed_string = '-lstdc++'
         num_lines_modified = replace_string_in_file(
             path=ninja_build_file_path,
@@ -50,6 +48,12 @@ class LibCxx10BaseDependency(Dependency):
             str_to_replace_with='')
         log("Modified %d lines in file %s: removed '%s'",
             num_lines_modified, os.path.abspath(ninja_build_file_path), removed_string)
+
+    def get_additional_ld_flags(self, builder: 'BuilderInterface') -> List[str]:
+        if builder.build_type not in [BUILD_TYPE_ASAN, BUILD_TYPE_TSAN]:
+            return []
+
+        return ['-ldl', '-lpthread', '-lm', '-lstdc++']
 
     # def build(self, builder: BuilderInterface) -> None:
     #     llvm_src_path = builder.source_path(self)

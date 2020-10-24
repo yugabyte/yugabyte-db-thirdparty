@@ -464,12 +464,10 @@ class Builder(BuilderInterface):
         if not os.path.exists(compiler_path):
             raise IOError("Compiler does not exist: %s" % compiler_path)
 
-    @overrides
     def get_c_compiler(self) -> str:
         assert self.cc is not None
         return self.cc
 
-    @overrides
     def get_cxx_compiler(self) -> str:
         assert self.cxx is not None
         return self.cxx
@@ -630,7 +628,6 @@ class Builder(BuilderInterface):
             return None
         return os.path.join(self.tp_download_dir, dep.archive_name)
 
-    @overrides
     def source_path(self, dep: Dependency) -> str:
         return os.path.join(self.tp_src_dir, dep.dir_name)
 
@@ -900,15 +897,12 @@ class Builder(BuilderInterface):
         log("Adding RPATH: %s", path)
         self.ld_flags.append(get_rpath_flag(path))
 
-    @overrides
     def prepend_rpath(self, path: str) -> None:
         self.ld_flags.insert(0, get_rpath_flag(path))
 
-    @overrides
     def log_prefix(self, dep: Dependency) -> str:
         return '{} ({})'.format(dep.name, self.build_type)
 
-    @overrides
     def build_with_configure(
             self,
             log_prefix: str,
@@ -938,7 +932,6 @@ class Builder(BuilderInterface):
             if install:
                 log_output(log_prefix, ['make'] + install)
 
-    @overrides
     def build_with_cmake(
             self,
             dep: Dependency,
@@ -1016,7 +1009,6 @@ class Builder(BuilderInterface):
             if dep.build_group == build_group and dep.should_build(self):
                 self.build_dependency(dep)
 
-    @overrides
     def get_prefix(self, qualifier: Optional[str] = None) -> str:
         return os.path.join(
             self.tp_installed_dir + ('_' + qualifier if qualifier else ''),
@@ -1056,10 +1048,6 @@ class Builder(BuilderInterface):
         # Special setup for Clang on Linux.
         # -----------------------------------------------------------------------------------------
 
-        if self.args.single_compiler_type == 'clang':
-            self.init_clang10_or_later_flags(dep)
-            return
-
         if self.build_type == BUILD_TYPE_ASAN:
             self.compiler_flags += [
                 '-fsanitize=address',
@@ -1072,6 +1060,10 @@ class Builder(BuilderInterface):
                 '-fsanitize=thread',
                 '-DTHREAD_SANITIZER'
             ]
+
+        if self.args.single_compiler_type == 'clang':
+            self.init_clang10_or_later_flags(dep)
+            return
 
         # This is used to build code with libc++ and Clang 7 built as part of thirdparty.
         stdlib_suffix = self.build_type
@@ -1097,21 +1089,6 @@ class Builder(BuilderInterface):
         configuration.
         """
         self.ld_flags.append('-rtlib=compiler-rt')
-
-        if self.build_type == BUILD_TYPE_ASAN:
-            self.compiler_flags += [
-                '-fsanitize=address',
-                '-fsanitize=undefined',
-                '-DADDRESS_SANITIZER'
-            ]
-            if dep.name in ['libcxx10', 'libcxxabi10']:
-                self.ld_flags += ['-ldl', '-lpthread', '-lm', '-lstdc++']
-
-        if self.build_type == BUILD_TYPE_TSAN:
-            self.compiler_flags += [
-                '-fsanitize=thread',
-                '-DTHREAD_SANITIZER'
-            ]
 
         if self.build_type != BUILD_TYPE_COMMON:
             is_libcxx = dep.name.startswith('libcxx')
@@ -1156,12 +1133,11 @@ class Builder(BuilderInterface):
         return self.compiler_flags + self.c_flags + dep_additional_c_flags
 
     def get_effective_ld_flags(self, dep: Dependency) -> List[str]:
-        return list(self.ld_flags)
+        return self.ld_flags + dep.get_additional_ld_flags(self)
 
     def get_effective_preprocessor_flags(self, dep: Dependency) -> List[str]:
         return list(self.preprocessor_flags)
 
-    @overrides
     def get_common_cmake_flag_args(self, dep: Dependency) -> List[str]:
         c_flags_str = ' '.join(self.get_effective_c_flags(dep))
         cxx_flags_str = ' '.join(self.get_effective_cxx_flags(dep))
@@ -1293,7 +1269,6 @@ class Builder(BuilderInterface):
             subprocess.check_call(['rsync', '-a', src_dir + '/', build_dir])
         return build_dir
 
-    @overrides
     def is_release_build(self) -> bool:
         """
         Distinguishes between build types that are potentially used in production releases from
@@ -1303,11 +1278,9 @@ class Builder(BuilderInterface):
             BUILD_TYPE_COMMON, BUILD_TYPE_UNINSTRUMENTED, BUILD_TYPE_CLANG_UNINSTRUMENTED
         ]
 
-    @overrides
     def cmake_build_type_for_test_only_dependencies(self) -> str:
         return 'Release' if self.is_release_build() else 'Debug'
 
-    @overrides
     def building_with_clang(self) -> bool:
         """
         Returns true if we are using clang to build current build_type.
@@ -1323,7 +1296,6 @@ class Builder(BuilderInterface):
             BUILD_TYPE_CLANG_UNINSTRUMENTED
         ]
 
-    @overrides
     def will_need_clang(self) -> bool:
         """
         Returns true if we will need Clang to complete the full thirdparty build type requested by
@@ -1342,16 +1314,13 @@ class Builder(BuilderInterface):
         process.stdin.close()
         return process.wait() == 0
 
-    @overrides
     def add_checked_flag(self, flags: List[str], flag: str) -> None:
         if self.check_cxx_compiler_flag(flag):
             flags.append(flag)
 
-    @overrides
     def get_openssl_dir(self) -> str:
         return os.path.join(self.tp_installed_common_dir)
 
-    @overrides
     def get_openssl_related_cmake_args(self) -> List[str]:
         """
         Returns a list of CMake arguments to use to pick up the version of OpenSSL that we should be
