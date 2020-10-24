@@ -674,7 +674,7 @@ class Builder(BuilderInterface):
         return self.filename2checksum[filename]
 
     def ensure_file_downloaded(self, url: str, path: str) -> None:
-        filename = os.path.basename(path)
+        file_name = os.path.basename(path)
 
         mkdir_if_missing(self.tp_download_dir)
 
@@ -682,31 +682,32 @@ class Builder(BuilderInterface):
             # We check the filename against our checksum map only if the file exists. This is done
             # so that we would still download the file even if we don't know the checksum, making it
             # easier to add new third-party dependencies.
-            expected_checksum = self.get_expected_checksum(filename, downloaded_path=path)
+            expected_checksum = self.get_expected_checksum(file_name, downloaded_path=path)
             if self.verify_checksum(path, expected_checksum):
-                log("No need to re-download %s: checksum already correct", filename)
+                log("No need to re-download %s: checksum already correct", file_name)
                 return
             log("File %s already exists but has wrong checksum, removing", path)
             remove_path(path)
-        elif path in self.filename2checksum:
-            expected_checksum = self.filename2checksum[path]
-            other_paths_with_same_checksum = [
-                other_path for other_path in self.filename2checksum
-                if self.filename2checksum[other_path] == expected_checksum and other_path != path
+        elif file_name in self.filename2checksum:
+            expected_checksum = self.filename2checksum[file_name]
+            other_file_names_with_same_checksum = [
+                other_file_name for other_file_name in self.filename2checksum
+                if self.filename2checksum[other_file_name] == expected_checksum and
+                other_file_name != path
             ]
-            if other_paths_with_same_checksum:
+            if other_file_names_with_same_checksum:
                 log("Considering other downloads with the same checksum: %s",
-                    other_paths_with_same_checksum)
+                    other_file_names_with_same_checksum)
 
-            for other_path in other_paths_with_same_checksum:
-                if os.path.exists(other_path) and not os.path.islink(other_path):
+            for other_file_name in other_file_names_with_same_checksum:
+                if os.path.exists(other_file_name) and not os.path.islink(other_file_name):
                     log("File %s with the same expected checksum as %s (%s) already exists, "
                         "verifying its checksum",
-                        other_path, path, expected_checksum)
-                    if self.verify_checksum(other_path, expected_checksum):
+                        other_file_name, path, expected_checksum)
+                    if self.verify_checksum(other_file_name, expected_checksum):
                         log("Checksum is correct for %s, creating symlink %s -> %s",
-                            other_path, path, other_path)
-                        os.symlink(other_path, path)
+                            other_file_name, path, other_file_name)
+                        os.symlink(other_file_name, path)
                         return
         else:
             log("No expected checksum found for path %s", path)
@@ -975,6 +976,9 @@ class Builder(BuilderInterface):
         log("CMake command line (one argument per line):\n%s" %
             "\n".join([(" " * 4 + sanitize_flags_line_for_log(line)) for line in args]))
         log_output(log_prefix, args)
+
+        if build_tool == 'ninja':
+            dep.postprocess_ninja_build('ninja.build')
 
         build_tool_cmd = [
             build_tool, '-j{}'.format(get_make_parallelism())
