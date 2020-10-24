@@ -50,9 +50,12 @@ class LibCxx10BaseDependency(Dependency):
             num_lines_modified, os.path.abspath(ninja_build_file_path), removed_string)
 
     def get_additional_ld_flags(self, builder: 'BuilderInterface') -> List[str]:
-        if builder.build_type not in [BUILD_TYPE_ASAN, BUILD_TYPE_TSAN]:
+        if builder.build_type not in [BUILD_TYPE_ASAN]:
             return []
 
+        # We need to link with these libraries in ASAN because otherwise libc++ CMake configuration
+        # step fails and none of C standard library definitons can be found. However, we then remove
+        # -lstdc++ from the generated build.ninja file (see postprocess_ninja_build_file).
         return ['-ldl', '-lpthread', '-lm', '-lstdc++']
 
     # def build(self, builder: BuilderInterface) -> None:
