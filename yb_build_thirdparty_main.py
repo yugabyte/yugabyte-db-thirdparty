@@ -971,7 +971,7 @@ class Builder(BuilderInterface):
         log_output(log_prefix, args)
 
         if build_tool == 'ninja':
-            dep.postprocess_ninja_build_file(self, 'ninja.build')
+            dep.postprocess_ninja_build_file(self, 'build.ninja')
 
         build_tool_cmd = [
             build_tool, '-j{}'.format(get_make_parallelism())
