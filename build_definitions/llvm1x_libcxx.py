@@ -49,7 +49,8 @@ class Llvm10LibCxxDependencyBase(Llvm10PartDependencyBase):
             num_lines_modified, os.path.abspath(ninja_build_file_path), removed_string)
 
     def get_additional_ld_flags(self, builder: BuilderInterface) -> List[str]:
-        if builder.build_type in [BUILD_TYPE_ASAN, BUILD_TYPE_TSAN]:
+        if (self.version == '10.0.1' and
+            builder.build_type in [BUILD_TYPE_ASAN, BUILD_TYPE_TSAN]):
             # We need to link with these libraries in ASAN because otherwise libc++ CMake
             # configuration step fails and some C standard library functions cannot be found.
             # However, we then remove -lstdc++ from the generated build.ninja file (see
