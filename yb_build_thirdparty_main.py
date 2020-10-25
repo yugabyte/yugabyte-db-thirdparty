@@ -1348,7 +1348,8 @@ class Builder(BuilderInterface):
         ]
         return openssl_options
 
-    def get_llvm_config_path(self) -> List[str]:
+    def get_llvm_config_path(self) -> str:
+        assert self.cc is not None
         llvm_config_path = os.path.join(
             os.path.dirname(os.path.realpath(self.cc)), 'llvm-config')
         if not os.path.exists(llvm_config_path):

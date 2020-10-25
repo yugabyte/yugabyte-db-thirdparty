@@ -38,5 +38,6 @@ class Llvm10CompilerRtDependency(Llvm10PartDependencyBase):
                 '-DCMAKE_INSTALL_PREFIX={}'.format(builder.prefix),
                 '-DCOMPILER_RT_BUILD_SANITIZERS=ON',
                 '-DCOMPILER_RT_BUILD_XRAY=OFF',
+                '-DCOMPILER_RT_USE_LIBCXX=ON',
             ],
             src_subdir_name=src_subdir_name)
