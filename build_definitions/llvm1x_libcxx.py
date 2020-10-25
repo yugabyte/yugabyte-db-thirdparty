@@ -68,7 +68,7 @@ class Llvm10LibCxxDependencyBase(Llvm10PartDependencyBase):
         args = [
             '-DCMAKE_BUILD_TYPE=Release',
             '-DBUILD_SHARED_LIBS=ON',
-            '-DLLVM_PATH=%s' % llvm_src_path,
+            '-DLLVM_PATH=%s' % os.path.join(llvm_src_path, 'llvm'),
         ]
 
         builder.build_with_cmake(
