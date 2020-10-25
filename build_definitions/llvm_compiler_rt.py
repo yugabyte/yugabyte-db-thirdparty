@@ -21,7 +21,7 @@ from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
 class LlvmCompilerRTDependency(Dependency):
     def __init__(self) -> None:
-        super(LlvmLibUnwindDependency, self).__init__(
+        super(LlvmCompilerRTDependency, self).__init__(
             name='llvm_compiler_rt',
             version='10.0.1',
             url_pattern='https://github.com/llvm/llvm-project/archive/llvmorg-{}.tar.gz',
