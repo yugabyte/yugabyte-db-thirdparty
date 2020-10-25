@@ -1156,10 +1156,11 @@ class Builder(BuilderInterface):
                 '-nostdinc++'
             ] + self.cxx_flags
             self.prepend_lib_dir_and_rpath(libcxx_installed_lib)
-        is_libcxxabi:
-            # libcxxabi still needs to be able to find libcxx.
-            self.add_rpath(libcxx_installed_dir)
 
+        if is_libcxxabi:
+            # libc++abi needs to be able to find libcxx at runtime, even though it can't always find
+            # it at build time because libc++abi is built first.
+            self.add_rpath(libcxx_installed_dir)
 
     def log_and_set_env_var(self, env_var_name: str, items: List[str]) -> None:
         value_str = ' '.join(items)
