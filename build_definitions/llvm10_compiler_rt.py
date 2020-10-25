@@ -35,13 +35,14 @@ class Llvm10CompilerRtDependency(Llvm10PartDependencyBase):
                 '-DCMAKE_BUILD_TYPE=Release',
                 '-DBUILD_SHARED_LIBS=ON',
                 '-DLLVM_PATH=%s' % builder.get_source_path(self),
-                '-DCMAKE_INSTALL_PREFIX={}'.format(builder.prefix),
                 '-DCOMPILER_RT_BUILD_SANITIZERS=ON',
                 '-DCOMPILER_RT_BUILD_XRAY=OFF',
                 '-DCOMPILER_RT_USE_LIBCXX=ON',
                 '-DSANITIZER_CXX_ABI=libc++',
-                # All sanitizers except hwasan (which does not compile for some libunwind-related reasons).
-                '-DCOMPILER_RT_SANITIZERS_TO_BUILD=asan;dfsan;msan;tsan;safestack;cfi;scudo;ubsan_minimal;gwp_asan'
+                # All sanitizers except hwasan (which does not compile for some libunwind-related
+                # reasons).
+                '-DCOMPILER_RT_SANITIZERS_TO_BUILD='
+                'asan;dfsan;msan;tsan;safestack;cfi;scudo;ubsan_minimal;gwp_asan'
             ],
             src_subdir_name=src_subdir_name)
 
