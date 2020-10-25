@@ -1118,7 +1118,8 @@ class Builder(BuilderInterface):
                 '-DADDRESS_SANITIZER',
                 '-shared-libasan',
                 # https://github.com/google/sanitizers/issues/1017
-                '-mllvm,-asan-use-private-alias=1'
+                '-mllvm',
+                '-asan-use-private-alias=1'
             ]
             if is_libcxxabi:
                 # To avoid an infinite loop in UBSAN.
