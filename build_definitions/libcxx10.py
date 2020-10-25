@@ -70,9 +70,6 @@ class LibCxx10BaseDependency(Dependency):
             '-DBUILD_SHARED_LIBS=ON',
             #'-DCMAKE_INSTALL_PREFIX={}'.format(prefix),
             '-DLLVM_PATH=%s' % llvm_src_path,
-            '-DLLVM_ENABLE_RTTI=ON',
-            '-DLLVM_ENABLE_EH=ON',
-        ]
 
         builder.build_with_cmake(
             self,
@@ -96,7 +93,8 @@ class LibCxxABI10Dependency(LibCxx10BaseDependency):
         return [
             '-DLIBCXXABI_LIBCXX_PATH=%s' % os.path.join(llvm_src_path, 'libcxx'),
             '-DLIBCXXABI_USE_COMPILER_RT=ON',
-            '-DLIBCXXABI_USE_LLVM_UNWINDER=ON'
+            '-DLIBCXXABI_USE_LLVM_UNWINDER=ON',
+            '-DLIBCXXABI_ENABLE_RTTI=ON',
         ]
 
     def build(self, builder: BuilderInterface) -> None:
@@ -119,4 +117,7 @@ class LibCxx10Dependency(LibCxx10BaseDependency):
         return 'libcxx'
 
     def get_additional_cmake_args(self, builder: BuilderInterface) -> List[str]:
-        return ['-DLIBCXX_USE_COMPILER_RT=ON']
+        return [
+            '-DLIBCXX_USE_COMPILER_RT=ON',
+            '-DLIBCXX_ENABLE_RTTI=ON',
+        ]

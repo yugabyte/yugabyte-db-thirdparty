@@ -69,3 +69,11 @@ class CassandraCppDriverDependency(Dependency):
             path = os.path.join(builder.prefix_lib, lib_file)
             log_output(builder.log_prefix(self),
                        ['install_name_tool', '-id', '@rpath/' + lib_file, path])
+
+    def get_additional_c_cxx_flags(self, builder: 'BuilderInterface') -> List[str]:
+        if builder.compiler_type == 'clang':
+            return [
+                '-Wno-error=unused-command-line-argument',
+                '-Wno-error=deprecated-declarations'
+            ]
+        return []

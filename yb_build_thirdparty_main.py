@@ -351,9 +351,8 @@ class Builder(BuilderInterface):
                 get_build_def_module('libuuid').LibUuidDependency(),
             ]
 
-            if not self.use_only_gcc():
-                if not self.use_only_clang():
-                    self.dependencies.append(get_build_def_module('llvm').LLVMDependency())
+            if not self.use_only_gcc() and not self.use_only_clang():
+                self.dependencies.append(get_build_def_module('llvm').LLVMDependency())
                 self.dependencies.append(get_build_def_module('libcxx').LibCXXDependency())
 
             if self.use_only_clang():
@@ -1098,18 +1097,22 @@ class Builder(BuilderInterface):
             self.ld_flags += ['-lunwind']
 
             # TODO: dedup with the similar code above used for Clang 7.
-            stdlib_suffix = self.build_type
-            stdlib_path = os.path.join(self.tp_installed_dir, stdlib_suffix, 'libcxx')
-            stdlib_include = os.path.join(stdlib_path, 'include', 'c++', 'v1')
-            stdlib_lib = os.path.join(stdlib_path, 'lib')
+            libcxx_installed_suffix = self.build_type
+            libcxx_installed_path = os.path.join(
+                self.tp_installed_dir, libcxx_installed_suffix, 'libcxx')
+            libcxx_installed_include = os.path.join(libcxx_installed_path, 'include', 'c++', 'v1')
+            libcxx_installed_lib = os.path.join(libcxx_installed_path, 'lib')
 
             if not is_libcxx:
                 self.libs += ['-lc++', '-lc++abi']
 
-                self.cxx_flags.insert(0, '-nostdinc++')
-                self.cxx_flags.insert(0, '-isystem')
-                self.cxx_flags.insert(1, stdlib_include)
-                self.cxx_flags.insert(0, '-stdlib=libc++')
+                self.cxx_flags = [
+                    '-stdlib=libc++',
+                    '-isystem',
+                    libcxx_installed_include,
+                    '-nostdinc++'
+                ] + self.cxx_flags
+                self.prepend_lib_dir_and_rpath(libcxx_installed_lib)
 
         # Needed for Cassandra C++ driver.
         # TODO mbautin: only specify these flags when building the Cassandra C++ driver.
