@@ -712,7 +712,7 @@ class Builder(BuilderInterface):
                         return
             log(f"Could not find an already downloaded file with the same checksum as {file_name}")
         else:
-            log("No expected checksum found for path %s", path)
+            log("No expected checksum found for path %s", file_name)
 
         log("Fetching %s", file_name)
         sleep_time_sec = INITIAL_DOWNLOAD_RETRY_SLEEP_TIME_SEC
