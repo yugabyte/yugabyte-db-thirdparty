@@ -1057,7 +1057,7 @@ class Builder(BuilderInterface):
         if self.build_type == BUILD_TYPE_ASAN:
             self.compiler_flags += [
                 '-fsanitize=address',
-                '-fsanitize=undefined',
+                #'-fsanitize=undefined',
                 '-DADDRESS_SANITIZER'
             ]
 
