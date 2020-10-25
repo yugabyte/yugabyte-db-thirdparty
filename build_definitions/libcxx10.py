@@ -51,23 +51,24 @@ class LibCxx10BaseDependency(Dependency):
     def get_additional_ld_flags(self, builder: BuilderInterface) -> List[str]:
         if builder.build_type in [BUILD_TYPE_ASAN, BUILD_TYPE_TSAN]:
             # We need to link with these libraries in ASAN because otherwise libc++ CMake
-            # configuration step fails and none of C standard library definitons can be found.
+            # configuration step fails and some C standard library functions cannot be found.
             # However, we then remove -lstdc++ from the generated build.ninja file (see
-            # postprocess_ninja_build_file). The remaining remaining libraries are OK to keep.
+            # postprocess_ninja_build_file). The other libraries (-ldl, -lpthread, and -lm) are OK
+            # to keep.
             return ['-ldl', '-lpthread', '-lm', '-lstdc++']
 
         return []
 
+    def get_install_prefix(self, builder: BuilderInterface) -> str:
+        return os.path.join(builder.prefix, 'libcxx')
+
     def build(self, builder: BuilderInterface) -> None:
         llvm_src_path = builder.source_path(self)
-
-        # Install both libcxxabi and libcxx into the same directory.
-        prefix = os.path.join(builder.prefix, 'libcxx')
 
         args = [
             '-DCMAKE_BUILD_TYPE=Release',
             '-DBUILD_SHARED_LIBS=ON',
-            '-DCMAKE_INSTALL_PREFIX={}'.format(prefix),
+            #'-DCMAKE_INSTALL_PREFIX={}'.format(prefix),
             '-DLLVM_PATH=%s' % llvm_src_path,
             '-DLLVM_ENABLE_RTTI=ON',
             '-DLLVM_ENABLE_EH=ON',
@@ -97,6 +98,17 @@ class LibCxxABI10Dependency(LibCxx10BaseDependency):
             '-DLIBCXXABI_USE_COMPILER_RT=ON',
             '-DLIBCXXABI_USE_LLVM_UNWINDER=ON'
         ]
+
+    def build(self, builder: BuilderInteface) -> None:
+        super().build(builder)
+        src_include_path = os.path.join(builder.source_path(self), 'libcxxabi', 'include')
+        # Put C++ ABI headers together with libc++ headers.
+        dest_include_path = os.path.join(builder.prefix, 'include', 'c++', 'v1')
+        mkdir_if_missing(dest_include_path)
+        for header_name in ['cxxabi.h', '__cxxabi_config.h']:
+            copy_file_and_log(
+                os.path.join(src_include_path, header_name),
+                os.path.join(dest_include_path, header_name))
 
 
 class LibCxx10Dependency(LibCxx10BaseDependency):

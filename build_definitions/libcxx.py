@@ -67,13 +67,15 @@ class LibCXXDependency(Dependency):
         remove_path('CMakeCache.txt')
         remove_path('CMakeFiles')
 
-        args = ['cmake',
-                os.path.join(builder.source_path(self), 'llvm'),
-                '-DCMAKE_BUILD_TYPE=Release',
-                '-DLLVM_TARGETS_TO_BUILD=X86',
-                '-DLLVM_ENABLE_RTTI=ON',
-                '-DCMAKE_CXX_FLAGS={}'.format(" ".join(builder.ld_flags)),
-                '-DCMAKE_INSTALL_PREFIX={}'.format(prefix)]
+        args = [
+            'cmake',
+            os.path.join(builder.source_path(self), 'llvm'),
+            '-DCMAKE_BUILD_TYPE=Release',
+            '-DLLVM_TARGETS_TO_BUILD=X86',
+            '-DLLVM_ENABLE_RTTI=ON',
+            '-DCMAKE_CXX_FLAGS={}'.format(" ".join(builder.ld_flags)),
+            #'-DCMAKE_INSTALL_PREFIX={}'.format(prefix)
+        ]
         if builder.build_type == BUILD_TYPE_ASAN:
             args.append("-DLLVM_USE_SANITIZER=Address;Undefined")
         elif builder.build_type == BUILD_TYPE_TSAN:

@@ -19,7 +19,12 @@ from yugabyte_db_thirdparty.builder_interface import BuilderInterface
 from yugabyte_db_thirdparty.dependency import Dependency
 from yugabyte_db_thirdparty.custom_logging import log, log_output, fatal
 from yugabyte_db_thirdparty.os_detection import is_mac
-from yugabyte_db_thirdparty.util import mkdir_if_missing, PushDir, remove_path
+from yugabyte_db_thirdparty.util import (
+    mkdir_if_missing,
+    PushDir,
+    remove_path,
+    copy_file_and_log
+)
 
 from build_definitions import (
     BUILD_GROUP_COMMON,

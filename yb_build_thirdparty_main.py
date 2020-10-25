@@ -1152,6 +1152,7 @@ class Builder(BuilderInterface):
             '-DCMAKE_SHARED_LINKER_FLAGS={}'.format(ld_flags_str),
             '-DCMAKE_EXE_LINKER_FLAGS={}'.format(ld_flags_str),
             '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON',
+            '-DCMAKE_INSTALL_PREFIX={}'.format(dep.get_install_prefix(self))
         ]
 
     def build_dependency(self, dep: Dependency) -> None:

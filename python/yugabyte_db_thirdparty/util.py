@@ -132,3 +132,8 @@ def which_must_exist(cmd_name: str) -> str:
     if result is None:
         raise IOError("Executable not found: %s. PATH: %s" % (cmd_name, os.getenv('PATH')))
     return result
+
+
+def copy_file_and_log(src_path: str, dst_path: str) -> None:
+    logging.info(f"Copying file {os.path.abspath(src_path)} to {os.path.abspath(dst_path)}")
+    shutil.coypfile(src_path, dst_path)

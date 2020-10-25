@@ -14,6 +14,7 @@
 import os
 import sys
 import subprocess
+import shutil
 
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
@@ -41,8 +42,6 @@ class LlvmLibUnwindDependency(Dependency):
         src_include_path = os.path.join(builder.source_path(self), src_subdir_name, 'include')
         dest_include_path = os.path.join(builder.prefix, 'include')
         for header_name in ['libunwind.h', 'unwind.h', '__libunwind_config.h']:
-            subprocess.check_call(
-                ['cp',
-                 '-af',
-                 os.path.join(src_include_path, header_name),
-                 os.path.join(dest_include_path, header_name)])
+            copy_file_and_log(
+                os.path.join(src_include_path, header_name),
+                os.path.join(dest_include_path, header_name))

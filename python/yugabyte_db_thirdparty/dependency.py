@@ -87,3 +87,6 @@ class Dependency:
 
     def build(self, builder: 'BuilderInterface') -> None:
         raise NotImplementedError()
+
+    def get_install_prefix(self, builder: 'BuilderInterface') -> str:
+        return builder.prefix

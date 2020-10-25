@@ -31,5 +31,5 @@ class LibCDSDependency(Dependency):
         builder.build_with_cmake(self,
                                  ['-DCMAKE_BUILD_TYPE=Release',
                                   '-DCMAKE_POSITION_INDEPENDENT_CODE=On',
-                                  '-DCMAKE_INSTALL_PREFIX={}'.format(builder.prefix),
+                                  #'-DCMAKE_INSTALL_PREFIX={}'.format(builder.prefix),
                                   '-DBUILD_SHARED_LIBS=On'])
