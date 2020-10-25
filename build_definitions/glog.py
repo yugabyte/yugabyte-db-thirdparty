@@ -26,7 +26,6 @@ class GLogDependency(Dependency):
             version='0.4.0',
             url_pattern='https://github.com/google/glog/archive/v{0}.tar.gz',
             build_group=BUILD_GROUP_INSTRUMENTED)
-        self.copy_sources = True
         self.patch_version = 1
         self.patch_strip = 0
         self.patches = ['glog-tsan-annotations.patch',
@@ -39,8 +38,6 @@ class GLogDependency(Dependency):
             dep=self,
             extra_args=[
                 '-DCMAKE_BUILD_TYPE=Release',
-                '-DCMAKE_POSITION_INDEPENDENT_CODE=ON',
-                '-DBUILD_SHARED_LIBS=ON',
                 '-DBUILD_STATIC_LIBS=ON'
             ])
         return

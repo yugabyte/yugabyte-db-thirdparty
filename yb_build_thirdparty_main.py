@@ -1156,6 +1156,10 @@ class Builder(BuilderInterface):
                 '-nostdinc++'
             ] + self.cxx_flags
             self.prepend_lib_dir_and_rpath(libcxx_installed_lib)
+        is_libcxxabi:
+            # libcxxabi still needs to be able to find libcxx.
+            self.add_rpath(libcxx_installed_dir)
+
 
     def log_and_set_env_var(self, env_var_name: str, items: List[str]) -> None:
         value_str = ' '.join(items)
@@ -1189,7 +1193,9 @@ class Builder(BuilderInterface):
             '-DCMAKE_SHARED_LINKER_FLAGS={}'.format(ld_flags_str),
             '-DCMAKE_EXE_LINKER_FLAGS={}'.format(ld_flags_str),
             '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON',
-            '-DCMAKE_INSTALL_PREFIX={}'.format(dep.get_install_prefix(self))
+            '-DCMAKE_INSTALL_PREFIX={}'.format(dep.get_install_prefix(self)),
+            '-DBUILD_SHARED_LIBS=ON',
+            '-DCMAKE_POSITION_INDEPENDENT_CODE=ON'
         ]
 
     def build_dependency(self, dep: Dependency) -> None:
@@ -1432,3 +1438,7 @@ if __name__ == "__main__":
 # Validate that paths that we are using exist.
 # E.g. when we are adding rpaths and library dirs and building something, those paths should
 # exist already.
+
+# glog's CMake build should properly find gflags
+
+#
