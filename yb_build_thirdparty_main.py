@@ -869,7 +869,7 @@ class Builder(BuilderInterface):
             # library implementation. Some of the dependencies do not compile against libc++ by
             # default, so we specify it explicitly.
             self.cxx_flags.append("-stdlib=libc++")
-            self.libs += ["-lc++", "-lc++abi"]
+            self.ld_flags += ["-lc++", "-lc++abi"]
 
             # Build for macOS Mojave or later. See https://bit.ly/37myHbk
             self.compiler_flags.append("-mmacosx-version-min=10.14")
@@ -1104,7 +1104,7 @@ class Builder(BuilderInterface):
             libcxx_installed_lib = os.path.join(libcxx_installed_path, 'lib')
 
             if not is_libcxx:
-                self.libs += ['-lc++', '-lc++abi']
+                self.ld_flags += ['-lc++', '-lc++abi']
 
                 self.cxx_flags = [
                     '-stdlib=libc++',
@@ -1113,11 +1113,6 @@ class Builder(BuilderInterface):
                     '-nostdinc++'
                 ] + self.cxx_flags
                 self.prepend_lib_dir_and_rpath(libcxx_installed_lib)
-
-        # Needed for Cassandra C++ driver.
-        # TODO mbautin: only specify these flags when building the Cassandra C++ driver.
-        self.cxx_flags.insert(0, '-Wno-error=unused-command-line-argument')
-        self.cxx_flags.insert(0, '-Wno-error=deprecated-declarations')
 
         # After linking every library or executable, we will check if it depends on libstdc++ and
         # fail immediately at that point.
