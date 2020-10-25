@@ -279,7 +279,7 @@ class Builder(BuilderInterface):
                  'makes the build slower.')
 
         parser.add_argument(
-            '--llvm_version',
+            '--llvm-version',
             action='store_true',
             default=None,
             help='Version (tag) to use for dependencies based on LLVM codebase')
