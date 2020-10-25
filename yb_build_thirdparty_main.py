@@ -317,10 +317,13 @@ class Builder(BuilderInterface):
             self.args.single_compiler_type = 'gcc'
 
         if self.args.llvm_version is None:
-            if self.args.llvm_suffix == '-10':
+            if self.args.compiler_sufifx == '-10':
                 self.args.llvm_version = '10.0.1'
-            if self.args.llvm_suffix == '-11':
+            elif self.args.compiler_sufifx == '-11':
                 self.args.llvm_version = '11.0.0'
+            else:
+                self.args.llvm_version = '11.0.0'
+            log("Using LLVm libraries version: %s", self.args.llvm_version)
 
     def use_only_clang(self) -> bool:
         return is_mac() or self.args.single_compiler_type == 'clang'
