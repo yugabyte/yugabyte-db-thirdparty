@@ -84,7 +84,7 @@ class Llvm10LibCxxDependencyBase(Llvm10PartDependencyBase):
         builder.build_with_cmake(
             self,
             extra_args=args,
-            use_ninja_if_available=True)
+            src_subdir_name='llvm')
 
     # def get_source_subdir_name(self) -> str:
     #     raise NotImplementedError()
