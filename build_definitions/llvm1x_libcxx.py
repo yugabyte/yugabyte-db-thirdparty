@@ -71,14 +71,13 @@ class Llvm10LibCxxDependencyBase(Llvm10PartDependencyBase):
             '-DLLVM_PATH=%s' % llvm_src_path,
 
             # For combined libcxxabi + libcxx build
-            '-DLLVM_ENABLE_PROJECTS=libcxxabi;libcxx',
+            '-DLLVM_ENABLE_PROJECTS=libunwind;libcxxabi;libcxx',
             # '-DLIBCXXABI_LIBCXX_PATH=%s' % os.path.join(llvm_src_path, 'libcxx'),
             '-DLIBCXXABI_USE_COMPILER_RT=ON',
             '-DLIBCXXABI_USE_LLVM_UNWINDER=ON',
             '-DLIBCXXABI_ENABLE_RTTI=ON',
-            '-DLIBCXXABI_USE_COMPILER_RT=ON',
-            '-DLIBCXXABI_USE_LLVM_UNWINDER=ON',
-            '-DLIBCXXABI_ENABLE_RTTI=ON',
+            '-DLIBCXX_USE_COMPILER_RT=ON',
+            '-DLIBCXX_ENABLE_RTTI=ON',
         ]
 
         builder.build_with_cmake(
