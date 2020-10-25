@@ -38,8 +38,7 @@ class GLogDependency(Dependency):
             dep=self,
             extra_args=[
                 '-DCMAKE_BUILD_TYPE=Release',
-                '-DBUILD_STATIC_LIBS=ON'
-            ])
+\            ])
         return
 
         log_prefix = builder.log_prefix(self)
