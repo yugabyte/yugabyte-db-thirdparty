@@ -22,7 +22,7 @@ from build_definitions.llvm10_part import Llvm10PartDependencyBase
 
 class Llvm10CompilerRtDependency(Llvm10PartDependencyBase):
     def __init__(self) -> None:
-        super(LlvmCompilerRTDependency, self).__init__(
+        super(Llvm10CompilerRtDependency, self).__init__(
             name='llvm10_compiler_rt',
             build_group=BUILD_GROUP_COMMON)
 
