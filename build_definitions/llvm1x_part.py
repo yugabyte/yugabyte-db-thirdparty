@@ -13,14 +13,14 @@
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
 
-class Llvm10PartDependencyBase(Dependency):
+class Llvm1xPartDependencyBase(Dependency):
     """
     Not a real dependency, but a base class for various dependencies corresponding to parts of the
     LLVM project. Allows to reuse the same download and the same archive directory.
     """
     def __init__(self, name: str, build_group: str, version: str) -> None:
         assert name.startswith('llvm1x_'), f'Invalid name: {name}'
-        super(Llvm10PartDependencyBase, self).__init__(
+        super(Llvm1xPartDependencyBase, self).__init__(
             name=name,
             version=version,
             url_pattern='https://github.com/llvm/llvm-project/archive/llvmorg-{}.tar.gz',

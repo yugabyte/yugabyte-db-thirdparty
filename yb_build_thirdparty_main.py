@@ -373,16 +373,16 @@ class Builder(BuilderInterface):
 
             if self.use_only_clang():
                 self.dependencies.extend([
-                    get_build_def_module('llvm1x_libunwind').Llvm10LibUnwindDependency(
+                    get_build_def_module('llvm1x_libunwind').Llvm1xLibUnwindDependency(
                         version=self.args.llvm_version
                     ),
-                    # get_build_def_module('llvm1x_libcxx').Llvm10LibCxxAbiDependency(
-                    #     version=self.args.llvm_version
-                    # ),
-                    get_build_def_module('llvm1x_libcxx').Llvm10LibCxxDependency(
+                    get_build_def_module('llvm1x_libcxx').Llvm1xLibCxxAbiDependency(
                         version=self.args.llvm_version
                     ),
-                    # get_build_def_module('llvm1x_compiler_rt').Llvm10CompilerRtDependency(
+                    get_build_def_module('llvm1x_libcxx').Llvm1xLibCxxDependency(
+                        version=self.args.llvm_version
+                    ),
+                    # get_build_def_module('llvm1x_compiler_rt').Llvm1xCompilerRtDependency(
                     #     version=self.args.llvm_version
                     # )
                 ])

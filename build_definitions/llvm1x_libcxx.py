@@ -15,7 +15,7 @@ import os
 import sys
 
 from build_definitions import BUILD_TYPE_ASAN, BUILD_TYPE_TSAN
-from build_definitions.llvm1x_part import Llvm10PartDependencyBase
+from build_definitions.llvm1x_part import Llvm1xPartDependencyBase
 
 from yugabyte_db_thirdparty.util import replace_string_in_file
 
@@ -25,9 +25,9 @@ from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 LIBCXX_LLVM_VERSION = '10.0.1'
 
 
-class Llvm10LibCxxDependencyBase(Llvm10PartDependencyBase):
+class Llvm1xLibCxxDependencyBase(Llvm1xPartDependencyBase):
     def __init__(self, name: str, version: str) -> None:
-        super(Llvm10LibCxxDependencyBase, self).__init__(
+        super(Llvm1xLibCxxDependencyBase, self).__init__(
             name=name,
             version=version,
             build_group=BUILD_GROUP_INSTRUMENTED)
@@ -82,9 +82,9 @@ class Llvm10LibCxxDependencyBase(Llvm10PartDependencyBase):
         raise NotImplementedError()
 
 
-class Llvm10LibCxxAbiDependency(Llvm10LibCxxDependencyBase):
+class Llvm1xLibCxxAbiDependency(Llvm1xLibCxxDependencyBase):
     def __init__(self, version: str) -> None:
-        super(Llvm10LibCxxAbiDependency, self).__init__(
+        super(Llvm1xLibCxxAbiDependency, self).__init__(
             name='llvm1x_libcxxabi',
             version=version)
 
@@ -112,9 +112,9 @@ class Llvm10LibCxxAbiDependency(Llvm10LibCxxDependencyBase):
                 os.path.join(dest_include_path, header_name))
 
 
-class Llvm10LibCxxDependency(Llvm10LibCxxDependencyBase):
+class Llvm1xLibCxxDependency(Llvm1xLibCxxDependencyBase):
     def __init__(self, version: str) -> None:
-        super(Llvm10LibCxxDependency, self).__init__(
+        super(Llvm1xLibCxxDependency, self).__init__(
             name='llvm1x_libcxx',
             version=version)
 
