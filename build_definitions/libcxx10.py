@@ -103,7 +103,7 @@ class LibCxxABI10Dependency(LibCxx10BaseDependency):
         super().build(builder)
         src_include_path = os.path.join(builder.source_path(self), 'libcxxabi', 'include')
         # Put C++ ABI headers together with libc++ headers.
-        dest_include_path = os.path.join(builder.prefix, 'include', 'c++', 'v1')
+        dest_include_path = os.path.join(self.get_install_prefix(builder), 'include', 'c++', 'v1')
         mkdir_if_missing(dest_include_path)
         for header_name in ['cxxabi.h', '__cxxabi_config.h']:
             copy_file_and_log(
