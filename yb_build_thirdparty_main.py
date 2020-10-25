@@ -713,32 +713,7 @@ class Builder(BuilderInterface):
             log("File %s already exists but has wrong checksum, removing", path)
             remove_path(path)
 
-        if file_name in self.filename2checksum:
-            expected_checksum = self.filename2checksum[file_name]
-            other_file_names_with_same_checksum = [
-                other_file_name for other_file_name in self.filename2checksum
-                if self.filename2checksum[other_file_name] == expected_checksum and
-                other_file_name != path
-            ]
-            if other_file_names_with_same_checksum:
-                log("Considering other downloads with the same checksum: %s",
-                    other_file_names_with_same_checksum)
-
-            for other_file_name in other_file_names_with_same_checksum:
-                if os.path.exists(other_file_name) and not os.path.islink(other_file_name):
-                    log("File %s with the same expected checksum as %s (%s) already exists, "
-                        "verifying its checksum",
-                        other_file_name, path, expected_checksum)
-                    if self.verify_checksum(other_file_name, expected_checksum):
-                        log("Checksum is correct for %s, creating symlink %s -> %s",
-                            other_file_name, path, other_file_name)
-                        os.symlink(other_file_name, path)
-                        return
-            log(f"Could not find an already downloaded file with the same checksum as {file_name}")
-        else:
-            log("No expected checksum found for path %s", file_name)
-
-        log("Fetching %s", file_name)
+        log("Fetching %s from %s", file_name, url)
         sleep_time_sec = INITIAL_DOWNLOAD_RETRY_SLEEP_TIME_SEC
         for attempt_index in range(1, MAX_FETCH_ATTEMPTS + 1):
             try:
@@ -1019,7 +994,7 @@ class Builder(BuilderInterface):
             command_args = command_item['command'].split()
             if self.build_type == BUILD_TYPE_ASAN:
                 assert_list_contains(command_args, '-fsanitize=address')
-                assert_list_contains(command_args, '-fsanitize=undefined')
+                # assert_list_contains(command_args, '-fsanitize=undefined')
             if self.build_type == BUILD_TYPE_TSAN:
                 assert_list_contains(command_args, '-fsanitize=thread')
 
