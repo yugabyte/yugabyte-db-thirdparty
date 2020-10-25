@@ -994,7 +994,7 @@ class Builder(BuilderInterface):
             command_args = command_item['command'].split()
             if self.build_type == BUILD_TYPE_ASAN:
                 assert_list_contains(command_args, '-fsanitize=address')
-                # assert_list_contains(command_args, '-fsanitize=undefined')
+                assert_list_contains(command_args, '-fsanitize=undefined')
             if self.build_type == BUILD_TYPE_TSAN:
                 assert_list_contains(command_args, '-fsanitize=thread')
 
@@ -1054,13 +1054,16 @@ class Builder(BuilderInterface):
         # Special setup for Clang on Linux.
         # -----------------------------------------------------------------------------------------
 
+        if self.args.single_compiler_type == 'clang':
+            self.init_clang10_or_later_flags(dep)
+            return
+
+
         if self.build_type == BUILD_TYPE_ASAN:
             self.compiler_flags += [
                 '-fsanitize=address',
-                #'-fsanitize=undefined',
+                '-fsanitize=undefined',
                 '-DADDRESS_SANITIZER',
-                # https://clang.llvm.org/docs/ClangCommandLineReference.html
-                '-mllvm', '-asan-use-private-alias=1'
             ]
 
         if self.build_type == BUILD_TYPE_TSAN:
@@ -1068,10 +1071,6 @@ class Builder(BuilderInterface):
                 '-fsanitize=thread',
                 '-DTHREAD_SANITIZER'
             ]
-
-        if self.args.single_compiler_type == 'clang':
-            self.init_clang10_or_later_flags(dep)
-            return
 
         # This is used to build code with libc++ and Clang 7 built as part of thirdparty.
         stdlib_suffix = self.build_type
@@ -1105,42 +1104,76 @@ class Builder(BuilderInterface):
         """
         self.ld_flags.append('-rtlib=compiler-rt')
 
-        if self.build_type != BUILD_TYPE_COMMON:
-            # TODO mbautin: refactor to polymorphism
-            is_libcxx = 'libcxx' in dep.name
-            self.ld_flags += ['-lunwind']
+        if self.build_type == BUILD_TYPE_COMMON:
+            return
 
-            libcxx_installed_include, libcxx_installed_lib = self.get_libcxx_dirs(self.build_type)
+        # TODO mbautin: refactor to polymorphism
+        is_libcxx = 'libcxx' in dep.name
+        is_libcxxabi = 'libcxxabi' in dep.name
 
-            if not is_libcxx:
-                self.ld_flags += ['-lc++', '-lc++abi']
+        if self.build_type == BUILD_TYPE_ASAN:
+            self.compiler_flags += [
+                '-fsanitize=address',
+                '-fsanitize=undefined',
+                '-DADDRESS_SANITIZER',
+                '-shared-libasan',
+                # TODO: consider advice from here:
+                # https://clang.llvm.org/docs/ClangCommandLineReference.html
+            ]
+            if is_libcxxabi:
+                # To avoid an infinite loop in UBSAN.
+                # https://monorail-prod.appspot.com/p/chromium/issues/detail?id=609786
+                # This comment:
+                # https://gist.githubusercontent.com/mbautin/ad9ea4715669da3b3a5fb9495659c4a9/raw
+                self.compiler_flags += '-fno-sanitize=vptr'
 
-                self.cxx_flags = [
-                    '-stdlib=libc++',
-                    '-isystem',
-                    libcxx_installed_include,
-                    '-nostdinc++'
-                ] + self.cxx_flags
-                self.prepend_lib_dir_and_rpath(libcxx_installed_lib)
+            compiler_rt_lib_dir = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.realpath(self.cc))),
+                'lib', 'linux')
+            if not os.path.isdir(compiler_rt_lib_dir):
+                raise IOError("Directory does not exist: %s", compiler_rt_lib_dir)
+            self.add_lib_and_rpath(compiler_rt_lib_dir)
+            self.ld_flags.append('-lclang_rt.ubsan_minimal-x86_64')
 
-            # TODO mbautin: remove this altogether.
-            if False and self.build_type in [BUILD_TYPE_ASAN, BUILD_TYPE_TSAN]:
-                # Use the compiler-rt version we built with no instrumentation when building
-                # libc++ with ASAN/TSAN instrumentation. So the build order is:
-                # - Uninstrumented libc++abi and libc++
-                # - Uninstrumetned compiler-rt
-                # - Other uninstrumented dependencies, still using the compiler-rt that came with
-                #   LLVM/Clang (for consistency).
-                # - ASAN/TSAN instrumented libc++abi and libc++, using the instrumented compiler-rt
-                # - ASAN/TSAN instrumented everything else, using the instrumented compiler-rt
-                compiler_rt_lib_path = os.path.join(
-                    self.tp_installed_dir, BUILD_TYPE_UNINSTRUMENTED, 'compiler-rt',
-                    'lib', 'linux')
+        if self.build_type == BUILD_TYPE_TSAN:
+            self.compiler_flags += [
+                '-fsanitize=thread',
+                '-DTHREAD_SANITIZER'
+            ]
 
-                if not glob.glob(os.path.join(compiler_rt_lib_path, '*.so')):
-                    raise IOError(f"Did not find any .so files in {compiler_rt_lib_path}")
+        self.ld_flags += ['-lunwind']
 
-                self.prepend_lib_dir_and_rpath(compiler_rt_lib_path)
+        libcxx_installed_include, libcxx_installed_lib = self.get_libcxx_dirs(self.build_type)
+
+        if not is_libcxx:
+            self.ld_flags += ['-lc++', '-lc++abi']
+
+            self.cxx_flags = [
+                '-stdlib=libc++',
+                '-isystem',
+                libcxx_installed_include,
+                '-nostdinc++'
+            ] + self.cxx_flags
+            self.prepend_lib_dir_and_rpath(libcxx_installed_lib)
+
+        # TODO mbautin: remove this altogether.
+        if False and self.build_type in [BUILD_TYPE_ASAN, BUILD_TYPE_TSAN]:
+            # Use the compiler-rt version we built with no instrumentation when building
+            # libc++ with ASAN/TSAN instrumentation. So the build order is:
+            # - Uninstrumented libc++abi and libc++
+            # - Uninstrumetned compiler-rt
+            # - Other uninstrumented dependencies, still using the compiler-rt that came with
+            #   LLVM/Clang (for consistency).
+            # - ASAN/TSAN instrumented libc++abi and libc++, using the instrumented compiler-rt
+            # - ASAN/TSAN instrumented everything else, using the instrumented compiler-rt
+            compiler_rt_lib_path = os.path.join(
+                self.tp_installed_dir, BUILD_TYPE_UNINSTRUMENTED, 'compiler-rt',
+                'lib', 'linux')
+
+            if not glob.glob(os.path.join(compiler_rt_lib_path, '*.so')):
+                raise IOError(f"Did not find any .so files in {compiler_rt_lib_path}")
+
+            self.prepend_lib_dir_and_rpath(compiler_rt_lib_path)
 
     def log_and_set_env_var(self, env_var_name: str, items: List[str]) -> None:
         value_str = ' '.join(items)
