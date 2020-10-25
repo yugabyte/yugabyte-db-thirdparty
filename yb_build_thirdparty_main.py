@@ -279,6 +279,12 @@ class Builder(BuilderInterface):
                  'makes the build slower.')
 
         parser.add_argument(
+            '--llvm1x_version',
+            action='store_true',
+            default='11.0.0',
+            help='Version (tag) to use for dependencies based on LLVM codebase')
+
+        parser.add_argument(
             'dependencies',
             nargs=argparse.REMAINDER,
             help='Dependencies to build.')
@@ -358,10 +364,10 @@ class Builder(BuilderInterface):
 
             if self.use_only_clang():
                 self.dependencies.extend([
-                    get_build_def_module('llvm10_libunwind').Llvm10LibUnwindDependency(),
-                    get_build_def_module('llvm10_libcxx').Llvm10LibCxxAbiDependency(),
-                    get_build_def_module('llvm10_libcxx').Llvm10LibCxxDependency(),
-                    get_build_def_module('llvm10_compiler_rt').Llvm10CompilerRtDependency()
+                    get_build_def_module('llvm1x_libunwind').Llvm10LibUnwindDependency(),
+                    get_build_def_module('llvm1x_libcxx').Llvm10LibCxxAbiDependency(),
+                    get_build_def_module('llvm1x_libcxx').Llvm10LibCxxDependency(),
+                    get_build_def_module('llvm1x_compiler_rt').Llvm10CompilerRtDependency()
                 ])
             else:
                 self.dependencies.append(get_build_def_module('libunwind').LibUnwindDependency())

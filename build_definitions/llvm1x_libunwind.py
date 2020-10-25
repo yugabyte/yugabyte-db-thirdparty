@@ -17,13 +17,13 @@ import subprocess
 import shutil
 
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
-from build_definitions.llvm10_part import Llvm10PartDependencyBase
+from build_definitions.llvm1x_part import Llvm10PartDependencyBase
 
 
 class Llvm10LibUnwindDependency(Llvm10PartDependencyBase):
     def __init__(self) -> None:
         super(Llvm10LibUnwindDependency, self).__init__(
-            name='llvm10_libunwind',
+            name='llvm1x_libunwind',
             build_group=BUILD_GROUP_COMMON)
 
     def build(self, builder: BuilderInterface) -> None:

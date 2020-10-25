@@ -15,7 +15,7 @@ import os
 import sys
 
 from build_definitions import BUILD_TYPE_ASAN, BUILD_TYPE_TSAN
-from build_definitions.llvm10_part import Llvm10PartDependencyBase
+from build_definitions.llvm1x_part import Llvm10PartDependencyBase
 
 from yugabyte_db_thirdparty.util import replace_string_in_file
 
@@ -82,7 +82,7 @@ class Llvm10LibCxxDependencyBase(Llvm10PartDependencyBase):
 
 class Llvm10LibCxxAbiDependency(Llvm10LibCxxDependencyBase):
     def __init__(self) -> None:
-        super(Llvm10LibCxxAbiDependency, self).__init__('llvm10_libcxxabi')
+        super(Llvm10LibCxxAbiDependency, self).__init__('llvm1x_libcxxabi')
 
     def get_source_subdir_name(self) -> str:
         return 'libcxxabi'
@@ -110,7 +110,7 @@ class Llvm10LibCxxAbiDependency(Llvm10LibCxxDependencyBase):
 
 class Llvm10LibCxxDependency(Llvm10LibCxxDependencyBase):
     def __init__(self) -> None:
-        super(Llvm10LibCxxDependency, self).__init__('llvm10_libcxx')
+        super(Llvm10LibCxxDependency, self).__init__('llvm1x_libcxx')
 
     def get_source_subdir_name(self) -> str:
         return 'libcxx'

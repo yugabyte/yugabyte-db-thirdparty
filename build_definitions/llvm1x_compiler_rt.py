@@ -17,13 +17,13 @@ import subprocess
 import shutil
 
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
-from build_definitions.llvm10_part import Llvm10PartDependencyBase
+from build_definitions.llvm1x_part import Llvm10PartDependencyBase
 
 
 class Llvm10CompilerRtDependency(Llvm10PartDependencyBase):
     def __init__(self) -> None:
         super(Llvm10CompilerRtDependency, self).__init__(
-            name='llvm10_compiler_rt',
+            name='llvm1x_compiler_rt',
             build_group=BUILD_GROUP_INSTRUMENTED)
 
     def build(self, builder: BuilderInterface) -> None:
