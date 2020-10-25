@@ -26,6 +26,7 @@ import subprocess
 import sys
 import time
 import json
+import glob
 from datetime import datetime
 
 from typing import Set, List, Dict, Optional, Tuple, Union, cast
@@ -1120,20 +1121,22 @@ class Builder(BuilderInterface):
                 ] + self.cxx_flags
                 self.prepend_lib_dir_and_rpath(libcxx_installed_lib)
 
-            if self.build_type in [BUILD_TYPE_ASAN, BUILD_TYPE_TSAN] or not is_libcxx:
+            if self.build_type in [BUILD_TYPE_ASAN, BUILD_TYPE_TSAN]:
                 # Use the compiler-rt version we built with no instrumentation when building
-                # libc++ with ASAN/TSAN instrumentation. Also use it when building code other than
-                # libcxx with the uninstrumented build type.
-                # So the build order is:
+                # libc++ with ASAN/TSAN instrumentation. So the build order is:
                 # - Uninstrumented libc++abi and libc++
                 # - Uninstrumetned compiler-rt
-                # - Other uninstrumented dependencies, using the above compiler-rt
+                # - Other uninstrumented dependencies, still using the compiler-rt that came with
+                #   LLVM/Clang (for consistency).
                 # - ASAN/TSAN instrumented libc++abi and libc++, using the instrumented compiler-rt
                 # - ASAN/TSAN instrumented everything else, using the instrumented compiler-rt
-                self.prepend_lib_dir_and_rpath(
-                    os.path.join(self.tp_installed_dir, BUILD_TYPE_UNINSTRUMENTED, 'compiler-rt',
-                                 'lib')
-                )
+                compiler_rt_lib_path = os.path.join(
+                    self.tp_installed_dir, BUILD_TYPE_UNINSTRUMENTED, 'compiler-rt',
+                    'lib', 'linux')
+                if not glob.glob(os.path.join(compiler_rt_lib_path, '*.so')):
+                    raise IOError(f"Did not find any .so files in {compiler_rt_lib_path}")
+
+                self.prepend_lib_dir_and_rpath(compiler_rt_lib_path)
 
     def log_and_set_env_var(self, env_var_name: str, items: List[str]) -> None:
         value_str = ' '.join(items)
@@ -1393,3 +1396,20 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+# TODO: filter options returned by llvm-config, remove -fno-rtti and some more options.
+# Or maybe it is OK?
+#
+# Validate libraries that we end up depending on. Make sure we are not using the version of
+# libc++ that comes with clang. And that we are not using libstdc++ (certainly should not).
+#
+# What to do about libgcc_s?
+#
+# Use Ninja for all CMake builds.
+#
+# Use bear to listen for compilation commands on non-CMake builds?
+#
+# Validate that paths that we are using exist.
+# E.g. when we are adding rpaths and library dirs and building something, those paths should
+# exist already.
