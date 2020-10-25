@@ -346,6 +346,10 @@ class Builder(BuilderInterface):
             get_build_def_module('openldap').OpenLDAPDependency(),
         ]
 
+        if is_linux() and self.use_only_clang():
+            self.dependencies.append(
+                get_build_def_module('llvm_compiler_rt').LlvmCompilerRTDependency())
+
         if is_linux():
             self.dependencies += [
                 get_build_def_module('libuuid').LibUuidDependency(),
