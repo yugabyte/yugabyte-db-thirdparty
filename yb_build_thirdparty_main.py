@@ -348,7 +348,7 @@ class Builder(BuilderInterface):
 
         if is_linux() and self.use_only_clang():
             self.dependencies.append(
-                get_build_def_module('llvm_compiler_rt').LlvmCompilerRTDependency())
+                get_build_def_module('llvm10_compiler_rt').Llvm10CompilerRtDependency())
 
         if is_linux():
             self.dependencies += [

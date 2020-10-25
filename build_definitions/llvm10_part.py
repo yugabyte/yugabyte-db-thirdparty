@@ -19,6 +19,7 @@ class Llvm10PartDependencyBase(Dependency):
     LLVM project. Allows to reuse the same download and the same archive directory.
     """
     def __init__(self, name: str, build_group: str) -> None:
+        assert name.startswith('llvm10_'), f'Invalid name: {name}'
         super(Llvm10PartDependencyBase, self).__init__(
             name=name,
             version='10.0.1',
