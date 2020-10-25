@@ -135,5 +135,5 @@ def which_must_exist(cmd_name: str) -> str:
 
 
 def copy_file_and_log(src_path: str, dst_path: str) -> None:
-    logging.info(f"Copying file {os.path.abspath(src_path)} to {os.path.abspath(dst_path)}")
+    log(f"Copying file {os.path.abspath(src_path)} to {os.path.abspath(dst_path)}")
     shutil.coypfile(src_path, dst_path)
