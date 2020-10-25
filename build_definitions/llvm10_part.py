@@ -25,7 +25,7 @@ class Llvm10PartDependencyBase(Dependency):
             version='10.0.1',
             url_pattern='https://github.com/llvm/llvm-project/archive/llvmorg-{}.tar.gz',
             archive_name_prefix='llvm',
-            build_group=BUILD_GROUP_COMMON)
+            build_group=build_group)
 
     def get_source_dir_basename(self) -> str:
         return f'llvm-{self.version}'
