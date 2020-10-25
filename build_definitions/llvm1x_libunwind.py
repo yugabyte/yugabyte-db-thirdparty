@@ -21,9 +21,10 @@ from build_definitions.llvm1x_part import Llvm10PartDependencyBase
 
 
 class Llvm10LibUnwindDependency(Llvm10PartDependencyBase):
-    def __init__(self) -> None:
+    def __init__(self, version: str) -> None:
         super(Llvm10LibUnwindDependency, self).__init__(
             name='llvm1x_libunwind',
+            version=version,
             build_group=BUILD_GROUP_COMMON)
 
     def build(self, builder: BuilderInterface) -> None:

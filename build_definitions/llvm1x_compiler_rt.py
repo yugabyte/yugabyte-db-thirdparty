@@ -21,9 +21,10 @@ from build_definitions.llvm1x_part import Llvm10PartDependencyBase
 
 
 class Llvm10CompilerRtDependency(Llvm10PartDependencyBase):
-    def __init__(self) -> None:
+    def __init__(self, version: str) -> None:
         super(Llvm10CompilerRtDependency, self).__init__(
             name='llvm1x_compiler_rt',
+            version=version,
             build_group=BUILD_GROUP_INSTRUMENTED)
 
     def build(self, builder: BuilderInterface) -> None:

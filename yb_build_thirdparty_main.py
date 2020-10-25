@@ -279,9 +279,9 @@ class Builder(BuilderInterface):
                  'makes the build slower.')
 
         parser.add_argument(
-            '--llvm1x_version',
+            '--llvm_version',
             action='store_true',
-            default='11.0.0',
+            default=None,
             help='Version (tag) to use for dependencies based on LLVM codebase')
 
         parser.add_argument(
@@ -315,6 +315,12 @@ class Builder(BuilderInterface):
                 raise ValueError("--devtoolset is not compatible with compiler type: %s" %
                                  self.args.single_compiler_type)
             self.args.single_compiler_type = 'gcc'
+
+        if self.args.llvm_version is None:
+            if self.args.llvm_suffix == '-10':
+                self.args.llvm_version = '10.0.1'
+            if self.args.llvm_suffix == '-11':
+                self.args.llvm_version = '11.0.0'
 
     def use_only_clang(self) -> bool:
         return is_mac() or self.args.single_compiler_type == 'clang'
@@ -364,10 +370,18 @@ class Builder(BuilderInterface):
 
             if self.use_only_clang():
                 self.dependencies.extend([
-                    get_build_def_module('llvm1x_libunwind').Llvm10LibUnwindDependency(),
-                    get_build_def_module('llvm1x_libcxx').Llvm10LibCxxAbiDependency(),
-                    get_build_def_module('llvm1x_libcxx').Llvm10LibCxxDependency(),
-                    get_build_def_module('llvm1x_compiler_rt').Llvm10CompilerRtDependency()
+                    get_build_def_module('llvm1x_libunwind').Llvm10LibUnwindDependency(
+                        version=self.args.llvm_version
+                    ),
+                    get_build_def_module('llvm1x_libcxx').Llvm10LibCxxAbiDependency(
+                        version=self.args.llvm_version
+                    ),
+                    get_build_def_module('llvm1x_libcxx').Llvm10LibCxxDependency(
+                        version=self.args.llvm_version
+                    ),
+                    get_build_def_module('llvm1x_compiler_rt').Llvm10CompilerRtDependency(
+                        version=self.args.llvm_version
+                    )
                 ])
             else:
                 self.dependencies.append(get_build_def_module('libunwind').LibUnwindDependency())

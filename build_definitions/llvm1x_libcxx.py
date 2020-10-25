@@ -26,9 +26,10 @@ LIBCXX_LLVM_VERSION = '10.0.1'
 
 
 class Llvm10LibCxxDependencyBase(Llvm10PartDependencyBase):
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, version: str) -> None:
         super(Llvm10LibCxxDependencyBase, self).__init__(
             name=name,
+            version=version,
             build_group=BUILD_GROUP_INSTRUMENTED)
 
     def postprocess_ninja_build_file(
@@ -81,8 +82,10 @@ class Llvm10LibCxxDependencyBase(Llvm10PartDependencyBase):
 
 
 class Llvm10LibCxxAbiDependency(Llvm10LibCxxDependencyBase):
-    def __init__(self) -> None:
-        super(Llvm10LibCxxAbiDependency, self).__init__('llvm1x_libcxxabi')
+    def __init__(self, version: str) -> None:
+        super(Llvm10LibCxxAbiDependency, self).__init__(
+            name='llvm1x_libcxxabi',
+            version=version)
 
     def get_source_subdir_name(self) -> str:
         return 'libcxxabi'
@@ -109,8 +112,10 @@ class Llvm10LibCxxAbiDependency(Llvm10LibCxxDependencyBase):
 
 
 class Llvm10LibCxxDependency(Llvm10LibCxxDependencyBase):
-    def __init__(self) -> None:
-        super(Llvm10LibCxxDependency, self).__init__('llvm1x_libcxx')
+    def __init__(self, version: str) -> None:
+        super(Llvm10LibCxxDependency, self).__init__(
+            name='llvm1x_libcxx',
+            version=version)
 
     def get_source_subdir_name(self) -> str:
         return 'libcxx'
