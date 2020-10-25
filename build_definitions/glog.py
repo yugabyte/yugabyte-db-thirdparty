@@ -35,6 +35,13 @@ class GLogDependency(Dependency):
         self.post_patch = ['autoreconf', '-fvi']
 
     def build(self, builder: BuilderInterface) -> None:
+        builder.build_with_cmake(self,
+                                 ['-DCMAKE_BUILD_TYPE=Release',
+                                  '-DCMAKE_POSITION_INDEPENDENT_CODE=On',
+                                  '-DBUILD_SHARED_LIBS=On',
+                                  '-DBUILD_STATIC_LIBS=On'])
+        return
+
         log_prefix = builder.log_prefix(self)
         log_output(log_prefix, ['autoreconf', '--force', '--install'])
         args = ['./configure', '--prefix={}'.format(builder.prefix), '--with-pic',
