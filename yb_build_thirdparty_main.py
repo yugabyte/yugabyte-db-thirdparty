@@ -280,7 +280,6 @@ class Builder(BuilderInterface):
 
         parser.add_argument(
             '--llvm-version',
-            action='store_true',
             default=None,
             help='Version (tag) to use for dependencies based on LLVM codebase')
 
