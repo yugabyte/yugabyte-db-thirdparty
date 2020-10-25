@@ -1058,7 +1058,6 @@ class Builder(BuilderInterface):
             self.init_clang10_or_later_flags(dep)
             return
 
-
         if self.build_type == BUILD_TYPE_ASAN:
             self.compiler_flags += [
                 '-fsanitize=address',
@@ -1128,6 +1127,8 @@ class Builder(BuilderInterface):
                 # https://gist.githubusercontent.com/mbautin/ad9ea4715669da3b3a5fb9495659c4a9/raw
                 self.compiler_flags.append('-fno-sanitize=vptr')
 
+            # TODO mbautin: a centralized way to find paths inside LLVM installation.
+            assert self.cc is not None
             compiler_rt_lib_dir = os.path.join(
                 os.path.dirname(os.path.dirname(os.path.realpath(self.cc))),
                 'lib', 'clang', self.args.llvm_version, 'lib', 'linux')
@@ -1422,24 +1423,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
-
-# TODO: filter options returned by llvm-config, remove -fno-rtti and some more options.
-# Or maybe it is OK?
-#
-# Validate libraries that we end up depending on. Make sure we are not using the version of
-# libc++ that comes with clang. And that we are not using libstdc++ (certainly should not).
-#
-# What to do about libgcc_s?
-#
-# Use Ninja for all CMake builds.
-#
-# Use bear to listen for compilation commands on non-CMake builds?
-#
-# Validate that paths that we are using exist.
-# E.g. when we are adding rpaths and library dirs and building something, those paths should
-# exist already.
-
-# glog's CMake build should properly find gflags
-
-#
