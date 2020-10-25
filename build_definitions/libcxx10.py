@@ -48,7 +48,7 @@ class LibCxx10BaseDependency(Dependency):
         log("Modified %d lines in file %s: removed '%s'",
             num_lines_modified, os.path.abspath(ninja_build_file_path), removed_string)
 
-    def get_additional_ld_flags(self, builder: 'BuilderInterface') -> List[str]:
+    def get_additional_ld_flags(self, builder: BuilderInterface) -> List[str]:
         if builder.build_type in [BUILD_TYPE_ASAN, BUILD_TYPE_TSAN]:
             # We need to link with these libraries in ASAN because otherwise libc++ CMake
             # configuration step fails and none of C standard library definitons can be found.
@@ -68,9 +68,9 @@ class LibCxx10BaseDependency(Dependency):
             '-DCMAKE_BUILD_TYPE=Release',
             '-DBUILD_SHARED_LIBS=ON',
             '-DCMAKE_INSTALL_PREFIX={}'.format(prefix),
-            '-DLIBCXXABI_USE_LLVM_UNWINDER=ON',
-            '-DLIBCXX_USE_COMPILER_RT=ON',
             '-DLLVM_PATH=%s' % llvm_src_path,
+            '-DLLVM_ENABLE_RTTI=ON',
+            '-DLLVM_ENABLE_EH=ON',
         ]
 
         builder.build_with_cmake(
@@ -79,7 +79,7 @@ class LibCxx10BaseDependency(Dependency):
             src_subdir_name=self.get_source_dir_name(),
             use_ninja_if_available=True)
 
-    def source_dir_name(self) -> str:
+    def get_source_dir_name(self) -> str:
         raise NotImplementedError()
 
 
@@ -87,13 +87,24 @@ class LibCxxABI10Dependency(LibCxx10BaseDependency):
     def __init__(self) -> None:
         super(LibCxxABI10Dependency, self).__init__('libcxxabi10')
 
-    def get_source_dir_name(self) -> None:
+    def get_source_dir_name(self) -> str:
         return 'libcxxabi'
+
+    def get_additional_cmake_args(self, builder: BuilderInterface) -> List[str]:
+        llvm_src_path = builder.source_path(self)
+        return [
+            '-DLIBCXXABI_LIBCXX_PATH=%s' % os.path.join(llvm_src_path, 'libcxx'),
+            '-DLIBCXXABI_USE_COMPILER_RT=ON',
+            '-DLIBCXXABI_USE_LLVM_UNWINDER=ON'
+        ]
 
 
 class LibCxx10Dependency(LibCxx10BaseDependency):
     def __init__(self) -> None:
         super(LibCxx10Dependency, self).__init__('libcxx10')
 
-    def get_source_dir_name(self) -> None:
+    def get_source_dir_name(self) -> str:
         return 'libcxx'
+
+    def get_additional_cmake_args(self, builder: BuilderInterface) -> List[str]:
+        return ['-DLIBCXX_USE_COMPILER_RT=ON']

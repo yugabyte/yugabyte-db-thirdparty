@@ -670,6 +670,7 @@ class Builder(BuilderInterface):
         return self.filename2checksum[filename]
 
     def ensure_file_downloaded(self, url: str, path: str) -> None:
+        log(f"Ensuring {url} is downloaded to path {path}")
         file_name = os.path.basename(path)
 
         mkdir_if_missing(self.tp_download_dir)
@@ -684,7 +685,8 @@ class Builder(BuilderInterface):
                 return
             log("File %s already exists but has wrong checksum, removing", path)
             remove_path(path)
-        elif file_name in self.filename2checksum:
+
+        if file_name in self.filename2checksum:
             expected_checksum = self.filename2checksum[file_name]
             other_file_names_with_same_checksum = [
                 other_file_name for other_file_name in self.filename2checksum
@@ -705,6 +707,7 @@ class Builder(BuilderInterface):
                             other_file_name, path, other_file_name)
                         os.symlink(other_file_name, path)
                         return
+            log(f"Could not find an already downloaded file with the same checksum as {file_name}")
         else:
             log("No expected checksum found for path %s", path)
 
@@ -964,6 +967,7 @@ class Builder(BuilderInterface):
         args += self.get_common_cmake_flag_args(dep)
         if extra_args is not None:
             args += extra_args
+        args += dep.get_additional_cmake_args(self)
 
         log("CMake command line (one argument per line):\n%s" %
             "\n".join([(" " * 4 + sanitize_flags_line_for_log(line)) for line in args]))

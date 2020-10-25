@@ -68,6 +68,9 @@ class Dependency:
     def get_additional_ld_flags(self, builder: 'BuilderInterface') -> List[str]:
         return []
 
+    def get_additional_cmake_args(self, builder: 'BuilderInterface') -> List[str]:
+        return []
+
     def should_build(self, builder: 'BuilderInterface') -> bool:
         return True
 
