@@ -1108,8 +1108,8 @@ class Builder(BuilderInterface):
             return
 
         # TODO mbautin: refactor to polymorphism
-        is_libcxx = 'libcxx' in dep.name
         is_libcxxabi = 'libcxxabi' in dep.name
+        is_libcxx = 'libcxx' in dep.name and not is_libcxxabi
 
         if self.build_type == BUILD_TYPE_ASAN:
             self.compiler_flags += [
@@ -1117,8 +1117,8 @@ class Builder(BuilderInterface):
                 '-fsanitize=undefined',
                 '-DADDRESS_SANITIZER',
                 '-shared-libasan',
-                # TODO: consider advice from here:
-                # https://clang.llvm.org/docs/ClangCommandLineReference.html
+                # https://github.com/google/sanitizers/issues/1017
+                '-mllvm,-asan-use-private-alias=1'
             ]
             if is_libcxxabi:
                 # To avoid an infinite loop in UBSAN.
@@ -1145,7 +1145,7 @@ class Builder(BuilderInterface):
 
         libcxx_installed_include, libcxx_installed_lib = self.get_libcxx_dirs(self.build_type)
 
-        if not is_libcxx:
+        if not is_libcxx and not is_libcxxabi:
             self.ld_flags += ['-lc++', '-lc++abi']
 
             self.cxx_flags = [
@@ -1155,25 +1155,6 @@ class Builder(BuilderInterface):
                 '-nostdinc++'
             ] + self.cxx_flags
             self.prepend_lib_dir_and_rpath(libcxx_installed_lib)
-
-        # TODO mbautin: remove this altogether.
-        if False and self.build_type in [BUILD_TYPE_ASAN, BUILD_TYPE_TSAN]:
-            # Use the compiler-rt version we built with no instrumentation when building
-            # libc++ with ASAN/TSAN instrumentation. So the build order is:
-            # - Uninstrumented libc++abi and libc++
-            # - Uninstrumetned compiler-rt
-            # - Other uninstrumented dependencies, still using the compiler-rt that came with
-            #   LLVM/Clang (for consistency).
-            # - ASAN/TSAN instrumented libc++abi and libc++, using the instrumented compiler-rt
-            # - ASAN/TSAN instrumented everything else, using the instrumented compiler-rt
-            compiler_rt_lib_path = os.path.join(
-                self.tp_installed_dir, BUILD_TYPE_UNINSTRUMENTED, 'compiler-rt',
-                'lib', 'linux')
-
-            if not glob.glob(os.path.join(compiler_rt_lib_path, '*.so')):
-                raise IOError(f"Did not find any .so files in {compiler_rt_lib_path}")
-
-            self.prepend_lib_dir_and_rpath(compiler_rt_lib_path)
 
     def log_and_set_env_var(self, env_var_name: str, items: List[str]) -> None:
         value_str = ' '.join(items)
