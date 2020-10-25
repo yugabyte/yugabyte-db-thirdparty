@@ -16,7 +16,7 @@ import sys
 import hashlib
 import shutil
 
-from yugabyte_db_thirdparty.custom_logging import fatal
+from yugabyte_db_thirdparty.custom_logging import log, fatal
 from typing import List, Optional, Any
 
 
@@ -136,4 +136,4 @@ def which_must_exist(cmd_name: str) -> str:
 
 def copy_file_and_log(src_path: str, dst_path: str) -> None:
     log(f"Copying file {os.path.abspath(src_path)} to {os.path.abspath(dst_path)}")
-    shutil.coypfile(src_path, dst_path)
+    shutil.copyfile(src_path, dst_path)
