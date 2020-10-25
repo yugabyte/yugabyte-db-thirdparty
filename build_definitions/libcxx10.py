@@ -99,7 +99,7 @@ class LibCxxABI10Dependency(LibCxx10BaseDependency):
             '-DLIBCXXABI_USE_LLVM_UNWINDER=ON'
         ]
 
-    def build(self, builder: BuilderInteface) -> None:
+    def build(self, builder: BuilderInterface) -> None:
         super().build(builder)
         src_include_path = os.path.join(builder.source_path(self), 'libcxxabi', 'include')
         # Put C++ ABI headers together with libc++ headers.
