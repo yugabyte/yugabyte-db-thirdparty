@@ -31,9 +31,12 @@ class Llvm10CompilerRtDependency(Llvm10PartDependencyBase):
         builder.build_with_cmake(
             self,
             extra_args=[
+                f'-DLLVM_CONFIG_PATH={builder.get_llvm_config_path()}',
                 '-DCMAKE_BUILD_TYPE=Release',
                 '-DBUILD_SHARED_LIBS=ON',
                 '-DLLVM_PATH=%s' % builder.get_source_path(self),
                 '-DCMAKE_INSTALL_PREFIX={}'.format(builder.prefix),
+                '-DCOMPILER_RT_BUILD_SANITIZERS=ON',
+                '-DCOMPILER_RT_BUILD_XRAY=OFF',
             ],
             src_subdir_name=src_subdir_name)

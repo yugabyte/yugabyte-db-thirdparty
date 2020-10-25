@@ -28,4 +28,4 @@ class Llvm10PartDependencyBase(Dependency):
             build_group=BUILD_GROUP_COMMON)
 
     def get_source_dir_basename(self) -> str:
-        return 'llvm10'
+        return f'llvm-{self.version}'

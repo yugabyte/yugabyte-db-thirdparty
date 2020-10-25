@@ -97,4 +97,4 @@ class Dependency:
         return self.archive_name
 
     def get_source_dir_basename(self) -> str:
-        return self.name
+        return self.dir_name

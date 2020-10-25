@@ -1348,6 +1348,13 @@ class Builder(BuilderInterface):
         ]
         return openssl_options
 
+    def get_llvm_config_path(self) -> List[str]:
+        llvm_config_path = os.path.join(
+            os.path.dirname(os.path.realpath(self.cc)), 'llvm-config')
+        if not os.path.exists(llvm_config_path):
+            raise IOError(f"llvm-config not found at {llvm_config_path}")
+        return llvm_config_path
+
 
 def main() -> None:
     unset_env_var_if_set('CC')
