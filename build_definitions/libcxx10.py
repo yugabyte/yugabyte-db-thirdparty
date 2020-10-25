@@ -70,6 +70,7 @@ class LibCxx10BaseDependency(Dependency):
             '-DBUILD_SHARED_LIBS=ON',
             #'-DCMAKE_INSTALL_PREFIX={}'.format(prefix),
             '-DLLVM_PATH=%s' % llvm_src_path,
+        ]
 
         builder.build_with_cmake(
             self,
