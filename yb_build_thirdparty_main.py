@@ -881,6 +881,7 @@ class Builder(BuilderInterface):
         # The C++ standard must match CMAKE_CXX_STANDARD in the top-level CMakeLists.txt file in
         # the YugabyteDB source tree.
         self.cxx_flags.append('-std=c++14')
+        self.cxx_flags.append('-frtti')
 
     def add_linuxbrew_flags(self) -> None:
         if self.using_linuxbrew():

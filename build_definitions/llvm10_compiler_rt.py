@@ -24,7 +24,7 @@ class Llvm10CompilerRtDependency(Llvm10PartDependencyBase):
     def __init__(self) -> None:
         super(Llvm10CompilerRtDependency, self).__init__(
             name='llvm10_compiler_rt',
-            build_group=BUILD_GROUP_COMMON)
+            build_group=BUILD_GROUP_INSTRUMENTED)
 
     def build(self, builder: BuilderInterface) -> None:
         src_subdir_name = 'compiler-rt'
@@ -44,6 +44,3 @@ class Llvm10CompilerRtDependency(Llvm10PartDependencyBase):
                 '-DCOMPILER_RT_SANITIZERS_TO_BUILD=asan;dfsan;msan;tsan;safestack;cfi;scudo;ubsan_minimal;gwp_asan'
             ],
             src_subdir_name=src_subdir_name)
-
-    def get_additional_c_cxx_flags(self, builder: BuilderInterface) -> List[str]:
-        return ['-frtti', '-stdlib=libc++']
