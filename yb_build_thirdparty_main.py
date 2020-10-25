@@ -1125,11 +1125,11 @@ class Builder(BuilderInterface):
                 # https://monorail-prod.appspot.com/p/chromium/issues/detail?id=609786
                 # This comment:
                 # https://gist.githubusercontent.com/mbautin/ad9ea4715669da3b3a5fb9495659c4a9/raw
-                self.compiler_flags += '-fno-sanitize=vptr'
+                self.compiler_flags.append('-fno-sanitize=vptr')
 
             compiler_rt_lib_dir = os.path.join(
                 os.path.dirname(os.path.dirname(os.path.realpath(self.cc))),
-                'lib', 'linux')
+                'lib', 'clang', self.args.llvm_version, 'lib', 'linux')
             if not os.path.isdir(compiler_rt_lib_dir):
                 raise IOError("Directory does not exist: %s", compiler_rt_lib_dir)
             self.add_lib_and_rpath(compiler_rt_lib_dir)
