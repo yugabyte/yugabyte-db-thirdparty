@@ -31,5 +31,5 @@ class RapidJsonDependency(Dependency):
         log_prefix = builder.log_prefix(self)
         log_output(log_prefix,
                    ['rsync', '-av', '--delete',
-                    os.path.join(builder.source_path(self), 'include', 'rapidjson/'),
+                    os.path.join(builder.get_source_path(self), 'include', 'rapidjson/'),
                     os.path.join(builder.prefix_include, 'rapidjson')])

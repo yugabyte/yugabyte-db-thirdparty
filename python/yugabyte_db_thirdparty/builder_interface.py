@@ -70,7 +70,7 @@ class BuilderInterface:
         # TODO: should dependencies really be calling this?
         raise NotImplementedError()
 
-    def source_path(self, dep: 'Dependency') -> str:
+    def get_source_path(self, dep: 'Dependency') -> str:
         raise NotImplementedError()
 
     def cmake_build_type_for_test_only_dependencies(self) -> str:

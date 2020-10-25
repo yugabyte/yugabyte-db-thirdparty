@@ -32,7 +32,8 @@ class Dependency:
             name: str,
             version: str,
             url_pattern: Optional[str],
-            build_group: str) -> None:
+            build_group: str,
+            archive_name_prefix: Optional[str] = None) -> None:
         self.name = name
         self.version = version
         self.dir_name = '{}-{}'.format(name, version)
@@ -42,7 +43,7 @@ class Dependency:
         else:
             self.download_url = None
         self.build_group = build_group
-        self.archive_name = make_archive_name(name, version, self.download_url)
+        self.archive_name = make_archive_name(archive_name_prefix or name, version, self.download_url)
         self.patch_version = 0
         self.extra_downloads = []
         self.patches = []
@@ -90,3 +91,9 @@ class Dependency:
 
     def get_install_prefix(self, builder: 'BuilderInterface') -> str:
         return builder.prefix
+
+    def get_archive_name(self) -> Optional[str]:
+        return self.archive_name
+
+    def get_source_dir_basename(self) -> str:
+        return self.name

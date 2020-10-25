@@ -15,6 +15,7 @@ import os
 import sys
 
 from build_definitions import BUILD_TYPE_ASAN, BUILD_TYPE_TSAN
+from build_definitions.llvm10_part import Llvm10PartDependencyBase
 
 from yugabyte_db_thirdparty.util import replace_string_in_file
 
@@ -24,12 +25,10 @@ from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 LIBCXX_LLVM_VERSION = '10.0.1'
 
 
-class LibCxx10BaseDependency(Dependency):
+class Llvm10LibCxxDependencyBase(Llvm10PartDependencyBase):
     def __init__(self, name: str) -> None:
-        super(LibCxx10BaseDependency, self).__init__(
+        super(Llvm10LibCxxDependencyBase, self).__init__(
             name=name,
-            version=LIBCXX_LLVM_VERSION,
-            url_pattern='https://github.com/llvm/llvm-project/archive/llvmorg-{}.tar.gz',
             build_group=BUILD_GROUP_INSTRUMENTED)
 
     def postprocess_ninja_build_file(
@@ -63,7 +62,7 @@ class LibCxx10BaseDependency(Dependency):
         return os.path.join(builder.prefix, 'libcxx')
 
     def build(self, builder: BuilderInterface) -> None:
-        llvm_src_path = builder.source_path(self)
+        llvm_src_path = builder.get_source_path(self)
 
         args = [
             '-DCMAKE_BUILD_TYPE=Release',
@@ -81,15 +80,15 @@ class LibCxx10BaseDependency(Dependency):
         raise NotImplementedError()
 
 
-class LibCxxABI10Dependency(LibCxx10BaseDependency):
+class Llvm10LibCxxAbiDependency(Llvm10LibCxxDependencyBase):
     def __init__(self) -> None:
-        super(LibCxxABI10Dependency, self).__init__('libcxxabi10')
+        super(Llvm10LibCxxAbiDependency, self).__init__('libcxxabi10')
 
     def get_source_dir_name(self) -> str:
         return 'libcxxabi'
 
     def get_additional_cmake_args(self, builder: BuilderInterface) -> List[str]:
-        llvm_src_path = builder.source_path(self)
+        llvm_src_path = builder.get_source_path(self)
         return [
             '-DLIBCXXABI_LIBCXX_PATH=%s' % os.path.join(llvm_src_path, 'libcxx'),
             '-DLIBCXXABI_USE_COMPILER_RT=ON',
@@ -99,7 +98,7 @@ class LibCxxABI10Dependency(LibCxx10BaseDependency):
 
     def build(self, builder: BuilderInterface) -> None:
         super().build(builder)
-        src_include_path = os.path.join(builder.source_path(self), 'libcxxabi', 'include')
+        src_include_path = os.path.join(builder.get_source_path(self), 'libcxxabi', 'include')
         # Put C++ ABI headers together with libc++ headers.
         dest_include_path = os.path.join(self.get_install_prefix(builder), 'include', 'c++', 'v1')
         mkdir_if_missing(dest_include_path)
@@ -109,9 +108,9 @@ class LibCxxABI10Dependency(LibCxx10BaseDependency):
                 os.path.join(dest_include_path, header_name))
 
 
-class LibCxx10Dependency(LibCxx10BaseDependency):
+class Llvm10LibCxxDependency(Llvm10LibCxxDependencyBase):
     def __init__(self) -> None:
-        super(LibCxx10Dependency, self).__init__('libcxx10')
+        super(Llvm10LibCxxDependency, self).__init__('libcxx10')
 
     def get_source_dir_name(self) -> str:
         return 'libcxx'

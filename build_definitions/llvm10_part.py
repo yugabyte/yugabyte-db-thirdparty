@@ -9,32 +9,22 @@
 # is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
 # or implied. See the License for the specific language governing permissions and limitations
 # under the License.
-#
-
-import os
-import sys
-import subprocess
-import shutil
 
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
 
-class LlvmCompilerRTDependency(Dependency):
-    def __init__(self) -> None:
-        super(LlvmCompilerRTDependency, self).__init__(
-            name='llvm_compiler_rt',
+class Llvm10PartDependencyBase(Dependency):
+    """
+    Not a real dependency, but a base class for various dependencies corresponding to parts of the
+    LLVM project. Allows to reuse the same download and the same archive directory.
+    """
+    def __init__(self, name: str, build_group: str) -> None:
+        super(Llvm10PartDependencyBase, self).__init__(
+            name=name,
             version='10.0.1',
             url_pattern='https://github.com/llvm/llvm-project/archive/llvmorg-{}.tar.gz',
+            archive_name_prefix='llvm',
             build_group=BUILD_GROUP_COMMON)
 
-    def build(self, builder: BuilderInterface) -> None:
-        src_subdir_name = 'compiler-rt'
-        builder.build_with_cmake(
-            self,
-            extra_args=[
-                '-DCMAKE_BUILD_TYPE=Release',
-                '-DBUILD_SHARED_LIBS=ON',
-                '-DLLVM_PATH=%s' % builder.get_source_path(self),
-                '-DCMAKE_INSTALL_PREFIX={}'.format(builder.prefix),
-            ],
-            src_subdir_name=src_subdir_name)
+    def get_source_dir_basename(self) -> str:
+        return 'llvm10'

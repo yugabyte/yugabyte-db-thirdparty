@@ -361,9 +361,9 @@ class Builder(BuilderInterface):
 
             if self.use_only_clang():
                 self.dependencies.extend([
-                    get_build_def_module('llvm_libunwind').LlvmLibUnwindDependency(),
-                    get_build_def_module('libcxx10').LibCxxABI10Dependency(),
-                    get_build_def_module('libcxx10').LibCxx10Dependency(),
+                    get_build_def_module('llvm10_libunwind').Llvm10LibUnwindDependency(),
+                    get_build_def_module('llvm10_libcxx').Llvm10LibCxxAbiDependency(),
+                    get_build_def_module('llvm10_libcxx').Llvm10LibCxxDependency(),
                 ])
             else:
                 self.dependencies.append(get_build_def_module('libunwind').LibUnwindDependency())
@@ -550,7 +550,7 @@ class Builder(BuilderInterface):
                         log("Removing %s build output: %s", dependency.name, path)
                         remove_path(path)
             if dependency.dir_name is not None:
-                src_dir = self.source_path(dependency)
+                src_dir = self.get_source_path(dependency)
                 if os.path.exists(src_dir):
                     log("Removing %s source: %s", dependency.name, src_dir)
                     remove_path(src_dir)
@@ -561,14 +561,14 @@ class Builder(BuilderInterface):
                 remove_path(archive_path)
 
     def download_dependency(self, dep: Dependency) -> None:
-        src_path = self.source_path(dep)
+        src_path = self.get_source_path(dep)
         patch_level_path = os.path.join(src_path, 'patchlevel-{}'.format(dep.patch_version))
         if os.path.exists(patch_level_path):
             return
 
         download_url = dep.download_url
         if download_url is None:
-            download_url = CLOUDFRONT_URL.format(dep.archive_name)
+            download_url = CLOUDFRONT_URL.format(dep.get_archive_name())
             log("Using legacy download URL: %s (we should consider moving this to GitHub)",
                 download_url)
 
@@ -626,12 +626,13 @@ class Builder(BuilderInterface):
             pass
 
     def archive_path(self, dep: Dependency) -> Optional[str]:
-        if dep.archive_name is None:
+        archive_name = dep.get_archive_name()
+        if archive_name is None:
             return None
-        return os.path.join(self.tp_download_dir, dep.archive_name)
+        return os.path.join(self.tp_download_dir, archive_name)
 
-    def source_path(self, dep: Dependency) -> str:
-        return os.path.join(self.tp_src_dir, dep.dir_name)
+    def get_source_path(self, dep: Dependency) -> str:
+        return os.path.join(self.tp_src_dir, dep.get_source_dir_basename())
 
     def get_checksum_file(self) -> str:
         return os.path.join(self.tp_dir, CHECKSUM_FILE_NAME)
@@ -960,7 +961,7 @@ class Builder(BuilderInterface):
         remove_path('CMakeCache.txt')
         remove_path('CMakeFiles')
 
-        src_path = self.source_path(dep)
+        src_path = self.get_source_path(dep)
         if src_subdir_name is not None:
             src_path = os.path.join(src_path, src_subdir_name)
 
@@ -1203,7 +1204,7 @@ class Builder(BuilderInterface):
         new_build_stamp = self.get_build_stamp_for_dependency(dep)
 
         if dep.dir_name is not None:
-            src_dir = self.source_path(dep)
+            src_dir = self.get_source_path(dep)
             if not os.path.exists(src_dir):
                 log("Have to rebuild %s (%s): source dir %s does not exist",
                     dep.name, self.build_type, src_dir)
@@ -1269,7 +1270,7 @@ class Builder(BuilderInterface):
             out.write(stamp)
 
     def create_build_dir_and_prepare(self, dep: Dependency) -> str:
-        src_dir = self.source_path(dep)
+        src_dir = self.get_source_path(dep)
         if not os.path.isdir(src_dir):
             fatal("Directory '{}' does not exist".format(src_dir))
 

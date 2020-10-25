@@ -40,7 +40,7 @@ class GMockDependency(Dependency):
         subprocess.check_call(
                 ['cp', '-a', 'shared/googlemock/libgmock.{}'.format(builder.dylib_suffix), lib_dir])
 
-        src_dir = builder.source_path(self)
+        src_dir = builder.get_source_path(self)
         subprocess.check_call(
                 ['rsync', '-av', os.path.join(src_dir, 'googlemock', 'include/'), include_dir])
         subprocess.check_call(

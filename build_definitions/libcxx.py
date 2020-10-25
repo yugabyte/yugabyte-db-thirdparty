@@ -69,7 +69,7 @@ class LibCXXDependency(Dependency):
 
         args = [
             'cmake',
-            os.path.join(builder.source_path(self), 'llvm'),
+            os.path.join(builder.get_source_path(self), 'llvm'),
             '-DCMAKE_BUILD_TYPE=Release',
             '-DLLVM_TARGETS_TO_BUILD=X86',
             '-DLLVM_ENABLE_RTTI=ON',

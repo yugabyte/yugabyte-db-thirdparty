@@ -17,14 +17,13 @@ import subprocess
 import shutil
 
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
+from build_definitions.llvm10_part import Llvm10PartDependencyBase
 
 
-class LlvmLibUnwindDependency(Dependency):
+class Llvm10LibUnwindDependency(Llvm10PartDependencyBase):
     def __init__(self) -> None:
-        super(LlvmLibUnwindDependency, self).__init__(
-            name='llvm_libunwind',
-            version='10.0.1',
-            url_pattern='https://github.com/llvm/llvm-project/archive/llvmorg-{}.tar.gz',
+        super(Llvm10LibUnwindDependency, self).__init__(
+            name='llvm10_libunwind',
             build_group=BUILD_GROUP_COMMON)
 
     def build(self, builder: BuilderInterface) -> None:
@@ -35,11 +34,10 @@ class LlvmLibUnwindDependency(Dependency):
                 '-DCMAKE_BUILD_TYPE=Release',
                 '-DBUILD_SHARED_LIBS=ON',
                 '-DLIBUNWIND_USE_COMPILER_RT=ON',
-                '-DLLVM_PATH=%s' % builder.source_path(self),
-                '-DCMAKE_INSTALL_PREFIX={}'.format(builder.prefix),
+                '-DLLVM_PATH=%s' % builder.get_source_path(self),
             ],
             src_subdir_name=src_subdir_name)
-        src_include_path = os.path.join(builder.source_path(self), src_subdir_name, 'include')
+        src_include_path = os.path.join(builder.get_source_path(self), src_subdir_name, 'include')
         dest_include_path = os.path.join(builder.prefix, 'include')
         for header_name in ['libunwind.h', 'unwind.h', '__libunwind_config.h']:
             copy_file_and_log(
