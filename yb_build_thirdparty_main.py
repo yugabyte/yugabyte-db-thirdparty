@@ -323,7 +323,8 @@ class Builder(BuilderInterface):
                 self.args.llvm_version = '11.0.0'
             else:
                 self.args.llvm_version = '11.0.0'
-            log("Using LLVm libraries version: %s", self.args.llvm_version)
+            log("Will use the version %s of LLVM libraries (libunwind, libc++)",
+                self.args.llvm_version)
 
     def use_only_clang(self) -> bool:
         return is_mac() or self.args.single_compiler_type == 'clang'
@@ -415,7 +416,9 @@ class Builder(BuilderInterface):
             names = set([dep.name for dep in self.dependencies])
             for dep in self.args.dependencies:
                 if dep not in names:
-                    fatal("Unknown dependency name: %s", dep)
+                    fatal("Unknown dependency name: %s. Valid dependency names:\n%s",
+                          dep,
+                          (" " * 4 + ("\n" + " " * 4).join(sorted(names))))
             for dep in self.dependencies:
                 if dep.name in self.args.dependencies:
                     self.selected_dependencies.append(dep)
