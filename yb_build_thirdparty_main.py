@@ -1058,7 +1058,9 @@ class Builder(BuilderInterface):
             self.compiler_flags += [
                 '-fsanitize=address',
                 #'-fsanitize=undefined',
-                '-DADDRESS_SANITIZER'
+                '-DADDRESS_SANITIZER',
+                # https://clang.llvm.org/docs/ClangCommandLineReference.html
+                '-mllvm', '-asan-use-private-alias=1'
             ]
 
         if self.build_type == BUILD_TYPE_TSAN:
