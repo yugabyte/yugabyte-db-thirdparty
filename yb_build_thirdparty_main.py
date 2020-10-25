@@ -376,9 +376,9 @@ class Builder(BuilderInterface):
                     get_build_def_module('llvm1x_libunwind').Llvm10LibUnwindDependency(
                         version=self.args.llvm_version
                     ),
-                    get_build_def_module('llvm1x_libcxx').Llvm10LibCxxAbiDependency(
-                        version=self.args.llvm_version
-                    ),
+                    # get_build_def_module('llvm1x_libcxx').Llvm10LibCxxAbiDependency(
+                    #     version=self.args.llvm_version
+                    # ),
                     get_build_def_module('llvm1x_libcxx').Llvm10LibCxxDependency(
                         version=self.args.llvm_version
                     ),

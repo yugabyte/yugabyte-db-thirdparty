@@ -69,46 +69,55 @@ class Llvm10LibCxxDependencyBase(Llvm10PartDependencyBase):
             '-DCMAKE_BUILD_TYPE=Release',
             '-DBUILD_SHARED_LIBS=ON',
             '-DLLVM_PATH=%s' % llvm_src_path,
-        ]
 
-        builder.build_with_cmake(
-            self,
-            extra_args=args,
-            src_subdir_name=self.get_source_subdir_name(),
-            use_ninja_if_available=True)
-
-    def get_source_subdir_name(self) -> str:
-        raise NotImplementedError()
-
-
-class Llvm10LibCxxAbiDependency(Llvm10LibCxxDependencyBase):
-    def __init__(self, version: str) -> None:
-        super(Llvm10LibCxxAbiDependency, self).__init__(
-            name='llvm1x_libcxxabi',
-            version=version)
-
-    def get_source_subdir_name(self) -> str:
-        return 'libcxxabi'
-
-    def get_additional_cmake_args(self, builder: BuilderInterface) -> List[str]:
-        llvm_src_path = builder.get_source_path(self)
-        return [
-            '-DLIBCXXABI_LIBCXX_PATH=%s' % os.path.join(llvm_src_path, 'libcxx'),
+            # For combined libcxxabi + libcxx build
+            '-DLLVM_ENABLE_PROJECTS=libcxxabi;libcxx',
+            # '-DLIBCXXABI_LIBCXX_PATH=%s' % os.path.join(llvm_src_path, 'libcxx'),
+            '-DLIBCXXABI_USE_COMPILER_RT=ON',
+            '-DLIBCXXABI_USE_LLVM_UNWINDER=ON',
+            '-DLIBCXXABI_ENABLE_RTTI=ON',
             '-DLIBCXXABI_USE_COMPILER_RT=ON',
             '-DLIBCXXABI_USE_LLVM_UNWINDER=ON',
             '-DLIBCXXABI_ENABLE_RTTI=ON',
         ]
 
-    def build(self, builder: BuilderInterface) -> None:
-        super().build(builder)
-        src_include_path = os.path.join(builder.get_source_path(self), 'libcxxabi', 'include')
-        # Put C++ ABI headers together with libc++ headers.
-        dest_include_path = os.path.join(self.get_install_prefix(builder), 'include', 'c++', 'v1')
-        mkdir_if_missing(dest_include_path)
-        for header_name in ['cxxabi.h', '__cxxabi_config.h']:
-            copy_file_and_log(
-                os.path.join(src_include_path, header_name),
-                os.path.join(dest_include_path, header_name))
+        builder.build_with_cmake(
+            self,
+            extra_args=args,
+            use_ninja_if_available=True)
+
+    # def get_source_subdir_name(self) -> str:
+    #     raise NotImplementedError()
+
+
+# class Llvm10LibCxxAbiDependency(Llvm10LibCxxDependencyBase):
+#     def __init__(self, version: str) -> None:
+#         super(Llvm10LibCxxAbiDependency, self).__init__(
+#             name='llvm1x_libcxxabi',
+#             version=version)
+
+#     def get_source_subdir_name(self) -> str:
+#         return 'libcxxabi'
+
+#     def get_additional_cmake_args(self, builder: BuilderInterface) -> List[str]:
+#         llvm_src_path = builder.get_source_path(self)
+#         return [
+#             '-DLIBCXXABI_LIBCXX_PATH=%s' % os.path.join(llvm_src_path, 'libcxx'),
+#             '-DLIBCXXABI_USE_COMPILER_RT=ON',
+#             '-DLIBCXXABI_USE_LLVM_UNWINDER=ON',
+#             '-DLIBCXXABI_ENABLE_RTTI=ON',
+#         ]
+
+#     def build(self, builder: BuilderInterface) -> None:
+#         super().build(builder)
+#         src_include_path = os.path.join(builder.get_source_path(self), 'libcxxabi', 'include')
+#         # Put C++ ABI headers together with libc++ headers.
+#         dest_include_path = os.path.join(self.get_install_prefix(builder), 'include', 'c++', 'v1')
+#         mkdir_if_missing(dest_include_path)
+#         for header_name in ['cxxabi.h', '__cxxabi_config.h']:
+#             copy_file_and_log(
+#                 os.path.join(src_include_path, header_name),
+#                 os.path.join(dest_include_path, header_name))
 
 
 class Llvm10LibCxxDependency(Llvm10LibCxxDependencyBase):
@@ -117,11 +126,26 @@ class Llvm10LibCxxDependency(Llvm10LibCxxDependencyBase):
             name='llvm1x_libcxx',
             version=version)
 
-    def get_source_subdir_name(self) -> str:
-        return 'libcxx'
+    # def build(self, builder: BuilderInterface) -> None:
+    #     llvm_src_path = builder.get_source_path(self)
 
-    def get_additional_cmake_args(self, builder: BuilderInterface) -> List[str]:
-        return [
-            '-DLIBCXX_USE_COMPILER_RT=ON',
-            '-DLIBCXX_ENABLE_RTTI=ON',
-        ]
+    #     args = [
+    #         '-DCMAKE_BUILD_TYPE=Release',
+    #         '-DBUILD_SHARED_LIBS=ON',
+    #         '-DLLVM_PATH=%s' % llvm_src_path,
+    #     ]
+
+    #     builder.build_with_cmake(
+    #         self,
+    #         extra_args=args,
+    #         src_subdir_name=self.get_source_subdir_name(),
+    #         use_ninja_if_available=True)
+
+    # def get_source_subdir_name(self) -> str:
+    #     return 'libcxx'
+
+    # def get_additional_cmake_args(self, builder: BuilderInterface) -> List[str]:
+    #     return [
+    #         '-DLIBCXX_USE_COMPILER_RT=ON',
+    #         '-DLIBCXX_ENABLE_RTTI=ON',
+    #     ]
