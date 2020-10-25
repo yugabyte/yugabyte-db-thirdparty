@@ -43,7 +43,8 @@ class Dependency:
         else:
             self.download_url = None
         self.build_group = build_group
-        self.archive_name = make_archive_name(archive_name_prefix or name, version, self.download_url)
+        self.archive_name = make_archive_name(
+            archive_name_prefix or name, version, self.download_url)
         self.patch_version = 0
         self.extra_downloads = []
         self.patches = []

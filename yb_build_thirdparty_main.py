@@ -346,10 +346,6 @@ class Builder(BuilderInterface):
             get_build_def_module('openldap').OpenLDAPDependency(),
         ]
 
-        if is_linux() and self.use_only_clang():
-            self.dependencies.append(
-                get_build_def_module('llvm10_compiler_rt').Llvm10CompilerRtDependency())
-
         if is_linux():
             self.dependencies += [
                 get_build_def_module('libuuid').LibUuidDependency(),
@@ -364,6 +360,7 @@ class Builder(BuilderInterface):
                     get_build_def_module('llvm10_libunwind').Llvm10LibUnwindDependency(),
                     get_build_def_module('llvm10_libcxx').Llvm10LibCxxAbiDependency(),
                     get_build_def_module('llvm10_libcxx').Llvm10LibCxxDependency(),
+                    get_build_def_module('llvm10_compiler_rt').Llvm10CompilerRtDependency()
                 ])
             else:
                 self.dependencies.append(get_build_def_module('libunwind').LibUnwindDependency())
