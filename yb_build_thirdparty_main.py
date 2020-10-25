@@ -317,9 +317,9 @@ class Builder(BuilderInterface):
             self.args.single_compiler_type = 'gcc'
 
         if self.args.llvm_version is None:
-            if self.args.compiler_sufifx == '-10':
+            if self.args.compiler_suffix == '-10':
                 self.args.llvm_version = '10.0.1'
-            elif self.args.compiler_sufifx == '-11':
+            elif self.args.compiler_suffix == '-11':
                 self.args.llvm_version = '11.0.0'
             else:
                 self.args.llvm_version = '11.0.0'
