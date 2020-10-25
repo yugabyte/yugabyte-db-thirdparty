@@ -1132,7 +1132,7 @@ class Builder(BuilderInterface):
                 'lib', 'clang', self.args.llvm_version, 'lib', 'linux')
             if not os.path.isdir(compiler_rt_lib_dir):
                 raise IOError("Directory does not exist: %s", compiler_rt_lib_dir)
-            self.add_lib_and_rpath(compiler_rt_lib_dir)
+            self.add_lib_dir_and_rpath(compiler_rt_lib_dir)
             self.ld_flags.append('-lclang_rt.ubsan_minimal-x86_64')
 
         if self.build_type == BUILD_TYPE_TSAN:
