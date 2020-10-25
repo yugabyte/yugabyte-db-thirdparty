@@ -35,11 +35,14 @@ class GLogDependency(Dependency):
         self.post_patch = ['autoreconf', '-fvi']
 
     def build(self, builder: BuilderInterface) -> None:
-        builder.build_with_cmake(self,
-                                 ['-DCMAKE_BUILD_TYPE=Release',
-                                  '-DCMAKE_POSITION_INDEPENDENT_CODE=On',
-                                  '-DBUILD_SHARED_LIBS=On',
-                                  '-DBUILD_STATIC_LIBS=On'])
+        builder.build_with_cmake(
+            dep=self,
+            extra_args=[
+                '-DCMAKE_BUILD_TYPE=Release',
+                '-DCMAKE_POSITION_INDEPENDENT_CODE=ON',
+                '-DBUILD_SHARED_LIBS=ON',
+                '-DBUILD_STATIC_LIBS=ON'
+            ])
         return
 
         log_prefix = builder.log_prefix(self)

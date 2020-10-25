@@ -1108,8 +1108,8 @@ class Builder(BuilderInterface):
             return
 
         # TODO mbautin: refactor to polymorphism
-        is_libcxxabi = dep_name.endswith('_libcxxabi')
-        is_libcxx = dep_name.endswith('_libcxx')
+        is_libcxxabi = dep.name.endswith('_libcxxabi')
+        is_libcxx = dep.name.endswith('_libcxx')
 
         if self.build_type == BUILD_TYPE_ASAN:
             self.compiler_flags += [
