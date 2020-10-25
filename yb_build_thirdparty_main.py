@@ -1131,7 +1131,8 @@ class Builder(BuilderInterface):
                 # - ASAN/TSAN instrumented libc++abi and libc++, using the instrumented compiler-rt
                 # - ASAN/TSAN instrumented everything else, using the instrumented compiler-rt
                 self.prepend_lib_dir_and_rpath(
-                    os.path.join(self.tp_installed_dir, BUILD_TYPE_UNINSTRUMENTED, 'compiler-rt')
+                    os.path.join(self.tp_installed_dir, BUILD_TYPE_UNINSTRUMENTED, 'compiler-rt',
+                                 'lib')
                 )
 
     def log_and_set_env_var(self, env_var_name: str, items: List[str]) -> None:
