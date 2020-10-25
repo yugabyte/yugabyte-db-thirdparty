@@ -939,7 +939,7 @@ class Builder(BuilderInterface):
             self,
             dep: Dependency,
             extra_args: List[str] = [],
-            use_ninja_if_available: bool = False,
+            use_ninja_if_available: bool = True,
             src_subdir_name: Optional[str] = None,
             extra_build_tool_args: List[str] = [],
             should_install: bool = True,
