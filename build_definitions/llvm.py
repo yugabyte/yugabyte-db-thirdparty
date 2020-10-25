@@ -76,7 +76,6 @@ class LLVMDependency(Dependency):
 
         cmake_args = [
                 '-DCMAKE_BUILD_TYPE=Release',
-                #'-DCMAKE_INSTALL_PREFIX={}'.format(prefix),
                 '-DLLVM_INCLUDE_DOCS=OFF',
                 '-DLLVM_INCLUDE_EXAMPLES=OFF',
                 '-DLLVM_INCLUDE_TESTS=OFF',

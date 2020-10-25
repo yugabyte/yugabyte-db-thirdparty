@@ -74,7 +74,6 @@ class LibCXXDependency(Dependency):
             '-DLLVM_TARGETS_TO_BUILD=X86',
             '-DLLVM_ENABLE_RTTI=ON',
             '-DCMAKE_CXX_FLAGS={}'.format(" ".join(builder.ld_flags)),
-            #'-DCMAKE_INSTALL_PREFIX={}'.format(prefix)
         ]
         if builder.build_type == BUILD_TYPE_ASAN:
             args.append("-DLLVM_USE_SANITIZER=Address;Undefined")
