@@ -73,18 +73,18 @@ class Llvm10LibCxxDependencyBase(Llvm10PartDependencyBase):
         builder.build_with_cmake(
             self,
             extra_args=args,
-            src_subdir_name=self.get_source_dir_name(),
+            src_subdir_name=self.get_source_subdir_name(),
             use_ninja_if_available=True)
 
-    def get_source_dir_name(self) -> str:
+    def get_source_subdir_name(self) -> str:
         raise NotImplementedError()
 
 
 class Llvm10LibCxxAbiDependency(Llvm10LibCxxDependencyBase):
     def __init__(self) -> None:
-        super(Llvm10LibCxxAbiDependency, self).__init__('libcxxabi10')
+        super(Llvm10LibCxxAbiDependency, self).__init__('llvm10_libcxxabi')
 
-    def get_source_dir_name(self) -> str:
+    def get_source_subdir_name(self) -> str:
         return 'libcxxabi'
 
     def get_additional_cmake_args(self, builder: BuilderInterface) -> List[str]:
@@ -110,9 +110,9 @@ class Llvm10LibCxxAbiDependency(Llvm10LibCxxDependencyBase):
 
 class Llvm10LibCxxDependency(Llvm10LibCxxDependencyBase):
     def __init__(self) -> None:
-        super(Llvm10LibCxxDependency, self).__init__('libcxx10')
+        super(Llvm10LibCxxDependency, self).__init__('llvm10_libcxx')
 
-    def get_source_dir_name(self) -> str:
+    def get_source_subdir_name(self) -> str:
         return 'libcxx'
 
     def get_additional_cmake_args(self, builder: BuilderInterface) -> List[str]:

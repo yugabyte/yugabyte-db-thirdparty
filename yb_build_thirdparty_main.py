@@ -1095,7 +1095,8 @@ class Builder(BuilderInterface):
         self.ld_flags.append('-rtlib=compiler-rt')
 
         if self.build_type != BUILD_TYPE_COMMON:
-            is_libcxx = dep.name.startswith('libcxx')
+            # TODO mbautin: refactor to polymorphism
+            is_libcxx = 'libcxx' in dep.name
             self.ld_flags += ['-lunwind']
 
             # TODO: dedup with the similar code above used for Clang 7.
