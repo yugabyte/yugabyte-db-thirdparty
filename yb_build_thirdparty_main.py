@@ -1147,7 +1147,8 @@ class Builder(BuilderInterface):
                 ] + self.cxx_flags
                 self.prepend_lib_dir_and_rpath(libcxx_installed_lib)
 
-            if self.build_type in [BUILD_TYPE_ASAN, BUILD_TYPE_TSAN]:
+            # TODO mbautin: remove this altogether.
+            if False and self.build_type in [BUILD_TYPE_ASAN, BUILD_TYPE_TSAN]:
                 # Use the compiler-rt version we built with no instrumentation when building
                 # libc++ with ASAN/TSAN instrumentation. So the build order is:
                 # - Uninstrumented libc++abi and libc++
@@ -1159,6 +1160,7 @@ class Builder(BuilderInterface):
                 compiler_rt_lib_path = os.path.join(
                     self.tp_installed_dir, BUILD_TYPE_UNINSTRUMENTED, 'compiler-rt',
                     'lib', 'linux')
+
                 if not glob.glob(os.path.join(compiler_rt_lib_path, '*.so')):
                     raise IOError(f"Did not find any .so files in {compiler_rt_lib_path}")
 
