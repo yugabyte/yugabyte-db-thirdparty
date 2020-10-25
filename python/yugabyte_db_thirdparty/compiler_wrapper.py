@@ -37,29 +37,6 @@ class CompilerWrapper:
             cmd_args = compiler_path_and_args
         subprocess.check_call(cmd_args)
 
-        self.check_compiler_output(compiler_args)
-
-    def check_compiler_output(self, compiler_args: List[str]) -> None:
-        # Watch for libstdc++ in linker output and error out immediately.
-        disallow_libstdcxx = os.getenv('YB_THIRDPARTY_DISALLOW_LIBSTDCXX') == '1'
-        if not disallow_libstdcxx:
-            return
-
-        output_file = None
-        for i in range(len(compiler_args) - 1):
-            if compiler_args[i] == '-o':
-                output_file = compiler_args[i]
-
-        if output_file and output_file.endswith('.so'):
-            from yugabyte_db_thirdparty.shared_library_checking import LibTestLinux
-            lib_tester = LibTestLinux()
-            lib_tester.bad_lib_re_list.append('.*libstdc.*')
-            lib_tester.init_regex()
-            if not lib_tester.good_libs(output_file):
-                raise ValueError(
-                    "Library or executable depeends on disallowed libraries: %s" %
-                    os.path.abspath(output_file))
-
 
 def run_compiler_wrapper(is_cxx: bool) -> None:
     compiler_wrapper = CompilerWrapper(is_cxx=is_cxx)

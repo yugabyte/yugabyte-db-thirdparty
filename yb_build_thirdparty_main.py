@@ -1088,6 +1088,13 @@ class Builder(BuilderInterface):
             # as of 10/2020.
             self.compiler_flags.append('--gcc-toolchain={}'.format(self.get_linuxbrew_dir()))
 
+    def get_libcxx_dirs(self, libcxx_installed_suffix: str) -> Tuple[str, str]:
+        libcxx_installed_path = os.path.join(
+            self.tp_installed_dir, libcxx_installed_suffix, 'libcxx')
+        libcxx_installed_include = os.path.join(libcxx_installed_path, 'include', 'c++', 'v1')
+        libcxx_installed_lib = os.path.join(libcxx_installed_path, 'lib')
+        return libcxx_installed_include, libcxx_installed_lib
+
     def init_clang10_or_later_flags(self, dep: Dependency) -> None:
         """
         Flags for Clang 10 and beyond. We are using LLVM-supplied libunwind and compiler-rt in this
@@ -1100,12 +1107,7 @@ class Builder(BuilderInterface):
             is_libcxx = 'libcxx' in dep.name
             self.ld_flags += ['-lunwind']
 
-            # TODO: dedup with the similar code above used for Clang 7.
-            libcxx_installed_suffix = self.build_type
-            libcxx_installed_path = os.path.join(
-                self.tp_installed_dir, libcxx_installed_suffix, 'libcxx')
-            libcxx_installed_include = os.path.join(libcxx_installed_path, 'include', 'c++', 'v1')
-            libcxx_installed_lib = os.path.join(libcxx_installed_path, 'lib')
+            libcxx_installed_include, libcxx_installed_lib = self.get_libcxx_dirs(self.build_type)
 
             if not is_libcxx:
                 self.ld_flags += ['-lc++', '-lc++abi']
@@ -1118,9 +1120,19 @@ class Builder(BuilderInterface):
                 ] + self.cxx_flags
                 self.prepend_lib_dir_and_rpath(libcxx_installed_lib)
 
-        # After linking every library or executable, we will check if it depends on libstdc++ and
-        # fail immediately at that point.
-        os.environ['YB_THIRDPARTY_DISALLOW_LIBSTDCXX'] = '1'
+            if self.build_type in [BUILD_TYPE_ASAN, BUILD_TYPE_TSAN] or not is_libcxx:
+                # Use the compiler-rt version we built with no instrumentation when building
+                # libc++ with ASAN/TSAN instrumentation. Also use it when building code other than
+                # libcxx with the uninstrumented build type.
+                # So the build order is:
+                # - Uninstrumented libc++abi and libc++
+                # - Uninstrumetned compiler-rt
+                # - Other uninstrumented dependencies, using the above compiler-rt
+                # - ASAN/TSAN instrumented libc++abi and libc++, using the instrumented compiler-rt
+                # - ASAN/TSAN instrumented everything else, using the instrumented compiler-rt
+                self.prepend_lib_dir_and_rpath(
+                    os.path.join(self.tp_installed_dir, BUILD_TYPE_UNINSTRUMENTED, 'compiler-rt')
+                )
 
     def log_and_set_env_var(self, env_var_name: str, items: List[str]) -> None:
         value_str = ' '.join(items)

@@ -44,3 +44,6 @@ class Llvm10CompilerRtDependency(Llvm10PartDependencyBase):
                 '-DCOMPILER_RT_SANITIZERS_TO_BUILD=asan;dfsan;msan;tsan;safestack;cfi;scudo;ubsan_minimal;gwp_asan'
             ],
             src_subdir_name=src_subdir_name)
+
+    def get_install_prefix(self, builder: BuilderInterface) -> str:
+        return os.path.join(builder.prefix, 'compiler-rt')
