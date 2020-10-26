@@ -972,6 +972,10 @@ class Builder(BuilderInterface):
             args += extra_args
         args += dep.get_additional_cmake_args(self)
 
+        if '-DBUILD_SHARED_LIBS=OFF' not in args:
+            # TODO: a better approach for setting CMake arguments from multiple places.
+            args.append('-DBUILD_SHARED_LIBS=ON')
+
         log("CMake command line (one argument per line):\n%s" %
             "\n".join([(" " * 4 + sanitize_flags_line_for_log(line)) for line in args]))
         log_output(log_prefix, args)
@@ -1196,7 +1200,6 @@ class Builder(BuilderInterface):
             '-DCMAKE_EXE_LINKER_FLAGS={}'.format(ld_flags_str),
             '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON',
             '-DCMAKE_INSTALL_PREFIX={}'.format(dep.get_install_prefix(self)),
-            '-DBUILD_SHARED_LIBS=ON',
             '-DCMAKE_POSITION_INDEPENDENT_CODE=ON'
         ]
 
