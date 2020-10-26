@@ -27,7 +27,7 @@ class LLVM7Dependency(Dependency):
     def __init__(self) -> None:
         url_prefix = "http://releases.llvm.org/{0}/"
         super(LLVM7Dependency, self).__init__(
-            name='llvm',
+            name='llvm7',
             version=LLVM7Dependency.VERSION,
             url_pattern=url_prefix + 'llvm-{0}.src.tar.xz',
             build_group=BUILD_GROUP_COMMON)
