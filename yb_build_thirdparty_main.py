@@ -1056,22 +1056,31 @@ class Builder(BuilderInterface):
 
     def init_flags(self, dep: Dependency) -> None:
         """
-        Initializes compiler and linker flags.
+        Initializes compiler and linker flags. No flag customizations should be transferred from one
+        dependency to another.
         """
         self.init_compiler_independent_flags(dep)
 
-        if is_mac() or not self.building_with_clang():
-            # No further special setup is required for Clang on macOS, or for GCC on Linux.
-            return
+        if not is_mac() and self.building_with_clang():
+            # Special setup for Clang on Linux.
+            if self.args.single_compiler_type == 'clang':
+                # We are assuming that --single-compiler-type will only be used for Clang 10 and newer.
+                self.init_linux_clang1x_flags(dep)
+            else:
+                self.init_linux_clang7_flags(dep)
 
-        # -----------------------------------------------------------------------------------------
-        # Special setup for Clang on Linux.
-        # -----------------------------------------------------------------------------------------
+    def get_libcxx_dirs(self, libcxx_installed_suffix: str) -> Tuple[str, str]:
+        libcxx_installed_path = os.path.join(
+            self.tp_installed_dir, libcxx_installed_suffix, 'libcxx')
+        libcxx_installed_include = os.path.join(libcxx_installed_path, 'include', 'c++', 'v1')
+        libcxx_installed_lib = os.path.join(libcxx_installed_path, 'lib')
+        return libcxx_installed_include, libcxx_installed_lib
 
-        if self.args.single_compiler_type == 'clang':
-            self.init_clang1x_flags(dep)
-            return
-
+    def init_linux_clang7_flags(self, dep: Dependency) -> None:
+        """
+        Flags used to build code with Clang 7 that we build here. As we move to newer versions of
+        Clang, this function will go away.
+        """
         if self.build_type == BUILD_TYPE_ASAN:
             self.compiler_flags += [
                 '-fsanitize=address',
@@ -1103,14 +1112,7 @@ class Builder(BuilderInterface):
             # as of 10/2020.
             self.compiler_flags.append('--gcc-toolchain={}'.format(self.get_linuxbrew_dir()))
 
-    def get_libcxx_dirs(self, libcxx_installed_suffix: str) -> Tuple[str, str]:
-        libcxx_installed_path = os.path.join(
-            self.tp_installed_dir, libcxx_installed_suffix, 'libcxx')
-        libcxx_installed_include = os.path.join(libcxx_installed_path, 'include', 'c++', 'v1')
-        libcxx_installed_lib = os.path.join(libcxx_installed_path, 'lib')
-        return libcxx_installed_include, libcxx_installed_lib
-
-    def init_clang1x_flags(self, dep: Dependency) -> None:
+    def init_linux_clang1x_flags(self, dep: Dependency) -> None:
         """
         Flags for Clang 10 and beyond. We are using LLVM-supplied libunwind and compiler-rt in this
         configuration.
@@ -1177,6 +1179,8 @@ class Builder(BuilderInterface):
             # it at build time because libc++abi is built first.
             self.add_rpath(libcxx_installed_lib)
 
+        self.cxx_flags.append('-Wno-error=unused-command-line-argument')
+
     def log_and_set_env_var(self, env_var_name: str, items: List[str]) -> None:
         value_str = ' '.join(items)
         log('Setting env var %s to %s', env_var_name, value_str)
@@ -1218,6 +1222,7 @@ class Builder(BuilderInterface):
             return
 
         self.init_flags(dep)
+
         # This is needed at least for glog to be able to find gflags.
         self.add_rpath(os.path.join(self.tp_installed_dir, self.build_type, 'lib'))
         if self.build_type != BUILD_TYPE_COMMON:
