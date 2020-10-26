@@ -157,6 +157,7 @@ class Builder(BuilderInterface):
     tp_download_dir: str
     ld_flags: List[str]
     compiler_flags: List[str]
+    preprocessor_flags: List[str]
     c_flags: List[str]
     cxx_flags: List[str]
     libs: List[str]
@@ -839,6 +840,11 @@ class Builder(BuilderInterface):
                 remove_path(lib64_dir)
             os.symlink('lib', lib64_dir)
 
+    def add_include_path(self, include_path: str) -> None:
+        cmd_line_arg = f'-I{include_path}'
+        self.preprocessor_flags.append(cmd_line_arg)
+        self.compiler_flags.append(cmd_line_arg)
+
     def init_compiler_independent_flags(self, dep: Dependency) -> None:
         """
         Initialize compiler and linker flags for a particular build type. We try to limit this
@@ -853,12 +859,15 @@ class Builder(BuilderInterface):
         self.libs = []
 
         self.add_linuxbrew_flags()
-        # -fPIC is there to always generate position-independent code, even for static libraries.
-        self.preprocessor_flags.append(
-            '-I{}'.format(os.path.join(self.tp_installed_common_dir, 'include')))
+        for include_dir_component in set([BUILD_TYPE_COMMON, self.build_type]):
+            self.add_include_path(os.path.join(
+                self.tp_installed_dir, include_dir_component, 'include'))
+            self.add_lib_dir_and_rpath(os.path.join(
+                self.tp_installed_dir, include_dir_component, 'lib'))
+
         self.compiler_flags += self.preprocessor_flags
+        # -fPIC is there to always generate position-independent code, even for static libraries.
         self.compiler_flags += ['-fno-omit-frame-pointer', '-fPIC', '-O2', '-Wall']
-        self.ld_flags.append('-L{}'.format(os.path.join(self.tp_installed_common_dir, 'lib')))
         if is_linux():
             # On Linux, ensure we set a long enough rpath so we can change it later with chrpath or
             # a similar tool.
