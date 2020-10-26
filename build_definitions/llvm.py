@@ -78,8 +78,10 @@ class LLVMDependency(Dependency):
                 '-DCMAKE_BUILD_TYPE=Release',
                 '-DLLVM_INCLUDE_DOCS=OFF',
                 '-DLLVM_INCLUDE_EXAMPLES=OFF',
+                # Even if we turn tests off, the LLVMTestingSupport library is still built and that
+                # library requires gtest.
                 '-DLLVM_INCLUDE_TESTS=ON',
-                '-DLLVM_INCLUDE_UTILS=OFF',
+                '-DLLVM_INCLUDE_UTILS=ON',
                 '-DLLVM_TARGETS_TO_BUILD=X86',
                 '-DLLVM_ENABLE_RTTI=ON',
                 '-DCMAKE_CXX_FLAGS={}'.format(" ".join(cxx_flags)),
