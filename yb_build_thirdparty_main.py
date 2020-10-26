@@ -369,11 +369,15 @@ class Builder(BuilderInterface):
             ]
 
             if not self.use_only_gcc() and not self.use_only_clang():
-                self.dependencies.append(get_build_def_module('llvm').LLVMDependency())
-                self.dependencies.append(get_build_def_module('libcxx').LibCXXDependency())
+                # Old LLVM. We will migrate away from this.
+                self.dependencies.extend([
+                    get_build_def_module('llvm7').LLVM7Dependency(),
+                    get_build_def_module('llvm7_libcxx').Llvm7LibCXXDependency(),
+                ])
 
             if self.use_only_clang():
                 self.dependencies.extend([
+                    # New LLVM. We will keep supporting new LLVM versions here.
                     get_build_def_module('llvm1x_libunwind').Llvm1xLibUnwindDependency(
                         version=self.args.llvm_version
                     ),
@@ -383,9 +387,6 @@ class Builder(BuilderInterface):
                     get_build_def_module('llvm1x_libcxx').Llvm1xLibCxxDependency(
                         version=self.args.llvm_version
                     ),
-                    # get_build_def_module('llvm1x_compiler_rt').Llvm1xCompilerRtDependency(
-                    #     version=self.args.llvm_version
-                    # )
                 ])
             else:
                 self.dependencies.append(get_build_def_module('libunwind').LibUnwindDependency())
@@ -1068,7 +1069,7 @@ class Builder(BuilderInterface):
         # -----------------------------------------------------------------------------------------
 
         if self.args.single_compiler_type == 'clang':
-            self.init_clang10_or_later_flags(dep)
+            self.init_clang1x_flags(dep)
             return
 
         if self.build_type == BUILD_TYPE_ASAN:
@@ -1109,7 +1110,7 @@ class Builder(BuilderInterface):
         libcxx_installed_lib = os.path.join(libcxx_installed_path, 'lib')
         return libcxx_installed_include, libcxx_installed_lib
 
-    def init_clang10_or_later_flags(self, dep: Dependency) -> None:
+    def init_clang1x_flags(self, dep: Dependency) -> None:
         """
         Flags for Clang 10 and beyond. We are using LLVM-supplied libunwind and compiler-rt in this
         configuration.

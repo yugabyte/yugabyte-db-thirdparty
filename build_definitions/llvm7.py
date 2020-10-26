@@ -21,14 +21,14 @@ from build_definitions import ExtraDownload
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
 
-class LLVMDependency(Dependency):
+class LLVM7Dependency(Dependency):
     VERSION = '7.1.0'
 
     def __init__(self) -> None:
         url_prefix = "http://releases.llvm.org/{0}/"
-        super(LLVMDependency, self).__init__(
+        super(LLVM7Dependency, self).__init__(
             name='llvm',
-            version=LLVMDependency.VERSION,
+            version=LLVM7Dependency.VERSION,
             url_pattern=url_prefix + 'llvm-{0}.src.tar.xz',
             build_group=BUILD_GROUP_COMMON)
         self.dir_name += ".src"
@@ -102,7 +102,7 @@ class LLVMDependency(Dependency):
                                  use_ninja_if_available=True)
 
         create_symlink_at = os.path.join(builder.tp_dir, 'clang-toolchain')
-        if not os.path.islink(create_symlink_at)
+        if not os.path.islink(create_symlink_at):
             raise IOError(f"File already exists and is not a symlink: {create_symlink_at}")
         remove_path(create_symlink_at)
 
