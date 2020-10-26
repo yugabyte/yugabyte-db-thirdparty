@@ -32,12 +32,8 @@ class CassandraCppDriverDependency(Dependency):
     def build(self, builder: BuilderInterface) -> None:
         cxx_flags = []
         if not is_mac():
-            # TODO: this will modify rpath and flags not just for this dependency but for all
-            #       dependencies that are built after it as well.
+            # TODO: refactor to polymorphism.
             builder.prepend_rpath(os.path.join(builder.tp_installed_common_dir, "lib"))
-            cxx_flags = builder.compiler_flags + builder.cxx_flags + builder.ld_flags
-            builder.add_checked_flag(cxx_flags, '-Wno-error=implicit-fallthrough')
-            builder.add_checked_flag(cxx_flags, '-Wno-error=class-memaccess')
 
         # FindOpenSSL.cmake in cassandra-cpp-driver is buggy (e.g. it cannot recognize the version
         # 1.1.1g of OpenSSL, because it has a regexp hardcoded with [a-f], as if for hex characters,
@@ -54,13 +50,7 @@ class CassandraCppDriverDependency(Dependency):
 
         cmake_args = [
             '-DCMAKE_BUILD_TYPE={}'.format(builder.cmake_build_type_for_test_only_dependencies()),
-            '-DCMAKE_POSITION_INDEPENDENT_CODE=On',
-            '-DBUILD_SHARED_LIBS=On'
-        ] + (
-            ['-DCMAKE_CXX_FLAGS=' + ' '.join(cxx_flags)] if not is_mac() else []
-        ) + (
-            builder.get_openssl_related_cmake_args()
-        )
+        ] + builder.get_openssl_related_cmake_args()
         builder.build_with_cmake(self, cmake_args)
 
         if is_mac():
@@ -69,10 +59,13 @@ class CassandraCppDriverDependency(Dependency):
             log_output(builder.log_prefix(self),
                        ['install_name_tool', '-id', '@rpath/' + lib_file, path])
 
-    def get_additional_c_cxx_flags(self, builder: 'BuilderInterface') -> List[str]:
+    def get_additional_cxx_flags(self, builder: 'BuilderInterface') -> List[str]:
+        if is_mac():
+            return []
+        extra_cxx_flags = []
+        builder.add_checked_flag(extra_cxx_flags, '-Wno-error=implicit-fallthrough')
+        builder.add_checked_flag(extra_cxx_flags, '-Wno-error=class-memaccess')
         if builder.compiler_type == 'clang':
-            return [
-                '-Wno-error=unused-command-line-argument',
-                '-Wno-error=deprecated-declarations'
-            ]
-        return []
+            builder.add_checked_flag(extra_cxx_flags, '-Wno-error=unused-command-line-argument')
+            builder.add_checked_flag(extra_cxx_flags, '-Wno-error=deprecated-declarations')
+        return extra_cxx_flags

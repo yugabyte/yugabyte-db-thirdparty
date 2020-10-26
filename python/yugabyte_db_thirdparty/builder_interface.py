@@ -94,11 +94,11 @@ class BuilderInterface:
     def will_need_clang(self) -> bool:
         raise NotImplementedError()
 
-    def get_prefix(self, qualifier: Optional[str] = None) -> str:
-        raise NotImplementedError()
-
     def get_common_cmake_flag_args(self, dep: 'Dependency') -> List[str]:
         raise NotImplementedError()
 
     def get_llvm_config_path(self) -> str:
+        raise NotImplementedError()
+
+    def get_prefix_with_qualifier(self, qualifier: Optional[str]) -> str:
         raise NotImplementedError()

@@ -39,12 +39,3 @@ class GLogDependency(Dependency):
             extra_args=[
                 '-DCMAKE_BUILD_TYPE=Release',
             ])
-        return
-
-        log_prefix = builder.log_prefix(self)
-        log_output(log_prefix, ['autoreconf', '--force', '--install'])
-        args = ['./configure', '--prefix={}'.format(builder.prefix), '--with-pic',
-                '--with-gflags={}'.format(builder.prefix)]
-        log_output(log_prefix, args)
-        log_output(log_prefix, ['make', 'install-exec-am', 'install-data-am',
-                                '-j{}'.format(multiprocessing.cpu_count())])

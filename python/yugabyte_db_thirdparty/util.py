@@ -75,11 +75,12 @@ def replace_string_in_file(
 
 
 def remove_path(path: str) -> None:
+    if os.path.islink(path):
+        # Remove the link even if the path it is pointing to does not exist.
+        os.unlink(path)
     if not os.path.exists(path):
         return
-    if os.path.islink(path):
-        os.unlink(path)
-    elif os.path.isdir(path):
+    if os.path.isdir(path):
         shutil.rmtree(path)
     else:
         os.remove(path)

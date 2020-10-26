@@ -56,7 +56,7 @@ class Dependency:
             raise ValueError("Invalid build group: %s, should be one of: %s" % (
                 build_group, VALID_BUILD_GROUPS))
 
-    def get_additional_c_cxx_flags(
+    def get_additional_compiler_flags(
             self,
             builder: 'BuilderInterface') -> List[str]:
         return []

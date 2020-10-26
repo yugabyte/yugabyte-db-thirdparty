@@ -1029,15 +1029,15 @@ class Builder(BuilderInterface):
             if dep.build_group == build_group and dep.should_build(self):
                 self.build_dependency(dep)
 
-    def get_prefix(self, qualifier: Optional[str] = None) -> str:
+    def get_prefix_with_qualifer(self, qualifier: Optional[str] = None) -> str:
         return os.path.join(
-            self.tp_installed_dir + ('_' + qualifier if qualifier else ''),
-            self.build_type)
+            self.tp_installed_dir,
+            self.build_type + ('_%s' % qualifier if qualifier else ''))
 
     def set_build_type(self, build_type: str) -> None:
         self.build_type = build_type
         self.find_prefix = self.tp_installed_common_dir
-        self.prefix = self.get_prefix()
+        self.prefix = self.get_prefix_with_qualifer(qualifier=None)
         if build_type != BUILD_TYPE_COMMON:
             self.find_prefix += ';' + self.prefix
         self.prefix_bin = os.path.join(self.prefix, 'bin')
@@ -1064,7 +1064,8 @@ class Builder(BuilderInterface):
         if not is_mac() and self.building_with_clang():
             # Special setup for Clang on Linux.
             if self.args.single_compiler_type == 'clang':
-                # We are assuming that --single-compiler-type will only be used for Clang 10 and newer.
+                # We are assuming that --single-compiler-type will only be used for Clang 10 and
+                # newer.
                 self.init_linux_clang1x_flags(dep)
             else:
                 self.init_linux_clang7_flags(dep)
@@ -1186,15 +1187,14 @@ class Builder(BuilderInterface):
         log('Setting env var %s to %s', env_var_name, value_str)
         os.environ[env_var_name] = value_str
 
+    def get_effective_compiler_flags(self, dep: Dependency) -> List[str]:
+        return self.compiler_flags + dep.get_additional_compiler_flags(self))
+
     def get_effective_cxx_flags(self, dep: Dependency) -> List[str]:
-        dep_additional_cxx_flags = (dep.get_additional_cxx_flags(self) +
-                                    dep.get_additional_c_cxx_flags(self))
-        return self.compiler_flags + self.cxx_flags + dep_additional_cxx_flags
+        return self.get_effective_compiler_flags(dep) + dep.get_additional_cxx_flags(self)
 
     def get_effective_c_flags(self, dep: Dependency) -> List[str]:
-        dep_additional_c_flags = (dep.get_additional_c_flags(self) +
-                                  dep.get_additional_c_cxx_flags(self))
-        return self.compiler_flags + self.c_flags + dep_additional_c_flags
+        return self.get_effective_compiler_flags(dep) + dep.get_additional_c_flags(self)
 
     def get_effective_ld_flags(self, dep: Dependency) -> List[str]:
         return self.ld_flags + dep.get_additional_ld_flags(self)
@@ -1379,8 +1379,10 @@ class Builder(BuilderInterface):
         return self.args.build_type != BUILD_TYPE_UNINSTRUMENTED
 
     def check_cxx_compiler_flag(self, flag: str) -> bool:
+        compiler_path = self.get_cxx_compiler()
+        log(f"Checking if the compiler {compiler_path} accepts the flag {flag}")
         process = subprocess.Popen(
-            [self.get_cxx_compiler(), '-x', 'c++', flag, '-'],
+            [compiler_path, '-x', 'c++', flag, '-'],
             stdin=subprocess.PIPE)
         assert process.stdin is not None
         process.stdin.write("int main() { return 0; }".encode('utf-8'))

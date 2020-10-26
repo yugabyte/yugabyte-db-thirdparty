@@ -55,8 +55,11 @@ class LLVM7Dependency(Dependency):
 
         self.copy_sources = False
 
+    def get_prefix(self, builder: BuilderInterface) -> str:
+        return builder.get_prefix_with_qualifier(qualifier='llvm7')
+
     def build(self, builder: BuilderInterface) -> None:
-        prefix = builder.get_prefix('llvm7')
+        prefix = self.get_prefix(builder)
 
         # The LLVM build can fail if a different version is already installed
         # in the install prefix. It will try to link against that version instead
@@ -107,7 +110,10 @@ class LLVM7Dependency(Dependency):
         remove_path(create_symlink_at)
 
         create_symlink_to = os.path.relpath(prefix, builder.tp_dir)
-        log("Creating symlink %s -> %s", create_symlink_at, create_symlink_to)
+        if not os.path.exists(prefix) or not os.path.isdir(prefix):
+            raise IOError("Path does not exist or is not a directory: '%s'" % prefix)
+        log("Creating symlink %s -> %s (current directory is %d)",
+            create_symlink_at, create_symlink_to, os.getcwd())
         os.symlink(create_symlink_to, create_symlink_at)
 
     def should_build(self, builder: BuilderInterface) -> bool:

@@ -30,7 +30,7 @@ class CRCUtilDependency(Dependency):
         self.patch_strip = 0
         self.patches = ['crcutil-fix-libtoolize-on-osx.patch', 'crcutil-fix-offsetof.patch']
 
-    def get_additional_c_cxx_flags(self, builder: BuilderInterface) -> List[str]:
+    def get_additional_compiler_flags(self, builder: BuilderInterface) -> List[str]:
         if builder.building_with_clang():
             return []
         # -mcrc32 (https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html)
