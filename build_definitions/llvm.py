@@ -84,7 +84,15 @@ class LLVMDependency(Dependency):
                 '-DLLVM_ENABLE_RTTI=ON',
                 '-DCMAKE_CXX_FLAGS={}'.format(" ".join(cxx_flags)),
                 '-DPYTHON_EXECUTABLE={}'.format(python_executable),
-                '-DCLANG_BUILD_EXAMPLES=ON'
+                '-DCLANG_BUILD_EXAMPLES=OFF',
+                # Turn off any remaining test-related flags.
+                '-DCLANG_TOOL_ARCMT_TEST_BUILD=OFF',
+                '-DCLANG_TOOL_C_ARCMT_TEST_BUILD=OFF',
+                '-DCLANG_TOOL_C_INDEX_TEST_BUILD=OFF',
+                '-DCLANG_TOOL_CLANG_IMPORT_TEST_BUILD=OFF',
+                '-DCOMPILER_RT_CAN_EXECUTE_TESTS=OFF',
+                '-DLLVM_INCLUDE_GO_TESTS=OFF',
+                '-DLLVM_TOOL_LLVM_C_TEST_BUILD=OFF',
         ]
         builder.build_with_cmake(self,
                                  cmake_args,
