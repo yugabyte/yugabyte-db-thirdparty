@@ -101,11 +101,14 @@ class LLVMDependency(Dependency):
                                  cmake_args,
                                  use_ninja_if_available=True)
 
-        link_path = os.path.join(builder.tp_dir, 'clang-toolchain')
-        remove_path(link_path)
-        list_dest = os.path.relpath(prefix, builder.tp_dir)
-        log("Link %s => %s", link_path, list_dest)
-        os.symlink(list_dest, link_path)
+        create_symlink_at = os.path.join(builder.tp_dir, 'clang-toolchain')
+        if not os.path.islink(create_symlink_at)
+            raise IOError(f"File already exists and is not a symlink: {create_symlink_at}")
+        remove_path(create_symlink_at)
+
+        create_symlink_to = os.path.relpath(prefix, builder.tp_dir)
+        log("Creating symlink %s -> %s", create_symlink_at, create_symlink_to)
+        os.symlink(create_symlink_to, create_symlink_at)
 
     def should_build(self, builder: BuilderInterface) -> bool:
         return builder.will_need_clang()
