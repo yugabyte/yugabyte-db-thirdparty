@@ -1188,7 +1188,7 @@ class Builder(BuilderInterface):
         os.environ[env_var_name] = value_str
 
     def get_effective_compiler_flags(self, dep: Dependency) -> List[str]:
-        return self.compiler_flags + dep.get_additional_compiler_flags(self))
+        return self.compiler_flags + dep.get_additional_compiler_flags(self)
 
     def get_effective_cxx_flags(self, dep: Dependency) -> List[str]:
         return self.get_effective_compiler_flags(dep) + dep.get_additional_cxx_flags(self)
