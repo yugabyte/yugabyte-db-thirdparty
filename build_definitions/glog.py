@@ -33,7 +33,6 @@ class GLogDependency(Dependency):
                         'glog-symbolize-and-demangle.patch']
         self.post_patch = ['autoreconf', '-fvi']
 
-
     def get_additional_cmake_args(self, builder: BuilderInterface) -> List[str]:
         cmake_args = [
             '-DCMAKE_BUILD_TYPE=Release',
@@ -41,7 +40,7 @@ class GLogDependency(Dependency):
         if builder.build_type in [BUILD_TYPE_ASAN, BUILD_TYPE_TSAN]:
             # Can't build glog unit tests in ASAN/TSAN because of their overrides of new/delete.
             # We could patch glog to support that at some point.
-            cmake_args  += ['-DBUILD_TESTING=OFF']
+            cmake_args += ['-DBUILD_TESTING=OFF']
         return cmake_args
 
     def build(self, builder: BuilderInterface) -> None:
