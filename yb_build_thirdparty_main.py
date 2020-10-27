@@ -1144,17 +1144,25 @@ class Builder(BuilderInterface):
             ]
 
             if dep.name != 'libbacktrace':
+                # Fix the issue mentioned at https://github.com/google/sanitizers/issues/1017
+                # (asan: odr-violation false alarm with shared libraries).
+                #
                 # TODO: handle this using polymorphism, not by looking at the dependency name.
                 # We can't use this flag for libbacktrace because libtool somehow comes up with
                 # a command line containing "-mllvm -Wl,-rpath -Wl,..." for the linker, amd what
                 # originally followed the -mllvm flag is missing. However, hopefully, libbacktrace
                 # is less likely to cause the issue this flag is supposed to fix.
-                self.compiler_flags += [
-                    # Fix the issue mentioned at https://github.com/google/sanitizers/issues/1017
-                    # (asan: odr-violation false alarm with shared libraries).
+                #
+                use_private_alias_flag = [
                     '-mllvm',
                     '-asan-use-private-alias=1'
                 ]
+                if dep.name == 'gmock':
+                    # gmock fails to build if we specify this both as C and C++ flag.
+                    self.cxx_flags += use_private_alias_flag
+                else:
+                    self.compiler_flags += use_private_alias_flag
+
             if is_libcxxabi:
                 # To avoid an infinite loop in UBSAN.
                 # https://monorail-prod.appspot.com/p/chromium/issues/detail?id=609786
