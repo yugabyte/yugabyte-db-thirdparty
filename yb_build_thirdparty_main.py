@@ -1157,7 +1157,7 @@ class Builder(BuilderInterface):
                     '-mllvm',
                     '-asan-use-private-alias=1'
                 ]
-                if dep.name == 'gmock':
+                if dep.name in ['gmock', 'snappy']:
                     # gmock fails to build if we specify this both as C and C++ flag.
                     self.cxx_flags += use_private_alias_flag
                 else:
