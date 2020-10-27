@@ -1037,7 +1037,7 @@ class Builder(BuilderInterface):
             if dep.build_group == build_group and dep.should_build(self):
                 self.build_dependency(dep)
 
-    def get_prefix_with_qualifier(self, qualifier: Optional[str] = None) -> str:
+    def get_install_prefix_with_qualifier(self, qualifier: Optional[str] = None) -> str:
         return os.path.join(
             self.tp_installed_dir,
             self.build_type + ('_%s' % qualifier if qualifier else ''))
@@ -1045,7 +1045,7 @@ class Builder(BuilderInterface):
     def set_build_type(self, build_type: str) -> None:
         self.build_type = build_type
         self.find_prefix = self.tp_installed_common_dir
-        self.prefix = self.get_prefix_with_qualifier(qualifier=None)
+        self.prefix = self.get_install_prefix_with_qualifier(qualifier=None)
         if build_type != BUILD_TYPE_COMMON:
             self.find_prefix += ';' + self.prefix
         self.prefix_bin = os.path.join(self.prefix, 'bin')

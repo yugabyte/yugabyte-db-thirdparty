@@ -55,11 +55,11 @@ class LLVM7Dependency(Dependency):
 
         self.copy_sources = False
 
-    def get_prefix(self, builder: BuilderInterface) -> str:
-        return builder.get_prefix_with_qualifier(qualifier='llvm7')
+    def get_install_prefix(self, builder: BuilderInterface) -> str:
+        return builder.get_install_prefix_with_qualifier(qualifier='llvm7')
 
     def build(self, builder: BuilderInterface) -> None:
-        prefix = self.get_prefix(builder)
+        prefix = self.get_install_prefix(builder)
         log("Prefix for LLVM 7 build: %s", prefix)
         if os.path.basename(prefix) == 'common':
             raise ValueError("LLVM 7 cannot be installed together with other 'common' dependencies")

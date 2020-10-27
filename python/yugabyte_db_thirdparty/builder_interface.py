@@ -100,7 +100,7 @@ class BuilderInterface:
     def get_llvm_config_path(self) -> str:
         raise NotImplementedError()
 
-    def get_prefix_with_qualifier(self, qualifier: Optional[str]) -> str:
+    def get_install_prefix_with_qualifier(self, qualifier: Optional[str]) -> str:
         raise NotImplementedError()
 
     def is_linux_clang1x(self) -> bool:
