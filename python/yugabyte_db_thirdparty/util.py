@@ -20,6 +20,18 @@ from yugabyte_db_thirdparty.custom_logging import log, fatal
 from typing import List, Optional, Any
 
 
+def _detect_yb_thirdparty_dir() -> str:
+    yb_thirdparty_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+    if not os.path.isdir(os.path.join(yb_thirdparty_dir, 'python', 'yugabyte_db_thirdparty')):
+        raise IOError("Could not identify correct third-party directory, got %s" %
+                      yb_thirdparty_dir)
+    return yb_thirdparty_dir
+
+
+YB_THIRDPARTY_DIR = _detect_yb_thirdparty_dir()
+
+
 def assert_list_contains(items: List[str], required_item: str) -> None:
     if required_item not in items:
         raise ValueError("%s not found in %s" % (required_item, items))

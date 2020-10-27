@@ -24,11 +24,8 @@ import traceback
 
 from typing import Any, List, Optional, Dict, Union, NoReturn
 from yugabyte_db_thirdparty.custom_logging import log, fatal
+from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR
 
-YB_THIRDPARTY_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-if not os.path.isdir(os.path.join(YB_THIRDPARTY_DIR, 'python', 'yugabyte_db_thirdparty')):
-    raise IOError("Could not identify correct third-party directory, got %s" % YB_THIRDPARTY_DIR)
 
 # -------------------------------------------------------------------------------------------------
 # Build groups

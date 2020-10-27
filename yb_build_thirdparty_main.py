@@ -1157,11 +1157,9 @@ class Builder(BuilderInterface):
                     '-mllvm',
                     '-asan-use-private-alias=1'
                 ]
-                if dep.name in ['gmock', 'snappy']:
-                    # gmock fails to build if we specify this both as C and C++ flag.
-                    self.cxx_flags += use_private_alias_flag
-                else:
-                    self.compiler_flags += use_private_alias_flag
+                # These dependencies fails to build if we specify this flag both as C and C++ flag:
+                # gmock, snappy, crcutil.
+                self.cxx_flags += use_private_alias_flag
 
             if is_libcxxabi:
                 # To avoid an infinite loop in UBSAN.
