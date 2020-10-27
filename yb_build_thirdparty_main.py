@@ -370,13 +370,13 @@ class Builder(BuilderInterface):
 
             if not self.use_only_gcc() and not self.use_only_clang():
                 # Old LLVM. We will migrate away from this.
-                self.dependencies.extend([
+                self.dependencies += [
                     get_build_def_module('llvm7').LLVM7Dependency(),
                     get_build_def_module('llvm7_libcxx').Llvm7LibCXXDependency(),
-                ])
+                ]
 
             if self.use_only_clang():
-                self.dependencies.extend([
+                self.dependencies += [
                     # New LLVM. We will keep supporting new LLVM versions here.
                     get_build_def_module('llvm1x_libunwind').Llvm1xLibUnwindDependency(
                         version=self.args.llvm_version
@@ -387,7 +387,7 @@ class Builder(BuilderInterface):
                     get_build_def_module('llvm1x_libcxx').Llvm1xLibCxxDependency(
                         version=self.args.llvm_version
                     ),
-                ])
+                ]
             else:
                 self.dependencies.append(get_build_def_module('libunwind').LibUnwindDependency())
 
@@ -1132,11 +1132,21 @@ class Builder(BuilderInterface):
                 '-fsanitize=address',
                 '-fsanitize=undefined',
                 '-DADDRESS_SANITIZER',
-                '-shared-libasan',
-                # https://github.com/google/sanitizers/issues/1017
-                '-mllvm',
-                '-asan-use-private-alias=1'
+                '-shared-libasan'
             ]
+
+            if dep.name != 'libbacktrace':
+                # TODO: handle this using polymorphism, not by looking at the dependency name.
+                # We can't use this flag for libbacktrace because libtool somehow comes up with
+                # a command line containing "-mllvm -Wl,-rpath -Wl,..." for the linker, amd what
+                # originally followed the -mllvm flag is missing. However, hopefully, libbacktrace
+                # is less likely to cause the issue this flag is supposed to fix.
+                self.compiler_flags += [
+                    # Fix the issue mentioned at https://github.com/google/sanitizers/issues/1017
+                    # (asan: odr-violation false alarm with shared libraries).
+                    '-mllvm',
+                    '-asan-use-private-alias=1'
+                ]
             if is_libcxxabi:
                 # To avoid an infinite loop in UBSAN.
                 # https://monorail-prod.appspot.com/p/chromium/issues/detail?id=609786

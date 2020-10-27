@@ -30,7 +30,6 @@ class CassandraCppDriverDependency(Dependency):
         self.patch_strip = 1
 
     def build(self, builder: BuilderInterface) -> None:
-        cxx_flags = []
         if not is_mac():
             # TODO: refactor to polymorphism.
             builder.prepend_rpath(os.path.join(builder.tp_installed_common_dir, "lib"))
@@ -62,7 +61,7 @@ class CassandraCppDriverDependency(Dependency):
     def get_additional_cxx_flags(self, builder: 'BuilderInterface') -> List[str]:
         if is_mac():
             return []
-        extra_cxx_flags = []
+        extra_cxx_flags: List[str] = []
         builder.add_checked_flag(extra_cxx_flags, '-Wno-error=implicit-fallthrough')
         builder.add_checked_flag(extra_cxx_flags, '-Wno-error=class-memaccess')
         if builder.compiler_type == 'clang':
