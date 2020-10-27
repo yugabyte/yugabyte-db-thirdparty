@@ -335,6 +335,15 @@ class Builder(BuilderInterface):
     def use_only_gcc(self) -> bool:
         return bool(self.args.devtoolset) or self.args.single_compiler_type == 'gcc'
 
+    def is_linux_clang1x(self) -> bool:
+        # TODO: actually check compiler version.
+        return (
+            not is_mac() and
+            self.args.single_compiler_type == 'clang' and
+            not self.using_linuxbrew()
+        )
+
+
     def finish_initialization(self) -> None:
         self.detect_linuxbrew()
         self.populate_dependencies()

@@ -102,3 +102,6 @@ class BuilderInterface:
 
     def get_prefix_with_qualifier(self, qualifier: Optional[str]) -> str:
         raise NotImplementedError()
+
+    def is_linux_clang1x(self) -> bool:
+        raise NotImplementedError()

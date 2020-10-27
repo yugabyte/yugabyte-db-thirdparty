@@ -64,7 +64,7 @@ class CassandraCppDriverDependency(Dependency):
         extra_cxx_flags: List[str] = []
         builder.add_checked_flag(extra_cxx_flags, '-Wno-error=implicit-fallthrough')
         builder.add_checked_flag(extra_cxx_flags, '-Wno-error=class-memaccess')
-        if builder.compiler_type == 'clang':
+        if builder.is_linux_clang1x():
             builder.add_checked_flag(extra_cxx_flags, '-Wno-error=unused-command-line-argument')
             builder.add_checked_flag(extra_cxx_flags, '-Wno-error=deprecated-declarations')
         return extra_cxx_flags
