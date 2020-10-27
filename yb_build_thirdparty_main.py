@@ -343,7 +343,6 @@ class Builder(BuilderInterface):
             not self.using_linuxbrew()
         )
 
-
     def finish_initialization(self) -> None:
         self.detect_linuxbrew()
         self.populate_dependencies()
