@@ -105,7 +105,7 @@ class LLVM7Dependency(Dependency):
                                  use_ninja_if_available=True)
 
         create_symlink_at = os.path.join(builder.tp_dir, 'clang-toolchain')
-        if not os.path.islink(create_symlink_at):
+        if os.path.exists(create_symlink_at) and not os.path.islink(create_symlink_at):
             raise IOError(f"File already exists and is not a symlink: {create_symlink_at}")
         remove_path(create_symlink_at)
 
