@@ -1037,7 +1037,7 @@ class Builder(BuilderInterface):
             if dep.build_group == build_group and dep.should_build(self):
                 self.build_dependency(dep)
 
-    def get_prefix_with_qualifer(self, qualifier: Optional[str] = None) -> str:
+    def get_prefix_with_qualifier(self, qualifier: Optional[str] = None) -> str:
         return os.path.join(
             self.tp_installed_dir,
             self.build_type + ('_%s' % qualifier if qualifier else ''))
