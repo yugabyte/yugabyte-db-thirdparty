@@ -60,6 +60,9 @@ class LLVM7Dependency(Dependency):
 
     def build(self, builder: BuilderInterface) -> None:
         prefix = self.get_prefix(builder)
+        log("Prefix for LLVM 7 build: %s", prefix)
+        if os.path.basename(prefix) == 'common':
+            raise ValueError("LLVM 7 cannot be installed together with other 'common' dependencies")
 
         # The LLVM build can fail if a different version is already installed
         # in the install prefix. It will try to link against that version instead
