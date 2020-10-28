@@ -159,6 +159,15 @@ def log_and_set_env_var_to_list(
     env_var_map[env_var_name] = value_str
 
 
+def write_env_vars(file_path: str):
+
+    env_script = ''
+    for k, v in sorted(os.environ.items()):
+        env_script += '%s=%s\n' % (k, shlex.quote(v))
+    with open(file_path) as output_file:
+        output_file.write(env_script)
+
+
 class Builder(BuilderInterface):
     args: argparse.Namespace
     cc: Optional[str]
@@ -1280,12 +1289,13 @@ class Builder(BuilderInterface):
             # To avoid errors similar to:
             # https://gist.githubusercontent.com/mbautin/4b8eec566f54bcc35706dcd97cab1a95/raw
             # This could also be fixed to some extent by the compiler flags
-            #   -mllvm -asan-use-private-alias=1
+            # -mllvm -asan-use-private-alias=1
             # but these flags are not handled correctly by libtool.
             env_vars["ASAN_OPTIONS"] = "detect_odr_violation=0"
 
         with PushDir(self.create_build_dir_and_prepare(dep)):
             with EnvVarContext(**env_vars):
+                write_env_vars('yugabyte_db_thirdparty_env.sh')
                 dep.build(self)
         self.save_build_stamp_for_dependency(dep)
         log("")

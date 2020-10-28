@@ -17,7 +17,7 @@ import hashlib
 import shutil
 
 from yugabyte_db_thirdparty.custom_logging import log, fatal
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Dict
 
 
 def _detect_yb_thirdparty_dir() -> str:
@@ -169,6 +169,10 @@ class EnvVarContext:
     Sets the given environment variables and restores them on exit. A None value means the variable
     is undefined.
     """
+
+    env_vars: Dict[str, Optional[str]]
+    saved_env_vars: Dict[str, Optional[str]]
+
     def __init__(self, **env_vars: Any) -> None:
         self.env_vars = env_vars
 

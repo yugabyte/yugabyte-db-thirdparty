@@ -100,7 +100,6 @@ class Llvm1xLibCxxAbiDependency(Llvm1xLibCxxDependencyBase):
             '-DLIBCXXABI_LIBCXX_PATH=%s' % os.path.join(llvm_src_path, 'libcxx'),
             '-DLIBCXXABI_USE_COMPILER_RT=ON',
             '-DLIBCXXABI_USE_LLVM_UNWINDER=ON',
-            '-DLIBCXXABI_ENABLE_RTTI=ON',
         ]
 
     def build(self, builder: BuilderInterface) -> None:
