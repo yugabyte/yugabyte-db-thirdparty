@@ -54,7 +54,8 @@ class BuilderInterface:
             src_subdir_name: Optional[str] = None,
             extra_build_tool_args: List[str] = [],
             should_install: bool = True,
-            install_targets: List[str] = []) -> None:
+            install_targets: List[str] = [],
+            shared_and_static: bool = False) -> None:
         raise NotImplementedError()
 
     def log_prefix(self, dep: 'Dependency') -> str:

@@ -180,7 +180,7 @@ PYTHONPATH
 def write_env_vars(file_path: str) -> None:
     env_script = ''
     for k, v in sorted(dict(os.environ).items()):
-        if k in ENV_VARS_TO_SAVE or k.startswith('YB_'):
+        if k in ENV_VARS_TO_SAVE or k in DEVTOOLSET_ENV_VARS or k.startswith('YB_'):
             env_script += '%s=%s\n' % (k, shlex.quote(v))
     with open(file_path, 'w') as output_file:
         output_file.write(env_script)
@@ -1000,7 +1000,8 @@ class Builder(BuilderInterface):
             src_subdir_name: Optional[str] = None,
             extra_build_tool_args: List[str] = [],
             should_install: bool = True,
-            install_targets: List[str] = ['install']) -> None:
+            install_targets: List[str] = ['install'],
+            shared_and_static: bool = False) -> None:
         build_tool = 'make'
         if use_ninja_if_available:
             ninja_available = is_ninja_available()
@@ -1027,35 +1028,58 @@ class Builder(BuilderInterface):
             args += extra_args
         args += dep.get_additional_cmake_args(self)
 
-        if '-DBUILD_SHARED_LIBS=OFF' not in args:
+        if shared_and_static and any(arg.startswith('-DBUILD_SHARED_LIBS=') for arg in args):
+            raise ValueError(
+                "shared_and_static=True is specified but CMake arguments already mention "
+                "-DBUILD_SHARED_LIBS: %s" % args)
+
+        if '-DBUILD_SHARED_LIBS=OFF' not in args and not shared_and_static:
             # TODO: a better approach for setting CMake arguments from multiple places.
             args.append('-DBUILD_SHARED_LIBS=ON')
 
-        log("CMake command line (one argument per line):\n%s" %
-            "\n".join([(" " * 4 + sanitize_flags_line_for_log(line)) for line in args]))
-        log_output(log_prefix, args)
+        def build_internal(even_more_cmake_args: List[str] = []) -> None:
+            final_cmake_args = args + even_more_cmake_args
+            log("CMake command line (one argument per line):\n%s" %
+                "\n".join([(" " * 4 + sanitize_flags_line_for_log(line))
+                           for line in final_cmake_args]))
+            log_output(log_prefix, final_cmake_args)
 
-        if build_tool == 'ninja':
-            dep.postprocess_ninja_build_file(self, 'build.ninja')
+            if build_tool == 'ninja':
+                dep.postprocess_ninja_build_file(self, 'build.ninja')
 
-        build_tool_cmd = [
-            build_tool, '-j{}'.format(get_make_parallelism())
-        ] + extra_build_tool_args
+            build_tool_cmd = [
+                build_tool, '-j{}'.format(get_make_parallelism())
+            ] + extra_build_tool_args
 
-        log_output(log_prefix, build_tool_cmd)
+            log_output(log_prefix, build_tool_cmd)
 
-        if should_install:
-            log_output(log_prefix, [build_tool] + install_targets)
+            if should_install:
+                log_output(log_prefix, [build_tool] + install_targets)
 
-        with open('compile_commands.json') as compile_commands_file:
-            compile_commands = json.load(compile_commands_file)
-        for command_item in compile_commands:
-            command_args = command_item['command'].split()
-            if self.build_type == BUILD_TYPE_ASAN:
-                assert_list_contains(command_args, '-fsanitize=address')
-                assert_list_contains(command_args, '-fsanitize=undefined')
-            if self.build_type == BUILD_TYPE_TSAN:
-                assert_list_contains(command_args, '-fsanitize=thread')
+            with open('compile_commands.json') as compile_commands_file:
+                compile_commands = json.load(compile_commands_file)
+            for command_item in compile_commands:
+                command_args = command_item['command'].split()
+                if self.build_type == BUILD_TYPE_ASAN:
+                    assert_list_contains(command_args, '-fsanitize=address')
+                    assert_list_contains(command_args, '-fsanitize=undefined')
+                if self.build_type == BUILD_TYPE_TSAN:
+                    assert_list_contains(command_args, '-fsanitize=thread')
+
+        if shared_and_static:
+            for build_shared_libs_value, subdir_name in (
+                ('ON', 'shared'),
+                ('OFF', 'static')
+            ):
+                build_dir = os.path.join(os.getcwd(), subdir_name)
+                mkdir_if_missing(build_dir)
+                build_shared_libs_cmake_arg = '-DBUILD_SHARED_LIBS=%s' % build_shared_libs_value
+                log("Building dependency '%s' for build type '%s' with option: %s",
+                    dep.name, self.build_type, build_shared_libs_cmake_arg)
+                with PushDir(build_dir):
+                    build_internal([build_shared_libs_cmake_arg])
+        else:
+            build_internal()
 
     def build(self, build_type: str) -> None:
         if (build_type != BUILD_TYPE_COMMON and

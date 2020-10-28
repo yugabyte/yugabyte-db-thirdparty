@@ -55,4 +55,4 @@ class GLogDependency(Dependency):
         return []
 
     def build(self, builder: BuilderInterface) -> None:
-        builder.build_with_cmake(dep=self)
+        builder.build_with_cmake(dep=self, shared_and_static=True)

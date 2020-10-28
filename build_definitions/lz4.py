@@ -33,7 +33,10 @@ class LZ4Dependency(Dependency):
     def build(self, builder: BuilderInterface) -> None:
         builder.build_with_cmake(
             self,
-            ['-DCMAKE_BUILD_TYPE=release',
-             '-DBUILD_TOOLS=0',
-             '-DCMAKE_INSTALL_PREFIX:PATH={}'.format(builder.prefix)],
-            src_subdir_name='cmake_unofficial')
+            [
+                '-DCMAKE_BUILD_TYPE=release',
+                '-DBUILD_TOOLS=0',
+                '-DCMAKE_INSTALL_PREFIX:PATH={}'.format(builder.prefix)
+            ],
+            src_subdir_name='cmake_unofficial',
+            shared_and_static=True)

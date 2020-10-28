@@ -30,6 +30,5 @@ class GFlagsDependency(Dependency):
     def build(self, builder: BuilderInterface) -> None:
         builder.build_with_cmake(self,
                                  ['-DCMAKE_BUILD_TYPE=Release',
-                                  '-DCMAKE_POSITION_INDEPENDENT_CODE=On',
-                                  '-DBUILD_SHARED_LIBS=On',
-                                  '-DBUILD_STATIC_LIBS=On'])
+                                  '-DBUILD_SHARED_LIBS=ON',
+                                  '-DBUILD_STATIC_LIBS=ON'])

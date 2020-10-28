@@ -32,7 +32,6 @@ class LibCDSDependency(Dependency):
             self,
             extra_args=[
                 '-DCMAKE_BUILD_TYPE=Release',
-                '-DCMAKE_POSITION_INDEPENDENT_CODE=On',
-                '-DBUILD_SHARED_LIBS=On'
+                '-DBUILD_SHARED_LIBS=ON'
             ]
         )
