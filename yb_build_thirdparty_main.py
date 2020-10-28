@@ -164,7 +164,7 @@ def write_env_vars(file_path: str) -> None:
     env_script = ''
     for k, v in sorted(os.environ.items()):
         env_script += '%s=%s\n' % (k, shlex.quote(v))
-    with open(file_path) as output_file:
+    with open(file_path, 'w') as output_file:
         output_file.write(env_script)
 
 
