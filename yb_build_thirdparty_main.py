@@ -160,10 +160,28 @@ def log_and_set_env_var_to_list(
     env_var_map[env_var_name] = value_str
 
 
+# A mechanism to save some environment variabls to a file in the dependency's build directory to
+# make debugging easier.
+ENV_VARS_TO_SAVE = set([
+    s.strip() for s in """
+ASAN_OPTIONS
+CC
+CFLAGS
+CPPFLAGS
+CXX
+CXXFLAGS
+LANG
+LDFLAGS
+PATH
+PYTHONPATH
+""".split("\n") if s.strip()])
+
+
 def write_env_vars(file_path: str) -> None:
     env_script = ''
-    for k, v in sorted(os.environ.items()):
-        env_script += '%s=%s\n' % (k, shlex.quote(v))
+    for k, v in sorted(dict(os.environ).items()):
+        if k in ENV_VARS_TO_SAVE or k.startswith('YB_'):
+            env_script += '%s=%s\n' % (k, shlex.quote(v))
     with open(file_path, 'w') as output_file:
         output_file.write(env_script)
 
@@ -1295,7 +1313,7 @@ class Builder(BuilderInterface):
 
         with PushDir(self.create_build_dir_and_prepare(dep)):
             with EnvVarContext(**env_vars):
-                write_env_vars('yugabyte_db_thirdparty_env.sh')
+                write_env_vars('yb_dependency_env.sh')
                 dep.build(self)
         self.save_build_stamp_for_dependency(dep)
         log("")
