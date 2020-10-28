@@ -150,3 +150,34 @@ def which_must_exist(cmd_name: str) -> str:
 def copy_file_and_log(src_path: str, dst_path: str) -> None:
     log(f"Copying file {os.path.abspath(src_path)} to {os.path.abspath(dst_path)}")
     shutil.copyfile(src_path, dst_path)
+
+
+def dict_set_or_del(d: Any, k: Any, v: Any) -> None:
+    """
+    Set the value of the given key in a dictionary to the given value, or delete it if the value
+    is None.
+    """
+    if v is None:
+        if k in d:
+            del d[k]
+    else:
+        d[k] = v
+
+
+class EnvVarContext:
+    """
+    Sets the given environment variables and restores them on exit. A None value means the variable
+    is undefined.
+    """
+    def __init__(self, **env_vars: Any) -> None:
+        self.env_vars = env_vars
+
+    def __enter__(self) -> None:
+        self.saved_env_vars = {}
+        for env_var_name, new_value in self.env_vars.items():
+            self.saved_env_vars[env_var_name] = os.environ.get(env_var_name)
+            dict_set_or_del(os.environ, env_var_name, new_value)
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        for env_var_name, saved_value in self.saved_env_vars.items():
+            dict_set_or_del(os.environ, env_var_name, saved_value)

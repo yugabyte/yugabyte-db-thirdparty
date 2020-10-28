@@ -53,7 +53,8 @@ from yugabyte_db_thirdparty.util import (
     remove_path,
     PushDir,
     which_executable,
-    which_must_exist
+    which_must_exist,
+    EnvVarContext
 )
 from yugabyte_db_thirdparty.os_detection import (
     is_mac,
@@ -147,6 +148,15 @@ def get_rpath_flag(path: str) -> str:
 
 def sanitize_flags_line_for_log(line: str) -> str:
     return line.replace(PLACEHOLDER_RPATH, PLACEHOLDER_RPATH_FOR_LOG)
+
+
+def log_and_set_env_var_to_list(
+        env_var_map: Dict[str, str],
+        env_var_name: str,
+        items: List[str]) -> None:
+    value_str = ' '.join(items)
+    log('Setting env var %s to %s', env_var_name, value_str)
+    env_var_map[env_var_name] = value_str
 
 
 class Builder(BuilderInterface):
@@ -1206,11 +1216,6 @@ class Builder(BuilderInterface):
 
         self.cxx_flags.append('-Wno-error=unused-command-line-argument')
 
-    def log_and_set_env_var(self, env_var_name: str, items: List[str]) -> None:
-        value_str = ' '.join(items)
-        log('Setting env var %s to %s', env_var_name, value_str)
-        os.environ[env_var_name] = value_str
-
     def get_effective_compiler_flags(self, dep: Dependency) -> List[str]:
         return self.compiler_flags + dep.get_additional_compiler_flags(self)
 
@@ -1260,15 +1265,28 @@ class Builder(BuilderInterface):
 
         self.download_dependency(dep)
 
-        self.log_and_set_env_var('CXXFLAGS', self.get_effective_cxx_flags(dep))
-        self.log_and_set_env_var('CFLAGS', self.get_effective_c_flags(dep))
-        self.log_and_set_env_var('LDFLAGS', self.get_effective_ld_flags(dep))
-        self.log_and_set_env_var('LIBS', self.libs)
-        self.log_and_set_env_var('CPPFLAGS', self.get_effective_preprocessor_flags(dep))
-        os.environ["CPPFLAGS"] = " ".join(self.preprocessor_flags)
+        env_vars = {
+            "CPPFLAGS": " ".join(self.preprocessor_flags)
+        }
+
+        log_and_set_env_var_to_list(env_vars, 'CXXFLAGS', self.get_effective_cxx_flags(dep))
+        log_and_set_env_var_to_list(env_vars, 'CFLAGS', self.get_effective_c_flags(dep))
+        log_and_set_env_var_to_list(env_vars, 'LDFLAGS', self.get_effective_ld_flags(dep))
+        log_and_set_env_var_to_list(env_vars, 'LIBS', self.libs)
+        log_and_set_env_var_to_list(
+            env_vars, 'CPPFLAGS', self.get_effective_preprocessor_flags(dep))
+
+        if self.build_type == BUILD_TYPE_ASAN:
+            # To avoid errors similar to:
+            # https://gist.githubusercontent.com/mbautin/4b8eec566f54bcc35706dcd97cab1a95/raw
+            # This could also be fixed to some extent by the compiler flags
+            #   -mllvm -asan-use-private-alias=1
+            # but these flags are not handled correctly by libtool.
+            env_vars["ASAN_OPTIONS"] = "detect_odr_violation=0"
 
         with PushDir(self.create_build_dir_and_prepare(dep)):
-            dep.build(self)
+            with EnvVarContext(**env_vars):
+                dep.build(self)
         self.save_build_stamp_for_dependency(dep)
         log("")
         log("Finished building %s (%s)", dep.name, self.build_type)
