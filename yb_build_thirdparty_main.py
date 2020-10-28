@@ -869,7 +869,7 @@ class Builder(BuilderInterface):
 
     def prepare_out_dirs(self) -> None:
         build_types: List[str] = list(BUILD_TYPES)
-        if self.single_compiler_type:
+        if self.args.single_compiler_type != 'clang':
             build_types.remove(BUILD_TYPE_CLANG_UNINSTRUMENTED)
         dirs = [os.path.join(self.tp_installed_dir, type) for type in build_types]
         libcxx_dirs = [os.path.join(dir, 'libcxx') for dir in dirs]
