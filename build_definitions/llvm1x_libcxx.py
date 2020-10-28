@@ -127,4 +127,6 @@ class Llvm1xLibCxxDependency(Llvm1xLibCxxDependencyBase):
         return [
             '-DLIBCXX_USE_COMPILER_RT=ON',
             '-DLIBCXX_ENABLE_RTTI=ON',
+            '-DLIBCXX_CXX_ABI=libcxxabi',
+            '-DLIBCXXABI_USE_LLVM_UNWINDER=ON'
         ]

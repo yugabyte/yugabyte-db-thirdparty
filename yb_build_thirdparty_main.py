@@ -868,7 +868,10 @@ class Builder(BuilderInterface):
             shutil.rmtree(tmp_out_dir)
 
     def prepare_out_dirs(self) -> None:
-        dirs = [os.path.join(self.tp_installed_dir, type) for type in BUILD_TYPES]
+        build_types: List[str] = list(BUILD_TYPES)
+        if self.single_compiler_type:
+            build_types.remove(BUILD_TYPE_CLANG_UNINSTRUMENTED)
+        dirs = [os.path.join(self.tp_installed_dir, type) for type in build_types]
         libcxx_dirs = [os.path.join(dir, 'libcxx') for dir in dirs]
         for dir in dirs + libcxx_dirs:
             lib_dir = os.path.join(dir, 'lib')
