@@ -27,6 +27,7 @@ import sys
 import time
 import json
 import glob
+import shlex
 from datetime import datetime
 
 from typing import Set, List, Dict, Optional, Tuple, Union, cast
@@ -159,8 +160,7 @@ def log_and_set_env_var_to_list(
     env_var_map[env_var_name] = value_str
 
 
-def write_env_vars(file_path: str):
-
+def write_env_vars(file_path: str) -> None:
     env_script = ''
     for k, v in sorted(os.environ.items()):
         env_script += '%s=%s\n' % (k, shlex.quote(v))
