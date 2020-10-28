@@ -115,7 +115,7 @@ class LLVM7Dependency(Dependency):
         create_symlink_to = os.path.relpath(prefix, builder.tp_dir)
         if not os.path.exists(prefix) or not os.path.isdir(prefix):
             raise IOError("Path does not exist or is not a directory: '%s'" % prefix)
-        log("Creating symlink %s -> %s (current directory is %d)",
+        log("Creating symlink %s -> %s (current directory is %s)",
             create_symlink_at, create_symlink_to, os.getcwd())
         os.symlink(create_symlink_to, create_symlink_at)
 
