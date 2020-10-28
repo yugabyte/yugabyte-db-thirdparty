@@ -1190,12 +1190,24 @@ class Builder(BuilderInterface):
                 # originally followed the -mllvm flag is missing. However, hopefully, libbacktrace
                 # is less likely to cause the issue this flag is supposed to fix.
                 #
+                #
                 use_private_alias_flag = [
                     '-mllvm',
                     '-asan-use-private-alias=1'
                 ]
-                # These dependencies fails to build if we specify this flag both as C and C++ flag:
+                # These dependencies fail to build if we specify this flag both as C and C++ flag:
                 # gmock, snappy, crcutil.
+                #
+                # Future work in this area:
+                # - Don't link libc++ into C libraries (like libbacktrace) because that creates
+                #   these kinds of issues there.
+                # - Find a better way to specify this option to the compiler that would not break
+                #   libtool's behavior. Perhaps through the compiler wrapper.
+                # - See if there is a way to instruct the Clang compiler to use this option by
+                #   default.
+                #
+                # Also the ASAN_OPTIONS value of "detect_odr_violation=0" helps with this issue
+                # at a higher level but we end up generating code that will always need that option.
                 self.cxx_flags += use_private_alias_flag
 
             if is_libcxxabi:
