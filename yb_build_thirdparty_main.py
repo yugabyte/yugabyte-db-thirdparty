@@ -1101,7 +1101,9 @@ class Builder(BuilderInterface):
         )
 
         for dep in self.selected_dependencies:
-            if dep.build_group == build_group and dep.should_build(self):
+            if (dep.build_group == build_group and
+                    dep.should_build(self) and
+                    self.should_rebuild_dependency(dep)):
                 self.build_dependency(dep)
 
     def get_install_prefix_with_qualifier(self, qualifier: Optional[str] = None) -> str:
@@ -1258,7 +1260,6 @@ class Builder(BuilderInterface):
             self.add_lib_dir_and_rpath(compiler_rt_lib_dir)
             self.ld_flags.append('-lclang_rt.ubsan_minimal-x86_64')
 
-
         if self.build_type == BUILD_TYPE_TSAN and not is_compiler_rt:
             self.compiler_flags += [
                 '-fsanitize=thread',
@@ -1318,9 +1319,6 @@ class Builder(BuilderInterface):
         ]
 
     def build_dependency(self, dep: Dependency) -> None:
-        if not self.should_rebuild_dependency(dep):
-            return
-
         self.init_flags(dep)
 
         # This is needed at least for glog to be able to find gflags.

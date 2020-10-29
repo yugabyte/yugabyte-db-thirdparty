@@ -25,7 +25,7 @@ class Llvm1xCompilerRtDependency(Llvm1xPartDependencyBase):
         super(Llvm1xCompilerRtDependency, self).__init__(
             name='llvm1x_compiler_rt',
             version=version,
-            build_group=BUILD_GROUP_TSAN)
+            build_group=BUILD_GROUP_INSTRUMENTED)
 
     def build(self, builder: BuilderInterface) -> None:
         src_subdir_name = 'compiler-rt'
@@ -44,6 +44,9 @@ class Llvm1xCompilerRtDependency(Llvm1xPartDependencyBase):
                 '-DCOMPILER_RT_SANITIZERS_TO_BUILD=tsan'
             ],
             src_subdir_name=src_subdir_name)
+
+    def should_build(self, builder: BuilderInterface) -> bool:
+        return builder.build_type == BUILD_TYPE_TSAN
 
     def get_install_prefix(self, builder: BuilderInterface) -> str:
         return os.path.join(builder.prefix, 'compiler-rt')
