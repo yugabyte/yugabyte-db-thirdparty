@@ -432,7 +432,7 @@ class Builder(BuilderInterface):
                     get_build_def_module('llvm1x_libcxx').Llvm1xLibCxxDependency(
                         version=self.args.llvm_version
                     ),
-                    get_build_def_module('llvm1x_compiler_rt').Llvm1xLibCxxDependency(
+                    get_build_def_module('llvm1x_compiler_rt').Llvm1xCompilerRtDependency(
                         version=self.args.llvm_version
                     ),
                 ]
