@@ -40,10 +40,8 @@ class Llvm1xCompilerRtDependency(Llvm1xPartDependencyBase):
                 '-DCOMPILER_RT_BUILD_XRAY=OFF',
                 '-DCOMPILER_RT_USE_LIBCXX=ON',
                 '-DSANITIZER_CXX_ABI=libc++',
-                # All sanitizers except hwasan (which does not compile for some libunwind-related
-                # reasons).
-                '-DCOMPILER_RT_SANITIZERS_TO_BUILD='
-                'asan;dfsan;msan;tsan;safestack;cfi;scudo;ubsan_minimal;gwp_asan'
+                # Only build TSAN because we need to build a shared libtsan library.
+                '-DCOMPILER_RT_SANITIZERS_TO_BUILD=tsan'
             ],
             src_subdir_name=src_subdir_name)
 

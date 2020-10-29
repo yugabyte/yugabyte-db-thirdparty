@@ -432,6 +432,9 @@ class Builder(BuilderInterface):
                     get_build_def_module('llvm1x_libcxx').Llvm1xLibCxxDependency(
                         version=self.args.llvm_version
                     ),
+                    get_build_def_module('llvm1x_compiler_rt').Llvm1xLibCxxDependency(
+                        version=self.args.llvm_version
+                    ),
                 ]
             else:
                 self.dependencies.append(get_build_def_module('libunwind').LibUnwindDependency())
