@@ -1201,6 +1201,7 @@ class Builder(BuilderInterface):
         # TODO mbautin: refactor to polymorphism
         is_libcxxabi = dep.name.endswith('_libcxxabi')
         is_libcxx = dep.name.endswith('_libcxx')
+        is_compiler_rt = dep.name.endswith('_compiler_rt')
 
         if self.build_type == BUILD_TYPE_ASAN:
             self.compiler_flags += [
@@ -1257,7 +1258,8 @@ class Builder(BuilderInterface):
             self.add_lib_dir_and_rpath(compiler_rt_lib_dir)
             self.ld_flags.append('-lclang_rt.ubsan_minimal-x86_64')
 
-        if self.build_type == BUILD_TYPE_TSAN:
+
+        if self.build_type == BUILD_TYPE_TSAN and not is_compiler_rt:
             self.compiler_flags += [
                 '-fsanitize=thread',
                 '-DTHREAD_SANITIZER'
@@ -1267,7 +1269,7 @@ class Builder(BuilderInterface):
 
         libcxx_installed_include, libcxx_installed_lib = self.get_libcxx_dirs(self.build_type)
 
-        if not is_libcxx and not is_libcxxabi:
+        if not is_libcxx and not is_libcxxabi and not is_compiler_rt:
             self.ld_flags += ['-lc++', '-lc++abi']
 
             self.cxx_flags = [

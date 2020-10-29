@@ -25,7 +25,7 @@ class Llvm1xCompilerRtDependency(Llvm1xPartDependencyBase):
         super(Llvm1xCompilerRtDependency, self).__init__(
             name='llvm1x_compiler_rt',
             version=version,
-            build_group=BUILD_GROUP_INSTRUMENTED)
+            build_group=BUILD_GROUP_TSAN)
 
     def build(self, builder: BuilderInterface) -> None:
         src_subdir_name = 'compiler-rt'
