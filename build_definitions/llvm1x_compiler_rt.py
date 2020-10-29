@@ -50,3 +50,8 @@ class Llvm1xCompilerRtDependency(Llvm1xPartDependencyBase):
 
     def get_install_prefix(self, builder: BuilderInterface) -> str:
         return os.path.join(builder.prefix, 'compiler-rt')
+
+    def should_be_tsan_instrumented(self) -> bool:
+        # We build this dependency with no TSAN instrumentation, because we need it for TSAN
+        # runtime.
+        return False

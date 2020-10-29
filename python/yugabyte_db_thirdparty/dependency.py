@@ -98,3 +98,6 @@ class Dependency:
 
     def get_source_dir_basename(self) -> str:
         return self.dir_name
+
+    def should_be_tsan_instrumented(self) -> bool:
+        return True

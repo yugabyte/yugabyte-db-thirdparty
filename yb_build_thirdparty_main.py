@@ -1064,12 +1064,14 @@ class Builder(BuilderInterface):
 
             with open('compile_commands.json') as compile_commands_file:
                 compile_commands = json.load(compile_commands_file)
+
+            tsan_instrument = dep.should_be_tsan_instrumented()
             for command_item in compile_commands:
                 command_args = command_item['command'].split()
                 if self.build_type == BUILD_TYPE_ASAN:
                     assert_list_contains(command_args, '-fsanitize=address')
                     assert_list_contains(command_args, '-fsanitize=undefined')
-                if self.build_type == BUILD_TYPE_TSAN:
+                if self.build_type == BUILD_TYPE_TSAN and tsan_instrument:
                     assert_list_contains(command_args, '-fsanitize=thread')
 
         if shared_and_static:
@@ -1270,7 +1272,7 @@ class Builder(BuilderInterface):
 
         libcxx_installed_include, libcxx_installed_lib = self.get_libcxx_dirs(self.build_type)
 
-        if not is_libcxx and not is_libcxxabi and not is_compiler_rt:
+        if dep.should_be_tsan_instrumented() and not is_libcxx and not is_libcxxabi:
             self.ld_flags += ['-lc++', '-lc++abi']
 
             self.cxx_flags = [
