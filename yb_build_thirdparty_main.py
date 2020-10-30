@@ -193,6 +193,7 @@ class Builder(BuilderInterface):
     linuxbrew_dir: Optional[str]
     tp_download_dir: str
     ld_flags: List[str]
+    executable_only_ld_flags: List[str]
     compiler_flags: List[str]
     preprocessor_flags: List[str]
     c_flags: List[str]
@@ -430,9 +431,6 @@ class Builder(BuilderInterface):
                         version=self.args.llvm_version
                     ),
                     get_build_def_module('llvm1x_libcxx').Llvm1xLibCxxDependency(
-                        version=self.args.llvm_version
-                    ),
-                    get_build_def_module('llvm1x_compiler_rt').Llvm1xCompilerRtDependency(
                         version=self.args.llvm_version
                     ),
                 ]
@@ -905,6 +903,7 @@ class Builder(BuilderInterface):
         """
         self.preprocessor_flags = []
         self.ld_flags = []
+        self.executable_only_ld_flags = []
         self.compiler_flags = []
         self.c_flags = []
         self.cxx_flags = []
@@ -1065,13 +1064,12 @@ class Builder(BuilderInterface):
             with open('compile_commands.json') as compile_commands_file:
                 compile_commands = json.load(compile_commands_file)
 
-            tsan_instrument = dep.should_be_tsan_instrumented()
             for command_item in compile_commands:
                 command_args = command_item['command'].split()
                 if self.build_type == BUILD_TYPE_ASAN:
                     assert_list_contains(command_args, '-fsanitize=address')
                     assert_list_contains(command_args, '-fsanitize=undefined')
-                if self.build_type == BUILD_TYPE_TSAN and tsan_instrument:
+                if self.build_type == BUILD_TYPE_TSAN:
                     assert_list_contains(command_args, '-fsanitize=thread')
 
         if shared_and_static:
@@ -1173,6 +1171,11 @@ class Builder(BuilderInterface):
                 '-fsanitize=thread',
                 '-DTHREAD_SANITIZER'
             ]
+            # Ensure that TSAN runtime is linked statically into every executable. TSAN runtime
+            # uses -fPIE while our shared libraries use -fPIC, and therefore TSAN runtime can only
+            # be linked statically into executables. TSAN runtime can't be built with -fPIC because
+            # that would create significant performance issues.
+            self.executable_only_ld_flags += ['-fsanitize=thread']
 
         # This is used to build code with libc++ and Clang 7 built as part of thirdparty.
         stdlib_suffix = self.build_type
@@ -1272,7 +1275,7 @@ class Builder(BuilderInterface):
 
         libcxx_installed_include, libcxx_installed_lib = self.get_libcxx_dirs(self.build_type)
 
-        if dep.should_be_tsan_instrumented() and not is_libcxx and not is_libcxxabi:
+        if not is_libcxx and not is_libcxxabi:
             self.ld_flags += ['-lc++', '-lc++abi']
 
             self.cxx_flags = [
@@ -1302,6 +1305,9 @@ class Builder(BuilderInterface):
     def get_effective_ld_flags(self, dep: Dependency) -> List[str]:
         return self.ld_flags + dep.get_additional_ld_flags(self)
 
+    def get_effective_executable_ld_flags(self, dep: Dependency) -> List[str]:
+        return self.ld_flags + self.executable_only_ld_flags + dep.get_additional_ld_flags(self)
+
     def get_effective_preprocessor_flags(self, dep: Dependency) -> List[str]:
         return list(self.preprocessor_flags)
 
@@ -1310,11 +1316,12 @@ class Builder(BuilderInterface):
         cxx_flags_str = ' '.join(self.get_effective_cxx_flags(dep))
         preprocessor_flags_str = ' '.join(self.get_effective_preprocessor_flags(dep))
         ld_flags_str = ' '.join(self.get_effective_ld_flags(dep))
+        exe_ld_flags_str = ' '.join(self.get_effective_executable_ld_flags(dep))
         return [
             '-DCMAKE_C_FLAGS={}'.format(c_flags_str),
             '-DCMAKE_CXX_FLAGS={}'.format(cxx_flags_str),
             '-DCMAKE_SHARED_LINKER_FLAGS={}'.format(ld_flags_str),
-            '-DCMAKE_EXE_LINKER_FLAGS={}'.format(ld_flags_str),
+            '-DCMAKE_EXE_LINKER_FLAGS={}'.format(exe_ld_flags_str),
             '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON',
             '-DCMAKE_INSTALL_PREFIX={}'.format(dep.get_install_prefix(self)),
             '-DCMAKE_POSITION_INDEPENDENT_CODE=ON'
