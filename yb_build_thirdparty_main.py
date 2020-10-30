@@ -104,6 +104,8 @@ DEVTOOLSET_ENV_VARS: Set[str] = set([s.strip() for s in """
     PYTHONPATH
 """.strip().split("\n")])
 
+DEVTOOLSET_ENV_VARS_OK_IF_UNSET: Set[str] = set(['PERL5LIB'])
+
 
 def activate_devtoolset(devtoolset_number: int) -> None:
     devtoolset_enable_script = (
@@ -132,7 +134,8 @@ def activate_devtoolset(devtoolset_number: int) -> None:
     for var_name in DEVTOOLSET_ENV_VARS:
         if var_name not in found_vars:
             log("Did not set env var %s for devtoolset-%d", var_name, devtoolset_number)
-            missing_vars.add(var_name)
+            if var_name not in DEVTOOLSET_ENV_VARS_OK_IF_UNSET:
+                missing_vars.add(var_name)
     if missing_vars:
         raise IOError(
             "Invalid environment after running devtoolset script %s. Did not set vars: %s" % (
