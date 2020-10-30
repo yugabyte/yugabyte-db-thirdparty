@@ -64,7 +64,7 @@ class Llvm7LibCXXDependency(Dependency):
 
     def build(self, builder: BuilderInterface) -> None:
         log_prefix = builder.log_prefix(self)
-        prefix = self.get_install_prefix()
+        prefix = self.get_install_prefix(builder)
         os.environ["YB_REMOTE_COMPILATION"] = "0"
 
         remove_path('CMakeCache.txt')
