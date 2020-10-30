@@ -59,9 +59,12 @@ class Llvm7LibCXXDependency(Dependency):
         ]
         self.copy_sources = False
 
+    def get_install_prefix(self, builder: BuilderInterface) -> str:
+        return os.path.join(builder.prefix, 'libcxx')
+
     def build(self, builder: BuilderInterface) -> None:
         log_prefix = builder.log_prefix(self)
-        prefix = os.path.join(builder.prefix, 'libcxx')
+        prefix = self.get_install_prefix()
         os.environ["YB_REMOTE_COMPILATION"] = "0"
 
         remove_path('CMakeCache.txt')
@@ -74,6 +77,7 @@ class Llvm7LibCXXDependency(Dependency):
             '-DLLVM_TARGETS_TO_BUILD=X86',
             '-DLLVM_ENABLE_RTTI=ON',
             '-DCMAKE_CXX_FLAGS={}'.format(" ".join(builder.ld_flags)),
+            '-DCMAKE_INSTALL_PREFIX={}'.format(prefix),
         ]
         if builder.build_type == BUILD_TYPE_ASAN:
             args.append("-DLLVM_USE_SANITIZER=Address;Undefined")
