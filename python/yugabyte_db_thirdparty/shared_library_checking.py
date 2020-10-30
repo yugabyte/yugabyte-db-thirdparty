@@ -16,6 +16,7 @@ import sys
 import re
 import subprocess
 import platform
+import logging
 
 from typing import List, Any
 from yugabyte_db_thirdparty.os_detection import is_mac, is_linux
@@ -74,6 +75,9 @@ class LibTestBase:
         dir_pattern = re.compile('^(lib|libcxx|[s]bin)$')
         dirs = [os.path.join(self.tp_installed_dir, type) for type in BUILD_TYPES]
         for installed_dir in dirs:
+            if not os.path.isdir(installed_dir):
+                logging.info("Directory %s does not exist, skipping", installed_dir)
+                continue
             with os.scandir(installed_dir) as candidate_dirs:
                 for candidate in candidate_dirs:
                     if dir_pattern.match(candidate.name):
