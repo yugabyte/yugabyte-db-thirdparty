@@ -22,6 +22,7 @@ CHECK_TYPES = [
     'compile',
     'import',
     'pycodestyle',
+    'doctest',
 ]
 
 
@@ -136,6 +137,8 @@ def check_file(file_path: str, check_type: str) -> CheckResult:
     elif check_type == 'pycodestyle':
         args = ['pycodestyle',
                 '--config=%s' % os.path.join(YB_THIRDPARTY_DIR, 'pycodestyle.cfg')]
+    elif check_type == 'doctest':
+        args = ['python3', '-m', 'doctest']
     else:
         raise ValueError(f"Unknown check type: {check_type}")
     args.append(file_path)

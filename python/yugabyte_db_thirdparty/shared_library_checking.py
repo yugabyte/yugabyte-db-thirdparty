@@ -33,33 +33,25 @@ class LibTestBase:
     Verify correct library paths are used in installed dynamically-linked executables and
     libraries.
     """
+
     lib_re_list: List[str]
     tool: str
-
-    # A way to disallow dependencies on specific libraries, e.g. libstdc++ when we should be using
-    # libc++ instead.
-    bad_lib_re_list: List[str]
-    bad_lib_re: Any
 
     def __init__(self) -> None:
         self.tp_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
         self.tp_installed_dir = os.path.join(self.tp_dir, 'installed')
         self.lib_re_list = []
-        self.bad_lib_re_list = []
-        self.bad_lib_re = None
 
     def init_regex(self) -> None:
         self.okay_paths = compile_re_list(self.lib_re_list)
-        if self.bad_lib_re_list:
-            self.bad_lib_re = compile_re_list(self.bad_lib_re_list)
 
     def check_lib_deps(self, file_path: str, cmdout: str) -> bool:
         status = True
         for line in cmdout.splitlines():
-            if (not self.okay_paths.match(line) or
-                    (self.bad_lib_re_list and self.bad_lib_re.match(line))):
+            if not self.okay_paths.match(line):
                 if status:
                     log(file_path + ":")
+                    status = False
                 log("Bad path: %s", line)
         return status
 

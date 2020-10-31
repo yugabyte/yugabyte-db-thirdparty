@@ -15,9 +15,10 @@ import os
 import sys
 import hashlib
 import shutil
+import subprocess
 
 from yugabyte_db_thirdparty.custom_logging import log, fatal
-from typing import List, Optional, Any, Dict
+from typing import List, Optional, Any, Dict, Set
 
 
 def _detect_yb_thirdparty_dir() -> str:
@@ -33,11 +34,24 @@ YB_THIRDPARTY_DIR = _detect_yb_thirdparty_dir()
 
 
 def assert_list_contains(items: List[str], required_item: str) -> None:
+    """
+    >>> assert_list_contains(['a', 'b', 'c'], 'a')
+    >>> assert_list_contains(['a', 'b', 'c'], 'x')
+    Traceback (most recent call last):
+    ValueError: x not found in ['a', 'b', 'c']
+    """
     if required_item not in items:
         raise ValueError("%s not found in %s" % (required_item, items))
 
 
 def indent_lines(s: Optional[str], num_spaces: int = 4) -> Optional[str]:
+    """
+    >>> indent_lines(None)
+    >>> indent_lines('a\\nb')
+    '    a\\n    b'
+    >>> indent_lines('a\\nb\\n')
+    '    a\\n    b\\n    '
+    """
     if s is None:
         return s
     return "\n".join([
@@ -185,3 +199,28 @@ class EnvVarContext:
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         for env_var_name, saved_value in self.saved_env_vars.items():
             dict_set_or_del(os.environ, env_var_name, saved_value)
+
+
+def normalize_cmd_arg(arg: Any) -> Any:
+    # Auto-convert ints to strings, but don't convert anything else.
+    if isinstance(arg, int):
+        return str(arg)
+    return arg
+
+
+def log_and_run_cmd(args: List[Any]) -> None:
+    args = [normalize_cmd_arg(arg) for arg in args]
+    log("Running command: %s (current directory: %s)", args, os.getcwd())
+    subprocess.check_call(args)
+
+
+def split_into_word_set(input_str: str) -> Set[str]:
+    """
+    >>> sorted(split_into_word_set('  foo    bar      foo  '))
+    ['bar', 'foo']
+    >>> sorted(split_into_word_set('  foo   \\n  hello    world \\n hello'))
+    ['foo', 'hello', 'world']
+    """
+
+    items = [s.strip() for s in input_str.strip().split()]
+    return set(item for item in items if item)
