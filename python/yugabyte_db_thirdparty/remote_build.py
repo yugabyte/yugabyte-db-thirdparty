@@ -54,6 +54,48 @@ def build_remotely(remote_server: str, remote_build_code_path: str) -> None:
     run_remote_bash_script('[[ -d %s ]]' % quoted_remote_path)
 
     with PushDir(YB_THIRDPARTY_DIR):
+        local_branch_name = subprocess.check_output(
+            shlex.split('git rev-parse --abbrev-ref HEAD')).strip().decode('utf-8')
+
+        local_git_remotes = subprocess.check_output(
+            shlex.split('git remote -v')).decode('utf-8')
+
+        remote_url = '%s:%s' % (remote_server, remote_build_code_path)
+        preferred_remote_name = 'remote-build-%s' % remote_server
+        remote_name = None
+        for remote_line in local_git_remotes.split('\n'):
+            remote_line = remote_line.strip()
+            if not remote_line:
+                continue
+            remote_components = remote_line.split('\t')
+            if remote_components[1].endswith(' (push)'):
+                parsed_remote_url = remote_components[1][:-7].strip()
+                if parsed_remote_url == remote_url:
+                    remote_name = remote_components[0]
+                    log("Found existing remote %s for %s",
+                        remote_name, remote_url)
+                    break
+        if remote_name is None:
+            log_and_run_cmd(['git', 'remote', 'add', preferred_remote_name, remote_url])
+            remote_name = preferred_remote_name
+
+        log("Local branch name: %s, checking it out remotely", local_branch_name)
+        remote_branch_name = run_remote_bash_script(f"""
+            set -euo pipefail
+            cd {quoted_remote_path}
+            git reset --hard HEAD
+            git clean -f
+            git checkout master
+        """)
+
+
+        log_and_run_cmd(
+            ['git', 'push', remote_name, '%s:%s' % (local_branch_name, local_branch_name)])
+
+        remote_branch_name = run_remote_bash_script('cd %s && git checkout %s' % (
+            quoted_remote_path, shlex.quote(local_branch_name)))
+
+
         excluded_files_str = subprocess.check_output(
             ['git', '-C', '.', 'ls-files', '--exclude-standard', '-oi', '--directory'])
         assert os.path.isdir('.git')
