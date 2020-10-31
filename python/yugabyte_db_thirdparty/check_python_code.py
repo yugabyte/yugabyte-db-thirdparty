@@ -22,6 +22,7 @@ CHECK_TYPES = [
     'compile',
     'import',
     'pycodestyle',
+    'unittest',
     'doctest',
 ]
 
@@ -111,12 +112,14 @@ class Reporter:
 def check_file(file_path: str, check_type: str) -> CheckResult:
     assert check_type in CHECK_TYPES
 
+    append_file_path = True
+    rel_path = rel_to_repo_root(file_path)
+
     if check_type == 'mypy':
         args = ['mypy', '--config-file', 'mypy.ini']
     elif check_type == 'compile':
         args = ['python3', '-m', 'py_compile']
     elif check_type == 'import':
-        rel_path = rel_to_repo_root(file_path)
         where_to_import_from = None
         what_to_import = None
         if rel_path.startswith('python/yugabyte_db_thirdparty/'):
@@ -137,11 +140,20 @@ def check_file(file_path: str, check_type: str) -> CheckResult:
     elif check_type == 'pycodestyle':
         args = ['pycodestyle',
                 '--config=%s' % os.path.join(YB_THIRDPARTY_DIR, 'pycodestyle.cfg')]
+    elif check_type == 'unittest':
+        append_file_path = False
+        rel_path_components = os.path.splitext(rel_path)[0].split('/')
+        assert rel_path_components[0] == 'python', (
+            "Expected unit tests to be in the 'python' directory: %s" % rel_path)
+        test_module = '.'.join(rel_path_components[1:])
+        args = ['python3', '-m', 'unittest', test_module]
     elif check_type == 'doctest':
         args = ['python3', '-m', 'doctest']
     else:
         raise ValueError(f"Unknown check type: {check_type}")
-    args.append(file_path)
+
+    if append_file_path:
+        args.append(file_path)
 
     process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout, stderr = process.communicate()
@@ -176,11 +188,19 @@ def check_python_code() -> bool:
 
     success = True
 
+    check_inputs = []
+    for file_path in input_file_paths:
+        rel_dir = os.path.dirname(rel_to_repo_root(file_path)) or 'root'
+        for check_type in CHECK_TYPES:
+            if file_path.endswith('_test.py') or check_type != 'unittest':
+                check_inputs.append((file_path, check_type))
+                increment_counter(checks_by_dir, rel_dir)
+                increment_counter(checks_by_type, check_type)
+
     with concurrent.futures.ThreadPoolExecutor(max_workers=16) as executor:
         future_to_check_input = {
             executor.submit(check_file, file_path, check_type): (file_path, check_type)
-            for file_path in input_file_paths
-            for check_type in CHECK_TYPES if check_type != 'import'
+            for (file_path, check_type) in check_inputs
         }
         for future in concurrent.futures.as_completed(future_to_check_input):
             file_path, check_type = future_to_check_input[future]
@@ -188,13 +208,9 @@ def check_python_code() -> bool:
                 check_result = future.result()
             except Exception as exc:
                 print("Check '%s' for %s generated an exception: %s" % (check_type, file_path, exc))
-                success = False
+                increment_counter(checks_by_result, 'failure')
             else:
                 reporter.print_check_result(check_result)
-                if check_result.cmd_args:
-                    rel_dir = os.path.dirname(rel_to_repo_root(file_path)) or 'root'
-                    increment_counter(checks_by_dir, rel_dir)
-                    increment_counter(checks_by_type, check_result.check_type)
                 if check_result.returncode == 0:
                     increment_counter(checks_by_result, 'success')
                 else:

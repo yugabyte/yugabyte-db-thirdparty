@@ -30,7 +30,6 @@ from yugabyte_db_thirdparty.util import (
     PushDir,
     YB_THIRDPARTY_DIR,
 )
-from yugabyte_db_thirdparty.util import split_into_word_set
 
 
 def build_remotely(remote_server: str, remote_build_code_path: str) -> None:

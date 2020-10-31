@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 # Copyright (c) Yugabyte, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
@@ -12,15 +10,16 @@
 # or implied. See the License for the specific language governing permissions and limitations
 # under the License.
 
-import re
+import unittest
+
+from yugabyte_db_thirdparty.compiler_identification import CompilerIdentification
 
 
-class CompilerIdentification:
-    """
-    Given a compiler, determines its version, its installation directory, and other information that
-    might influence how we should build the code.
-    """
-    compiler_family: str
-
-    def __init__(self, compiler_version_str: str):
-        pass
+class TestCompilerIdentification(unittest.TestCase):
+    def test_clang10_apple(self) -> None:
+        compiler_identification = CompilerIdentification("""
+            Apple LLVM version 10.0.1 (clang-1001.0.46.4)
+            Target: x86_64-apple-darwin18.7.0
+            Thread model: posix
+            InstalledDir: /Library/Developer/CommandLineTools/usr/bin
+        """)

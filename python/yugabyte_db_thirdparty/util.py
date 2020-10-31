@@ -19,6 +19,7 @@ import shlex
 import subprocess
 
 from yugabyte_db_thirdparty.custom_logging import log, fatal
+from yugabyte_db_thirdparty.string_util import normalize_cmd_args
 from typing import List, Optional, Any, Dict, Set
 
 
@@ -43,21 +44,6 @@ def assert_list_contains(items: List[str], required_item: str) -> None:
     """
     if required_item not in items:
         raise ValueError("%s not found in %s" % (required_item, items))
-
-
-def indent_lines(s: Optional[str], num_spaces: int = 4) -> Optional[str]:
-    """
-    >>> indent_lines(None)
-    >>> indent_lines('a\\nb')
-    '    a\\n    b'
-    >>> indent_lines('a\\nb\\n')
-    '    a\\n    b\\n    '
-    """
-    if s is None:
-        return s
-    return "\n".join([
-        ' ' * num_spaces + line for line in s.split("\n")
-    ])
 
 
 def hashsum_file(hash: Any, filename: str, block_size: int = 65536) -> str:
@@ -202,17 +188,6 @@ class EnvVarContext:
             dict_set_or_del(os.environ, env_var_name, saved_value)
 
 
-def normalize_cmd_arg(arg: Any) -> Any:
-    # Auto-convert ints to strings, but don't convert anything else.
-    if isinstance(arg, int):
-        return str(arg)
-    return arg
-
-
-def normalize_cmd_args(args: List[Any]) -> List[str]:
-    return [normalize_cmd_arg(arg) for arg in args]
-
-
 def log_cmd_to_run(args: List[str]) -> None:
     log("Running command in directory %s: %s", os.getcwd(), shlex.join(args))
 
@@ -227,15 +202,3 @@ def log_and_get_cmd_output(args: List[Any]) -> str:
     args = normalize_cmd_args(args)
     log_cmd_to_run(args)
     return subprocess.check_output(args).decode('utf-8')
-
-
-def split_into_word_set(input_str: str) -> Set[str]:
-    """
-    >>> sorted(split_into_word_set('  foo    bar      foo  '))
-    ['bar', 'foo']
-    >>> sorted(split_into_word_set('  foo   \\n  hello    world \\n hello'))
-    ['foo', 'hello', 'world']
-    """
-
-    items = [s.strip() for s in input_str.strip().split()]
-    return set(item for item in items if item)

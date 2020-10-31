@@ -19,7 +19,8 @@ import os
 import subprocess
 
 from typing import Set
-from yugabyte_db_thirdparty.util import log, split_into_word_set
+from yugabyte_db_thirdparty.util import log
+from yugabyte_db_thirdparty.string_util import split_into_word_set
 
 
 DEVTOOLSET_ENV_VARS: Set[str] = split_into_word_set("""

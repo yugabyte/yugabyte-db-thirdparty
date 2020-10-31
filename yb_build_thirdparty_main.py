@@ -47,9 +47,9 @@ from yugabyte_db_thirdparty.custom_logging import (
     log_separator,
     heading,
 )
+from yugabyte_db_thirdparty.string_util import indent_lines, split_into_word_set
 from yugabyte_db_thirdparty.util import (
     assert_list_contains,
-    indent_lines,
     hashsum_file,
     compute_file_sha256,
     mkdir_if_missing,
@@ -58,7 +58,6 @@ from yugabyte_db_thirdparty.util import (
     which_executable,
     which_must_exist,
     EnvVarContext,
-    split_into_word_set,
 )
 from yugabyte_db_thirdparty.os_detection import (
     is_mac,
