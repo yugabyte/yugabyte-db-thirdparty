@@ -80,7 +80,7 @@ def build_remotely(remote_server: str, remote_build_code_path: str) -> None:
             remote_name = preferred_remote_name
 
         log("Local branch name: %s, checking it out remotely", local_branch_name)
-        remote_branch_name = run_remote_bash_script(f"""
+        run_remote_bash_script(f"""
             set -euo pipefail
             cd {quoted_remote_path}
             git reset --hard HEAD
@@ -88,13 +88,11 @@ def build_remotely(remote_server: str, remote_build_code_path: str) -> None:
             git checkout master
         """)
 
-
         log_and_run_cmd(
             ['git', 'push', remote_name, '%s:%s' % (local_branch_name, local_branch_name)])
 
-        remote_branch_name = run_remote_bash_script('cd %s && git checkout %s' % (
+        run_remote_bash_script('cd %s && git checkout %s' % (
             quoted_remote_path, shlex.quote(local_branch_name)))
-
 
         excluded_files_str = subprocess.check_output(
             ['git', '-C', '.', 'ls-files', '--exclude-standard', '-oi', '--directory'])
