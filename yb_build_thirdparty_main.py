@@ -55,7 +55,8 @@ from yugabyte_db_thirdparty.util import (
     PushDir,
     which_executable,
     which_must_exist,
-    EnvVarContext
+    EnvVarContext,
+    split_into_word_set,
 )
 from yugabyte_db_thirdparty.os_detection import (
     is_mac,
@@ -115,19 +116,18 @@ def log_and_set_env_var_to_list(
 
 # A mechanism to save some environment variabls to a file in the dependency's build directory to
 # make debugging easier.
-ENV_VARS_TO_SAVE = set([
-    s.strip() for s in """
-ASAN_OPTIONS
-CC
-CFLAGS
-CPPFLAGS
-CXX
-CXXFLAGS
-LANG
-LDFLAGS
-PATH
-PYTHONPATH
-""".split("\n") if s.strip()])
+ENV_VARS_TO_SAVE = split_into_word_set("""
+    ASAN_OPTIONS
+    CC
+    CFLAGS
+    CPPFLAGS
+    CXX
+    CXXFLAGS
+    LANG
+    LDFLAGS
+    PATH
+    PYTHONPATH
+""")
 
 
 def write_env_vars(file_path: str) -> None:
