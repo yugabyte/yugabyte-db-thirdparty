@@ -15,6 +15,7 @@ import os
 import sys
 import hashlib
 import shutil
+import shlex
 import subprocess
 
 from yugabyte_db_thirdparty.custom_logging import log, fatal
@@ -208,10 +209,24 @@ def normalize_cmd_arg(arg: Any) -> Any:
     return arg
 
 
+def normalize_cmd_args(args: List[Any]) -> List[str]:
+    return [normalize_cmd_arg(arg) for arg in args]
+
+
+def log_cmd_to_run(args: List[str]) -> None:
+    log("Running command in directory %s: %s", os.getcwd(), shlex.join(args))
+
+
 def log_and_run_cmd(args: List[Any]) -> None:
-    args = [normalize_cmd_arg(arg) for arg in args]
-    log("Running command: %s (current directory: %s)", args, os.getcwd())
+    args = normalize_cmd_args(args)
+    log_cmd_to_run(args)
     subprocess.check_call(args)
+
+
+def log_and_get_cmd_output(args: List[Any]) -> str:
+    args = normalize_cmd_args(args)
+    log_cmd_to_run(args)
+    return subprocess.check_output(args).decode('utf-8')
 
 
 def split_into_word_set(input_str: str) -> Set[str]:

@@ -36,6 +36,7 @@ from yugabyte_db_thirdparty.dependency import Dependency
 from yugabyte_db_thirdparty.devtoolset import DEVTOOLSET_ENV_VARS, activate_devtoolset
 from yugabyte_db_thirdparty.cmd_line_args import parse_cmd_line_args
 from yugabyte_db_thirdparty.checksums import CHECKSUM_FILE_NAME
+from yugabyte_db_thirdparty.remote_build import build_remotely
 from yugabyte_db_thirdparty.custom_logging import (
     log,
     fatal,
@@ -207,7 +208,7 @@ class Builder(BuilderInterface):
     def parse_args(self) -> None:
         os.environ['YB_IS_THIRDPARTY_BUILD'] = '1'
 
-        self.arsg = parse_cmd_line_args()
+        self.args = parse_cmd_line_args()
         if self.args.make_parallelism:
             os.environ['YB_MAKE_PARALLELISM'] = str(self.args.make_parallelism)
 
@@ -1401,6 +1402,12 @@ def main() -> None:
 
     builder = Builder()
     builder.parse_args()
+    if builder.args.remote_build_server and builder.args.remote_build_dir:
+        build_remotely(
+            remote_server=builder.args.remote_build_server,
+            remote_build_code_path=builder.args.remote_build_dir)
+        return
+
     builder.finish_initialization()
     builder.run()
 

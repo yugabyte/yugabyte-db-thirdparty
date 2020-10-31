@@ -45,3 +45,5 @@ linuxbrew_path.txt
 .vscode
 installed_*/
 .idea/
+__pycache__/
+.mypy_cache/

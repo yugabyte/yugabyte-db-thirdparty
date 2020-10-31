@@ -24,10 +24,13 @@ import sys
 from typing import List
 
 from yugabyte_db_thirdparty.util import (
+    log,
     log_and_run_cmd,
+    log_and_get_cmd_output,
     PushDir,
     YB_THIRDPARTY_DIR,
 )
+from yugabyte_db_thirdparty.util import split_into_word_set
 
 
 def build_remotely(remote_server: str, remote_build_code_path: str) -> None:
@@ -38,7 +41,18 @@ def build_remotely(remote_server: str, remote_build_code_path: str) -> None:
     def run_ssh_cmd(ssh_args: List[str]) -> None:
         log_and_run_cmd(['ssh', remote_server] + ssh_args)
 
+    def run_remote_bash_script(bash_script: str) -> None:
+        bash_script = bash_script.strip()
+        log("Running bash script remotely: %s", bash_script)
+        # TODO: why exactly do we need shlex.quote here?
+        run_ssh_cmd(['bash', '-c', shlex.quote(bash_script)])
+
+    def get_ssh_cmd_output(ssh_args: List[str]) -> None:
+        log_and_get_cmd_output(['ssh', remote_server] + ssh_args)
+
     quoted_remote_path = shlex.quote(remote_build_code_path)
+    # Ensure the remote directory exists.
+    run_remote_bash_script('[[ -d %s ]]' % quoted_remote_path)
 
     with PushDir(YB_THIRDPARTY_DIR):
         excluded_files_str = subprocess.check_output(
@@ -48,18 +62,22 @@ def build_remotely(remote_server: str, remote_build_code_path: str) -> None:
         with open(excluded_files_path, 'wb') as excluded_files_file:
             excluded_files_file.write(excluded_files_str)
 
-        log_and_run_cmd([
-            'rsync',
-            '-avh',
-            '--delete',
-            '--exclude', '.git',
-            '--exclude-from=%s' % excluded_files_path,
-            '.',
-            '%s:%s' % (remote_server, remote_build_code_path)])
+        exclude_args: List[str] = []
+        exclude_patterns = ['.git']
+        for exclude_pattern in exclude_patterns:
+            exclude_args.append('--exclude')
+            exclude_args.append(exclude_pattern)
+
+        log_and_run_cmd(
+            ['rsync', '-avh', '--delete'] + exclude_args + [
+                '--exclude-from=%s' % excluded_files_path,
+                '.',
+                '%s:%s' % (remote_server, remote_build_code_path)
+            ]
+        )
 
         remote_bash_script = 'cd %s && ./build_thirdparty.sh %s' % (
-            quoted_remote_path,
-            ' '.join(shlex.quote(arg) for arg in sys.argv[1:])
+            quoted_remote_path, shlex.join(sys.argv[1:])
         )
-        # TODO: why exactly do we need shlex.quote here?
-        run_ssh_cmd(['bash', '-c', shlex.quote(remote_bash_script.strip())])
+
+        run_remote_bash_script(remote_bash_script)

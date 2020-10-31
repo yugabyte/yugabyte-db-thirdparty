@@ -13,6 +13,7 @@
 
 import argparse
 import sys
+import os
 
 from yugabyte_db_thirdparty.checksums import CHECKSUM_FILE_NAME
 from yugabyte_db_thirdparty.os_detection import is_centos, is_mac
@@ -92,6 +93,18 @@ def parse_cmd_line_args() -> argparse.Namespace:
         help='Version (tag) to use for dependencies based on LLVM codebase')
 
     parser.add_argument(
+        '--remote-build-server',
+        help='Build third-party dependencies remotely on this server. The default value is '
+             'determined by YB_THIRDPARTY_REMOTE_BUILD_SERVER environment variable.',
+        default=os.getenv('YB_THIRDPARTY_REMOTE_BUILD_SERVER'))
+
+    parser.add_argument(
+        '--remote-build-dir',
+        help='The directory on the remote server to build third-party dependencies in. The '
+             'value is determined by the YB_THIRDPARTY_REMOTE_BUILD_DIR environment variable.',
+        default=os.getenv('YB_THIRDPARTY_REMOTE_BUILD_DIR'))
+
+    parser.add_argument(
         'dependencies',
         nargs=argparse.REMAINDER,
         help='Dependencies to build.')
@@ -128,5 +141,15 @@ def parse_cmd_line_args() -> argparse.Namespace:
             args.llvm_version = '11.0.0'
         log("Will use the version %s of LLVM libraries (libunwind, libc++)",
             args.llvm_version)
+
+    if (args.remote_build_server is None) != (args.remote_build_dir is None):
+        raise ValueError(
+            '--remote-build-server and --remote-build-dir have to be specified or unspecified '
+            'at the same time. Note that their default values are provided by corresponding '
+            'environment variables, YB_THIRDPARTY_REMOTE_BUILD_SERVER and '
+            'YB_THIRDPARTY_REMOTE_BUILD_DIR.')
+    if args.remote_build_dir is not None:
+        assert os.path.isabs(args.remote_build_dir), (
+            'Remote build directory path must be an absolute path: %s' % args.remote_build_dir)
 
     return args
