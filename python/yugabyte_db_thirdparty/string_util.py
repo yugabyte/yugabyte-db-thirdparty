@@ -11,7 +11,11 @@
 # under the License.
 #
 
+import re
 from typing import Set, Optional, Any, List
+
+
+LEADING_SPACES_RE = re.compile('^[ ]*')
 
 
 def split_into_word_set(input_str: str) -> Set[str]:

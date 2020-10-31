@@ -18,8 +18,9 @@ from yugabyte_db_thirdparty.compiler_identification import CompilerIdentificatio
 class TestCompilerIdentification(unittest.TestCase):
     def test_clang10_apple(self) -> None:
         compiler_identification = CompilerIdentification("""
-            Apple LLVM version 10.0.1 (clang-1001.0.46.4)
-            Target: x86_64-apple-darwin18.7.0
-            Thread model: posix
-            InstalledDir: /Library/Developer/CommandLineTools/usr/bin
+Apple LLVM version 10.0.1 (clang-1001.0.46.4)
+Target: x86_64-apple-darwin18.7.0
+Thread model: posix
+InstalledDir: /Library/Developer/CommandLineTools/usr/bin
         """)
+        self.assertEquals("clang", compiler_identification.compiler_family)

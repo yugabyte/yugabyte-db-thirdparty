@@ -12,6 +12,8 @@ import os
 import sys
 import subprocess
 import time
+import argparse
+import fnmatch
 
 from typing import List, Union, Dict
 from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR
@@ -109,6 +111,15 @@ class Reporter:
         self.write(s)
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(prog=sys.argv[0])
+    parser.add_argument('-f', '--file-pattern',
+                        default=None,
+                        type=str,
+                        help='Only analyze files with this pattern')
+    return parser.parse_args()
+
+
 def check_file(file_path: str, check_type: str) -> CheckResult:
     assert check_type in CHECK_TYPES
 
@@ -167,6 +178,8 @@ def check_file(file_path: str, check_type: str) -> CheckResult:
 
 
 def check_python_code() -> bool:
+    args = parse_args()
+
     start_time = time.time()
     input_file_paths = (
         glob.glob(os.path.join(YB_THIRDPARTY_DIR, 'build_definitions', '*.py')) +
@@ -178,6 +191,17 @@ def check_python_code() -> bool:
         for file_name in filenames:
             if file_name.endswith('.py'):
                 input_file_paths.append(os.path.join(dirpath, file_name))
+
+    if args.file_pattern:
+        original_num_paths = len(input_file_paths)
+        input_file_paths = [
+            file_path for file_path in input_file_paths
+            if fnmatch.fnmatch(os.path.basename(file_path), args.file_pattern)
+        ]
+        print(
+            f"Filtered {original_num_paths} file paths to {len(input_file_paths)} paths "
+            f"using pattern {args.file_pattern}"
+        )
 
     os.environ['MYPYPATH'] = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 

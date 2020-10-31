@@ -14,6 +14,9 @@
 
 import re
 
+NUMERIC_VERSION_RE_STR = r'(\d+([.]\d+)*)'
+LLVM_VERSION_RE = re.compile(r'LLVM version %s ' % NUMERIC_VERSION_RE_STR)
+
 
 class CompilerIdentification:
     """
@@ -21,6 +24,14 @@ class CompilerIdentification:
     might influence how we should build the code.
     """
     compiler_family: str
+    compiler_version: str
 
-    def __init__(self, compiler_version_str: str):
-        pass
+    def __init__(
+            self,
+            compiler_version_str: str):
+        compiler_version_str = compiler_version_str.strip()
+        m = LLVM_VERSION_RE.search(compiler_version_str)
+        if m:
+            self.compiler_family = 'clang'
+            self.compiler_version = m.group(1)
+            return
