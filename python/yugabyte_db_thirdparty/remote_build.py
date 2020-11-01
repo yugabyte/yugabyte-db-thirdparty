@@ -122,7 +122,7 @@ def build_remotely(remote_server: str, remote_build_code_path: str) -> None:
             set -euo pipefail
             cd {quoted_remote_path}
             git reset --hard HEAD
-            git clean -f
+            git clean -df
             git checkout master
         """)
 

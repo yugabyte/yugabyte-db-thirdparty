@@ -209,3 +209,8 @@ def log_and_get_cmd_output(args: List[Any]) -> str:
     args = normalize_cmd_args(args)
     log_cmd_to_run(args)
     return subprocess.check_output(args).decode('utf-8')
+
+
+def read_file(file_path: str) -> str:
+    with open(file_path) as input_file:
+        return input_file.read()

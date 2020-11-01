@@ -125,14 +125,14 @@ def parse_cmd_line_args() -> argparse.Namespace:
         'multi-build',
         help='Build multiple configurations in parallel')
 
+    multi_build_parser.add_argument(
+        '--conf-name-pattern',
+        help='Only build configurations matching this glob-style pattern, anchored on both ends.')
+
     args = parser.parse_args()
 
     if args.dependencies and args.skip:
         raise ValueError("--skip is not compatible with specifying a list of dependencies to build")
-
-    # -----------------------------------------------------------------------------------------
-    # Activate that devtoolset in CentOS 7 and use the GCC from it.
-    # We only use GCC in this case.
 
     if is_mac():
         if args.single_compiler_type not in [None, 'clang']:

@@ -16,6 +16,8 @@ import re
 
 NUMERIC_VERSION_RE_STR = r'(\d+([.]\d+)*)'
 LLVM_VERSION_RE = re.compile(r'LLVM version %s ' % NUMERIC_VERSION_RE_STR)
+GCC_VERSION_RE = re.compile(r'gcc version %s ' % NUMERIC_VERSION_RE_STR)
+CLANG_VERSION_RE = re.compile(r'clang version %s ' % NUMERIC_VERSION_RE_STR)
 
 
 class CompilerIdentification:
@@ -23,15 +25,29 @@ class CompilerIdentification:
     Given a compiler, determines its version, its installation directory, and other information that
     might influence how we should build the code.
     """
-    compiler_family: str
-    compiler_version: str
+    family: str
+    version: str
 
     def __init__(
             self,
-            compiler_version_str: str):
-        compiler_version_str = compiler_version_str.strip()
-        m = LLVM_VERSION_RE.search(compiler_version_str)
+            version_str: str):
+        version_str = version_str.strip()
+        m = LLVM_VERSION_RE.search(version_str)
         if m:
-            self.compiler_family = 'clang'
-            self.compiler_version = m.group(1)
+            self.family = 'clang'
+            self.version = m.group(1)
             return
+
+        m = CLANG_VERSION_RE.search(version_str)
+        if m:
+            self.family = 'clang'
+            self.version = m.group(1)
+            return
+
+        m = GCC_VERSION_RE.search(version_str)
+        if m:
+            self.family = 'gcc'
+            self.version = m.group(1)
+            return
+
+        raise ValueError("Could not identify the compiler. '-v' output: %s" % version_str)

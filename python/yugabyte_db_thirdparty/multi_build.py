@@ -17,6 +17,8 @@ import yaml
 import shutil
 import subprocess
 import time
+import shlex
+import fnmatch
 
 from typing import List, Dict, Optional, Any
 from yugabyte_db_thirdparty.util import (
@@ -83,18 +85,31 @@ class BuildConfiguration(PrefixLogger):
 
     def build(self) -> BuildResult:
         with PushDir(self.conf_run_dir):
-            code_dir_in_container_parent = '/home/yugabyteci/code'
+            home_dir_in_container = '/home/yugabyteci'
+            pip_cache_dir_in_container = os.path.join(home_dir_in_container, '.cache', 'pip')
+            code_dir_in_container_parent = os.path.join(home_dir_in_container, 'code')
             code_dir_in_container = os.path.join(
                 code_dir_in_container_parent, 'yugabyte-db-thirdparty')
             code_dir_in_container_readonly = '/readonly-mount/yugabyte-db-thirdparty'
+            sudo_cmd = 'sudo -u yugabyteci '
             bash_script = '; '.join([
                 f"set -euxo pipefail",
-                f"export PATH=/usr/local/bin:$PATH",
-                f"mkdir -p {code_dir_in_container_parent}",
-                f"cp -R {code_dir_in_container_readonly} {code_dir_in_container}",
-                f"export YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX={self.archive_name_suffix}",
-                f"export YB_BUILD_THIRDPARTY_ARGS='{self.build_thirdparty_args}'",
-                "./build_and_release.sh"
+                'mkdir -p /root/.cache/pip',
+                'chmod a+rX /root',
+                'chmod a+rX /root/.cache',
+                'chmod -R a+rX /root/.cache/pip',
+                # Here, before we switch user to yugabyteci, we can do things as root if needed.
+                'sudo -u yugabyteci /bin/bash -c ' + shlex.quote('; '.join([
+                    'set -euxo pipefail',
+                    f'mkdir -p {pip_cache_dir_in_container}',
+                    f'export PIP_DOWNLOAD_CACHE={pip_cache_dir_in_container}',
+                    f'mkdir -p {code_dir_in_container_parent}',
+                    f"cp -R {code_dir_in_container_readonly} {code_dir_in_container}",
+                    f"export YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX={self.archive_name_suffix}",
+                    f"export YB_BUILD_THIRDPARTY_ARGS='{self.build_thirdparty_args}'",
+                    f"cd {code_dir_in_container}",
+                    "./build_and_release.sh"
+                ]))
             ])
             docker_run_cmd_args = [
                 'docker',
@@ -108,9 +123,6 @@ class BuildConfiguration(PrefixLogger):
                     'readonly',
                 ]),
                 self.docker_image,
-                'sudo',
-                '-u',
-                'yugabyteci',
                 'bash',
                 '-c',
                 bash_script
@@ -140,7 +152,7 @@ class MultiBuilder:
     common_timestamp_str: str
     root_run_dir: str
 
-    def __init__(self) -> None:
+    def __init__(self, conf_name_pattern: str) -> None:
         self.common_timestamp_str = datetime.datetime.now().strftime('%Y-%m-%dT%H_%M_%S')
         dir_of_all_runs = os.path.join(
             os.path.expanduser('~'), 'yugabyte-db-thirdparty-multi-build')
@@ -160,15 +172,24 @@ class MultiBuilder:
 
         for circleci_job in circleci_conf['workflows']['build-release']['jobs']:
             build_params = circleci_job['build']
-            self.configurations.append(
-                BuildConfiguration(
-                    root_run_dir=self.root_run_dir,
-                    code_dir=self.code_dir,
-                    name=build_params['name'],
-                    docker_image=build_params['docker_image'],
-                    archive_name_suffix=build_params['archive_name_suffix'],
-                    build_thirdparty_args=build_params.get(
-                        'build_thirdparty_args', '')))
+            conf = BuildConfiguration(
+                root_run_dir=self.root_run_dir,
+                code_dir=self.code_dir,
+                name=build_params['name'],
+                docker_image=build_params['docker_image'],
+                archive_name_suffix=build_params['archive_name_suffix'],
+                build_thirdparty_args=build_params.get('build_thirdparty_args', ''))
+            if not conf_name_pattern:
+                self.configurations.append(conf)
+                continue
+            if not fnmatch.fnmatch(conf.name, conf_name_pattern):
+                log("Skipping configuration '%s' (does not match pattern %s)",
+                    conf.name, conf_name_pattern)
+                continue
+            self.configurations.append(conf)
+
+        for conf in self.configurations:
+            log("Will build configuration: %s", conf.name)
 
     def build(self) -> None:
         for configuration in self.configurations:

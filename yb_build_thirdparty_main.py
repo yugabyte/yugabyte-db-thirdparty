@@ -1413,7 +1413,7 @@ def main() -> None:
         return
 
     if builder.args.command == 'multi-build':
-        multi_builder = MultiBuilder()
+        multi_builder = MultiBuilder(conf_name_pattern=builder.args.conf_name_pattern)
         multi_builder.build()
         return
 

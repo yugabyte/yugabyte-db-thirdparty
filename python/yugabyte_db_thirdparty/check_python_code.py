@@ -116,7 +116,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument('-f', '--file-pattern',
                         default=None,
                         type=str,
-                        help='Only analyze files with this pattern')
+                        help='Only analyze files matching this glob-style pattern, anchored on '
+                             'both ends so.')
     return parser.parse_args()
 
 
