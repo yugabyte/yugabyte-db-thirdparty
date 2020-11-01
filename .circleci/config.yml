@@ -46,20 +46,30 @@ workflows:
       - build:
           name: centos-linuxbrew-gcc5
           archive_name_suffix: linuxbrew
-          docker_image: yugabyteci/yb_build_infra_centos7:v2020-10-17T18_09_58
+          docker_image: yugabyteci/yb_build_infra_centos7:v2020-11-01T06_02_36
       - build:
           name: centos-gcc-devtoolset-8
           archive_name_suffix: devtoolset-8
-          docker_image: yugabyteci/yb_build_infra_centos7:v2020-10-17T18_09_58
+          docker_image: yugabyteci/yb_build_infra_centos7:v2020-11-01T06_02_36
           build_thirdparty_args: "--devtoolset=8"
       - build:
+          name: centos-gcc-devtoolset-9
+          archive_name_suffix: devtoolset-9
+          docker_image: yugabyteci/yb_build_infra_centos7:v2020-11-01T06_02_36
+          build_thirdparty_args: "--devtoolset=9"
+      - build:
           name: ubuntu-gcc7
-          archive_name_suffix: ""
-          docker_image: yugabyteci/yb_build_infra_ubuntu1804:v2020-10-22T20_58_41
+          archive_name_suffix: "gcc7"
+          docker_image: yugabyteci/yb_build_infra_ubuntu1804:v2020-11-01T06_02_36
+      - build:
+          name: ubuntu-gcc8
+          archive_name_suffix: "gcc8"
+          docker_image: yugabyteci/yb_build_infra_ubuntu1804:v2020-11-01T06_02_36
+          build_thirdparty_args: "--compiler-suffix=-8"
       - build:
           name: ubuntu-clang10
           archive_name_suffix: clang10
-          docker_image: yugabyteci/yb_build_infra_ubuntu1804:v2020-10-22T20_58_41
+          docker_image: yugabyteci/yb_build_infra_ubuntu1804:v2020-11-01T06_02_36
           build_thirdparty_args: >-
             --single-compiler-type=clang
             --compiler-prefix=/usr

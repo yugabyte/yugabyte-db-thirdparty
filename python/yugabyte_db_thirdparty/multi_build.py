@@ -86,8 +86,7 @@ class BuildConfiguration(PrefixLogger):
             code_dir_in_container_parent = '/home/yugabyteci/code'
             code_dir_in_container = os.path.join(
                 code_dir_in_container_parent, 'yugabyte-db-thirdparty')
-            code_dir_in_container_readonly = os.path.join(
-                code_dir_in_container_parent, 'yugabyte-db-thirdparty-readonly')
+            code_dir_in_container_readonly = '/readonly-mount/yugabyte-db-thirdparty'
             bash_script = '; '.join([
                 f"set -euxo pipefail",
                 f"export PATH=/usr/local/bin:$PATH",
@@ -169,7 +168,7 @@ class MultiBuilder:
                     docker_image=build_params['docker_image'],
                     archive_name_suffix=build_params['archive_name_suffix'],
                     build_thirdparty_args=build_params.get(
-                        'build_thirdparty_args', '').split()))
+                        'build_thirdparty_args', '')))
 
     def build(self) -> None:
         for configuration in self.configurations:
