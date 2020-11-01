@@ -89,7 +89,7 @@ class BuildConfiguration(PrefixLogger):
                 mkdir ~/code
                 cp -R {immutable_code_dir_in_container} ~/code/yugabyte-db-thirdparty
                 cd ~/code/yugabyte-db-thirdparty
-                ./build_thirdparty.sh
+                ./build_thirdparty.sh f{self.args}
             """
             docker_run_cmd_args = [
                 'docker',
@@ -111,8 +111,8 @@ class BuildConfiguration(PrefixLogger):
             with open(self.output_file_path, 'wb') as output_file:
                 docker_run_process = subprocess.Popen(
                     docker_run_cmd_args, stdout=output_file, stderr=subprocess.STDOUT)
-                elapsed_time_sec = time.time() - start_time_sec
                 docker_run_process.wait()
+                elapsed_time_sec = time.time() - start_time_sec
             self.log_with_prefix(
                 "Return code: %d, elapsed time: %.1f sec",
                 docker_run_process.returncode,

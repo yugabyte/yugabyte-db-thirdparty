@@ -35,7 +35,7 @@ class Llvm7LibCXXDependency(Dependency):
 
         self.extra_downloads = [
             ExtraDownload(
-                name='llvm',
+                name='llvm7',
                 version=self.version,
                 url_pattern=url_prefix + 'llvm-{0}.src.tar.xz',
                 dir_name='temp',

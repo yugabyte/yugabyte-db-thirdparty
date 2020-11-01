@@ -1190,6 +1190,10 @@ class Builder(BuilderInterface):
         colored_log(YELLOW_COLOR, SEPARATOR)
 
         self.download_dependency(dep)
+        if self.args.download_extract_only:
+            log("Skipping build of dependency %s, build type %s, --download-extract-only is "
+                "specified.", dep.name, self.build_type)
+            return
 
         env_vars = {
             "CPPFLAGS": " ".join(self.preprocessor_flags)

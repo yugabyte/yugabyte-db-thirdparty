@@ -111,6 +111,11 @@ def parse_cmd_line_args() -> argparse.Namespace:
         action='store_true')
 
     parser.add_argument(
+        '--download-extract-only',
+        help='Only download and extract archives. Do not build any dependencies.',
+        action='store_true')
+
+    parser.add_argument(
         'dependencies',
         nargs=argparse.REMAINDER,
         help='Dependencies to build.')
