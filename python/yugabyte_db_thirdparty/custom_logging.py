@@ -24,7 +24,7 @@ NO_COLOR = "\033[0m"
 SEPARATOR = "-" * 80
 
 
-def _args_to_message(*args: Any) -> str:
+def convert_log_args_to_message(*args: Any) -> str:
     n_args = len(args)
     if n_args == 0:
         message = ""
@@ -42,11 +42,11 @@ def fatal(*args: Any) -> NoReturn:
 
 
 def log(*args: Any) -> None:
-    sys.stderr.write(_args_to_message(*args) + "\n")
+    sys.stderr.write(convert_log_args_to_message(*args) + "\n")
 
 
 def colored_log(color: str, *args: Any) -> None:
-    sys.stderr.write(color + _args_to_message(*args) + NO_COLOR + "\n")
+    sys.stderr.write(color + convert_log_args_to_message(*args) + NO_COLOR + "\n")
 
 
 def print_line_with_colored_prefix(prefix: str, line: str) -> None:
@@ -85,3 +85,11 @@ def heading(title: str) -> None:
     log(title)
     log(SEPARATOR)
     log("")
+
+
+class PrefixLogger:
+    def log_with_prefix(self, *args: Any) -> None:
+        log('%s%s', self.get_log_prefix(), convert_log_args_to_message(args))
+
+    def get_log_prefix(self) -> str:
+        raise NotImplementedError()

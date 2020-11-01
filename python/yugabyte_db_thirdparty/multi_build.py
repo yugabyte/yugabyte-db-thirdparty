@@ -14,11 +14,16 @@ import os
 import concurrent.futures
 import datetime
 import yaml
+import shutil
 
-from typing import List, Dict, Optional
-from yugabyte_db_thirdparty.util import mkdir_if_missing, PushDir, log_and_run_cmd
-from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR
-from yugabyte_db_thirdparty.custom_logging import log
+from typing import List, Dict, Optional, Any
+from yugabyte_db_thirdparty.util import (
+    mkdir_if_missing,
+    PushDir,
+    log_and_run_cmd,
+    YB_THIRDPARTY_DIR,
+)
+from yugabyte_db_thirdparty.custom_logging import log, convert_log_args_to_message, PrefixLogger
 from yugabyte_db_thirdparty.remote_build import copy_code_to
 
 
@@ -32,35 +37,50 @@ class BuildResult:
         pass
 
 
-class BuildConfiguration:
-    run_root_dir: str
-    code_dir: str
-    run_dir: str
+class BuildConfiguration(PrefixLogger):
+    # Name of this configuration.
     name: str
+
+    # Directory for all configurations. This is the same in all BuildConfiguration objects.
+    root_run_dir: str
+
+    # Directory for this particular configuartion. This is a subdirectory of root_run_dir based
+    # on the name.
+    conf_run_dir: str
+
+    code_dir: str
+
     docker_image: str
     args: List[str]
 
+    def get_log_prefix(self) -> str:
+        return "[%s] " % self.name
+
     def __init__(
             self,
-            run_root_dir: str,
+            root_run_dir: str,
             code_dir: str,
             name: str,
             docker_image: str,
             args: List[str]) -> None:
-        self.run_root_dir = run_root_dir
+        self.root_run_dir = root_run_dir
         self.code_dir = code_dir
         self.name = name
         self.docker_image = docker_image
         self.args = args
 
     def prepare(self) -> None:
-        self.run_dir = os.path.join(self.run_root_dir, self.name)
-        self.dockerfile_path = os.path.join(self.run_root_dir, f'Dockerfile-{self.name}')
-        mkdir_if_missing(self.run_dir)
-        immutable_code_dir_in_container = '/outside-of-container/yugabyte-db-thirdparty-immutables'
-        rel_code_dir = os.path.relpath(
-            os.path.abspath(self.code_dir),
-            os.path.dirname(os.path.abspath(self.dockerfile_path)))
+        self.conf_run_dir = os.path.join(self.root_run_dir, self.name)
+        self.dockerfile_path = os.path.join(self.conf_run_dir, f'Dockerfile-{self.name}')
+        self.log_with_prefix("Dockerfile path: %s", self.dockerfile_path)
+        mkdir_if_missing(self.conf_run_dir)
+        immutable_code_dir_in_container = '/outside-of-container/yugabyte-db-thirdparty-immutable'
+        rel_code_dir = os.path.join('code', 'yugabyte-db-thirdparty')
+        code_dir_in_dockerfile_dir = os.path.join(
+            os.path.dirname(self.dockerfile_path), rel_code_dir)
+        self.log_with_prefix(
+            "Copying code from %s to %s", self.code_dir, code_dir_in_dockerfile_dir)
+        shutil.copytree(self.code_dir, code_dir_in_dockerfile_dir)
 
         copy_code_and_build_cmd_str = ' && '.join([
             'mkdir -p ~/code',
@@ -79,7 +99,7 @@ class BuildConfiguration:
             docker_file.write('\n'.join(dockerfile_lines) + '\n')
 
     def build(self) -> BuildResult:
-        with PushDir(self.run_dir):
+        with PushDir(self.conf_run_dir):
             log_and_run_cmd(['docker', 'build', '--file', self.dockerfile_path, '.'])
 
         return BuildResult()
@@ -92,23 +112,23 @@ def build_configuration(configuration: BuildConfiguration) -> BuildResult:
 class MultiBuilder:
     configurations: List[BuildConfiguration]
     common_timestamp_str: str
-    run_root_dir: str
+    root_run_dir: str
 
     def __init__(self) -> None:
         self.common_timestamp_str = datetime.datetime.now().strftime('%Y-%m-%dT%H_%M_%S')
         dir_of_all_runs = os.path.join(
             os.path.expanduser('~'), 'yugabyte-db-thirdparty-multi-build')
-        self.run_root_dir = os.path.join(dir_of_all_runs, self.common_timestamp_str)
+        self.root_run_dir = os.path.join(dir_of_all_runs, self.common_timestamp_str)
         latest_link = os.path.join(dir_of_all_runs, 'latest')
-        self.code_dir = os.path.join(self.run_root_dir, 'code', 'yugabyte-db-thirdparty')
+        self.code_dir = os.path.join(self.root_run_dir, 'code', 'yugabyte-db-thirdparty')
         mkdir_if_missing(os.path.dirname(self.code_dir))
         if os.path.exists(latest_link):
             os.remove(latest_link)
-        os.symlink(os.path.basename(self.run_root_dir), latest_link)
+        os.symlink(os.path.basename(self.root_run_dir), latest_link)
         copy_code_to(self.code_dir)
 
         with open(CIRCLECI_CONFIG_PATH) as circleci_conf_file:
-            circleci_conf = yaml.load(circleci_conf_file)
+            circleci_conf = yaml.load(circleci_conf_file, Loader=yaml.SafeLoader)
 
         self.configurations = []
 
@@ -116,7 +136,7 @@ class MultiBuilder:
             build_params = circleci_job['build']
             self.configurations.append(
                 BuildConfiguration(
-                    run_root_dir=self.run_root_dir,
+                    root_run_dir=self.root_run_dir,
                     code_dir=self.code_dir,
                     name=build_params['name'],
                     docker_image=build_params['docker_image'],
