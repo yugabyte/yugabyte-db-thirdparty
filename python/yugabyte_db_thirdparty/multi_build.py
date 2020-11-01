@@ -51,10 +51,12 @@ class BuildConfiguration(PrefixLogger):
     # on the name.
     conf_run_dir: str
 
+    # Code checkout directory. One for all configuration builds.
     code_dir: str
 
     docker_image: str
-    args: List[str]
+
+    build_thirdparty_args: str
 
     def get_log_prefix(self) -> str:
         return "[%s] " % self.name
@@ -65,12 +67,14 @@ class BuildConfiguration(PrefixLogger):
             code_dir: str,
             name: str,
             docker_image: str,
-            args: List[str]) -> None:
+            archive_name_suffix: str,
+            build_thirdparty_args: str) -> None:
         self.root_run_dir = root_run_dir
         self.code_dir = code_dir
         self.name = name
         self.docker_image = docker_image
-        self.args = args
+        self.archive_name_suffix = archive_name_suffix
+        self.build_thirdparty_args = build_thirdparty_args
 
     def prepare(self) -> None:
         self.conf_run_dir = os.path.join(self.root_run_dir, self.name)
@@ -79,24 +83,31 @@ class BuildConfiguration(PrefixLogger):
 
     def build(self) -> BuildResult:
         with PushDir(self.conf_run_dir):
-            # log_and_run_cmd(['docker', 'build', '--file', self.dockerfile_path, '.'])
-            immutable_code_dir_in_container = \
-                '/outside-of-container/yugabyte-db-thirdparty-immutable'
-
-            bash_script = f"""
-                set -euxo pipefail
-                export PATH=/usr/local/bin:$PATH
-                mkdir ~/code
-                cp -R {immutable_code_dir_in_container} ~/code/yugabyte-db-thirdparty
-                cd ~/code/yugabyte-db-thirdparty
-                ./build_thirdparty.sh f{self.args}
-            """
+            code_dir_in_container_parent = '/home/yugabyteci/code'
+            code_dir_in_container = os.path.join(
+                code_dir_in_container_parent, 'yugabyte-db-thirdparty')
+            code_dir_in_container_readonly = os.path.join(
+                code_dir_in_container_parent, 'yugabyte-db-thirdparty-readonly')
+            bash_script = '; '.join([
+                f"set -euxo pipefail",
+                f"export PATH=/usr/local/bin:$PATH",
+                f"mkdir -p {code_dir_in_container_parent}",
+                f"cp -R {code_dir_in_container_readonly} {code_dir_in_container}",
+                f"export YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX={self.archive_name_suffix}",
+                f"export YB_BUILD_THIRDPARTY_ARGS='{self.build_thirdparty_args}'",
+                "./build_and_release.sh"
+            ])
             docker_run_cmd_args = [
                 'docker',
                 'run',
                 '--cap-add=SYS_PTRACE',
                 '--mount',
-                f'type=bind,source={self.code_dir},target={immutable_code_dir_in_container}',
+                ','.join([
+                    'type=bind',
+                    f'source={self.code_dir}',
+                    f'target={code_dir_in_container_readonly}',
+                    'readonly',
+                ]),
                 self.docker_image,
                 'sudo',
                 '-u',
@@ -156,7 +167,9 @@ class MultiBuilder:
                     code_dir=self.code_dir,
                     name=build_params['name'],
                     docker_image=build_params['docker_image'],
-                    args=build_params.get('build_thirdparty_args', '').split()))
+                    archive_name_suffix=build_params['archive_name_suffix'],
+                    build_thirdparty_args=build_params.get(
+                        'build_thirdparty_args', '').split()))
 
     def build(self) -> None:
         for configuration in self.configurations:
