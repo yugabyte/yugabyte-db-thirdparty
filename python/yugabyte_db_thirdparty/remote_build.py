@@ -29,7 +29,49 @@ from yugabyte_db_thirdparty.util import (
     log_and_get_cmd_output,
     PushDir,
     YB_THIRDPARTY_DIR,
+    shlex_join,
 )
+
+
+def get_current_git_branch_name() -> str:
+    return subprocess.check_output(
+        shlex.split('git rev-parse --abbrev-ref HEAD')).strip().decode('utf-8')
+
+
+def rsync_code_to(rsync_dest: str) -> None:
+    with PushDir(YB_THIRDPARTY_DIR):
+        excluded_files_bytes: bytes = subprocess.check_output(
+            ['git', 'ls-files', '--exclude-standard', '-oi', '--directory'])
+        assert os.path.isdir('.git')
+        excluded_files_path = os.path.join(os.getcwd(), '.git', 'ignores.tmp')
+        with open(excluded_files_path, 'wb') as excluded_files_file:
+            excluded_files_file.write(excluded_files_bytes)
+
+        exclude_args: List[str] = []
+        exclude_patterns = ['.git']
+        for exclude_pattern in exclude_patterns:
+            exclude_args.append('--exclude')
+            exclude_args.append(exclude_pattern)
+
+        log_and_run_cmd(
+            ['rsync', '-avh', '--delete'] + exclude_args + [
+                '--exclude-from=%s' % excluded_files_path,
+                '.',
+                rsync_dest
+            ]
+        )
+
+
+def copy_code_to(dest_dir: str) -> None:
+    parent_dir = os.path.dirname(dest_dir)
+    assert os.path.isdir(parent_dir), 'Directory %s does not exist' % parent_dir
+    assert not os.path.exists(dest_dir), 'Already exists: %s' % dest_dir
+    with PushDir(YB_THIRDPARTY_DIR):
+        current_branch_name = get_current_git_branch_name()
+        log_and_run_cmd(['git', 'clone', YB_THIRDPARTY_DIR, dest_dir])
+        with PushDir(dest_dir):
+            log_and_run_cmd(['git', 'checkout', current_branch_name])
+        rsync_code_to(dest_dir)
 
 
 def build_remotely(remote_server: str, remote_build_code_path: str) -> None:
@@ -54,8 +96,7 @@ def build_remotely(remote_server: str, remote_build_code_path: str) -> None:
     run_remote_bash_script('[[ -d %s ]]' % quoted_remote_path)
 
     with PushDir(YB_THIRDPARTY_DIR):
-        local_branch_name = subprocess.check_output(
-            shlex.split('git rev-parse --abbrev-ref HEAD')).strip().decode('utf-8')
+        local_branch_name = get_current_git_branch_name()
 
         local_git_remotes = subprocess.check_output(
             shlex.split('git remote -v')).decode('utf-8')
@@ -94,29 +135,9 @@ def build_remotely(remote_server: str, remote_build_code_path: str) -> None:
         run_remote_bash_script('cd %s && git checkout %s' % (
             quoted_remote_path, shlex.quote(local_branch_name)))
 
-        excluded_files_str = subprocess.check_output(
-            ['git', '-C', '.', 'ls-files', '--exclude-standard', '-oi', '--directory'])
-        assert os.path.isdir('.git')
-        excluded_files_path = os.path.join(os.getcwd(), '.git', 'ignores.tmp')
-        with open(excluded_files_path, 'wb') as excluded_files_file:
-            excluded_files_file.write(excluded_files_str)
-
-        exclude_args: List[str] = []
-        exclude_patterns = ['.git']
-        for exclude_pattern in exclude_patterns:
-            exclude_args.append('--exclude')
-            exclude_args.append(exclude_pattern)
-
-        log_and_run_cmd(
-            ['rsync', '-avh', '--delete'] + exclude_args + [
-                '--exclude-from=%s' % excluded_files_path,
-                '.',
-                '%s:%s' % (remote_server, remote_build_code_path)
-            ]
-        )
-
+        rsync_code_to('%s:%s' % (remote_server, remote_build_code_path))
         remote_bash_script = 'cd %s && ./build_thirdparty.sh %s' % (
-            quoted_remote_path, shlex.join(sys.argv[1:])
+            quoted_remote_path, shlex_join(sys.argv[1:])
         )
 
         run_remote_bash_script(remote_bash_script)

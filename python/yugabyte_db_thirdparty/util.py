@@ -188,8 +188,15 @@ class EnvVarContext:
             dict_set_or_del(os.environ, env_var_name, saved_value)
 
 
+def shlex_join(args: List[str]) -> str:
+    """
+    We need this to be compatible with Python 3.7.
+    """
+    return ' '.join(shlex.quote(arg) for arg in args)
+
+
 def log_cmd_to_run(args: List[str]) -> None:
-    log("Running command in directory %s: %s", os.getcwd(), shlex.join(args))
+    log("Running command in directory %s: %s", os.getcwd(), shlex_join(args))
 
 
 def log_and_run_cmd(args: List[Any]) -> None:

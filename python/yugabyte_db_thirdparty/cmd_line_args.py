@@ -105,9 +105,20 @@ def parse_cmd_line_args() -> argparse.Namespace:
         default=os.getenv('YB_THIRDPARTY_REMOTE_BUILD_DIR'))
 
     parser.add_argument(
+        '--local',
+        help='Forces the local build even if --remote-... options are specified or the '
+             'corresponding environment variables are set.',
+        action='store_true')
+
+    parser.add_argument(
         'dependencies',
         nargs=argparse.REMAINDER,
         help='Dependencies to build.')
+
+    subparsers = parser.add_subparsers(help='sub-command help', dest='command')
+    multi_build_parser = subparsers.add_parser(
+        'multi-build',
+        help='Build multiple configurations in parallel')
 
     args = parser.parse_args()
 
@@ -141,6 +152,11 @@ def parse_cmd_line_args() -> argparse.Namespace:
             args.llvm_version = '11.0.0'
         log("Will use the version %s of LLVM libraries (libunwind, libc++)",
             args.llvm_version)
+
+    if args.local and (args.remote_build_server is not None or args.remote_build_dir is not None):
+        log("Forcing a local build")
+        args.remote_build_server = None
+        args.remote_build_dir = None
 
     if (args.remote_build_server is None) != (args.remote_build_dir is None):
         raise ValueError(

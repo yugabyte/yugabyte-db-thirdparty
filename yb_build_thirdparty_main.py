@@ -64,6 +64,7 @@ from yugabyte_db_thirdparty.os_detection import (
     is_linux,
     is_centos,
 )
+from yugabyte_db_thirdparty.multi_build import MultiBuilder
 import build_definitions
 from build_definitions import *  # noqa
 
@@ -1405,6 +1406,11 @@ def main() -> None:
         build_remotely(
             remote_server=builder.args.remote_build_server,
             remote_build_code_path=builder.args.remote_build_dir)
+        return
+
+    if builder.args.command == 'multi-build':
+        multi_builder = MultiBuilder()
+        multi_builder.build()
         return
 
     builder.finish_initialization()
