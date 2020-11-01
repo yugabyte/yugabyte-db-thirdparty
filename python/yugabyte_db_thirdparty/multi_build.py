@@ -15,6 +15,8 @@ import concurrent.futures
 import datetime
 import yaml
 import shutil
+import subprocess
+import time
 
 from typing import List, Dict, Optional, Any
 from yugabyte_db_thirdparty.util import (
@@ -22,6 +24,7 @@ from yugabyte_db_thirdparty.util import (
     PushDir,
     log_and_run_cmd,
     YB_THIRDPARTY_DIR,
+    shlex_join,
 )
 from yugabyte_db_thirdparty.custom_logging import log, convert_log_args_to_message, PrefixLogger
 from yugabyte_db_thirdparty.remote_build import copy_code_to
@@ -71,36 +74,45 @@ class BuildConfiguration(PrefixLogger):
 
     def prepare(self) -> None:
         self.conf_run_dir = os.path.join(self.root_run_dir, self.name)
-        self.dockerfile_path = os.path.join(self.conf_run_dir, f'Dockerfile-{self.name}')
-        self.log_with_prefix("Dockerfile path: %s", self.dockerfile_path)
         mkdir_if_missing(self.conf_run_dir)
-        immutable_code_dir_in_container = '/outside-of-container/yugabyte-db-thirdparty-immutable'
-        rel_code_dir = os.path.join('code', 'yugabyte-db-thirdparty')
-        code_dir_in_dockerfile_dir = os.path.join(
-            os.path.dirname(self.dockerfile_path), rel_code_dir)
-        self.log_with_prefix(
-            "Copying code from %s to %s", self.code_dir, code_dir_in_dockerfile_dir)
-        shutil.copytree(self.code_dir, code_dir_in_dockerfile_dir)
-
-        copy_code_and_build_cmd_str = ' && '.join([
-            'mkdir -p ~/code',
-            f'cp -R "{immutable_code_dir_in_container}" ~/code/yugabyte-db-thirdparty',
-            'cd ~/code/yugabyte-db-thirdparty',
-            './build_thirdparty.sh',
-        ])
-
-        dockerfile_lines = [
-            f'FROM {self.docker_image}',
-            'USER yugabyteci',
-            f'ADD "{rel_code_dir}" "{immutable_code_dir_in_container}"',
-            'RUN ' + copy_code_and_build_cmd_str
-        ]
-        with open(self.dockerfile_path, 'w') as docker_file:
-            docker_file.write('\n'.join(dockerfile_lines) + '\n')
 
     def build(self) -> BuildResult:
         with PushDir(self.conf_run_dir):
-            log_and_run_cmd(['docker', 'build', '--file', self.dockerfile_path, '.'])
+            # log_and_run_cmd(['docker', 'build', '--file', self.dockerfile_path, '.'])
+            immutable_code_dir_in_container = \
+                '/outside-of-container/yugabyte-db-thirdparty-immutable'
+
+            bash_script = f"""
+                set -euxo pipefail
+                export PATH=/usr/local/bin:$PATH
+                mkdir ~/code
+                cp -R {immutable_code_dir_in_container} ~/code/yugabyte-db-thirdparty
+                cd ~/code/yugabyte-db-thirdparty
+                ./build_thirdparty.sh
+            """
+            docker_run_cmd_args = [
+                'docker',
+                'run',
+                '--cap-add=SYS_PTRACE',
+                '--mount',
+                f'type=bind,source={self.code_dir},target={immutable_code_dir_in_container}',
+                self.docker_image,
+                'sudo',
+                '-u',
+                'yugabyteci',
+                'bash',
+                '-c',
+                bash_script
+            ]
+            self.log_with_prefix("Running command: %s", shlex_join(docker_run_cmd_args))
+            start_time_sec = time.time()
+            docker_run_process = subprocess.Popen(docker_run_cmd_args)
+            elapsed_time_sec = time.time() - start_time_sec
+            docker_run_process.wait()
+            self.log_with_prefix(
+                "Return code: %d, elapsed time: %.1f sec",
+                docker_run_process.returncode,
+                elapsed_time_sec)
 
         return BuildResult()
 
@@ -141,6 +153,7 @@ class MultiBuilder:
                     name=build_params['name'],
                     docker_image=build_params['docker_image'],
                     args=build_params.get('build_thirdparty_args', '').split()))
+            break
 
     def build(self) -> None:
         for configuration in self.configurations:

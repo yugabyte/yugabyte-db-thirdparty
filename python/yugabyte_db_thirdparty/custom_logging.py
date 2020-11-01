@@ -89,7 +89,7 @@ def heading(title: str) -> None:
 
 class PrefixLogger:
     def log_with_prefix(self, *args: Any) -> None:
-        log('%s%s', self.get_log_prefix(), convert_log_args_to_message(args))
+        log('%s%s', self.get_log_prefix(), convert_log_args_to_message(*args))
 
     def get_log_prefix(self) -> str:
         raise NotImplementedError()

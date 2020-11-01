@@ -47,19 +47,18 @@ def rsync_code_to(rsync_dest: str) -> None:
         with open(excluded_files_path, 'wb') as excluded_files_file:
             excluded_files_file.write(excluded_files_bytes)
 
-        exclude_args: List[str] = []
-        exclude_patterns = ['.git']
-        for exclude_pattern in exclude_patterns:
-            exclude_args.append('--exclude')
-            exclude_args.append(exclude_pattern)
-
-        log_and_run_cmd(
-            ['rsync', '-avh', '--delete'] + exclude_args + [
-                '--exclude-from=%s' % excluded_files_path,
-                '.',
-                rsync_dest
-            ]
-        )
+        rsync_cmd = [
+            'rsync',
+            '--archive',
+            '--verbose',
+            '--human-readable',
+            '--delete',
+            '--checksum',
+            '--exclude',
+            '.git',
+            '--exclude-from=%s' % excluded_files_path, '.', rsync_dest
+        ]
+        log_and_run_cmd(rsync_cmd)
 
 
 def copy_code_to(dest_dir: str) -> None:
@@ -84,15 +83,13 @@ def build_remotely(remote_server: str, remote_build_code_path: str) -> None:
 
     def run_remote_bash_script(bash_script: str) -> None:
         bash_script = bash_script.strip()
-        log("Running bash script remotely: %s", bash_script)
+        log("Running script remotely: %s", bash_script)
         # TODO: why exactly do we need shlex.quote here?
         run_ssh_cmd(['bash', '-c', shlex.quote(bash_script)])
 
-    def get_ssh_cmd_output(ssh_args: List[str]) -> None:
-        log_and_get_cmd_output(['ssh', remote_server] + ssh_args)
-
     quoted_remote_path = shlex.quote(remote_build_code_path)
-    # Ensure the remote directory exists.
+
+    # Ensure the remote directory exists. We are not attempting to create it if it does not.
     run_remote_bash_script('[[ -d %s ]]' % quoted_remote_path)
 
     with PushDir(YB_THIRDPARTY_DIR):
