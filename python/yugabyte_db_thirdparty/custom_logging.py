@@ -41,8 +41,10 @@ def fatal(*args: Any) -> NoReturn:
     sys.exit(1)
 
 
-def log(*args: Any) -> None:
+def log(*args: Any, flush: bool = True) -> None:
     sys.stderr.write(convert_log_args_to_message(*args) + "\n")
+    if flush:
+        sys.stderr.flush()
 
 
 def colored_log(color: str, *args: Any) -> None:
@@ -74,16 +76,16 @@ def log_output(prefix: str, args: List[Any], log_cmd: bool = True) -> None:
 
 
 def log_separator() -> None:
-    log("")
-    log(SEPARATOR)
+    log("", flush=False)
+    log(SEPARATOR, flush=False)
     log("")
 
 
 def heading(title: str) -> None:
-    log("")
-    log(SEPARATOR)
-    log(title)
-    log(SEPARATOR)
+    log("", flush=False)
+    log(SEPARATOR, flush=False)
+    log(title, flush=False)
+    log(SEPARATOR, flush=False)
     log("")
 
 

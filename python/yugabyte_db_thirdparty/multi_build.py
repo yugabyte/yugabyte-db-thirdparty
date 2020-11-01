@@ -74,6 +74,7 @@ class BuildConfiguration(PrefixLogger):
 
     def prepare(self) -> None:
         self.conf_run_dir = os.path.join(self.root_run_dir, self.name)
+        self.output_file_path = os.path.join(self.conf_run_dir, 'output.log')
         mkdir_if_missing(self.conf_run_dir)
 
     def build(self) -> BuildResult:
@@ -105,10 +106,13 @@ class BuildConfiguration(PrefixLogger):
                 bash_script
             ]
             self.log_with_prefix("Running command: %s", shlex_join(docker_run_cmd_args))
+            self.log_with_prefix("Logging to: %s", self.output_file_path)
             start_time_sec = time.time()
-            docker_run_process = subprocess.Popen(docker_run_cmd_args)
-            elapsed_time_sec = time.time() - start_time_sec
-            docker_run_process.wait()
+            with open(self.output_file_path, 'wb') as output_file:
+                docker_run_process = subprocess.Popen(
+                    docker_run_cmd_args, stdout=output_file, stderr=subprocess.STDOUT)
+                elapsed_time_sec = time.time() - start_time_sec
+                docker_run_process.wait()
             self.log_with_prefix(
                 "Return code: %d, elapsed time: %.1f sec",
                 docker_run_process.returncode,
@@ -153,7 +157,6 @@ class MultiBuilder:
                     name=build_params['name'],
                     docker_image=build_params['docker_image'],
                     args=build_params.get('build_thirdparty_args', '').split()))
-            break
 
     def build(self) -> None:
         for configuration in self.configurations:
