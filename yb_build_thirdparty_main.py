@@ -785,6 +785,7 @@ class Builder(BuilderInterface):
 
             # Build for macOS Mojave or later. See https://bit.ly/37myHbk
             self.compiler_flags.append("-mmacosx-version-min=10.14")
+            self.ld_flags.append("-Wl,-headerpad_max_install_names")
         else:
             fatal("Unsupported platform: {}".format(platform.system()))
 
