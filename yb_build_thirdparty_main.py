@@ -1415,8 +1415,8 @@ def main() -> None:
             remote_build_code_path=builder.args.remote_build_dir)
         return
 
-    if builder.args.command == 'multi-build':
-        multi_builder = MultiBuilder(conf_name_pattern=builder.args.conf_name_pattern)
+    if builder.args.multi_build:
+        multi_builder = MultiBuilder(conf_name_pattern=builder.args.multi_build_conf_name_pattern)
         multi_builder.build()
         return
 

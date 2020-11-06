@@ -23,7 +23,7 @@ class LibUnwindDependency(Dependency):
         super(LibUnwindDependency, self).__init__(
             name='libunwind',
             version='1.1a',
-            url_pattern=None,
+            url_pattern='https://github.com/yugabyte/libunwind/archive/libunwind-{0}.tar.gz',
             build_group=BUILD_GROUP_COMMON)
         self.copy_sources = True
 

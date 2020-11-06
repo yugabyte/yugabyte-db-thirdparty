@@ -127,7 +127,8 @@ def build_remotely(remote_server: str, remote_build_code_path: str) -> None:
         """)
 
         log_and_run_cmd(
-            ['git', 'push', remote_name, '%s:%s' % (local_branch_name, local_branch_name)])
+            ['git', 'push', '--force', remote_name,
+             '%s:%s' % (local_branch_name, local_branch_name)])
 
         run_remote_bash_script('cd %s && git checkout %s' % (
             quoted_remote_path, shlex.quote(local_branch_name)))

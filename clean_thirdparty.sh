@@ -122,6 +122,7 @@ for dep_name in "${dependency_names_to_clean[@]}"; do
     set -x
     rm -rfv \
       "$YB_THIRDPARTY_DIR"/build/{common,uninstrumented,tsan}/{"$dep_name","$dep_name-"*,.build-stamp-"$dep_name"}
+    rm -rfv "$YB_THIRDPARTY_DIR/src/${dep_name}-"*
   )
 
   for top_build_dir in "$YB_THIRDPARTY_DIR"/build/{common,uninstrumented,tsan}; do

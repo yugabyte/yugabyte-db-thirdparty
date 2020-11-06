@@ -116,20 +116,28 @@ def parse_cmd_line_args() -> argparse.Namespace:
         action='store_true')
 
     parser.add_argument(
+        '--multi-build',
+        action='store_true',
+        help='Build multiple configurations in parallel. Most other arguments will get ignored '
+             'if this is specified. Configurations to build are taken from .circleci/config.yml. '
+             'The set of configurations to build can be customized using the '
+             '--multi-build-conf-name-pattern flag.')
+
+    parser.add_argument(
+        '--multi-build-conf-name-pattern',
+        help='Only build configurations matching this glob-style pattern, anchored on both ends. '
+             'This implies --multi-build.')
+
+    parser.add_argument(
         'dependencies',
         nargs=argparse.REMAINDER,
         help='Dependencies to build.')
 
-    subparsers = parser.add_subparsers(help='sub-command help', dest='command')
-    multi_build_parser = subparsers.add_parser(
-        'multi-build',
-        help='Build multiple configurations in parallel')
-
-    multi_build_parser.add_argument(
-        '--conf-name-pattern',
-        help='Only build configurations matching this glob-style pattern, anchored on both ends.')
-
     args = parser.parse_args()
+
+    # ---------------------------------------------------------------------------------------------
+    # Validating arguments
+    # ---------------------------------------------------------------------------------------------
 
     if args.dependencies and args.skip:
         raise ValueError("--skip is not compatible with specifying a list of dependencies to build")
@@ -172,5 +180,8 @@ def parse_cmd_line_args() -> argparse.Namespace:
     if args.remote_build_dir is not None:
         assert os.path.isabs(args.remote_build_dir), (
             'Remote build directory path must be an absolute path: %s' % args.remote_build_dir)
+
+    if args.multi_build_conf_name_pattern:
+        args.multi_build = True
 
     return args
