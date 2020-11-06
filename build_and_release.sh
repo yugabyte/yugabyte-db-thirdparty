@@ -79,7 +79,7 @@ fi
 # Check for errors in Python code of this repository
 # -------------------------------------------------------------------------------------------------
 
-"$YB_THIRDPARTY_DIR/check_python_code.sh"
+( set -x; "$YB_THIRDPARTY_DIR/check_python_code.sh" )
 
 # -------------------------------------------------------------------------------------------------
 
