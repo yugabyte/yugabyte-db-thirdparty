@@ -19,6 +19,7 @@ import subprocess
 import time
 import shlex
 import fnmatch
+import docker  # type: ignore
 
 from typing import List, Dict, Optional, Any
 from yugabyte_db_thirdparty.util import (
@@ -42,19 +43,20 @@ class BuildResult:
         pass
 
 
+class MultiBuildCommonConf:
+    def __init__(self) -> None:
+        self.timestamp_str = datetime.datetime.now().strftime('%Y-%m-%dT%H_%M_%S')
+        self.dir_of_all_runs = os.path.join(
+            os.path.expanduser('~'), 'yugabyte-db-thirdparty-multi-build')
+        self.root_run_dir = os.path.join(self.dir_of_all_runs, self.timestamp_str)
+        self.checkout_dir = os.path.join(self.root_run_dir, 'code', 'yugabyte-db-thirdparty')
+
+
 class BuildConfiguration(PrefixLogger):
     # Name of this configuration.
     name: str
 
-    # Directory for all configurations. This is the same in all BuildConfiguration objects.
-    root_run_dir: str
-
-    # Directory for this particular configuartion. This is a subdirectory of root_run_dir based
-    # on the name.
-    conf_run_dir: str
-
-    # Code checkout directory. One for all configuration builds.
-    code_dir: str
+    common_conf: MultiBuildCommonConf
 
     docker_image: str
 
@@ -65,21 +67,19 @@ class BuildConfiguration(PrefixLogger):
 
     def __init__(
             self,
-            root_run_dir: str,
-            code_dir: str,
+            common_conf: MultiBuildCommonConf,
             name: str,
             docker_image: str,
             archive_name_suffix: str,
             build_thirdparty_args: str) -> None:
-        self.root_run_dir = root_run_dir
-        self.code_dir = code_dir
+        self.common_conf = common_conf
         self.name = name
         self.docker_image = docker_image
         self.archive_name_suffix = archive_name_suffix
         self.build_thirdparty_args = build_thirdparty_args
 
     def prepare(self) -> None:
-        self.conf_run_dir = os.path.join(self.root_run_dir, self.name)
+        self.conf_run_dir = os.path.join(self.common_conf.root_run_dir, self.name)
         self.output_file_path = os.path.join(self.conf_run_dir, 'output.log')
         mkdir_if_missing(self.conf_run_dir)
 
@@ -87,10 +87,8 @@ class BuildConfiguration(PrefixLogger):
         with PushDir(self.conf_run_dir):
             home_dir_in_container = '/home/yugabyteci'
             pip_cache_dir_in_container = os.path.join(home_dir_in_container, '.cache', 'pip')
-            code_dir_in_container_parent = os.path.join(home_dir_in_container, 'code')
-            code_dir_in_container = os.path.join(
-                code_dir_in_container_parent, 'yugabyte-db-thirdparty')
-            code_dir_in_container_readonly = '/readonly-mount/yugabyte-db-thirdparty'
+            readonly_checkout_in_container = '/opt/yb-build/readonly-code/yugabyte-db-thirdparty'
+            rw_checkout_in_container = '/opt/yb-build/thirdparty/checkout'
             sudo_cmd = 'sudo -u yugabyteci '
             bash_script = '; '.join([
                 f"set -euxo pipefail",
@@ -103,23 +101,25 @@ class BuildConfiguration(PrefixLogger):
                     'set -euxo pipefail',
                     f'mkdir -p {pip_cache_dir_in_container}',
                     f'export PIP_DOWNLOAD_CACHE={pip_cache_dir_in_container}',
-                    f'mkdir -p {code_dir_in_container_parent}',
-                    f"cp -R {code_dir_in_container_readonly} {code_dir_in_container}",
                     f"export YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX={self.archive_name_suffix}",
                     f"export YB_BUILD_THIRDPARTY_ARGS='{self.build_thirdparty_args}'",
-                    f"cd {code_dir_in_container}",
+                    f"cp -R {readonly_checkout_in_container} {rw_checkout_in_container}",
+                    f"cd {rw_checkout_in_container}",
                     "./build_and_release.sh"
                 ]))
             ])
+            container_name = f'{self.name}-{self.common_conf.timestamp_str}'
             docker_run_cmd_args = [
                 'docker',
                 'run',
+                '--name',
+                container_name,
                 '--cap-add=SYS_PTRACE',
                 '--mount',
                 ','.join([
                     'type=bind',
-                    f'source={self.code_dir}',
-                    f'target={code_dir_in_container_readonly}',
+                    f'source={self.common_conf.checkout_dir}',
+                    f'target={readonly_checkout_in_container}',
                     'readonly',
                 ]),
                 self.docker_image,
@@ -149,21 +149,17 @@ def build_configuration(configuration: BuildConfiguration) -> BuildResult:
 
 class MultiBuilder:
     configurations: List[BuildConfiguration]
-    common_timestamp_str: str
-    root_run_dir: str
+    common_conf: MultiBuildCommonConf
 
     def __init__(self, conf_name_pattern: str) -> None:
-        self.common_timestamp_str = datetime.datetime.now().strftime('%Y-%m-%dT%H_%M_%S')
-        dir_of_all_runs = os.path.join(
-            os.path.expanduser('~'), 'yugabyte-db-thirdparty-multi-build')
-        self.root_run_dir = os.path.join(dir_of_all_runs, self.common_timestamp_str)
-        latest_link = os.path.join(dir_of_all_runs, 'latest')
-        self.code_dir = os.path.join(self.root_run_dir, 'code', 'yugabyte-db-thirdparty')
-        mkdir_if_missing(os.path.dirname(self.code_dir))
-        if os.path.exists(latest_link):
-            os.remove(latest_link)
-        os.symlink(os.path.basename(self.root_run_dir), latest_link)
-        copy_code_to(self.code_dir)
+        self.common_conf = MultiBuildCommonConf()
+        latest_link_path = os.path.join(self.common_conf.dir_of_all_runs, 'latest')
+
+        mkdir_if_missing(os.path.dirname(self.common_conf.checkout_dir))
+        if os.path.exists(latest_link_path):
+            os.remove(latest_link_path)
+        os.symlink(os.path.basename(self.common_conf.root_run_dir), latest_link_path)
+        copy_code_to(self.common_conf.checkout_dir)
 
         with open(CIRCLECI_CONFIG_PATH) as circleci_conf_file:
             circleci_conf = yaml.load(circleci_conf_file, Loader=yaml.SafeLoader)
@@ -173,8 +169,7 @@ class MultiBuilder:
         for circleci_job in circleci_conf['workflows']['build-release']['jobs']:
             build_params = circleci_job['build']
             conf = BuildConfiguration(
-                root_run_dir=self.root_run_dir,
-                code_dir=self.code_dir,
+                common_conf=self.common_conf,
                 name=build_params['name'],
                 docker_image=build_params['docker_image'],
                 archive_name_suffix=build_params['archive_name_suffix'],
@@ -206,3 +201,4 @@ class MultiBuilder:
                         result = future.result()
                     except Exception as exc:
                         print("Build generated an exception: %s" % exc)
+                        # TODO: print the traceback

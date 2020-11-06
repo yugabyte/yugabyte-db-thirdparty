@@ -116,8 +116,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument('-f', '--file-pattern',
                         default=None,
                         type=str,
-                        help='Only analyze files matching this glob-style pattern, anchored on '
-                             'both ends so.')
+                        help='Only analyze files matching this glob-style pattern.')
     return parser.parse_args()
 
 
@@ -195,9 +194,10 @@ def check_python_code() -> bool:
 
     if args.file_pattern:
         original_num_paths = len(input_file_paths)
+        effective_file_pattern = '*%s*' % args.file_pattern
         input_file_paths = [
             file_path for file_path in input_file_paths
-            if fnmatch.fnmatch(os.path.basename(file_path), args.file_pattern)
+            if fnmatch.fnmatch(os.path.basename(file_path), effective_file_pattern)
         ]
         print(
             f"Filtered {original_num_paths} file paths to {len(input_file_paths)} paths "

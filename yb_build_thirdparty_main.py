@@ -46,6 +46,7 @@ from yugabyte_db_thirdparty.custom_logging import (
     SEPARATOR,
     log_separator,
     heading,
+    configure_logging,
 )
 from yugabyte_db_thirdparty.string_util import indent_lines, split_into_word_set
 from yugabyte_db_thirdparty.util import (
@@ -1395,6 +1396,7 @@ class Builder(BuilderInterface):
 
 
 def main() -> None:
+    configure_logging()
     unset_env_var_if_set('CC')
     unset_env_var_if_set('CXX')
 

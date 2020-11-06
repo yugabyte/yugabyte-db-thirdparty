@@ -14,7 +14,11 @@ import os
 import sys
 import subprocess
 import traceback
+import logging
 from typing import List, Any, NoReturn
+
+
+g_logging_configured = False
 
 
 YELLOW_COLOR = "\033[0;33m"
@@ -22,6 +26,23 @@ RED_COLOR = "\033[0;31m"
 CYAN_COLOR = "\033[0;36m"
 NO_COLOR = "\033[0m"
 SEPARATOR = "-" * 80
+
+
+# Based on http://bit.ly/python_terminal_color_detection (code from Django).
+def _terminal_supports_colors():
+    """
+    Returns True if the running system's terminal supports color, and False
+    otherwise.
+    """
+    plat = sys.platform
+    supported_platform = plat != 'Pocket PC' and (plat != 'win32' or
+                                                  'ANSICON' in os.environ)
+    # isatty is not always implemented, #6223.
+    is_a_tty = hasattr(sys.stdout, 'isatty') and sys.stdout.isatty()
+    return supported_platform and is_a_tty
+
+
+terminal_supports_colors = _terminal_supports_colors()
 
 
 def convert_log_args_to_message(*args: Any) -> str:
@@ -41,14 +62,17 @@ def fatal(*args: Any) -> NoReturn:
     sys.exit(1)
 
 
-def log(*args: Any, flush: bool = True) -> None:
-    sys.stderr.write(convert_log_args_to_message(*args) + "\n")
-    if flush:
-        sys.stderr.flush()
+def log(*args: Any) -> None:
+    if not g_logging_configured:
+        raise RuntimeError("log() called before logging is configured")
+    logging.info(*args)
 
 
 def colored_log(color: str, *args: Any) -> None:
-    sys.stderr.write(color + convert_log_args_to_message(*args) + NO_COLOR + "\n")
+    if terminal_supports_colors:
+        sys.stderr.write(color + convert_log_args_to_message(*args) + NO_COLOR + "\n")
+    else:
+        log(*arsg)
 
 
 def print_line_with_colored_prefix(prefix: str, line: str) -> None:
@@ -76,16 +100,16 @@ def log_output(prefix: str, args: List[Any], log_cmd: bool = True) -> None:
 
 
 def log_separator() -> None:
-    log("", flush=False)
-    log(SEPARATOR, flush=False)
+    log("")
+    log(SEPARATOR)
     log("")
 
 
 def heading(title: str) -> None:
-    log("", flush=False)
-    log(SEPARATOR, flush=False)
-    log(title, flush=False)
-    log(SEPARATOR, flush=False)
+    log("")
+    log(SEPARATOR)
+    log(title)
+    log(SEPARATOR)
     log("")
 
 
@@ -95,3 +119,11 @@ class PrefixLogger:
 
     def get_log_prefix(self) -> str:
         raise NotImplementedError()
+
+
+def configure_logging() -> None:
+    global g_logging_configured
+    if g_logging_configured:
+        return
+    g_logging_configured = True
+    logging.basicConfig(stream=sys.stderr, level=logging.INFO, format="%(message)s")
