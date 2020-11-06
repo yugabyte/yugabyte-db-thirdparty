@@ -29,7 +29,7 @@ SEPARATOR = "-" * 80
 
 
 # Based on http://bit.ly/python_terminal_color_detection (code from Django).
-def _terminal_supports_colors():
+def _terminal_supports_colors() -> bool:
     """
     Returns True if the running system's terminal supports color, and False
     otherwise.
@@ -72,7 +72,7 @@ def colored_log(color: str, *args: Any) -> None:
     if terminal_supports_colors:
         sys.stderr.write(color + convert_log_args_to_message(*args) + NO_COLOR + "\n")
     else:
-        log(*arsg)
+        log(*args)
 
 
 def print_line_with_colored_prefix(prefix: str, line: str) -> None:
