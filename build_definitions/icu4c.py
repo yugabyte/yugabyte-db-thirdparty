@@ -1,5 +1,4 @@
-#
-# Copyright (c) YugaByte, Inc.
+# Copyright (c) Yugabyte, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
 # in compliance with the License. You may obtain a copy of the License at
@@ -18,6 +17,7 @@ import glob
 import subprocess
 
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
+from yugabyte_db_thirdparty.rpath_fixes import fix_library_references_to_use_rpath
 
 
 class Icu4cDependency(Dependency):
@@ -59,41 +59,4 @@ class Icu4cDependency(Dependency):
             extra_args=configure_extra_args
         )
 
-        if is_mac():
-            lib_dir = os.path.realpath(os.path.join(builder.prefix, "lib"))
-            icu_lib_paths = glob.glob(os.path.join(lib_dir, "libicu*.dylib"))
-            bin_dir = os.path.realpath(os.path.join(builder.prefix, "sbin"))
-            icu_bin_paths = glob.glob(os.path.join(bin_dir, "*"))
-
-            for icu_lib in icu_lib_paths + icu_bin_paths:
-                if os.path.islink(icu_lib):
-                    continue
-                lib_basename = os.path.basename(icu_lib)
-
-                otool_output = subprocess.check_output(['otool', '-L', icu_lib]).decode('utf-8')
-
-                for line in otool_output.split('\n'):
-                    if line.startswith('\tlibicu'):
-                        dependency_name = line.strip().split()[0]
-                        dependency_real_name = os.path.relpath(
-                            os.path.realpath(os.path.join(lib_dir, dependency_name)),
-                            lib_dir)
-
-                        if lib_basename in [dependency_name, dependency_real_name]:
-                            log("Making %s refer to itself using @rpath", icu_lib)
-                            subprocess.check_call([
-                                'install_name_tool',
-                                '-id',
-                                '@rpath/' + dependency_name,
-                                icu_lib
-                            ])
-                        else:
-                            log("Making %s refer to %s using @loader_path",
-                                icu_lib, dependency_name)
-                            subprocess.check_call([
-                                'install_name_tool',
-                                '-change',
-                                dependency_name,
-                                '@loader_path/' + dependency_name,
-                                icu_lib
-                            ])
+        fix_library_references_to_use_rpath(self.get_install_prefix(builder), 'libicu')

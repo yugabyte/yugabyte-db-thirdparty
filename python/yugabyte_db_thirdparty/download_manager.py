@@ -32,11 +32,13 @@ from yugabyte_db_thirdparty.util import (
     remove_path,
     YB_THIRDPARTY_DIR,
     which_must_exist,
+    shlex_join,
 )
 
 MAX_FETCH_ATTEMPTS = 10
 INITIAL_DOWNLOAD_RETRY_SLEEP_TIME_SEC = 1.0
 DOWNLOAD_RETRY_SLEEP_INCREASE_SEC = 0.5
+ALTERNATIVE_URL_PREFIX = 'https://downloads.yugabyte.com/yugabyte-db-thirdparty/'
 
 
 class DownloadManager:
@@ -188,20 +190,41 @@ class DownloadManager:
             remove_path(path)
 
         log("Fetching %s from %s", file_name, url)
-        sleep_time_sec = INITIAL_DOWNLOAD_RETRY_SLEEP_TIME_SEC
-        for attempt_index in range(1, MAX_FETCH_ATTEMPTS + 1):
-            try:
-                subprocess.check_call([self.curl_path, '-o', path, '--location', url])
+
+        download_successful = False
+        alternative_url = ALTERNATIVE_URL_PREFIX + file_name
+        total_attempts = 0
+        for effective_url in [url, alternative_url]:
+            if effective_url == alternative_url:
+                log("Switching to alternative download URL %s after %d attempts",
+                    alternative_url, total_attempts)
+            sleep_time_sec = INITIAL_DOWNLOAD_RETRY_SLEEP_TIME_SEC
+            for attempt_index in range(1, MAX_FETCH_ATTEMPTS + 1):
+                try:
+                    total_attempts += 1
+                    curl_cmd_line = [
+                        self.curl_path, '-o', path,
+                        '-L',  # follow redirects
+                        '--silent',
+                        '--show-error',
+                        '--location',
+                        effective_url]
+                    log("Running command: %s", shlex_join(curl_cmd_line))
+                    subprocess.check_call(curl_cmd_line)
+                    download_successful = True
+                    break
+                except subprocess.CalledProcessError as ex:
+                    log("Error downloading %s (attempt %d for this URL, total attempts %d): %s",
+                        self.curl_path, attempt_index, total_attempts, str(ex))
+                    if attempt_index == MAX_FETCH_ATTEMPTS and effective_url == alternative_url:
+                        log("Giving up after %d attempts", MAX_FETCH_ATTEMPTS)
+                        raise ex
+                    log("Will retry after %.1f seconds", sleep_time_sec)
+                    time.sleep(sleep_time_sec)
+                    sleep_time_sec += DOWNLOAD_RETRY_SLEEP_INCREASE_SEC
+
+            if download_successful:
                 break
-            except subprocess.CalledProcessError as ex:
-                log("Error downloading %s (attempt %d): %s",
-                    self.curl_path, attempt_index, str(ex))
-                if attempt_index == MAX_FETCH_ATTEMPTS:
-                    log("Giving up after %d attempts", MAX_FETCH_ATTEMPTS)
-                    raise ex
-                log("Will retry after %.1f seconds", sleep_time_sec)
-                time.sleep(sleep_time_sec)
-                sleep_time_sec += DOWNLOAD_RETRY_SLEEP_INCREASE_SEC
 
         if not os.path.exists(path):
             fatal("Downloaded '%s' but but unable to find '%s'", url, path)
