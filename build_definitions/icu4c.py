@@ -17,7 +17,7 @@ import glob
 import subprocess
 
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
-from yugabyte_db_thirdparty.rpath_fixes import fix_library_references_to_use_rpath
+from yugabyte_db_thirdparty.rpath_fixes import fix_shared_library_references
 
 
 class Icu4cDependency(Dependency):
@@ -59,4 +59,4 @@ class Icu4cDependency(Dependency):
             extra_args=configure_extra_args
         )
 
-        fix_library_references_to_use_rpath(self.get_install_prefix(builder), 'libicu')
+        fix_shared_library_references(self.get_install_prefix(builder), 'libicu')

@@ -19,7 +19,7 @@ from yugabyte_db_thirdparty.os_detection import is_mac
 from yugabyte_db_thirdparty.custom_logging import log
 
 
-def fix_library_references_to_use_rpath(
+def fix_shared_library_references(
         install_prefix: str,
         lib_name_prefix: str) -> None:
     if not is_mac():

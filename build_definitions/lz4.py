@@ -16,7 +16,7 @@ import os
 import sys
 
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
-from yugabyte_db_thirdparty.rpath_fixes import fix_library_references_to_use_rpath
+from yugabyte_db_thirdparty.rpath_fixes import fix_shared_library_references
 
 
 class LZ4Dependency(Dependency):
@@ -41,4 +41,4 @@ class LZ4Dependency(Dependency):
             ],
             src_subdir_name='cmake_unofficial',
             shared_and_static=True)
-        fix_library_references_to_use_rpath(builder.prefix, 'liblz4')
+        fix_shared_library_references(builder.prefix, 'liblz4')
