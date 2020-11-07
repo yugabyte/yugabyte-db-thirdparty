@@ -11,7 +11,8 @@
 # under the License.
 
 import os
-from build_definitions import ExtraDownload, make_archive_name, VALID_BUILD_GROUPS
+from build_definitions import ExtraDownload, VALID_BUILD_GROUPS
+from yugabyte_db_thirdparty.archive_handling import make_archive_name
 
 from typing import Optional, List, TYPE_CHECKING
 

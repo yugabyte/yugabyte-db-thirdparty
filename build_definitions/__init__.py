@@ -25,6 +25,7 @@ import traceback
 from typing import Any, List, Optional, Dict, Union, NoReturn
 from yugabyte_db_thirdparty.custom_logging import log, fatal
 from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR
+from yugabyte_db_thirdparty.archive_handling import make_archive_name
 
 
 # -------------------------------------------------------------------------------------------------
@@ -67,17 +68,6 @@ BUILD_TYPES = [
     BUILD_TYPE_TSAN
 ]
 
-TAR_EXTRACT = 'tar --no-same-owner -xf {}'
-# -o -- force overwriting existing files
-ZIP_EXTRACT = 'unzip -q -o {}'
-ARCHIVE_TYPES = {
-    '.tar.bz2': TAR_EXTRACT,
-    '.tar.gz': TAR_EXTRACT,
-    '.tar.xz': TAR_EXTRACT,
-    '.tgz': TAR_EXTRACT,
-    '.zip': ZIP_EXTRACT,
-}
-
 
 def unset_env_var_if_set(name: str) -> None:
     if name in os.environ:
@@ -91,15 +81,6 @@ def is_jenkins_user() -> bool:
 
 def is_jenkins() -> bool:
     return 'BUILD_ID' in os.environ and 'JOB_NAME' in os.environ and is_jenkins_user()
-
-
-def make_archive_name(name: str, version: str, download_url: Optional[str]) -> Optional[str]:
-    if download_url is None:
-        return '{}-{}{}'.format(name, version, '.tar.gz')
-    for ext in ARCHIVE_TYPES:
-        if download_url.endswith(ext):
-            return '{}-{}{}'.format(name, version, ext)
-    return None
 
 
 def import_submodules(package: Any, recursive: bool = True) -> Dict[str, Any]:

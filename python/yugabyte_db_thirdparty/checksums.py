@@ -11,4 +11,13 @@
 # under the License.
 #
 
+import os
+
+from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR
+
+
 CHECKSUM_FILE_NAME = 'thirdparty_src_checksums.txt'
+
+
+def get_checksum_file_path() -> str:
+    return os.path.join(YB_THIRDPARTY_DIR, CHECKSUM_FILE_NAME)

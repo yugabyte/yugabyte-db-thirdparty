@@ -46,7 +46,7 @@ def assert_list_contains(items: List[str], required_item: str) -> None:
         raise ValueError("%s not found in %s" % (required_item, items))
 
 
-def hashsum_file(hash: Any, filename: str, block_size: int = 65536) -> str:
+def compute_file_hash(hash: Any, filename: str, block_size: int = 65536) -> str:
     """
     Compute the hash sun of a file by updating the existing hash object.
     """
@@ -58,7 +58,7 @@ def hashsum_file(hash: Any, filename: str, block_size: int = 65536) -> str:
 
 
 def compute_file_sha256(path: str) -> str:
-    return hashsum_file(hashlib.sha256(), path)
+    return compute_file_hash(hashlib.sha256(), path)
 
 
 def replace_string_in_file(
