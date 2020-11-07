@@ -907,6 +907,8 @@ class Builder(BuilderInterface):
         self.ld_flags += ['-lunwind']
 
         libcxx_installed_include, libcxx_installed_lib = self.get_libcxx_dirs(self.build_type)
+        log("libc++ include directory: %s", libcxx_installed_include)
+        log("libc++ library directory: %s", libcxx_installed_lib)
 
         if not is_libcxx and not is_libcxxabi:
             log("Adding special compiler/linker flags for Clang 10+ for dependencies other than "
@@ -922,27 +924,35 @@ class Builder(BuilderInterface):
             self.prepend_lib_dir_and_rpath(libcxx_installed_lib)
 
         if is_libcxx:
-            log("Adding special compiler/linker flags for Clang 10+ for libc++")
+            log("Adding special compiler/linker flags for Clang 10 or newer for libc++")
             # This is needed for libc++ to find libc++abi headers.
             assert_dir_exists(libcxx_installed_include)
             self.cxx_flags.append('-I%s' % libcxx_installed_include)
 
         if is_libcxx or is_libcxxabi:
-            log("Adding special linker flags for Clang 10+ for libc++ or libc++abi")
+            log("Adding special linker flags for Clang 10 or newer for libc++ or libc++abi")
             # libc++abi needs to be able to find libcxx at runtime, even though it can't always find
             # it at build time because libc++abi is built first.
             self.add_rpath(libcxx_installed_lib)
 
         self.cxx_flags.append('-Wno-error=unused-command-line-argument')
+        log("Flags after the end of setup for Clang 10 or newer:")
+        log("cxx_flags : %s", self.cxx_flags)
+        log("c_flags   : %s", self.c_flags)
+        log("ld_flags  : %s", self.ld_flags)
 
     def get_effective_compiler_flags(self, dep: Dependency) -> List[str]:
         return self.compiler_flags + dep.get_additional_compiler_flags(self)
 
     def get_effective_cxx_flags(self, dep: Dependency) -> List[str]:
-        return self.get_effective_compiler_flags(dep) + dep.get_additional_cxx_flags(self)
+        return (self.cxx_flags +
+                self.get_effective_compiler_flags(dep) +
+                dep.get_additional_cxx_flags(self))
 
     def get_effective_c_flags(self, dep: Dependency) -> List[str]:
-        return self.get_effective_compiler_flags(dep) + dep.get_additional_c_flags(self)
+        return (self.c_flags +
+                self.get_effective_compiler_flags(dep) +
+                dep.get_additional_c_flags(self))
 
     def get_effective_ld_flags(self, dep: Dependency) -> List[str]:
         return self.ld_flags + dep.get_additional_ld_flags(self)
@@ -970,6 +980,11 @@ class Builder(BuilderInterface):
         ]
 
     def build_dependency(self, dep: Dependency) -> None:
+        log("")
+        colored_log(YELLOW_COLOR, SEPARATOR)
+        colored_log(YELLOW_COLOR, "Building %s (%s)", dep.name, self.build_type)
+        colored_log(YELLOW_COLOR, SEPARATOR)
+
         self.init_flags(dep)
 
         # This is needed at least for glog to be able to find gflags.
@@ -977,11 +992,6 @@ class Builder(BuilderInterface):
         if self.build_type != BUILD_TYPE_COMMON:
             # Needed to find libunwind for Clang 10 when using compiler-rt.
             self.add_rpath(os.path.join(self.tp_installed_dir, BUILD_TYPE_COMMON, 'lib'))
-
-        log("")
-        colored_log(YELLOW_COLOR, SEPARATOR)
-        colored_log(YELLOW_COLOR, "Building %s (%s)", dep.name, self.build_type)
-        colored_log(YELLOW_COLOR, SEPARATOR)
 
         self.download_manager.download_dependency(
             dep=dep,
