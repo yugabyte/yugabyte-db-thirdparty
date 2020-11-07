@@ -46,6 +46,10 @@ def assert_list_contains(items: List[str], required_item: str) -> None:
         raise ValueError("%s not found in %s" % (required_item, items))
 
 
+def assert_dir_exists(dir_path: str) -> None:
+    assert os.path.isdir(dir_path), "Directory does not exist or is not a directory: %s" % dir_path
+
+
 def compute_file_hash(hash: Any, filename: str, block_size: int = 65536) -> str:
     """
     Compute the hash sun of a file by updating the existing hash object.

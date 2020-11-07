@@ -45,6 +45,7 @@ class BoostDependency(Dependency):
         libs = ['system', 'thread']
 
         log_prefix = builder.log_prefix(self)
+        prefix = self.get_install_prefix(builder)
         log_output(log_prefix, ['./bootstrap.sh', '--prefix={}'.format(builder.prefix)])
         project_config = 'project-config.jam'
         with open(project_config, 'rt') as inp:

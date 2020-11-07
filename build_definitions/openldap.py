@@ -15,6 +15,7 @@
 import os
 import sys
 
+from typing import List
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
 
@@ -26,6 +27,11 @@ class OpenLDAPDependency(Dependency):
               'https://github.com/yugabyte/openldap/archive/OPENLDAP_REL_ENG_{}.tar.gz',
               BUILD_GROUP_COMMON)
         self.copy_sources = True
+
+    def get_additional_compiler_flags(self, builder: BuilderInterface) -> List[str]:
+        if is_mac():
+            return ['-Wno-error=implicit-function-declaration']
+        return []
 
     def build(self, builder: BuilderInterface) -> None:
         # build client only

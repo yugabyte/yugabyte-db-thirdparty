@@ -58,6 +58,7 @@ from yugabyte_db_thirdparty.util import (
     which_must_exist,
     EnvVarContext,
     YB_THIRDPARTY_DIR,
+    assert_dir_exists,
 )
 from yugabyte_db_thirdparty.os_detection import (
     is_mac,
@@ -150,6 +151,7 @@ class Builder(BuilderInterface):
     c_flags: List[str]
     cxx_flags: List[str]
     libs: List[str]
+    additional_allowed_shared_lib_paths: Set[str]
     download_manager: DownloadManager
 
     """
@@ -172,6 +174,7 @@ class Builder(BuilderInterface):
         self.linuxbrew_dir = None
         self.cc = None
         self.cxx = None
+        self.additional_allowed_shared_lib_paths = set()
 
     def set_compiler(self, compiler_type: str) -> None:
         if is_mac():
@@ -485,11 +488,15 @@ class Builder(BuilderInterface):
     def get_source_path(self, dep: Dependency) -> str:
         return os.path.join(self.tp_src_dir, dep.get_source_dir_basename())
 
-    def prepare_out_dirs(self) -> None:
+    def get_build_types(self) -> List[str]:
         build_types: List[str] = list(BUILD_TYPES)
-        if self.args.single_compiler_type != 'clang':
+        if is_linux() and self.args.single_compiler_type is not None:
             build_types.remove(BUILD_TYPE_CLANG_UNINSTRUMENTED)
-        dirs = [os.path.join(self.tp_installed_dir, type) for type in build_types]
+        return build_types
+
+    def prepare_out_dirs(self) -> None:
+        build_types = self.get_build_types()
+        dirs = [os.path.join(self.tp_installed_dir, build_type) for build_type in build_types]
         libcxx_dirs = [os.path.join(dir, 'libcxx') for dir in dirs]
         for dir in dirs + libcxx_dirs:
             lib_dir = os.path.join(dir, 'lib')
@@ -579,6 +586,7 @@ class Builder(BuilderInterface):
     def add_rpath(self, path: str) -> None:
         log("Adding RPATH: %s", path)
         self.ld_flags.append(get_rpath_flag(path))
+        self.additional_allowed_shared_lib_paths.add(path)
 
     def prepend_rpath(self, path: str) -> None:
         self.ld_flags.insert(0, get_rpath_flag(path))
@@ -809,8 +817,6 @@ class Builder(BuilderInterface):
         self.cxx_flags.insert(0, '-Wno-error=unused-command-line-argument')
         self.prepend_lib_dir_and_rpath(stdlib_lib)
         if self.using_linuxbrew():
-            # This is needed when using Clang 7 built with Linuxbrew GCC, which we are still using
-            # as of 10/2020.
             self.compiler_flags.append('--gcc-toolchain={}'.format(self.get_linuxbrew_dir()))
 
     def init_linux_clang1x_flags(self, dep: Dependency) -> None:
@@ -903,6 +909,11 @@ class Builder(BuilderInterface):
                 '-nostdinc++'
             ] + self.cxx_flags
             self.prepend_lib_dir_and_rpath(libcxx_installed_lib)
+
+        if is_libcxx:
+            # This is needed for libc++ to find libc++abi headers.
+            assert_dir_exists(libcxx_installed_include)
+            self.cxx_flags.append('-I%s' % libcxx_installed_include)
 
         if is_libcxx or is_libcxxabi:
             # libc++abi needs to be able to find libcxx at runtime, even though it can't always find
@@ -1197,7 +1208,9 @@ def main() -> None:
 
     # Check that the executables and libraries we have built don't depend on any unexpected dynamic
     # libraries installed on this system.
-    get_lib_tester().run()
+    lib_tester = get_lib_tester()
+    lib_tester.add_allowed_shared_lib_paths(builder.additional_allowed_shared_lib_paths)
+    lib_tester.run()
 
 
 if __name__ == "__main__":

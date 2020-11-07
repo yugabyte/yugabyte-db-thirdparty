@@ -90,6 +90,8 @@ class BuildConfiguration(PrefixLogger):
             readonly_checkout_in_container = '/opt/yb-build/readonly-code/yugabyte-db-thirdparty'
             rw_checkout_in_container = '/opt/yb-build/thirdparty/checkout'
             sudo_cmd = 'sudo -u yugabyteci '
+            # TODO: create a shell script in the checkout directory outside container with all the
+            # right settings so we can rerun it manually easily if needed.
             bash_script = '; '.join([
                 f"set -euxo pipefail",
                 'mkdir -p /root/.cache/pip',

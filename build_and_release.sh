@@ -99,9 +99,11 @@ original_repo_dir=$PWD
 git_sha1=$( git rev-parse HEAD )
 tag=v$( date +%Y%m%d%H%M%S )-${git_sha1:0:10}
 
-archive_dir_name=yugabyte-db-thirdparty-$tag-$os_name
+archive_dir_name=yugabyte-db-thirdparty-$tag
 if [[ -n $YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX ]]; then
   archive_dir_name+="-$YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX"
+else
+  archive_dir_name+="-$os_name"
 fi
 build_dir_parent=/opt/yb-build/thirdparty
 repo_dir=$build_dir_parent/$archive_dir_name

@@ -18,7 +18,7 @@ import subprocess
 import platform
 import logging
 
-from typing import List, Any
+from typing import List, Any, Set
 from yugabyte_db_thirdparty.os_detection import is_mac, is_linux
 from yugabyte_db_thirdparty.custom_logging import log, fatal, heading
 from build_definitions import BUILD_TYPES
@@ -86,6 +86,9 @@ class LibTestBase:
         else:
             log("No problems found with library dependencies.")
 
+    def add_allowed_shared_lib_paths(self, shared_lib_paths: Set[str]) -> None:
+        pass
+
 
 class LibTestMac(LibTestBase):
     def __init__(self) -> None:
@@ -98,6 +101,10 @@ class LibTestMac(LibTestBase):
                             "^\t@rpath",
                             "^\t@loader_path",
                             f"^\t{self.tp_dir}"]
+
+    def add_allowed_shared_lib_paths(self, shared_lib_paths: Set[str]) -> None:
+        # TODO: implement this on macOS for more precise checking of allowed dylib paths.
+        pass
 
     def good_libs(self, file_path: str) -> bool:
         libout = subprocess.check_output(['otool', '-L', file_path]).decode('utf-8')
@@ -121,8 +128,12 @@ class LibTestLinux(LibTestBase):
             "^.* => /lib/",
             "^.* => /usr/lib/x86_64-linux-gnu/",
             "^.* => /opt/yb-build/brew/linuxbrew",
-            f"^.* => {self.tp_dir}"
+            f"^.* => {re.escape(self.tp_dir)}"
         ]
+
+    def add_allowed_shared_lib_paths(self, shared_lib_paths: Set[str]) -> None:
+        for shared_lib_path in sorted(shared_lib_paths):
+            self.lib_re_list.append(f".* => {re.escape(shared_lib_path)}/")
 
     def good_libs(self, file_path: str) -> bool:
         try:
