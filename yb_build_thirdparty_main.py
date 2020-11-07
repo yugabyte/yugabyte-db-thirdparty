@@ -105,12 +105,17 @@ def sanitize_flags_line_for_log(line: str) -> str:
 
 
 def log_and_set_env_var_to_list(
-        env_var_map: Dict[str, str],
+        env_var_map: Dict[str, Optional[str]],
         env_var_name: str,
         items: List[str]) -> None:
-    value_str = ' '.join(items)
-    log('Setting env var %s to %s', env_var_name, value_str)
-    env_var_map[env_var_name] = value_str
+    value_str = ' '.join(items).strip()
+    if value_str:
+        log('Setting env var %s to %s', env_var_name, value_str)
+        env_var_map[env_var_name] = value_str
+    else:
+        log('Unsetting env var %s', env_var_name)
+        # When used with EnvVarContext, this will cause the environment variable to be unset.
+        env_var_map[env_var_name] = None
 
 
 # A mechanism to save some environment variabls to a file in the dependency's build directory to
@@ -827,12 +832,14 @@ class Builder(BuilderInterface):
         self.ld_flags.append('-rtlib=compiler-rt')
 
         if self.build_type == BUILD_TYPE_COMMON:
+            log("Not configuring any special Clang 10+ flags for build type %s", self.build_type)
             return
 
         # TODO mbautin: refactor to polymorphism
         is_libcxxabi = dep.name.endswith('_libcxxabi')
         is_libcxx = dep.name.endswith('_libcxx')
-        is_compiler_rt = dep.name.endswith('_compiler_rt')
+        log("Dependency name: %s, is_libcxxabi: %s, is_libcxx: %s",
+            dep.name, is_libcxxabi, is_libcxx)
 
         if self.build_type == BUILD_TYPE_ASAN:
             self.compiler_flags += [
@@ -889,7 +896,9 @@ class Builder(BuilderInterface):
             self.add_lib_dir_and_rpath(compiler_rt_lib_dir)
             self.ld_flags.append('-lclang_rt.ubsan_minimal-x86_64')
 
-        if self.build_type == BUILD_TYPE_TSAN and not is_compiler_rt:
+        # End of ASAN setup.
+
+        if self.build_type == BUILD_TYPE_TSAN:
             self.compiler_flags += [
                 '-fsanitize=thread',
                 '-DTHREAD_SANITIZER'
@@ -900,6 +909,8 @@ class Builder(BuilderInterface):
         libcxx_installed_include, libcxx_installed_lib = self.get_libcxx_dirs(self.build_type)
 
         if not is_libcxx and not is_libcxxabi:
+            log("Adding special compiler/linker flags for Clang 10+ for dependencies other than "
+                "libc++")
             self.ld_flags += ['-lc++', '-lc++abi']
 
             self.cxx_flags = [
@@ -911,11 +922,13 @@ class Builder(BuilderInterface):
             self.prepend_lib_dir_and_rpath(libcxx_installed_lib)
 
         if is_libcxx:
+            log("Adding special compiler/linker flags for Clang 10+ for libc++")
             # This is needed for libc++ to find libc++abi headers.
             assert_dir_exists(libcxx_installed_include)
             self.cxx_flags.append('-I%s' % libcxx_installed_include)
 
         if is_libcxx or is_libcxxabi:
+            log("Adding special linker flags for Clang 10+ for libc++ or libc++abi")
             # libc++abi needs to be able to find libcxx at runtime, even though it can't always find
             # it at build time because libc++abi is built first.
             self.add_rpath(libcxx_installed_lib)
@@ -980,7 +993,7 @@ class Builder(BuilderInterface):
                 "specified.", dep.name, self.build_type)
             return
 
-        env_vars = {
+        env_vars: Dict[str, Optional[str]] = {
             "CPPFLAGS": " ".join(self.preprocessor_flags)
         }
 
