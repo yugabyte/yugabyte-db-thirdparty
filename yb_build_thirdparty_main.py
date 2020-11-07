@@ -849,36 +849,6 @@ class Builder(BuilderInterface):
                 '-shared-libasan'
             ]
 
-            if dep.name != 'libbacktrace':
-                # Fix the issue mentioned at https://github.com/google/sanitizers/issues/1017
-                # (asan: odr-violation false alarm with shared libraries).
-                #
-                # TODO: handle this using polymorphism, not by looking at the dependency name.
-                # We can't use this flag for libbacktrace because libtool somehow comes up with
-                # a command line containing "-mllvm -Wl,-rpath -Wl,..." for the linker, amd what
-                # originally followed the -mllvm flag is missing. However, hopefully, libbacktrace
-                # is less likely to cause the issue this flag is supposed to fix.
-                #
-                #
-                use_private_alias_flag = [
-                    '-mllvm',
-                    '-asan-use-private-alias=1'
-                ]
-                # These dependencies fail to build if we specify this flag both as C and C++ flag:
-                # gmock, snappy, crcutil.
-                #
-                # Future work in this area:
-                # - Don't link libc++ into C libraries (like libbacktrace) because that creates
-                #   these kinds of issues there.
-                # - Find a better way to specify this option to the compiler that would not break
-                #   libtool's behavior. Perhaps through the compiler wrapper.
-                # - See if there is a way to instruct the Clang compiler to use this option by
-                #   default.
-                #
-                # Also the ASAN_OPTIONS value of "detect_odr_violation=0" helps with this issue
-                # at a higher level but we end up generating code that will always need that option.
-                self.cxx_flags += use_private_alias_flag
-
             if is_libcxxabi:
                 # To avoid an infinite loop in UBSAN.
                 # https://monorail-prod.appspot.com/p/chromium/issues/detail?id=609786
@@ -1017,9 +987,11 @@ class Builder(BuilderInterface):
         if self.build_type == BUILD_TYPE_ASAN:
             # To avoid errors similar to:
             # https://gist.githubusercontent.com/mbautin/4b8eec566f54bcc35706dcd97cab1a95/raw
+            #
             # This could also be fixed to some extent by the compiler flags
             # -mllvm -asan-use-private-alias=1
-            # but these flags are not handled correctly by libtool.
+            # but applying that flag to all builds is complicated in practice and is probably
+            # best done using a compiler wrapper script, which would slow things down.
             env_vars["ASAN_OPTIONS"] = "detect_odr_violation=0"
 
         with PushDir(self.create_build_dir_and_prepare(dep)):
