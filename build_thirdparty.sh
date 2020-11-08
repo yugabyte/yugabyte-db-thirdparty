@@ -37,4 +37,4 @@ echo "YB_CUSTOM_HOMEBREW_DIR=${YB_CUSTOM_HOMEBREW_DIR:-undefined}"
 set -x
 
 # shellcheck disable=SC2086
-python3 "$YB_THIRDPARTY_DIR/yb_build_thirdparty_main.py" "$@"
+python3 "$YB_THIRDPARTY_DIR/python/yb_build_thirdparty_main/yb_build_thirdparty_main.py" "$@"

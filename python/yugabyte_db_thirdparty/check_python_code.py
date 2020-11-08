@@ -19,6 +19,8 @@ from typing import List, Union, Dict
 from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR
 
 
+TOP_LEVEL_MODULE_NAME = 'yugabyte_db_thirdparty'
+
 CHECK_TYPES = [
     'mypy',
     'compile',
@@ -131,20 +133,14 @@ def check_file(file_path: str, check_type: str) -> CheckResult:
     elif check_type == 'compile':
         args = ['python3', '-m', 'py_compile']
     elif check_type == 'import':
-        where_to_import_from = None
-        what_to_import = None
-        if rel_path.startswith('python/yugabyte_db_thirdparty/'):
-            where_to_import_from = 'yugabyte_db_thirdparty'
-            # Assuming a one-level hierarchy, i.e. that the yugabyte_db_thirdparty directory does
-            # not contain any module subdirectories with Python files.
-        elif rel_path.startswith('build_definitions/'):
-            where_to_import_from = 'build_definitions'
-        else:
+        # Assuming a one-level hierarchy, i.e. that the yugabyte_db_thirdparty directory does
+        # not contain any module subdirectories with Python files.
+        if not rel_path.startswith('python/%s/' % TOP_LEVEL_MODULE_NAME):
             return CheckResult(check_type=check_type, file_path=file_path)
 
         args = [
             'python3', '-c', 'from %s import %s' % (
-                where_to_import_from,
+                TOP_LEVEL_MODULE_NAME,
                 os.path.splitext(os.path.basename(file_path))[0]
             )
         ]
