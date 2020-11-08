@@ -526,9 +526,9 @@ class Builder(BuilderInterface):
         """
         self.init_compiler_independent_flags(dep)
 
-        if not is_mac() and self.building_with_clang():
+        if not is_mac() and self.compiler_choice.building_with_clang(self.build_type):
             # Special setup for Clang on Linux.
-            if self.args.single_compiler_type == 'clang':
+            if self.compiler_choice.single_compiler_type == 'clang':
                 # We are assuming that --single-compiler-type will only be used for Clang 10 and
                 # newer.
                 self.init_linux_clang1x_flags(dep)
