@@ -10,40 +10,38 @@
 # or implied. See the License for the specific language governing permissions and limitations
 # under the License.
 #
+
 import argparse
 import hashlib
 import json
 import os
 import platform
 import subprocess
-import sys
 from typing import Optional, List, Set, Tuple, Dict
 
 from build_definitions import BUILD_TYPE_COMMON, get_build_def_module, BUILD_TYPE_UNINSTRUMENTED, \
     BUILD_TYPE_CLANG_UNINSTRUMENTED, BUILD_TYPE_ASAN, BUILD_TYPE_TSAN, BUILD_TYPES, \
     BUILD_GROUP_COMMON, BUILD_GROUP_INSTRUMENTED
+from yugabyte_db_thirdparty.builder_helpers import PLACEHOLDER_RPATH, get_make_parallelism, \
+    get_rpath_flag, sanitize_flags_line_for_log, log_and_set_env_var_to_list
+from yugabyte_db_thirdparty.builder_helpers import is_ninja_available
 from yugabyte_db_thirdparty.builder_interface import BuilderInterface
 from yugabyte_db_thirdparty.cmd_line_args import parse_cmd_line_args
+from yugabyte_db_thirdparty.compiler_choice import CompilerChoice
 from yugabyte_db_thirdparty.custom_logging import fatal, log, heading, log_output, colored_log, \
     YELLOW_COLOR, SEPARATOR
 from yugabyte_db_thirdparty.dependency import Dependency
 from yugabyte_db_thirdparty.devtoolset import activate_devtoolset
 from yugabyte_db_thirdparty.download_manager import DownloadManager
+from yugabyte_db_thirdparty.env_helpers import write_env_vars
 from yugabyte_db_thirdparty.os_detection import is_mac, is_linux
 from yugabyte_db_thirdparty.string_util import indent_lines
-from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR, which_must_exist, remove_path, \
+from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR, remove_path, \
     mkdir_if_missing, PushDir, assert_list_contains, assert_dir_exists, EnvVarContext
-from yugabyte_db_thirdparty.builder_helpers import is_ninja_available
-from yugabyte_db_thirdparty.builder_helpers import PLACEHOLDER_RPATH, get_make_parallelism, \
-    get_rpath_flag, sanitize_flags_line_for_log, log_and_set_env_var_to_list
-from yugabyte_db_thirdparty.env_helpers import write_env_vars
 
 
 class Builder(BuilderInterface):
     args: argparse.Namespace
-    cc: Optional[str]
-    cxx: Optional[str]
-    linuxbrew_dir: Optional[str]
     tp_download_dir: str
     ld_flags: List[str]
     executable_only_ld_flags: List[str]
@@ -54,21 +52,21 @@ class Builder(BuilderInterface):
     libs: List[str]
     additional_allowed_shared_lib_paths: Set[str]
     download_manager: DownloadManager
+    compiler_choice: CompilerChoice
 
     """
     This class manages the overall process of building third-party dependencies, including the set
     of dependencies to build, build types, and the directories to install dependencies.
     """
     def __init__(self) -> None:
-        self.tp_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
-        self.tp_build_dir = os.path.join(self.tp_dir, 'build')
-        self.tp_src_dir = os.path.join(self.tp_dir, 'src')
-        self.tp_download_dir = os.path.join(self.tp_dir, 'download')
-        self.tp_installed_dir = os.path.join(self.tp_dir, 'installed')
+        self.tp_build_dir = os.path.join(YB_THIRDPARTY_DIR, 'build')
+        self.tp_src_dir = os.path.join(YB_THIRDPARTY_DIR, 'src')
+        self.tp_download_dir = os.path.join(YB_THIRDPARTY_DIR, 'download')
+        self.tp_installed_dir = os.path.join(YB_THIRDPARTY_DIR, 'installed')
         self.tp_installed_common_dir = os.path.join(self.tp_installed_dir, BUILD_TYPE_COMMON)
         self.tp_installed_llvm7_common_dir = os.path.join(
                 self.tp_installed_dir + '_llvm7', BUILD_TYPE_COMMON)
-        self.src_dir = os.path.dirname(self.tp_dir)
+        self.src_dir = os.path.dirname(YB_THIRDPARTY_DIR)
         if not os.path.isdir(self.src_dir):
             fatal('YB src directory "{}" does not exist'.format(self.src_dir))
 
@@ -76,33 +74,6 @@ class Builder(BuilderInterface):
         self.cc = None
         self.cxx = None
         self.additional_allowed_shared_lib_paths = set()
-
-    def set_compiler(self, compiler_type: str) -> None:
-        if is_mac():
-            if compiler_type != 'clang':
-                raise ValueError(
-                    "Cannot set compiler type to %s on macOS, only clang is supported" %
-                    compiler_type)
-            self.compiler_type = 'clang'
-        else:
-            self.compiler_type = compiler_type
-
-        self.find_compiler_by_type(compiler_type)
-
-        c_compiler = self.get_c_compiler()
-        cxx_compiler = self.get_cxx_compiler()
-
-        if self.args.use_compiler_wrapper:
-            os.environ['YB_THIRDPARTY_REAL_C_COMPILER'] = c_compiler
-            os.environ['YB_THIRDPARTY_REAL_CXX_COMPILER'] = cxx_compiler
-            os.environ['YB_THIRDPARTY_USE_CCACHE'] = '1' if self.args.use_ccache else '0'
-
-            python_scripts_dir = os.path.join(YB_THIRDPARTY_DIR, 'python', 'yugabyte_db_thirdparty')
-            os.environ['CC'] = os.path.join(python_scripts_dir, 'compiler_wrapper_cc.py')
-            os.environ['CXX'] = os.path.join(python_scripts_dir, 'compiler_wrapper_cxx.py')
-        else:
-            os.environ['CC'] = c_compiler
-            os.environ['CXX'] = cxx_compiler
 
     def parse_args(self) -> None:
         os.environ['YB_IS_THIRDPARTY_BUILD'] = '1'
@@ -114,29 +85,21 @@ class Builder(BuilderInterface):
             should_add_checksum=self.args.add_checksum,
             download_dir=self.tp_download_dir)
 
-    def use_only_clang(self) -> bool:
-        return is_mac() or self.args.single_compiler_type == 'clang'
-
-    def use_existing_clang_on_linux(self) -> bool:
-        return self.args.single_compiler == 'clang'
-
-    def use_only_gcc(self) -> bool:
-        return bool(self.args.devtoolset) or self.args.single_compiler_type == 'gcc'
-
-    def is_linux_clang1x(self) -> bool:
-        # TODO: actually check compiler version.
-        return (
-            not is_mac() and
-            self.args.single_compiler_type == 'clang' and
-            not self.using_linuxbrew()
+        self.compiler_choice = CompilerChoice(
+            single_compiler_type=self.args.single_compiler_type,
+            compiler_prefix=self.args.compiler_prefix,
+            compiler_suffix=self.args.compiler_suffix,
+            devtoolset=self.args.devtoolset,
+            use_compiler_wrapper=self.args.use_compiler_wrapper,
+            use_ccache=self.args.use_ccache
         )
 
     def finish_initialization(self) -> None:
-        self.detect_linuxbrew()
+        self.compiler_choice.detect_linuxbrew()
         self.populate_dependencies()
         self.select_dependencies_to_build()
-        if self.args.devtoolset:
-            activate_devtoolset(self.args.devtoolset)
+        if self.compiler_choice.devtoolset is not None:
+            activate_devtoolset(self.compiler_choice.devtoolset)
 
     def populate_dependencies(self) -> None:
         # We have to use get_build_def_module to access submodules of build_definitions,
@@ -164,14 +127,15 @@ class Builder(BuilderInterface):
                 get_build_def_module('libuuid').LibUuidDependency(),
             ]
 
-            if not self.use_only_gcc() and not self.use_only_clang():
+            if (not self.compiler_choice.use_only_gcc() and
+                    not self.compiler_choice.use_only_clang()):
                 # Old LLVM. We will migrate away from this.
                 self.dependencies += [
                     get_build_def_module('llvm7').LLVM7Dependency(),
                     get_build_def_module('llvm7_libcxx').Llvm7LibCXXDependency(),
                 ]
 
-            if self.use_only_clang():
+            if self.compiler_choice.use_only_clang():
                 self.dependencies += [
                     # New LLVM. We will keep supporting new LLVM versions here.
                     get_build_def_module('llvm1x_libunwind').Llvm1xLibUnwindDependency(
@@ -234,7 +198,8 @@ class Builder(BuilderInterface):
             self.selected_dependencies = self.dependencies
 
     def run(self) -> None:
-        self.set_compiler('clang' if self.use_only_clang() else 'gcc')
+        self.compiler_choice.set_compiler(
+            'clang' if self.compiler_choice.use_only_clang() else 'gcc')
         if self.args.clean:
             self.clean()
         self.prepare_out_dirs()
@@ -246,116 +211,12 @@ class Builder(BuilderInterface):
         self.build(BUILD_TYPE_COMMON)
         if is_linux():
             self.build(BUILD_TYPE_UNINSTRUMENTED)
-        if not self.use_only_gcc():
-            if self.using_linuxbrew() or is_mac():
+        if not self.compiler_choice.use_only_gcc():
+            if self.compiler_choice.using_linuxbrew() or is_mac():
                 self.build(BUILD_TYPE_CLANG_UNINSTRUMENTED)
             if is_linux() and not self.args.skip_sanitizers:
                 self.build(BUILD_TYPE_ASAN)
                 self.build(BUILD_TYPE_TSAN)
-
-    def find_compiler_by_type(self, compiler_type: str) -> None:
-        compilers: Tuple[str, str]
-        if compiler_type == 'gcc':
-            if self.use_only_clang():
-                raise ValueError('Not allowed to use GCC')
-            compilers = self.find_gcc()
-        elif compiler_type == 'clang':
-            if self.use_only_gcc():
-                raise ValueError('Not allowed to use Clang')
-            compilers = self.find_clang()
-        else:
-            fatal("Unknown compiler type {}".format(compiler_type))
-        assert len(compilers) == 2
-
-        for compiler in compilers:
-            if compiler is None or not os.path.exists(compiler):
-                fatal("Compiler executable does not exist: {}".format(compiler))
-
-        self.cc = compilers[0]
-        self.validate_compiler_path(self.cc)
-        self.cxx = compilers[1]
-        self.validate_compiler_path(self.cxx)
-
-    def validate_compiler_path(self, compiler_path: str) -> None:
-        if self.args.devtoolset:
-            devtoolset_substring = '/devtoolset-%d/' % self.args.devtoolset
-            if devtoolset_substring not in compiler_path:
-                raise ValueError(
-                    "Invalid compiler path: %s. Substring not found: %s" % (
-                        compiler_path, devtoolset_substring))
-        if not os.path.exists(compiler_path):
-            raise IOError("Compiler does not exist: %s" % compiler_path)
-
-    def get_c_compiler(self) -> str:
-        assert self.cc is not None
-        return self.cc
-
-    def get_cxx_compiler(self) -> str:
-        assert self.cxx is not None
-        return self.cxx
-
-    def find_gcc(self) -> Tuple[str, str]:
-        return self.do_find_gcc('gcc', 'g++')
-
-    def do_find_gcc(self, c_compiler: str, cxx_compiler: str) -> Tuple[str, str]:
-        if self.using_linuxbrew():
-            gcc_dir = self.get_linuxbrew_dir()
-        elif self.args.compiler_prefix:
-            gcc_dir = self.args.compiler_prefix
-        else:
-            c_compiler_path = which_must_exist(c_compiler)
-            cxx_compiler_path = which_must_exist(cxx_compiler)
-            return c_compiler_path, cxx_compiler_path
-
-        gcc_bin_dir = os.path.join(gcc_dir, 'bin')
-
-        if not os.path.isdir(gcc_bin_dir):
-            fatal("Directory {} does not exist".format(gcc_bin_dir))
-
-        return (os.path.join(gcc_bin_dir, 'gcc') + self.args.compiler_suffix,
-                os.path.join(gcc_bin_dir, 'g++') + self.args.compiler_suffix)
-
-    def find_clang(self) -> Tuple[str, str]:
-        clang_prefix: Optional[str] = None
-        if self.args.compiler_prefix:
-            clang_prefix = self.args.compiler_prefix
-        else:
-            candidate_dirs = [
-                os.path.join(self.tp_dir, 'clang-toolchain'),
-                '/usr'
-            ]
-            for dir in candidate_dirs:
-                bin_dir = os.path.join(dir, 'bin')
-                if os.path.exists(os.path.join(bin_dir, 'clang' + self.args.compiler_suffix)):
-                    clang_prefix = dir
-                    break
-            if clang_prefix is None:
-                fatal("Failed to find clang at the following locations: {}".format(candidate_dirs))
-
-        assert clang_prefix is not None
-        clang_bin_dir = os.path.join(clang_prefix, 'bin')
-
-        return (os.path.join(clang_bin_dir, 'clang') + self.args.compiler_suffix,
-                os.path.join(clang_bin_dir, 'clang++') + self.args.compiler_suffix)
-
-    def detect_linuxbrew(self) -> None:
-        if (not is_linux() or
-                self.args.single_compiler_type or
-                self.args.compiler_prefix or
-                self.args.compiler_suffix):
-            return
-
-        self.linuxbrew_dir = os.getenv('YB_LINUXBREW_DIR')
-
-        if self.linuxbrew_dir:
-            os.environ['PATH'] = os.path.join(self.linuxbrew_dir, 'bin') + ':' + os.environ['PATH']
-
-    def using_linuxbrew(self) -> bool:
-        return self.linuxbrew_dir is not None
-
-    def get_linuxbrew_dir(self) -> str:
-        assert self.linuxbrew_dir is not None
-        return self.linuxbrew_dir
 
     def clean(self) -> None:
         """
@@ -471,8 +332,8 @@ class Builder(BuilderInterface):
         self.cxx_flags.append('-frtti')
 
     def add_linuxbrew_flags(self) -> None:
-        if self.using_linuxbrew():
-            lib_dir = os.path.join(self.get_linuxbrew_dir(), 'lib')
+        if self.compiler_choice.using_linuxbrew():
+            lib_dir = os.path.join(self.compiler_choice.get_linuxbrew_dir(), 'lib')
             self.ld_flags.append(" -Wl,-dynamic-linker={}".format(os.path.join(lib_dir, 'ld.so')))
             self.add_lib_dir_and_rpath(lib_dir)
 
@@ -647,16 +508,16 @@ class Builder(BuilderInterface):
         self.prefix_bin = os.path.join(self.prefix, 'bin')
         self.prefix_lib = os.path.join(self.prefix, 'lib')
         self.prefix_include = os.path.join(self.prefix, 'include')
-        if self.building_with_clang():
+        if self.compiler_choice.building_with_clang(build_type):
             compiler = 'clang'
         else:
             compiler = 'gcc'
-        self.set_compiler(compiler)
+        self.compiler_choice.set_compiler(compiler)
         heading("Building {} dependencies (compiler type: {})".format(
-            build_type, self.compiler_type))
-        log("Compiler type: %s", self.compiler_type)
-        log("C compiler: %s", self.get_c_compiler())
-        log("C++ compiler: %s", self.get_cxx_compiler())
+            build_type, self.compiler_choice.compiler_type))
+        log("Compiler type: %s", self.compiler_choice.compiler_type)
+        log("C compiler: %s", self.compiler_choice.get_c_compiler())
+        log("C++ compiler: %s", self.compiler_choice.get_cxx_compiler())
 
     def init_flags(self, dep: Dependency) -> None:
         """
@@ -717,8 +578,9 @@ class Builder(BuilderInterface):
         # -stdlib=libc++ and -nostdinc++ are specified.
         self.cxx_flags.insert(0, '-Wno-error=unused-command-line-argument')
         self.prepend_lib_dir_and_rpath(stdlib_lib)
-        if self.using_linuxbrew():
-            self.compiler_flags.append('--gcc-toolchain={}'.format(self.get_linuxbrew_dir()))
+        if self.compiler_choice.using_linuxbrew():
+            self.compiler_flags.append('--gcc-toolchain={}'.format(
+                self.compiler_choice.get_linuxbrew_dir()))
 
     def init_linux_clang1x_flags(self, dep: Dependency) -> None:
         """
@@ -942,20 +804,21 @@ class Builder(BuilderInterface):
         assert module_name.startswith('build_definitions.'), "Invalid module name: %s" % module_name
         module_name_components = module_name.split('.')
         assert len(module_name_components) == 2, (
-            "Expected two compoments: %s" % module_name_components)
+                "Expected two components: %s" % module_name_components)
         module_name_final = module_name_components[-1]
         input_files_for_stamp = [
-            'yb_build_thirdparty_main.py',
+            'python/yugabyte_db_thirdparty/yb_build_thirdparty_main.py',
             'build_thirdparty.sh',
-            os.path.join('build_definitions', '%s.py' % module_name_final)]
+            os.path.join('python', 'build_definitions', '%s.py' % module_name_final)
+        ]
 
         for path in input_files_for_stamp:
-            abs_path = os.path.join(self.tp_dir, path)
+            abs_path = os.path.join(YB_THIRDPARTY_DIR, path)
             if not os.path.exists(abs_path):
                 fatal("File '%s' does not exist -- expecting it to exist when creating a 'stamp' "
                       "for the build configuration of '%s'.", abs_path, dep.name)
 
-        with PushDir(self.tp_dir):
+        with PushDir(YB_THIRDPARTY_DIR):
             git_commit_sha1 = subprocess.check_output(
                 ['git', 'log', '--pretty=%H', '-n', '1'] + input_files_for_stamp
             ).strip().decode('utf-8')
@@ -1002,30 +865,6 @@ class Builder(BuilderInterface):
 
     def cmake_build_type_for_test_only_dependencies(self) -> str:
         return 'Release' if self.is_release_build() else 'Debug'
-
-    def building_with_clang(self) -> bool:
-        """
-        Returns true if we are using clang to build current build_type.
-        """
-        if self.use_only_clang():
-            return True
-        if self.use_only_gcc():
-            return False
-
-        return self.build_type in [
-            BUILD_TYPE_ASAN,
-            BUILD_TYPE_TSAN,
-            BUILD_TYPE_CLANG_UNINSTRUMENTED
-        ]
-
-    def will_need_clang(self) -> bool:
-        """
-        Returns true if we will need Clang to complete the full thirdparty build type requested by
-        the user.
-        """
-        if self.use_only_gcc():
-            return False
-        return self.args.build_type != BUILD_TYPE_UNINSTRUMENTED
 
     def check_cxx_compiler_flag(self, flag: str) -> bool:
         compiler_path = self.get_cxx_compiler()
