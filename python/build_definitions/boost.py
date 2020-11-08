@@ -58,7 +58,7 @@ class BoostDependency(Dependency):
                    not lstripped.startswith('project : default-build <toolset>gcc ;'):
                     out.write(line)
             cxx_flags = builder.compiler_flags + builder.cxx_flags
-            compiler_type = builder.compiler_type
+            compiler_type = builder.compiler_choice.compiler_type
             compiler_version = ''
             if compiler_type == 'gcc8':
                 compiler_type = 'gcc'

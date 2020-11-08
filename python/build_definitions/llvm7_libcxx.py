@@ -96,4 +96,4 @@ class Llvm7LibCXXDependency(Dependency):
                 shell=True)
 
     def should_build(self, builder: BuilderInterface) -> bool:
-        return builder.building_with_clang()
+        return builder.compiler_choice.building_with_clang(builder.build_type)

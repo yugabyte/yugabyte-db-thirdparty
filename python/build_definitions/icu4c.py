@@ -11,11 +11,6 @@
 # under the License.
 #
 
-import os
-import sys
-import glob
-import subprocess
-
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 from yugabyte_db_thirdparty.rpath_fixes import fix_shared_library_references
 
@@ -39,7 +34,7 @@ class Icu4cDependency(Dependency):
         self.copy_sources = True
 
     def get_additional_ld_flags(self, builder: BuilderInterface) -> List[str]:
-        if builder.is_linux_clang1x() and builder.build_type == BUILD_TYPE_ASAN:
+        if builder.compiler_choice.is_linux_clang1x() and builder.build_type == BUILD_TYPE_ASAN:
             # Needed to find dlsym.
             return ['-ldl']
         return []

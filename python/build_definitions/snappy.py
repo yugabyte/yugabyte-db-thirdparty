@@ -12,9 +12,7 @@
 # under the License.
 #
 
-import os
 import subprocess
-import sys
 
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 

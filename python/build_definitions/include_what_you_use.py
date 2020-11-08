@@ -12,9 +12,6 @@
 # under the License.
 #
 
-import os
-import sys
-
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
 
@@ -40,4 +37,4 @@ class IncludeWhatYouUseDependency(Dependency):
             ])
 
     def should_build(self, builder: BuilderInterface) -> bool:
-        return builder.will_need_clang()
+        return builder.compiler_choice.will_need_clang(builder.build_type)

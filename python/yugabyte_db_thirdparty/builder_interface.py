@@ -88,9 +88,6 @@ class BuilderInterface:
     def is_release_build(self) -> bool:
         raise NotImplementedError()
 
-    def will_need_clang(self) -> bool:
-        raise NotImplementedError()
-
     def get_common_cmake_flag_args(self, dep: 'Dependency') -> List[str]:
         raise NotImplementedError()
 
@@ -98,7 +95,4 @@ class BuilderInterface:
         raise NotImplementedError()
 
     def get_install_prefix_with_qualifier(self, qualifier: Optional[str]) -> str:
-        raise NotImplementedError()
-
-    def is_linux_clang1x(self) -> bool:
         raise NotImplementedError()

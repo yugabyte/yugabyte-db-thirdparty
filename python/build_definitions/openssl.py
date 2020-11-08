@@ -13,7 +13,6 @@
 #
 
 import os
-import sys
 
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 

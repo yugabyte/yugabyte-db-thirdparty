@@ -44,7 +44,7 @@ class GLogDependency(Dependency):
         return cmake_args
 
     def get_additional_ld_flags(self, builder: BuilderInterface) -> List[str]:
-        if builder.is_linux_clang1x() and builder.build_type in [
+        if builder.compiler_choice.is_linux_clang1x() and builder.build_type in [
                 BUILD_TYPE_ASAN, BUILD_TYPE_TSAN]:
             # Without this, getting undefined symbols:
             # - pthread_rwlock_destroy

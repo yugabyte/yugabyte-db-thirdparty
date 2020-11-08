@@ -13,12 +13,12 @@
 #
 
 import os
-import subprocess
-import sys
 import shutil
+import subprocess
 
 from build_definitions import ExtraDownload
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
+from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR
 
 
 class LLVM7Dependency(Dependency):
@@ -107,12 +107,12 @@ class LLVM7Dependency(Dependency):
                                  cmake_args,
                                  use_ninja_if_available=True)
 
-        create_symlink_at = os.path.join(builder.tp_dir, 'clang-toolchain')
+        create_symlink_at = os.path.join(YB_THIRDPARTY_DIR, 'clang-toolchain')
         if os.path.exists(create_symlink_at) and not os.path.islink(create_symlink_at):
             raise IOError(f"File already exists and is not a symlink: {create_symlink_at}")
         remove_path(create_symlink_at)
 
-        create_symlink_to = os.path.relpath(prefix, builder.tp_dir)
+        create_symlink_to = os.path.relpath(prefix, YB_THIRDPARTY_DIR)
         if not os.path.exists(prefix) or not os.path.isdir(prefix):
             raise IOError("Path does not exist or is not a directory: '%s'" % prefix)
         log("Creating symlink %s -> %s (current directory is %s)",
@@ -120,4 +120,4 @@ class LLVM7Dependency(Dependency):
         os.symlink(create_symlink_to, create_symlink_at)
 
     def should_build(self, builder: BuilderInterface) -> bool:
-        return builder.will_need_clang()
+        return builder.compiler_choice.will_need_clang(builder.build_type)

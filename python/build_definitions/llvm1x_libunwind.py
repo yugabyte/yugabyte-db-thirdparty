@@ -12,12 +12,9 @@
 #
 
 import os
-import sys
-import subprocess
-import shutil
 
-from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 from build_definitions.llvm1x_part import Llvm1xPartDependencyBase
+from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
 
 class Llvm1xLibUnwindDependency(Llvm1xPartDependencyBase):
