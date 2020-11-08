@@ -867,7 +867,7 @@ class Builder(BuilderInterface):
         return 'Release' if self.is_release_build() else 'Debug'
 
     def check_cxx_compiler_flag(self, flag: str) -> bool:
-        compiler_path = self.get_cxx_compiler()
+        compiler_path = self.compiler_choice.get_cxx_compiler()
         log(f"Checking if the compiler {compiler_path} accepts the flag {flag}")
         process = subprocess.Popen(
             [compiler_path, '-x', 'c++', flag, '-'],

@@ -14,6 +14,7 @@ from typing import List, Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .dependency import Dependency
+    from .compiler_choice import CompilerChoice
 
 
 class BuilderInterface:
@@ -34,6 +35,7 @@ class BuilderInterface:
     prefix_include: str
     tp_dir: str
     build_type: str
+    compiler_choice: 'CompilerChoice'
 
     def build_with_configure(
             self,
@@ -59,12 +61,6 @@ class BuilderInterface:
         raise NotImplementedError()
 
     def log_prefix(self, dep: 'Dependency') -> str:
-        raise NotImplementedError()
-
-    def get_c_compiler(self) -> str:
-        raise NotImplementedError()
-
-    def get_cxx_compiler(self) -> str:
         raise NotImplementedError()
 
     def prepend_rpath(self, path: str) -> None:

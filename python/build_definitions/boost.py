@@ -66,7 +66,7 @@ class BoostDependency(Dependency):
             out.write(PROJECT_CONFIG.format(
                     compiler_type,
                     compiler_version,
-                    builder.get_cxx_compiler(),
+                    builder.compiler_choice.get_cxx_compiler(),
                     ' '.join(['<compileflags>' + flag for flag in cxx_flags]),
                     ' '.join(['<linkflags>' + flag for flag in cxx_flags + builder.ld_flags]),
                     ' '.join(['--with-{}'.format(lib) for lib in libs])))
