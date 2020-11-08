@@ -79,9 +79,6 @@ class BuilderInterface:
     def add_checked_flag(self, flags: List[str], flag: str) -> None:
         raise NotImplementedError()
 
-    def building_with_clang(self) -> bool:
-        raise NotImplementedError()
-
     def get_openssl_dir(self) -> str:
         raise NotImplementedError()
 
