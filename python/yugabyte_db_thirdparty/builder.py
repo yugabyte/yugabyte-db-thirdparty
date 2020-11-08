@@ -501,10 +501,7 @@ class Builder(BuilderInterface):
 
     def set_build_type(self, build_type: str) -> None:
         self.build_type = build_type
-        self.find_prefix = self.tp_installed_common_dir
         self.prefix = self.get_install_prefix_with_qualifier(qualifier=None)
-        if build_type != BUILD_TYPE_COMMON:
-            self.find_prefix += ';' + self.prefix
         self.prefix_bin = os.path.join(self.prefix, 'bin')
         self.prefix_lib = os.path.join(self.prefix, 'lib')
         self.prefix_include = os.path.join(self.prefix, 'include')
