@@ -88,8 +88,5 @@ class BuilderInterface:
     def get_common_cmake_flag_args(self, dep: 'Dependency') -> List[str]:
         raise NotImplementedError()
 
-    def get_llvm_config_path(self) -> str:
-        raise NotImplementedError()
-
     def get_install_prefix_with_qualifier(self, qualifier: Optional[str]) -> str:
         raise NotImplementedError()

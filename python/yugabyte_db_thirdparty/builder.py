@@ -40,6 +40,18 @@ from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR, remove_path, \
     mkdir_if_missing, PushDir, assert_list_contains, assert_dir_exists, EnvVarContext
 
 
+ASAN_FLAGS = [
+    '-fsanitize=address',
+    '-fsanitize=undefined',
+    '-DADDRESS_SANITIZER',
+]
+
+TSAN_FLAGS = [
+    '-fsanitize=thread',
+    '-DTHREAD_SANITIZER',
+]
+
+
 class Builder(BuilderInterface):
     args: argparse.Namespace
     tp_download_dir: str
@@ -71,8 +83,6 @@ class Builder(BuilderInterface):
             fatal('YB src directory "{}" does not exist'.format(self.src_dir))
 
         self.linuxbrew_dir = None
-        self.cc = None
-        self.cxx = None
         self.additional_allowed_shared_lib_paths = set()
 
     def parse_args(self) -> None:
@@ -208,15 +218,27 @@ class Builder(BuilderInterface):
                 os.path.join(self.tp_installed_llvm7_common_dir, 'bin'),
                 os.environ['PATH']
         ])
-        self.build(BUILD_TYPE_COMMON)
+
+        self.build_one_build_type(BUILD_TYPE_COMMON)
+        build_types = []
         if is_linux():
-            self.build(BUILD_TYPE_UNINSTRUMENTED)
-        if not self.compiler_choice.use_only_gcc():
+            build_types.append(BUILD_TYPE_UNINSTRUMENTED)
+
+        if self.compiler_choice.use_only_gcc():
+            if is_linux() and not self.compiler_choice.using_linuxbrew():
+                # Starting to support ASAN for GCC compilers
+                # (not for the current GCC 5.5 build on Linuxbrew, though).
+                build_types.append(BUILD_TYPE_ASAN)
+        else:
             if self.compiler_choice.using_linuxbrew() or is_mac():
-                self.build(BUILD_TYPE_CLANG_UNINSTRUMENTED)
+                build_types.append(BUILD_TYPE_CLANG_UNINSTRUMENTED)
             if is_linux() and not self.args.skip_sanitizers:
-                self.build(BUILD_TYPE_ASAN)
-                self.build(BUILD_TYPE_TSAN)
+                build_types.append(BUILD_TYPE_ASAN)
+                build_types.append(BUILD_TYPE_TSAN)
+        log(f"Full list of build types: {build_types}")
+
+        for build_type in build_types:
+            self.build_one_build_type(build_type)
 
     def clean(self) -> None:
         """
@@ -330,6 +352,12 @@ class Builder(BuilderInterface):
         # the YugabyteDB source tree.
         self.cxx_flags.append('-std=c++14')
         self.cxx_flags.append('-frtti')
+
+        if self.build_type == BUILD_TYPE_ASAN:
+            self.compiler_flags += ASAN_FLAGS
+
+        if self.build_type == BUILD_TYPE_TSAN:
+            self.compiler_flags += TSAN_FLAGS
 
     def add_linuxbrew_flags(self) -> None:
         if self.compiler_choice.using_linuxbrew():
@@ -475,7 +503,7 @@ class Builder(BuilderInterface):
         else:
             build_internal()
 
-    def build(self, build_type: str) -> None:
+    def build_one_build_type(self, build_type: str) -> None:
         if (build_type != BUILD_TYPE_COMMON and
                 self.args.build_type is not None and
                 build_type != self.args.build_type):
@@ -544,18 +572,7 @@ class Builder(BuilderInterface):
         Flags used to build code with Clang 7 that we build here. As we move to newer versions of
         Clang, this function will go away.
         """
-        if self.build_type == BUILD_TYPE_ASAN:
-            self.compiler_flags += [
-                '-fsanitize=address',
-                '-fsanitize=undefined',
-                '-DADDRESS_SANITIZER',
-            ]
-
         if self.build_type == BUILD_TYPE_TSAN:
-            self.compiler_flags += [
-                '-fsanitize=thread',
-                '-DTHREAD_SANITIZER'
-            ]
             # Ensure that TSAN runtime is linked statically into every executable. TSAN runtime
             # uses -fPIE while our shared libraries use -fPIC, and therefore TSAN runtime can only
             # be linked statically into executables. TSAN runtime can't be built with -fPIC because
@@ -597,12 +614,7 @@ class Builder(BuilderInterface):
             dep.name, is_libcxxabi, is_libcxx)
 
         if self.build_type == BUILD_TYPE_ASAN:
-            self.compiler_flags += [
-                '-fsanitize=address',
-                '-fsanitize=undefined',
-                '-DADDRESS_SANITIZER',
-                '-shared-libasan'
-            ]
+            self.compiler_flags.append('-shared-libasan')
 
             if is_libcxxabi:
                 # To avoid an infinite loop in UBSAN.
@@ -612,22 +624,14 @@ class Builder(BuilderInterface):
                 self.compiler_flags.append('-fno-sanitize=vptr')
 
             # TODO mbautin: a centralized way to find paths inside LLVM installation.
-            assert self.cc is not None
+            assert self.compiler_choice.cc is not None
             compiler_rt_lib_dir = os.path.join(
-                os.path.dirname(os.path.dirname(os.path.realpath(self.cc))),
+                os.path.dirname(os.path.dirname(os.path.realpath(self.compiler_choice.cc))),
                 'lib', 'clang', self.args.llvm_version, 'lib', 'linux')
             if not os.path.isdir(compiler_rt_lib_dir):
                 raise IOError("Directory does not exist: %s", compiler_rt_lib_dir)
             self.add_lib_dir_and_rpath(compiler_rt_lib_dir)
             self.ld_flags.append('-lclang_rt.ubsan_minimal-x86_64')
-
-        # End of ASAN setup.
-
-        if self.build_type == BUILD_TYPE_TSAN:
-            self.compiler_flags += [
-                '-fsanitize=thread',
-                '-DTHREAD_SANITIZER'
-            ]
 
         self.ld_flags += ['-lunwind']
 
@@ -896,11 +900,3 @@ class Builder(BuilderInterface):
             '-DOPENSSL_LIBRARIES=%s;%s' % (openssl_crypto_library, openssl_ssl_library)
         ]
         return openssl_options
-
-    def get_llvm_config_path(self) -> str:
-        assert self.cc is not None
-        llvm_config_path = os.path.join(
-            os.path.dirname(os.path.realpath(self.cc)), 'llvm-config')
-        if not os.path.exists(llvm_config_path):
-            raise IOError(f"llvm-config not found at {llvm_config_path}")
-        return llvm_config_path
