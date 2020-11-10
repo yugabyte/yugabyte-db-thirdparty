@@ -629,13 +629,26 @@ class Builder(BuilderInterface):
             compiler_rt_lib_dir_ancestor = os.path.join(
                 os.path.dirname(os.path.dirname(os.path.realpath(self.compiler_choice.cc))),
                 'lib', 'clang')
-            llvm_version_subdirs = sorted(os.listdir(compiler_rt_lib_dir_ancestor))
-            if len(llvm_version_subdirs) != 1:
-                raise ValueError(
-                    "Found multiple subdirectories in %s: %s" %
-                    (compiler_rt_lib_dir_ancestor, llvm_version_subdirs))
-            compiler_rt_lib_dir = os.path.join(
-                compiler_rt_lib_dir_ancestor, llvm_version_subdirs[0], 'lib', 'linux')
+            compiler_rt_lib_dir_candidates = []
+            nonexistent_compiler_rt_lib_dirs = []
+            for llvm_version_subdir in os.listdir(compiler_rt_lib_dir_ancestor):
+                compiler_rt_lib_dir = os.path.join(
+                    compiler_rt_lib_dir_ancestor, llvm_version_subdir, 'lib', 'linux')
+                if os.path.isdir(compiler_rt_lib_dir):
+                    compiler_rt_lib_dir_candidates.append(compiler_rt_lib_dir)
+                else:
+                    nonexistent_compiler_rt_lib_dirs.append(compiler_rt_lib_dir)
+            if len(compiler_rt_lib_dir_candidates) != 1:
+                if not compiler_rt_lib_dir_candidates:
+                    raise IOError(
+                        "Could not find the compiler-rt library directory, looked at: %s" %
+                        nonexistent_compiler_rt_lib_dirs)
+                raise IOError(
+                    "Multiple possible compiler-rt library directories: %s" %
+                    compiler_rt_lib_dir_candidates)
+
+            assert len(compiler_rt_lib_dir_candidates) == 1
+            compiler_rt_lib_dir = compiler_rt_lib_dir_candidates[0]
             if not os.path.isdir(compiler_rt_lib_dir):
                 raise IOError("Directory does not exist: %s", compiler_rt_lib_dir)
             self.add_lib_dir_and_rpath(compiler_rt_lib_dir)
