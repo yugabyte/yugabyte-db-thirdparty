@@ -17,6 +17,7 @@ import json
 import os
 import platform
 import subprocess
+from distutils.version import LooseVersion
 from typing import Optional, List, Set, Tuple, Dict
 
 from build_definitions import BUILD_TYPE_COMMON, get_build_def_module, BUILD_TYPE_UNINSTRUMENTED, \
@@ -625,9 +626,17 @@ class Builder(BuilderInterface):
 
             # TODO mbautin: a centralized way to find paths inside LLVM installation.
             assert self.compiler_choice.cc is not None
-            compiler_rt_lib_dir = os.path.join(
+
+            compiler_rt_lib_dir_ancestor = os.path.join(
                 os.path.dirname(os.path.dirname(os.path.realpath(self.compiler_choice.cc))),
-                'lib', 'clang', self.args.llvm_version, 'lib', 'linux')
+                'lib', 'clang')
+            llvm_version_subdirs = sorted(os.listdir(compiler_rt_lib_dir_ancestor))
+            if len(llvm_version_subdirs) != 1:
+                raise ValueError(
+                    "Found multiple subdirectories in %s: %s" %
+                    (compiler_rt_lib_dir_ancestor, llvm_version_subdirs))
+            compiler_rt_lib_dir = os.path.join(
+                compiler_rt_lib_dir_ancestor, llvm_version_subdirs[0], 'lib', 'linux')
             if not os.path.isdir(compiler_rt_lib_dir):
                 raise IOError("Directory does not exist: %s", compiler_rt_lib_dir)
             self.add_lib_dir_and_rpath(compiler_rt_lib_dir)
