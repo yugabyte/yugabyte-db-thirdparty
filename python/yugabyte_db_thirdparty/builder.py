@@ -17,7 +17,6 @@ import json
 import os
 import platform
 import subprocess
-from distutils.version import LooseVersion
 from typing import Optional, List, Set, Tuple, Dict
 
 from build_definitions import BUILD_TYPE_COMMON, get_build_def_module, BUILD_TYPE_UNINSTRUMENTED, \
