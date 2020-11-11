@@ -9,26 +9,41 @@ set -euo pipefail
 # OS detection
 # -------------------------------------------------------------------------------------------------
 
-if "$is_mac"; then
-  unset YB_LINUXBREW_DIR
-else
+if ! "$is_mac"; then
   cat /proc/cpuinfo
 fi
 
-
 # -------------------------------------------------------------------------------------------------
+# Display various settings
+# -------------------------------------------------------------------------------------------------
+
 # Current user
-# -------------------------------------------------------------------------------------------------
-
 USER=$(whoami)
 log "Current user: $USER"
 
-# -------------------------------------------------------------------------------------------------
 # PATH
-# -------------------------------------------------------------------------------------------------
-
 export PATH=/usr/local/bin:$PATH
 log "PATH: $PATH"
+
+YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX=${YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX:-}
+log "YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX: ${YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX:-undefined}"
+
+YB_BUILD_THIRDPARTY_ARGS=${YB_BUILD_THIRDPARTY_ARGS:-}
+log "YB_BUILD_THIRDPARTY_ARGS: ${YB_BUILD_THIRDPARTY_ARGS:-undefined}"
+
+YB_BUILD_THIRDPARTY_EXTRA_ARGS=${YB_BUILD_THIRDPARTY_EXTRA_ARGS:-}
+log "YB_BUILD_THIRDPARTY_EXTRA_ARGS: ${YB_BUILD_THIRDPARTY_EXTRA_ARGS:-undefined}"
+
+if [[ -n ${YB_LINUXBREW_DIR:-} ]]; then
+  if "$is_mac"; then
+    log "Un-setting YB_LINUXBREW_DIR on macOS"
+    unset YB_LINUXBREW_DIR
+  elif [[ $YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX != *linuxbrew* ]]; then
+    log "Un-setting YB_LINUXBREW_DIR for build name $YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX"
+    unset YB_LINUXBREW_DIR
+  fi
+fi
+log "YB_LINUXBREW_DIR=${YB_LINUXBREW_DIR:-undefined}"
 
 # -------------------------------------------------------------------------------------------------
 # Installed tools
@@ -61,6 +76,12 @@ else
 fi
 
 # -------------------------------------------------------------------------------------------------
+# Check for errors in Python code of this repository
+# -------------------------------------------------------------------------------------------------
+
+( set -x; "$YB_THIRDPARTY_DIR/check_python_code.sh" )
+
+# -------------------------------------------------------------------------------------------------
 
 if [[ -n ${CIRCLE_PULL_REQUEST:-} ]]; then
   echo "CIRCLE_PULL_REQUEST is set: $CIRCLE_PULL_REQUEST. Will not upload artifacts."
@@ -78,7 +99,12 @@ original_repo_dir=$PWD
 git_sha1=$( git rev-parse HEAD )
 tag=v$( date +%Y%m%d%H%M%S )-${git_sha1:0:10}
 
-archive_dir_name=yugabyte-db-thirdparty-$tag-$os_name
+archive_dir_name=yugabyte-db-thirdparty-$tag
+if [[ -n $YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX ]]; then
+  archive_dir_name+="-$YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX"
+else
+  archive_dir_name+="-$os_name"
+fi
 build_dir_parent=/opt/yb-build/thirdparty
 repo_dir=$build_dir_parent/$archive_dir_name
 
@@ -98,7 +124,7 @@ fi
   git remote set-url origin "$origin_url"
 )
 
-if "$is_centos"; then
+if "$is_centos" && [[ $YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX == *linuxbrew* ]]; then
   # Grab a recent URL from https://github.com/YugaByte/brew-build/releases
   brew_url=$(<linuxbrew_url.txt)
   if [[ $brew_url != https://*.tar.gz ]]; then
@@ -164,11 +190,22 @@ echo
 
 cd "$repo_dir"
 
+# We intentionally don't escape variables here so they get split into multiple arguments.
+build_thirdparty_cmd_str=./build_thirdparty.sh
+if [[ -n ${YB_BUILD_THIRDPARTY_ARGS:-} ]]; then
+  build_thirdparty_cmd_str+=" $YB_BUILD_THIRDPARTY_ARGS"
+fi
+
+if [[ -n ${YB_BUILD_THIRDPARTY_EXTRA_ARGS:-} ]]; then
+  build_thirdparty_cmd_str+=" $YB_BUILD_THIRDPARTY_EXTRA_ARGS"
+fi
+
 (
   if [[ -n ${YB_LINUXBREW_DIR:-} ]]; then
     export PATH=$YB_LINUXBREW_DIR/bin:$PATH
   fi
-  time ./build_thirdparty.sh "$@"
+  set -x
+  time $build_thirdparty_cmd_str
 )
 
 log "Build finished. See timing information above."

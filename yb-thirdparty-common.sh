@@ -34,7 +34,7 @@ compute_sha256sum() {
       shasum $portable_arg --algorithm 256 "$@"
     else
       sha256sum "$@"
-    fi 
+    fi
   ) | awk '{print $1}' )
   if [[ ! $sha256_sum =~ ^[0-9a-f]{64} ]]; then
     log "Got an incorrect SHA256 sum: $sha256_sum. Expected 64 hex digits."
@@ -84,11 +84,26 @@ check_bash_scripts() {
   # Use the fact that there are no spaces in the shell script names in this repository.
   # shellcheck disable=SC2207
   bash_scripts=( $( find . -mindepth 1 -maxdepth 1 -type f -name "*.sh" ) )
-  
+
   local shell_script
   for shell_script in "${bash_scripts[@]}"; do
     shellcheck -x "$shell_script"
   done
+}
+
+activate_virtualenv() {
+  if [[ ! -d $YB_THIRDPARTY_DIR/venv ]]; then
+    python3 -m venv "$YB_THIRDPARTY_DIR/venv"
+  fi
+  set +u
+  # shellcheck disable=SC1090
+  . "$YB_THIRDPARTY_DIR/venv/bin/activate"
+  set -u
+  (
+    set -x
+    cd "$YB_THIRDPARTY_DIR"
+    pip3 install --quiet -r requirements.txt
+  )
 }
 
 detect_os
@@ -96,4 +111,15 @@ detect_os
 # We ignore the previously set YB_THIRDPARTY_DIR value, because if we are executing Bash scripts
 # within this third-party directory, we most likely want to work in this exact directory.
 YB_THIRDPARTY_DIR=$( cd "${BASH_SOURCE[0]%/*}" && pwd )
+
+PYTHONPATH=${PYTHONPATH:-}
+if [[ -n $PYTHONPATH ]]; then
+  PYTHONPATH=:$PYTHONPATH
+fi
+
+# Eventually most Python scripts should move to the python directory, but right now we add both
+# the "python" directory and the thirdparty root directory to PYTHONPATH.
+PYTHONPATH=$YB_THIRDPARTY_DIR/python$PYTHONPATH
+
+export PYTHONPATH
 export YB_THIRDPARTY_DIR

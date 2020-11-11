@@ -1,0 +1,12 @@
+clang version 10.0.1 (/opt/yb-build/llvm/llvm-v10.0.1-cw7/src/llvm-project/clang ef32c611aa214dea855364efd7ba451ec5ec3f74)
+Target: x86_64-unknown-linux-gnu
+Thread model: posix
+InstalledDir: /opt/yb-build/llvm/llvm-v10.0.1-cw7/stage-3/installed/bin
+Found candidate GCC installation: /opt/rh/devtoolset-7/root/usr/lib/gcc/x86_64-redhat-linux/7
+Found candidate GCC installation: /opt/rh/devtoolset-8/root/usr/lib/gcc/x86_64-redhat-linux/8
+Found candidate GCC installation: /usr/lib/gcc/x86_64-redhat-linux/4.8.2
+Found candidate GCC installation: /usr/lib/gcc/x86_64-redhat-linux/4.8.5
+Selected GCC installation: /opt/rh/devtoolset-8/root/usr/lib/gcc/x86_64-redhat-linux/8
+Candidate multilib: .;@m64
+Candidate multilib: 32;@m32
+Selected multilib: .;@m64
