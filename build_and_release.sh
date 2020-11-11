@@ -106,7 +106,7 @@ else
   effective_suffix="-$os_name"
 fi
 archive_dir_name+=$effective_suffix
-tag=$effective_suffix
+tag+=$effective_suffix
 
 build_dir_parent=/opt/yb-build/thirdparty
 repo_dir=$build_dir_parent/$archive_dir_name
