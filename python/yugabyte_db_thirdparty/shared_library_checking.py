@@ -21,6 +21,7 @@ import logging
 from typing import List, Any, Set
 from yugabyte_db_thirdparty.os_detection import is_mac, is_linux
 from yugabyte_db_thirdparty.custom_logging import log, fatal, heading
+from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR
 from build_definitions import BUILD_TYPES
 
 
@@ -38,8 +39,7 @@ class LibTestBase:
     tool: str
 
     def __init__(self) -> None:
-        self.tp_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
-        self.tp_installed_dir = os.path.join(self.tp_dir, 'installed')
+        self.tp_installed_dir = os.path.join(YB_THIRDPARTY_DIR, 'installed')
         self.lib_re_list = []
 
     def init_regex(self) -> None:
@@ -100,7 +100,7 @@ class LibTestMac(LibTestBase):
                             "^/",
                             "^\t@rpath",
                             "^\t@loader_path",
-                            f"^\t{self.tp_dir}"]
+                            f"^\t{YB_THIRDPARTY_DIR}"]
 
     def add_allowed_shared_lib_paths(self, shared_lib_paths: Set[str]) -> None:
         # TODO: implement this on macOS for more precise checking of allowed dylib paths.
@@ -128,7 +128,7 @@ class LibTestLinux(LibTestBase):
             "^.* => /lib/",
             "^.* => /usr/lib/x86_64-linux-gnu/",
             "^.* => /opt/yb-build/brew/linuxbrew",
-            f"^.* => {re.escape(self.tp_dir)}"
+            f"^.* => {re.escape(YB_THIRDPARTY_DIR)}"
         ]
 
     def add_allowed_shared_lib_paths(self, shared_lib_paths: Set[str]) -> None:
