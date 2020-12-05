@@ -25,11 +25,11 @@ class TestCompilerIdentification(unittest.TestCase):
             self,
             input_file_name: str,
             expected_family: str,
-            expected_version: str) -> None:
+            expected_version_str: str) -> None:
         compiler_identification = CompilerIdentification(
             read_file(os.path.join(TEST_DATA_DIR, input_file_name)))
         self.assertEqual(expected_family, compiler_identification.family)
-        self.assertEqual(expected_version, compiler_identification.version)
+        self.assertEqual(expected_version_str, compiler_identification.version_str)
 
     def test_clang10_apple(self) -> None:
         self.run_one_test('clang-10.0.1-macos.txt', 'clang', '10.0.1')
