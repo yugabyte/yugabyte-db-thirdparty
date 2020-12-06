@@ -4,4 +4,3 @@ pycodestyle
 docker
 pyyaml
 docker
-packaging
