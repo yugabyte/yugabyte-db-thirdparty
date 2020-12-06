@@ -18,7 +18,7 @@ import subprocess
 import platform
 import logging
 
-from typing import List, Any, Set, Optional
+from typing import List, Any, Set, Optional, Pattern
 from yugabyte_db_thirdparty.os_detection import is_mac, is_linux
 from yugabyte_db_thirdparty.custom_logging import log, fatal, heading
 from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR
@@ -49,7 +49,8 @@ class LibTestBase:
             self,
             file_path: str,
             cmdout: str,
-            additional_allowed_pattern: Optional[re.Pattern] = None) -> bool:
+            additional_allowed_pattern: Optional[Pattern] = None) -> bool:
+
         status = True
         for line in cmdout.splitlines():
             if (not self.okay_paths.match(line) and

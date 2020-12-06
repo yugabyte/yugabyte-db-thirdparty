@@ -18,17 +18,17 @@ import subprocess
 from packaging.version import parse as parse_version
 from packaging.version import Version
 
-from typing import Optional, List
+from typing import Optional, List, Pattern
 
 
 NUMERIC_VERSION_RE_STR = r'(\d+([.]\d+)*)'
 
 
-def create_version_pattern(version_pattern_str: str) -> re.Pattern:
+def create_version_pattern(version_pattern_str: str) -> Pattern:
     return re.compile(version_pattern_str % NUMERIC_VERSION_RE_STR)
 
 
-def create_version_patterns(version_patterns: List[str]) -> List[re.Pattern]:
+def create_version_patterns(version_patterns: List[str]) -> List[Pattern]:
     return [create_version_pattern(p) for p in version_patterns]
 
 
@@ -51,7 +51,7 @@ class CompilerIdentification:
     parsed_version: Version
     compiler_path: Optional[str]
 
-    def _try_pattern(self, pattern: re.Pattern, family: str) -> bool:
+    def _try_pattern(self, pattern: Pattern, family: str) -> bool:
         m = pattern.search(self.full_version_output_str)
         if m:
             self.version_str = m.group(1)
