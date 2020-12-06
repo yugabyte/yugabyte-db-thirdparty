@@ -14,11 +14,19 @@
 import os
 from typing import Optional, Tuple
 
-from build_definitions import BUILD_TYPE_ASAN, BUILD_TYPE_TSAN, BUILD_TYPE_CLANG_UNINSTRUMENTED, \
+from build_definitions import (
+    BUILD_TYPE_ASAN,
+    BUILD_TYPE_TSAN,
+    BUILD_TYPE_CLANG_UNINSTRUMENTED,
     BUILD_TYPE_UNINSTRUMENTED
+)
 from yugabyte_db_thirdparty.custom_logging import fatal
 from yugabyte_db_thirdparty.os_detection import is_linux, is_mac
-from yugabyte_db_thirdparty.util import which_must_exist, YB_THIRDPARTY_DIR
+from yugabyte_db_thirdparty.util import (
+    which_must_exist,
+    YB_THIRDPARTY_DIR,
+    add_path_entry,
+)
 
 
 class CompilerChoice:
@@ -59,7 +67,7 @@ class CompilerChoice:
         self.linuxbrew_dir = os.getenv('YB_LINUXBREW_DIR')
 
         if self.linuxbrew_dir:
-            os.environ['PATH'] = os.path.join(self.linuxbrew_dir, 'bin') + ':' + os.environ['PATH']
+            add_path_entry(os.path.join(self.linuxbrew_dir, 'bin'))
 
     def using_linuxbrew(self) -> bool:
         return self.linuxbrew_dir is not None

@@ -18,7 +18,7 @@ import subprocess
 import platform
 import logging
 
-from typing import List, Any, Set
+from typing import List, Any, Set, Optional
 from yugabyte_db_thirdparty.os_detection import is_mac, is_linux
 from yugabyte_db_thirdparty.custom_logging import log, fatal, heading
 from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR
@@ -45,10 +45,16 @@ class LibTestBase:
     def init_regex(self) -> None:
         self.okay_paths = compile_re_list(self.lib_re_list)
 
-    def check_lib_deps(self, file_path: str, cmdout: str) -> bool:
+    def check_lib_deps(
+            self,
+            file_path: str,
+            cmdout: str,
+            additional_allowed_pattern: Optional[re.Pattern] = None) -> bool:
         status = True
         for line in cmdout.splitlines():
-            if not self.okay_paths.match(line):
+            if (not self.okay_paths.match(line) and
+                    not (additional_allowed_pattern and
+                         additional_allowed_pattern.match(line))):
                 if status:
                     log(file_path + ":")
                     status = False
@@ -114,6 +120,8 @@ class LibTestMac(LibTestBase):
 
 
 class LibTestLinux(LibTestBase):
+    LIBCXX_NOT_FOUND = re.compile('^\tlibc[+][+][.]so[.][0-9]+ => not found')
+
     def __init__(self) -> None:
         super().__init__()
         self.tool = "ldd"
@@ -147,7 +155,46 @@ class LibTestLinux(LibTestBase):
                 return False
 
             libout = ex.stdout.decode('utf-8')
-        return self.check_lib_deps(file_path, libout)
+
+        file_basename = os.path.basename(file_path)
+        additional_allowed_pattern = None
+        if file_basename.startswith('libc++abi.so.'):
+            # One exception: libc++abi.so is not able to find libc++ because it loads the ASAN
+            # runtime library that is part of the LLVM distribution and does not have the correct
+            # rpath set. This happens on CentOS with our custom build of LLVM. We might be able to
+            # fix this by specifyng rpath correctly when building LLVM, but as of 12/2020 we just
+            # ignore this error here.
+            #
+            # $ ldd installed/asan/libcxx/lib/libc++abi.so.1.0
+            #   linux-vdso.so.1 =>
+            #   libclang_rt.asan-x86_64.so =>
+            #     $LLVM_DIR/lib/clang/11.0.0/lib/linux/libclang_rt.asan-x86_64.so
+            #   libclang_rt.ubsan_minimal-x86_64.so =>
+            #     $LLVM_DIR/lib/clang/11.0.0/lib/linux/libclang_rt.ubsan_minimal-x86_64.so
+            #   libunwind.so.1 => installed/common/lib/libunwind.so.1
+            #   libdl.so.2 => /lib64/libdl.so.2
+            #   libpthread.so.0 => /lib64/libpthread.so.0
+            #   libm.so.6 => /lib64/libm.so.6
+            #   libc.so.6 => /lib64/libc.so.6
+            #   libc++.so.1 => not found  <-- THIS IS OK
+            #   libgcc_s.so.1 => /lib64/libgcc_s.so.1
+            #   librt.so.1 => /lib64/librt.so.1
+            #   /lib64/ld-linux-x86-64.so.2
+            #
+            # Run
+            #   LD_DEBUG=all ldd installed/asan/libcxx/lib/libc++abi.so.1.0
+            # and notice the following line:
+            #
+            # file=libc++.so.1 [0];
+            #   needed by $LLVM_DIR/lib/clang/11.0.0/lib/linux/libclang_rt.asan-x86_64.so
+            #
+            # Also running
+            #   ldd $LLVM_DIR/lib/clang/11.0.0/lib/linux/libclang_rt.asan-x86_64.so
+            #
+            # reports "libc++.so.1 => not found".
+            additional_allowed_pattern = self.LIBCXX_NOT_FOUND
+
+        return self.check_lib_deps(file_path, libout, additional_allowed_pattern)
 
 
 def get_lib_tester() -> LibTestBase:
