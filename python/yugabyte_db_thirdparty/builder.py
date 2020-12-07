@@ -38,6 +38,7 @@ from yugabyte_db_thirdparty.os_detection import is_mac, is_linux
 from yugabyte_db_thirdparty.string_util import indent_lines
 from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR, remove_path, \
     mkdir_if_missing, PushDir, assert_list_contains, assert_dir_exists, EnvVarContext
+from yugabyte_db_thirdparty.file_system_layout import FileSystemLayout
 
 
 ASAN_FLAGS = [
@@ -54,7 +55,6 @@ TSAN_FLAGS = [
 
 class Builder(BuilderInterface):
     args: argparse.Namespace
-    tp_download_dir: str
     ld_flags: List[str]
     executable_only_ld_flags: List[str]
     compiler_flags: List[str]
@@ -65,23 +65,14 @@ class Builder(BuilderInterface):
     additional_allowed_shared_lib_paths: Set[str]
     download_manager: DownloadManager
     compiler_choice: CompilerChoice
+    fs_layout: FileSystemLayout
 
     """
     This class manages the overall process of building third-party dependencies, including the set
     of dependencies to build, build types, and the directories to install dependencies.
     """
     def __init__(self) -> None:
-        self.tp_build_dir = os.path.join(YB_THIRDPARTY_DIR, 'build')
-        self.tp_src_dir = os.path.join(YB_THIRDPARTY_DIR, 'src')
-        self.tp_download_dir = os.path.join(YB_THIRDPARTY_DIR, 'download')
-        self.tp_installed_dir = os.path.join(YB_THIRDPARTY_DIR, 'installed')
-        self.tp_installed_common_dir = os.path.join(self.tp_installed_dir, BUILD_TYPE_COMMON)
-        self.tp_installed_llvm7_common_dir = os.path.join(
-                self.tp_installed_dir + '_llvm7', BUILD_TYPE_COMMON)
-        self.src_dir = os.path.dirname(YB_THIRDPARTY_DIR)
-        if not os.path.isdir(self.src_dir):
-            fatal('YB src directory "{}" does not exist'.format(self.src_dir))
-
+        self.fs_layout = FileSystemLayout()
         self.linuxbrew_dir = None
         self.additional_allowed_shared_lib_paths = set()
 
@@ -93,7 +84,7 @@ class Builder(BuilderInterface):
             os.environ['YB_MAKE_PARALLELISM'] = str(self.args.make_parallelism)
         self.download_manager = DownloadManager(
             should_add_checksum=self.args.add_checksum,
-            download_dir=self.tp_download_dir)
+            download_dir=self.fs_layout.tp_download_dir)
 
         self.compiler_choice = CompilerChoice(
             single_compiler_type=self.args.single_compiler_type,
@@ -211,11 +202,11 @@ class Builder(BuilderInterface):
         self.compiler_choice.set_compiler(
             'clang' if self.compiler_choice.use_only_clang() else 'gcc')
         if self.args.clean:
-            self.clean()
+            self.fs_layout.clean(self.selected_dependencies)
         self.prepare_out_dirs()
         os.environ['PATH'] = ':'.join([
-                os.path.join(self.tp_installed_common_dir, 'bin'),
-                os.path.join(self.tp_installed_llvm7_common_dir, 'bin'),
+                os.path.join(self.fs_layout.tp_installed_common_dir, 'bin'),
+                os.path.join(self.fs_layout.tp_installed_llvm7_common_dir, 'bin'),
                 os.environ['PATH']
         ])
 
@@ -240,38 +231,6 @@ class Builder(BuilderInterface):
         for build_type in build_types:
             self.build_one_build_type(build_type)
 
-    def clean(self) -> None:
-        """
-        TODO: deduplicate this vs. the clean_thirdparty.sh script.
-        """
-        heading('Clean')
-        for dependency in self.selected_dependencies:
-            for dir_name in BUILD_TYPES:
-                for leaf in [dependency.name, '.build-stamp-{}'.format(dependency)]:
-                    path = os.path.join(self.tp_build_dir, dir_name, leaf)
-                    if os.path.exists(path):
-                        log("Removing %s build output: %s", dependency.name, path)
-                        remove_path(path)
-            if dependency.dir_name is not None:
-                src_dir = self.get_source_path(dependency)
-                if os.path.exists(src_dir):
-                    log("Removing %s source: %s", dependency.name, src_dir)
-                    remove_path(src_dir)
-
-            archive_path = self.get_archive_path(dependency)
-            if archive_path is not None:
-                log("Removing %s archive: %s", dependency.name, archive_path)
-                remove_path(archive_path)
-
-    def get_archive_path(self, dep: Dependency) -> Optional[str]:
-        archive_name = dep.get_archive_name()
-        if archive_name is None:
-            return None
-        return os.path.join(self.tp_download_dir, archive_name)
-
-    def get_source_path(self, dep: Dependency) -> str:
-        return os.path.join(self.tp_src_dir, dep.get_source_dir_basename())
-
     def get_build_types(self) -> List[str]:
         build_types: List[str] = list(BUILD_TYPES)
         if is_linux() and self.args.single_compiler_type is not None:
@@ -280,7 +239,9 @@ class Builder(BuilderInterface):
 
     def prepare_out_dirs(self) -> None:
         build_types = self.get_build_types()
-        dirs = [os.path.join(self.tp_installed_dir, build_type) for build_type in build_types]
+        dirs = [
+            os.path.join(self.fs_layout.tp_installed_dir, build_type) for build_type in build_types
+        ]
         libcxx_dirs = [os.path.join(dir, 'libcxx') for dir in dirs]
         for dir in dirs + libcxx_dirs:
             lib_dir = os.path.join(dir, 'lib')
@@ -320,9 +281,9 @@ class Builder(BuilderInterface):
         self.add_linuxbrew_flags()
         for include_dir_component in set([BUILD_TYPE_COMMON, self.build_type]):
             self.add_include_path(os.path.join(
-                self.tp_installed_dir, include_dir_component, 'include'))
+                self.fs_layout.tp_installed_dir, include_dir_component, 'include'))
             self.add_lib_dir_and_rpath(os.path.join(
-                self.tp_installed_dir, include_dir_component, 'lib'))
+                self.fs_layout.tp_installed_dir, include_dir_component, 'lib'))
 
         self.compiler_flags += self.preprocessor_flags
         # -fPIC is there to always generate position-independent code, even for static libraries.
@@ -524,7 +485,7 @@ class Builder(BuilderInterface):
 
     def get_install_prefix_with_qualifier(self, qualifier: Optional[str] = None) -> str:
         return os.path.join(
-            self.tp_installed_dir,
+            self.fs_layout.tp_installed_dir,
             self.build_type + ('_%s' % qualifier if qualifier else ''))
 
     def set_build_type(self, build_type: str) -> None:
@@ -562,7 +523,7 @@ class Builder(BuilderInterface):
 
     def get_libcxx_dirs(self, libcxx_installed_suffix: str) -> Tuple[str, str]:
         libcxx_installed_path = os.path.join(
-            self.tp_installed_dir, libcxx_installed_suffix, 'libcxx')
+            self.fs_layout.tp_installed_dir, libcxx_installed_suffix, 'libcxx')
         libcxx_installed_include = os.path.join(libcxx_installed_path, 'include', 'c++', 'v1')
         libcxx_installed_lib = os.path.join(libcxx_installed_path, 'lib')
         return libcxx_installed_include, libcxx_installed_lib
@@ -581,7 +542,7 @@ class Builder(BuilderInterface):
 
         # This is used to build code with libc++ and Clang 7 built as part of thirdparty.
         stdlib_suffix = self.build_type
-        stdlib_path = os.path.join(self.tp_installed_dir, stdlib_suffix, 'libcxx')
+        stdlib_path = os.path.join(self.fs_layout.tp_installed_dir, stdlib_suffix, 'libcxx')
         stdlib_include = os.path.join(stdlib_path, 'include', 'c++', 'v1')
         stdlib_lib = os.path.join(stdlib_path, 'lib')
         self.cxx_flags.insert(0, '-nostdinc++')
@@ -738,15 +699,15 @@ class Builder(BuilderInterface):
         self.init_flags(dep)
 
         # This is needed at least for glog to be able to find gflags.
-        self.add_rpath(os.path.join(self.tp_installed_dir, self.build_type, 'lib'))
+        self.add_rpath(os.path.join(self.fs_layout.tp_installed_dir, self.build_type, 'lib'))
         if self.build_type != BUILD_TYPE_COMMON:
             # Needed to find libunwind for Clang 10 when using compiler-rt.
-            self.add_rpath(os.path.join(self.tp_installed_dir, BUILD_TYPE_COMMON, 'lib'))
+            self.add_rpath(os.path.join(self.fs_layout.tp_installed_dir, BUILD_TYPE_COMMON, 'lib'))
 
         self.download_manager.download_dependency(
             dep=dep,
             src_path=self.get_source_path(dep),
-            archive_path=self.get_archive_path(dep))
+            archive_path=self.fs_layout.get_archive_path(dep))
 
         if self.args.download_extract_only:
             log("Skipping build of dependency %s, build type %s, --download-extract-only is "
@@ -788,7 +749,7 @@ class Builder(BuilderInterface):
     # component. The result is returned in should_rebuild_component_rv variable, which should have
     # been made local by the caller.
     def should_rebuild_dependency(self, dep: Dependency) -> bool:
-        stamp_path = self.get_build_stamp_path_for_dependency(dep)
+        stamp_path = self.fs_layout.get_build_stamp_path_for_dependency(dep, self.build_type)
         old_build_stamp = None
         if os.path.exists(stamp_path):
             with open(stamp_path, 'rt') as inp:
@@ -813,9 +774,6 @@ class Builder(BuilderInterface):
             log("New build stamp for %s:\n%s",
                 dep.name, indent_lines(new_build_stamp))
             return True
-
-    def get_build_stamp_path_for_dependency(self, dep: Dependency) -> str:
-        return os.path.join(self.tp_build_dir, self.build_type, '.build-stamp-{}'.format(dep.name))
 
     # Come up with a string that allows us to tell when to rebuild a particular third-party
     # dependency. The result is returned in the get_build_stamp_for_component_rv variable, which
@@ -857,7 +815,7 @@ class Builder(BuilderInterface):
 
     def save_build_stamp_for_dependency(self, dep: Dependency) -> None:
         stamp = self.get_build_stamp_for_dependency(dep)
-        stamp_path = self.get_build_stamp_path_for_dependency(dep)
+        stamp_path = self.fs_layout.get_build_stamp_path_for_dependency(dep, self.build_type)
 
         log("Saving new build stamp to '%s':\n%s", stamp_path, indent_lines(stamp))
         with open(stamp_path, "wt") as out:
@@ -868,7 +826,7 @@ class Builder(BuilderInterface):
         if not os.path.isdir(src_dir):
             fatal("Directory '{}' does not exist".format(src_dir))
 
-        build_dir = os.path.join(self.tp_build_dir, self.build_type, dep.dir_name)
+        build_dir = os.path.join(self.fs_layout.tp_build_dir, self.build_type, dep.dir_name)
         mkdir_if_missing(build_dir)
 
         if dep.copy_sources:
