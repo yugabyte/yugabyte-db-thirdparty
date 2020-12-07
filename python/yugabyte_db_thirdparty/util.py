@@ -218,3 +218,12 @@ def log_and_get_cmd_output(args: List[Any]) -> str:
 def read_file(file_path: str) -> str:
     with open(file_path) as input_file:
         return input_file.read()
+
+
+def add_path_entry(new_path_entry: str) -> None:
+    """
+    Adds a new PATH entry in front of the PATH environment variable, if it is not already present.
+    """
+    existing_path_entries = os.environ['PATH'].split(':')
+    if new_path_entry not in existing_path_entries:
+        os.environ['PATH'] = '%s:%s' % (new_path_entry, os.environ['PATH'])

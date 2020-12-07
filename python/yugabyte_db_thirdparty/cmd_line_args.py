@@ -148,7 +148,24 @@ def parse_cmd_line_args() -> argparse.Namespace:
                 "--single-compiler-type=%s is not allowed on macOS" % args.single_compiler_type)
         args.single_compiler_type = 'clang'
 
-    if args.devtoolset is not None:
+    if args.local and (args.remote_build_server is not None or args.remote_build_dir is not None):
+        log("Forcing a local build")
+        args.remote_build_server = None
+        args.remote_build_dir = None
+
+    if (args.remote_build_server is None) != (args.remote_build_dir is None):
+        raise ValueError(
+            '--remote-build-server and --remote-build-dir have to be specified or unspecified '
+            'at the same time. Note that their default values are provided by corresponding '
+            'environment variables, YB_THIRDPARTY_REMOTE_BUILD_SERVER and '
+            'YB_THIRDPARTY_REMOTE_BUILD_DIR.')
+    if args.remote_build_dir is not None:
+        assert os.path.isabs(args.remote_build_dir), (
+            'Remote build directory path must be an absolute path: %s' % args.remote_build_dir)
+
+    is_remote_build = args.remote_build_server is not None
+
+    if args.devtoolset is not None and not is_remote_build:
         if not is_centos():
             raise ValueError("--devtoolset can only be used on CentOS Linux")
         if args.single_compiler_type not in [None, 'gcc']:
@@ -165,21 +182,6 @@ def parse_cmd_line_args() -> argparse.Namespace:
             args.llvm_version = '11.0.0'
         log("Will use the version %s of LLVM libraries (libunwind, libc++)",
             args.llvm_version)
-
-    if args.local and (args.remote_build_server is not None or args.remote_build_dir is not None):
-        log("Forcing a local build")
-        args.remote_build_server = None
-        args.remote_build_dir = None
-
-    if (args.remote_build_server is None) != (args.remote_build_dir is None):
-        raise ValueError(
-            '--remote-build-server and --remote-build-dir have to be specified or unspecified '
-            'at the same time. Note that their default values are provided by corresponding '
-            'environment variables, YB_THIRDPARTY_REMOTE_BUILD_SERVER and '
-            'YB_THIRDPARTY_REMOTE_BUILD_DIR.')
-    if args.remote_build_dir is not None:
-        assert os.path.isabs(args.remote_build_dir), (
-            'Remote build directory path must be an absolute path: %s' % args.remote_build_dir)
 
     if args.multi_build_conf_name_pattern:
         args.multi_build = True
