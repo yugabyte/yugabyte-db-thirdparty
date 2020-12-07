@@ -35,7 +35,7 @@ from yugabyte_db_thirdparty.util import (
     shlex_join,
 )
 
-MAX_FETCH_ATTEMPTS = 10
+MAX_FETCH_ATTEMPTS = 20
 INITIAL_DOWNLOAD_RETRY_SLEEP_TIME_SEC = 1.0
 DOWNLOAD_RETRY_SLEEP_INCREASE_SEC = 0.5
 ALTERNATIVE_URL_PREFIX = 'https://downloads.yugabyte.com/yugabyte-db-thirdparty/'
