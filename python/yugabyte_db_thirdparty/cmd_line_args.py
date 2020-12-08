@@ -32,10 +32,13 @@ def parse_cmd_line_args() -> argparse.Namespace:
                         action='store_true',
                         help='Do not build ASAN and TSAN instrumented dependencies.')
     parser.add_argument('--clean',
-                        action='store_const',
-                        const=True,
+                        action='store_true',
                         default=False,
-                        help='Clean.')
+                        help='Clean, but keep downloads.')
+    parser.add_argument('--clean-downloads',
+                        action='store_true',
+                        default=False,
+                        help='Clean, including downloads.')
     parser.add_argument('--add_checksum',
                         help='Compute and add unknown checksums to %s' % CHECKSUM_FILE_NAME,
                         action='store_true')

@@ -25,10 +25,10 @@ from typing import List, Dict, Optional, Any
 from yugabyte_db_thirdparty.util import (
     mkdir_if_missing,
     PushDir,
-    log_and_run_cmd,
     YB_THIRDPARTY_DIR,
-    shlex_join,
+    log_and_run_cmd,
 )
+from yugabyte_db_thirdparty.string_util import shlex_join
 from yugabyte_db_thirdparty.custom_logging import log, convert_log_args_to_message, PrefixLogger
 from yugabyte_db_thirdparty.remote_build import copy_code_to
 

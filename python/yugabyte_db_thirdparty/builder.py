@@ -201,8 +201,8 @@ class Builder(BuilderInterface):
     def run(self) -> None:
         self.compiler_choice.set_compiler(
             'clang' if self.compiler_choice.use_only_clang() else 'gcc')
-        if self.args.clean:
-            self.fs_layout.clean(self.selected_dependencies)
+        if self.args.clean or self.args.clean_downloads:
+            self.fs_layout.clean(self.selected_dependencies, self.args.clean_downloads)
         self.prepare_out_dirs()
         os.environ['PATH'] = ':'.join([
                 os.path.join(self.fs_layout.tp_installed_common_dir, 'bin'),

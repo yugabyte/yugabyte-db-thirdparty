@@ -32,8 +32,8 @@ from yugabyte_db_thirdparty.util import (
     remove_path,
     YB_THIRDPARTY_DIR,
     which_must_exist,
-    shlex_join,
 )
+from yugabyte_db_thirdparty.string_util import shlex_join
 
 MAX_FETCH_ATTEMPTS = 20
 INITIAL_DOWNLOAD_RETRY_SLEEP_TIME_SEC = 1.0

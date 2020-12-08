@@ -23,9 +23,11 @@ from typing import Optional, List
 
 class FileSystemLayout:
     tp_build_dir: str
-    tp_download_dir: str
     tp_src_dir: str
+    tp_download_dir: str
     tp_installed_dir: str
+    tp_installed_common_dir: str
+    tp_installed_llvm7_common_dir: str
 
     def __init__(self) -> None:
         self.tp_build_dir = os.path.join(YB_THIRDPARTY_DIR, 'build')
@@ -45,7 +47,10 @@ class FileSystemLayout:
     def get_source_path(self, dep: Dependency) -> str:
         return os.path.join(self.tp_src_dir, dep.get_source_dir_basename())
 
-    def clean(self, selected_dependencies: List[Dependency]) -> None:
+    def clean(
+            self,
+            selected_dependencies: List[Dependency],
+            clean_downloads: bool) -> None:
         """
         TODO: deduplicate this vs. the clean_thirdparty.sh script. Possibly even remove the
         clean_thirdparty.sh script.
@@ -64,10 +69,11 @@ class FileSystemLayout:
                     log("Removing %s source: %s", dependency.name, src_dir)
                     remove_path(src_dir)
 
-            archive_path = self.get_archive_path(dependency)
-            if archive_path is not None:
-                log("Removing %s archive: %s", dependency.name, archive_path)
-                remove_path(archive_path)
+            if clean_downloads:
+                archive_path = self.get_archive_path(dependency)
+                if archive_path is not None:
+                    log("Removing %s archive: %s", dependency.name, archive_path)
+                    remove_path(archive_path)
 
     def get_build_stamp_path_for_dependency(self, dep: Dependency, build_type: str) -> str:
         return os.path.join(
