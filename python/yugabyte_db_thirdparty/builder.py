@@ -398,7 +398,7 @@ class Builder(BuilderInterface):
         remove_path('CMakeCache.txt')
         remove_path('CMakeFiles')
 
-        src_path = self.get_source_path(dep)
+        src_path = self.fs_layout.get_source_path(dep)
         if src_subdir_name is not None:
             src_path = os.path.join(src_path, src_subdir_name)
 
@@ -706,7 +706,7 @@ class Builder(BuilderInterface):
 
         self.download_manager.download_dependency(
             dep=dep,
-            src_path=self.get_source_path(dep),
+            src_path=self.fs_layout.get_source_path(dep),
             archive_path=self.fs_layout.get_archive_path(dep))
 
         if self.args.download_extract_only:
@@ -758,7 +758,7 @@ class Builder(BuilderInterface):
         new_build_stamp = self.get_build_stamp_for_dependency(dep)
 
         if dep.dir_name is not None:
-            src_dir = self.get_source_path(dep)
+            src_dir = self.fs_layout.get_source_path(dep)
             if not os.path.exists(src_dir):
                 log("Have to rebuild %s (%s): source dir %s does not exist",
                     dep.name, self.build_type, src_dir)
@@ -822,7 +822,7 @@ class Builder(BuilderInterface):
             out.write(stamp)
 
     def create_build_dir_and_prepare(self, dep: Dependency) -> str:
-        src_dir = self.get_source_path(dep)
+        src_dir = self.fs_layout.get_source_path(dep)
         if not os.path.isdir(src_dir):
             fatal("Directory '{}' does not exist".format(src_dir))
 
