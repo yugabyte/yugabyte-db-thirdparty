@@ -17,7 +17,8 @@ import json
 import os
 import platform
 import subprocess
-from typing import Optional, List, Set, Tuple, Dict
+import sys
+from typing import Optional, List, Set, Tuple, Dict, Any
 
 from build_definitions import BUILD_TYPE_COMMON, get_build_def_module, BUILD_TYPE_UNINSTRUMENTED, \
     BUILD_TYPE_CLANG_UNINSTRUMENTED, BUILD_TYPE_ASAN, BUILD_TYPE_TSAN, BUILD_TYPES, \
@@ -66,6 +67,7 @@ class Builder(BuilderInterface):
     download_manager: DownloadManager
     compiler_choice: CompilerChoice
     fs_layout: FileSystemLayout
+    license_report: List[Any]
 
     """
     This class manages the overall process of building third-party dependencies, including the set
@@ -75,6 +77,7 @@ class Builder(BuilderInterface):
         self.fs_layout = FileSystemLayout()
         self.linuxbrew_dir = None
         self.additional_allowed_shared_lib_paths = set()
+        self.license_report = []
 
     def parse_args(self) -> None:
         os.environ['YB_IS_THIRDPARTY_BUILD'] = '1'
@@ -478,6 +481,7 @@ class Builder(BuilderInterface):
         )
 
         for dep in self.selected_dependencies:
+            self.perform_pre_build_steps(dep)
             if (dep.build_group == build_group and
                     dep.should_build(self) and
                     self.should_rebuild_dependency(dep)):
@@ -690,11 +694,52 @@ class Builder(BuilderInterface):
             '-DCMAKE_POSITION_INDEPENDENT_CODE=ON'
         ]
 
-    def build_dependency(self, dep: Dependency) -> None:
+    def perform_pre_build_steps(self, dep: Dependency) -> None:
         log("")
         colored_log(YELLOW_COLOR, SEPARATOR)
         colored_log(YELLOW_COLOR, "Building %s (%s)", dep.name, self.build_type)
         colored_log(YELLOW_COLOR, SEPARATOR)
+
+        self.download_manager.download_dependency(
+            dep=dep,
+            src_path=self.fs_layout.get_source_path(dep),
+            archive_path=self.fs_layout.get_archive_path(dep))
+
+        if self.args.license_report:
+            notices: Dict[str, List[str]] = {}
+            src_path = os.path.abspath(self.fs_layout.get_source_path(dep))
+            for root, dirs, files in os.walk(src_path):
+                for name in files:
+                    if os.path.splitext(name)[0] in ['LICENSE', 'COPYING', 'NOTICE', 'CREDITS']:
+                        file_path = os.path.join(root, name)
+                        rel_path = os.path.relpath(
+                            os.path.abspath(file_path), src_path
+                        )
+
+                        log("Found copyright notice file: %s", file_path)
+                        with open(file_path) as input_file:
+                            notice = input_file.read()
+                        notice = notice.rstrip()
+                        if notice not in notices:
+                            notices[notice] = []
+                        notices[notice].append(rel_path)
+
+            self.license_report.append(
+                {
+                    "name": dep.name,
+                    "version": dep.version,
+                    "copyright_notices": [
+                        {
+                            "notice": notice,
+                            "files": sorted(files)
+                        }
+                        for notice, files in notices.items()
+                    ],
+                    "url": dep.download_url
+                }
+            )
+
+    def build_dependency(self, dep: Dependency) -> None:
 
         self.init_flags(dep)
 
@@ -703,11 +748,6 @@ class Builder(BuilderInterface):
         if self.build_type != BUILD_TYPE_COMMON:
             # Needed to find libunwind for Clang 10 when using compiler-rt.
             self.add_rpath(os.path.join(self.fs_layout.tp_installed_dir, BUILD_TYPE_COMMON, 'lib'))
-
-        self.download_manager.download_dependency(
-            dep=dep,
-            src_path=self.fs_layout.get_source_path(dep),
-            archive_path=self.fs_layout.get_archive_path(dep))
 
         if self.args.download_extract_only:
             log("Skipping build of dependency %s, build type %s, --download-extract-only is "

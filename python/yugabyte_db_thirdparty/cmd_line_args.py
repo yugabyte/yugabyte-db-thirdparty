@@ -132,6 +132,11 @@ def parse_cmd_line_args() -> argparse.Namespace:
              'This implies --multi-build.')
 
     parser.add_argument(
+        '--license-report',
+        action='store_true',
+        help='Generate a license report.')
+
+    parser.add_argument(
         'dependencies',
         nargs=argparse.REMAINDER,
         help='Dependencies to build.')
