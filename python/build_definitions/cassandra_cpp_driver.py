@@ -33,7 +33,8 @@ class CassandraCppDriverDependency(Dependency):
     def build(self, builder: BuilderInterface) -> None:
         if not is_mac():
             # TODO: refactor to polymorphism.
-            builder.prepend_rpath(os.path.join(builder.tp_installed_common_dir, "lib"))
+            builder.prepend_rpath(os.path.join(
+                builder.fs_layout.tp_installed_common_dir, "lib"))
 
         # FindOpenSSL.cmake in cassandra-cpp-driver is buggy (e.g. it cannot recognize the version
         # 1.1.1g of OpenSSL, because it has a regexp hardcoded with [a-f], as if for hex characters,
