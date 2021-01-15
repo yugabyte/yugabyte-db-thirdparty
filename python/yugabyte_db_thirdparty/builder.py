@@ -902,7 +902,7 @@ class Builder(BuilderInterface):
             flags.append(flag)
 
     def get_openssl_dir(self) -> str:
-        return os.path.join(self.tp_installed_common_dir)
+        return os.path.join(self.fs_layout.tp_installed_common_dir)
 
     def get_openssl_related_cmake_args(self) -> List[str]:
         """
