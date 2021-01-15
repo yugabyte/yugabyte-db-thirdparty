@@ -26,16 +26,17 @@ class Llvm1xLibUnwindDependency(Llvm1xPartDependencyBase):
 
     def build(self, builder: BuilderInterface) -> None:
         src_subdir_name = 'libunwind'
+        source_path = builder.fs_layout.get_source_path(self)
         builder.build_with_cmake(
             self,
             extra_args=[
                 '-DCMAKE_BUILD_TYPE=Release',
                 '-DBUILD_SHARED_LIBS=ON',
                 '-DLIBUNWIND_USE_COMPILER_RT=ON',
-                '-DLLVM_PATH=%s' % builder.get_source_path(self),
+                '-DLLVM_PATH=%s' % source_path,
             ],
             src_subdir_name=src_subdir_name)
-        src_include_path = os.path.join(builder.get_source_path(self), src_subdir_name, 'include')
+        src_include_path = os.path.join(source_path, src_subdir_name, 'include')
         dest_include_path = os.path.join(builder.prefix, 'include')
         for header_name in ['libunwind.h', 'unwind.h', '__libunwind_config.h']:
             copy_file_and_log(

@@ -12,6 +12,8 @@
 
 from typing import List, Optional, TYPE_CHECKING
 
+from yugabyte_db_thirdparty.file_system_layout import FileSystemLayout
+
 if TYPE_CHECKING:
     from .dependency import Dependency
     from .compiler_choice import CompilerChoice
@@ -36,6 +38,7 @@ class BuilderInterface:
     tp_dir: str
     build_type: str
     compiler_choice: 'CompilerChoice'
+    fs_layout: FileSystemLayout
 
     def build_with_configure(
             self,
