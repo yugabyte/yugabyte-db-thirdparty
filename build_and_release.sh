@@ -51,28 +51,32 @@ log "YB_LINUXBREW_DIR=${YB_LINUXBREW_DIR:-undefined}"
 
 echo "Bash version: $BASH_VERSION"
 
-(
-  set -x
-  cmake --version
-  automake --version
-  autoconf --version
-  autoreconf --version
-  pkg-config --version
+tools_to_show_versions=(
+  cmake
+  automake
+  autoconf
+  autoreconf
+  pkg-config
 )
 
 if "$is_mac"; then
-  ( set -x; shasum --version )
+  tools_to_show_versions+=( shasum )
 elif "$is_centos"; then
-  (
-    set -x
-    sha256sum --version
-    libtool --version
-  )
+  tools_to_show_versions+=( sha256sum libtool )
 else
-  (
-    set -x
-    sha256sum --version
-  )
+  tools_to_show_versions+=( sha256sum )
+fi
+
+for tool_name in "${tools_to_show_versions[@]}"; do
+  echo "$tool_name version:"
+  ( set -x; "$tool_name" --version )
+  echo
+done
+
+if cmake --version | grep -E "^cmake version 3.19.1$"; then
+  log "CMake 3.19.1 is not supported"
+  log "See https://gitlab.kitware.com/cmake/cmake/-/issues/21529 for more details."
+  exit 1
 fi
 
 # -------------------------------------------------------------------------------------------------

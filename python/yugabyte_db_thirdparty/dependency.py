@@ -27,6 +27,7 @@ class Dependency:
     patch_strip: Optional[int]
     post_patch: List[str]
     copy_sources: bool
+    license: Optional[str]
 
     def __init__(
             self,
@@ -34,7 +35,8 @@ class Dependency:
             version: str,
             url_pattern: Optional[str],
             build_group: str,
-            archive_name_prefix: Optional[str] = None) -> None:
+            archive_name_prefix: Optional[str] = None,
+            license: Optional[str] = None) -> None:
         self.name = name
         self.version = version
         self.dir_name = '{}-{}'.format(name, version)
@@ -52,6 +54,7 @@ class Dependency:
         self.patch_strip = None
         self.post_patch = []
         self.copy_sources = False
+        self.license = license
 
         if build_group not in VALID_BUILD_GROUPS:
             raise ValueError("Invalid build group: %s, should be one of: %s" % (

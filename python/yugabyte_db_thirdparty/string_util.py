@@ -12,6 +12,8 @@
 #
 
 import re
+import shlex
+
 from typing import Set, Optional, Any, List
 
 
@@ -54,3 +56,10 @@ def normalize_cmd_arg(arg: Any) -> Any:
 
 def normalize_cmd_args(args: List[Any]) -> List[str]:
     return [normalize_cmd_arg(arg) for arg in args]
+
+
+def shlex_join(args: List[str]) -> str:
+    """
+    We need this to be compatible with Python 3.7.
+    """
+    return ' '.join(shlex.quote(arg) for arg in args)

@@ -33,7 +33,8 @@ class OpenSSLDependency(Dependency):
             configure_cmd = [
                 '/bin/bash', './Configure', 'darwin64-x86_64-cc'] + common_configure_options
         else:
-            install_path = os.path.join(builder.tp_installed_common_dir, "lib")
+            install_path = os.path.join(
+                builder.fs_layout.tp_installed_common_dir, "lib")
             configure_cmd = ['./config'] + common_configure_options + ['-Wl,-rpath=' + install_path]
 
         builder.build_with_configure(

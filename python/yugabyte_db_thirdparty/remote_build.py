@@ -29,8 +29,8 @@ from yugabyte_db_thirdparty.util import (
     log_and_get_cmd_output,
     PushDir,
     YB_THIRDPARTY_DIR,
-    shlex_join,
 )
+from yugabyte_db_thirdparty.string_util import shlex_join
 
 
 def get_current_git_branch_name() -> str:

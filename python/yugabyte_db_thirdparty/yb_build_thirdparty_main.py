@@ -24,6 +24,7 @@ from yugabyte_db_thirdparty.custom_logging import (
 from yugabyte_db_thirdparty.multi_build import MultiBuilder
 from yugabyte_db_thirdparty.remote_build import build_remotely
 from yugabyte_db_thirdparty.shared_library_checking import get_lib_tester
+import json
 
 import_submodules(build_definitions)
 
@@ -54,12 +55,16 @@ def main() -> None:
 
     builder.finish_initialization()
     builder.run()
+    if builder.args.license_report:
+        with open('license_report.json', 'w') as output_file:
+            json.dump(builder.license_report, output_file, indent=2)
 
-    # Check that the executables and libraries we have built don't depend on any unexpected dynamic
-    # libraries installed on this system.
-    lib_tester = get_lib_tester()
-    lib_tester.add_allowed_shared_lib_paths(builder.additional_allowed_shared_lib_paths)
-    lib_tester.run()
+    if not builder.args.download_extract_only:
+        # Check that the executables and libraries we have built don't depend on any unexpected
+        # dynamic libraries installed on this system.
+        lib_tester = get_lib_tester()
+        lib_tester.add_allowed_shared_lib_paths(builder.additional_allowed_shared_lib_paths)
+        lib_tester.run()
 
 
 if __name__ == "__main__":

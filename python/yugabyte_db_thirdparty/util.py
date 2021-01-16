@@ -19,7 +19,8 @@ import shlex
 import subprocess
 
 from yugabyte_db_thirdparty.custom_logging import log, fatal
-from yugabyte_db_thirdparty.string_util import normalize_cmd_args
+from yugabyte_db_thirdparty.string_util import normalize_cmd_args, shlex_join
+
 from typing import List, Optional, Any, Dict, Set
 
 
@@ -192,29 +193,6 @@ class EnvVarContext:
             dict_set_or_del(os.environ, env_var_name, saved_value)
 
 
-def shlex_join(args: List[str]) -> str:
-    """
-    We need this to be compatible with Python 3.7.
-    """
-    return ' '.join(shlex.quote(arg) for arg in args)
-
-
-def log_cmd_to_run(args: List[str]) -> None:
-    log("Running command in directory %s: %s", os.getcwd(), shlex_join(args))
-
-
-def log_and_run_cmd(args: List[Any]) -> None:
-    args = normalize_cmd_args(args)
-    log_cmd_to_run(args)
-    subprocess.check_call(args)
-
-
-def log_and_get_cmd_output(args: List[Any]) -> str:
-    args = normalize_cmd_args(args)
-    log_cmd_to_run(args)
-    return subprocess.check_output(args).decode('utf-8')
-
-
 def read_file(file_path: str) -> str:
     with open(file_path) as input_file:
         return input_file.read()
@@ -227,3 +205,19 @@ def add_path_entry(new_path_entry: str) -> None:
     existing_path_entries = os.environ['PATH'].split(':')
     if new_path_entry not in existing_path_entries:
         os.environ['PATH'] = '%s:%s' % (new_path_entry, os.environ['PATH'])
+
+
+def _log_cmd_to_run(args: List[str]) -> None:
+    log("Running command: %s (current directory: %s)", shlex_join(args), os.getcwd())
+
+
+def log_and_run_cmd(args: List[Any]) -> None:
+    args = normalize_cmd_args(args)
+    _log_cmd_to_run(args)
+    subprocess.check_call(args)
+
+
+def log_and_get_cmd_output(args: List[Any]) -> str:
+    args = normalize_cmd_args(args)
+    _log_cmd_to_run(args)
+    return subprocess.check_output(args).decode('utf-8')

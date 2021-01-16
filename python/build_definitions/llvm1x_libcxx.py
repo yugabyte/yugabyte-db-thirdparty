@@ -63,7 +63,7 @@ class Llvm1xLibCxxDependencyBase(Llvm1xPartDependencyBase):
         return os.path.join(builder.prefix, 'libcxx')
 
     def build(self, builder: BuilderInterface) -> None:
-        llvm_src_path = builder.get_source_path(self)
+        llvm_src_path = builder.fs_layout.get_source_path(self)
 
         args = [
             '-DCMAKE_BUILD_TYPE=Release',
@@ -91,7 +91,7 @@ class Llvm1xLibCxxAbiDependency(Llvm1xLibCxxDependencyBase):
         return 'libcxxabi'
 
     def get_additional_cmake_args(self, builder: BuilderInterface) -> List[str]:
-        llvm_src_path = builder.get_source_path(self)
+        llvm_src_path = builder.fs_layout.get_source_path(self)
         return [
             '-DLIBCXXABI_LIBCXX_PATH=%s' % os.path.join(llvm_src_path, 'libcxx'),
             '-DLIBCXXABI_USE_COMPILER_RT=ON',
@@ -100,7 +100,8 @@ class Llvm1xLibCxxAbiDependency(Llvm1xLibCxxDependencyBase):
 
     def build(self, builder: BuilderInterface) -> None:
         super().build(builder)
-        src_include_path = os.path.join(builder.get_source_path(self), 'libcxxabi', 'include')
+        src_include_path = os.path.join(
+            builder.fs_layout.get_source_path(self), 'libcxxabi', 'include')
         # Put C++ ABI headers together with libc++ headers.
         dest_include_path = os.path.join(self.get_install_prefix(builder), 'include', 'c++', 'v1')
         mkdir_if_missing(dest_include_path)

@@ -15,7 +15,9 @@ import sys
 import subprocess
 import traceback
 import logging
-from typing import List, Any, NoReturn
+
+from yugabyte_db_thirdparty.string_util import shlex_join
+from typing import List, Any, NoReturn, Pattern, Optional
 
 
 g_logging_configured = False
@@ -79,14 +81,22 @@ def print_line_with_colored_prefix(prefix: str, line: str) -> None:
     log("%s[%s] %s%s", CYAN_COLOR, prefix, NO_COLOR, line.rstrip())
 
 
-def log_output(prefix: str, args: List[Any], log_cmd: bool = True) -> None:
+def log_output(
+        prefix: str,
+        args: List[Any],
+        disallowed_pattern: Optional[Pattern] = None) -> None:
+    cmd_str = shlex_join(args)
     try:
         print_line_with_colored_prefix(
-            prefix, "Running command: {} (current directory: {})".format(
-                args, os.getcwd()))
+            prefix, "Running command: {} (current directory: {})".format(cmd_str, os.getcwd()))
         process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         assert process.stdout is not None
         for line in process.stdout:
+            if disallowed_pattern and disallowed_pattern.search(line):
+                raise RuntimeError(
+                    "Output line from command [[ {} ]] contains a disallowed pattern: {}".format(
+                        cmd_str, disallowed_pattern))
+
             print_line_with_colored_prefix(prefix, line.decode('utf-8'))
 
         process.stdout.close()

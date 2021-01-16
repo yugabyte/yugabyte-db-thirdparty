@@ -34,7 +34,8 @@ class BoostDependency(Dependency):
             name='boost',
             version='1.69.0',
             url_pattern='https://dl.bintray.com/boostorg/release/{0}/source/boost_{1}.tar.bz2',
-            build_group=BUILD_GROUP_INSTRUMENTED)
+            build_group=BUILD_GROUP_INSTRUMENTED,
+            license='Boost Software License 1.0')
         self.dir = '{}_{}'.format(self.name, self.underscored_version)
         self.copy_sources = True
         self.patches = ['boost-1-69-remove-pending-integer_log2-include.patch',
