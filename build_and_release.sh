@@ -18,7 +18,9 @@ install_cmake_on_macos() {
 https://github.com/Kitware/CMake/releases/download/\
 v${cmake_version}/${cmake_tarball_name}
   local top_dir=/opt/yb-build/cmake
-  mkdir -p "$top_dir"
+  sudo mkdir -p "$top_dir"
+  sudo chown "$USER" "$top_dir"
+  sudo chmod 0755 "$top_dir"
   local old_dir=$PWD
   cd "$top_dir"
   curl -LO "$cmake_url"
