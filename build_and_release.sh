@@ -5,43 +5,6 @@ set -euo pipefail
 # shellcheck source=./yb-thirdparty-common.sh
 . "${BASH_SOURCE%/*}/yb-thirdparty-common.sh"
 
-install_cmake_on_macos() {
-  # Download the version of CMake that we need. CMake 3.19.2, which is the latest as of 01/05/2021,
-  # has a bug that prevents the build from working.
-  #
-  # TODO: link to the exact issue.
-  #
-  local cmake_version=3.18.5
-  local cmake_dir_name=cmake-${cmake_version}-Darwin-x86_64
-  local cmake_tarball_name=${cmake_dir_name}.tar.gz
-  local cmake_url=\
-https://github.com/Kitware/CMake/releases/download/\
-v${cmake_version}/${cmake_tarball_name}
-  local top_dir=/opt/yb-build/cmake
-  sudo mkdir -p "$top_dir"
-  sudo chown "$USER" "$top_dir"
-  sudo chmod 0755 "$top_dir"
-  local old_dir=$PWD
-  cd "$top_dir"
-  curl -LO "$cmake_url"
-  local actual_sha256
-  actual_sha256=$( shasum -a 256 "$cmake_tarball_name" | awk '{print $1}' )
-  expected_sha256="49b5ad3bbe0464271ad16c2aafa29d8917b57fb663d2558b028900b4b904d2f1"
-  if [[ $actual_sha256 != "$expected_sha256" ]]; then
-    echo >&2 "Wrong SHA256 for CMake: $actual_sha256"
-    exit 1
-  fi
-  tar xzf "$cmake_tarball_name"
-  local cmake_bin_path=$PWD/$cmake_dir_name/CMake.app/Contents/bin
-  if [[ ! -d $cmake_bin_path ]]; then
-    echo >&2 "Directory does not exist: $cmake_bin_path"
-    exit 1
-  fi
-  export PATH=$cmake_bin_path:$PATH
-  rm -f "$cmake_tarball_name"
-  cd "$old_dir"
-}
-
 # -------------------------------------------------------------------------------------------------
 # OS detection
 # -------------------------------------------------------------------------------------------------
@@ -88,29 +51,32 @@ log "YB_LINUXBREW_DIR=${YB_LINUXBREW_DIR:-undefined}"
 
 echo "Bash version: $BASH_VERSION"
 
-(
-  set -x
-  cmake --version
-  automake --version
-  autoconf --version
-  autoreconf --version
-  pkg-config --version
+tools_to_show_versions=(
+  cmake
+  automake
+  autoconf
+  autoreconf
+  pkg-config
 )
 
 if "$is_mac"; then
-  ( set -x; shasum --version )
-  install_cmake_on_macos
+  tools_to_show_versions+=( shasum )
 elif "$is_centos"; then
-  (
-    set -x
-    sha256sum --version
-    libtool --version
-  )
+  tools_to_show_versions+=( sha256sum libtool )
 else
-  (
-    set -x
-    sha256sum --version
-  )
+  tools_to_show_versions+=( sha256sum )
+fi
+
+for tool_name in "${tools_to_show_versions[@]}"; do
+  echo "$tool_name version:"
+  ( set -x; "$tool_name" --version )
+  echo
+done
+
+if cmake --version | grep -E "^cmake version 3.19.1$"; then
+  log "CMake 3.19.1 is not supported"
+  log "See https://gitlab.kitware.com/cmake/cmake/-/issues/21529 for more details."
+  exit 1
 fi
 
 # -------------------------------------------------------------------------------------------------
