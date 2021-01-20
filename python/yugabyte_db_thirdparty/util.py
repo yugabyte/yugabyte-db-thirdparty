@@ -17,11 +17,14 @@ import hashlib
 import shutil
 import shlex
 import subprocess
+import time
+import datetime
+import random
 
 from yugabyte_db_thirdparty.custom_logging import log, fatal
 from yugabyte_db_thirdparty.string_util import normalize_cmd_args, shlex_join
 
-from typing import List, Optional, Any, Dict, Set
+from typing import List, Optional, Any, Dict, Set, Tuple
 
 
 def _detect_yb_thirdparty_dir() -> str:
@@ -221,3 +224,49 @@ def log_and_get_cmd_output(args: List[Any]) -> str:
     args = normalize_cmd_args(args)
     _log_cmd_to_run(args)
     return subprocess.check_output(args).decode('utf-8')
+
+
+def get_seconds_timestamp_for_file_name() -> str:
+    """
+    Returns the current timestamp at a second-level granularity in a format suitable for inclusion
+    in file and directory names.
+    """
+    return datetime.datetime.now().strftime('%Y-%m-%dT%H_%M_%S')
+
+
+def get_random_suffix_for_file_name() -> str:
+    """
+    Returns a random 9-digit integer.
+
+    >>> len(get_random_suffix_for_file_name())
+    9
+    """
+    return str(random.randint(10 ** 8, 10 ** 9 - 1))
+
+
+def get_temporal_randomized_file_name_suffix() -> str:
+    return "%s-%s" % (
+        get_seconds_timestamp_for_file_name(),
+        get_random_suffix_for_file_name()
+    )
+
+
+def split_archive_file_name(archive_file_name: str) -> Tuple[str, str]:
+    """
+    Split the extension from the archive name. This is different from os.path.splitext because
+    '.tar.gz' is considered an indivisible extension, while os.path.splitext would only consider
+    '.gz' an extension.
+
+    >>> split_archive_file_name('foo.tar.gz')
+    ('foo', '.tar.gz')
+    >>> split_archive_file_name('foo.tar.bz2')
+    ('foo', '.tar.bz2')
+    >>> split_archive_file_name('my.archive.zip')
+    ('my.archive', '.zip')
+    >>> split_archive_file_name('somefile')
+    ('somefile', '')
+    """
+    file_name, extension = os.path.splitext(archive_file_name)
+    if file_name.endswith('.tar'):
+        return file_name[:-4], '.tar' + extension
+    return file_name, extension
