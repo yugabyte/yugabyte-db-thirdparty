@@ -44,7 +44,7 @@ def main() -> None:
 
     builder = Builder()
     builder.parse_args()
-    if builder.args.remote_build_server and builder.args.remote_build_dir:
+    if builder.remote_build:
         build_remotely(
             remote_server=builder.args.remote_build_server,
             remote_build_code_path=builder.args.remote_build_dir)

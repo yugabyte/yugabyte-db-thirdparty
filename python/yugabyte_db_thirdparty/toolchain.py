@@ -36,12 +36,15 @@ class Toolchain:
         self.toolchain_root = toolchain_root
 
     def get_compiler_type(self) -> str:
+        candidate_paths = []
         for compiler_type_candidate in ['clang', 'gcc']:
-            if os.path.exists(
-                    os.path.join(self.toolchain_root, 'bin', compiler_type_candidate)):
+            compiler_path = os.path.join(self.toolchain_root, 'bin', compiler_type_candidate)
+            if os.path.exists(compiler_path):
                 return compiler_type_candidate
+            candidate_paths.append(compiler_path)
         raise RuntimeError(
-            f"Cannot determine compiler type for toolchain at '{self.toolchain_root}'")
+            f"Cannot determine compiler type for toolchain at '{self.toolchain_root}'. "
+            f"Considered paths: {candidate_paths}.")
 
     def write_url_and_path_files(self) -> None:
         write_file(os.path.join(YB_THIRDPARTY_DIR, 'toolchain_url.txt'),

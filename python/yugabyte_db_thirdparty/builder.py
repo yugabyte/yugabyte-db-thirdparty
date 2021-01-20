@@ -70,6 +70,7 @@ class Builder(BuilderInterface):
     fs_layout: FileSystemLayout
     license_report: List[Any]
     toolchain: Optional[Toolchain]
+    remote_build: bool
 
     """
     This class manages the overall process of building third-party dependencies, including the set
@@ -83,6 +84,11 @@ class Builder(BuilderInterface):
 
     def parse_args(self) -> None:
         self.args = parse_cmd_line_args()
+
+        self.remote_build = self.args.remote_build_server and self.args.remote_build_dir
+        if self.remote_build:
+            return
+
         if self.args.make_parallelism:
             os.environ['YB_MAKE_PARALLELISM'] = str(self.args.make_parallelism)
 

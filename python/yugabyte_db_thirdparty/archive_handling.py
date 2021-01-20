@@ -10,7 +10,9 @@
 # or implied. See the License for the specific language governing permissions and limitations
 # under the License.
 
-from typing import Optional
+import os
+
+from typing import Optional, Tuple
 
 
 TAR_EXTRACT = 'tar --no-same-owner -xf {}'
@@ -33,3 +35,26 @@ def make_archive_name(name: str, version: str, download_url: Optional[str]) -> O
         if download_url.endswith(ext):
             return '{}-{}{}'.format(name, version, ext)
     return None
+
+
+def split_archive_file_name(archive_file_name: str) -> Tuple[str, str]:
+    """
+    Split the extension from the archive name. This is different from os.path.splitext because e.g.
+    '.tar.gz' is considered an indivisible extension, while os.path.splitext would only consider
+    '.gz' an extension.
+
+    >>> split_archive_file_name('foo.tar.gz')
+    ('foo', '.tar.gz')
+    >>> split_archive_file_name('foo.tar.bz2')
+    ('foo', '.tar.bz2')
+    >>> split_archive_file_name('my.archive.zip')
+    ('my.archive', '.zip')
+    >>> split_archive_file_name('somefile')
+    ('somefile', '')
+    """
+    for archive_extension in ARCHIVE_TYPES:
+        if archive_file_name.endswith(archive_extension):
+            return (archive_file_name[:-len(archive_extension)],
+                    archive_file_name[-len(archive_extension):])
+
+    return os.path.splitext(archive_file_name)

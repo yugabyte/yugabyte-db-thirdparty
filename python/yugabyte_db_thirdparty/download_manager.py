@@ -34,9 +34,10 @@ from yugabyte_db_thirdparty.util import (
     YB_THIRDPARTY_DIR,
     which_must_exist,
     get_temporal_randomized_file_name_suffix,
-    split_archive_file_name
+    read_file
 )
 from yugabyte_db_thirdparty.string_util import shlex_join
+from yugabyte_db_thirdparty.archive_handling import split_archive_file_name
 
 MAX_FETCH_ATTEMPTS = 20
 INITIAL_DOWNLOAD_RETRY_SLEEP_TIME_SEC = 1.0
@@ -354,13 +355,15 @@ class DownloadManager:
 
         mkdir_if_missing(dest_parent_dir)
 
+        tmp_suffix = ".tmp-%s" % get_temporal_randomized_file_name_suffix()
+
         archive_temporary_dest_path = os.path.join(
             dest_parent_dir,
-            "%s.tmp-%s%s" % (
+            "".join([
                 dest_dir_name,
-                get_temporal_randomized_file_name_suffix(),
+                tmp_suffix,
                 archive_extension
-            )
+            ])
         )
         checksum_suffix = '.sha256'
         archive_temporary_dest_checksum_path = archive_temporary_dest_path + checksum_suffix
@@ -380,11 +383,30 @@ class DownloadManager:
                 enable_using_alternative_url=False,
                 expected_checksum=expected_checksum)
 
-            self.extract_archive(
-                archive_file_name=archive_temporary_dest_path,
-                out_dir=toolchain_dest_dir_path,
-                out_name=dest_dir_name
-            )
+            if dest_dir_name.startswith('linuxbrew'):
+                dest_dir_name_tmp = dest_dir_name + tmp_suffix
+                self.extract_archive(
+                    archive_file_name=archive_temporary_dest_path,
+                    out_dir=dest_parent_dir,
+                    out_name=dest_dir_name_tmp
+                )
+                orig_brew_home = read_file(
+                    os.path.join(dest_parent_dir, dest_dir_name_tmp, 'ORIG_BREW_HOME')
+                ).strip()
+                os.rename(os.path.join(dest_parent_dir, dest_dir_name_tmp), orig_brew_home)
+                os.symlink(os.path.basename(orig_brew_home), toolchain_dest_dir_path)
+            else:
+                self.extract_archive(
+                    archive_file_name=archive_temporary_dest_path,
+                    out_dir=dest_parent_dir,
+                    out_name=dest_dir_name
+                )
+
+            if not os.path.isdir(toolchain_dest_dir_path):
+                raise RuntimeError(
+                    f"Extracting the archive downloaded from {toolchain_url} did not create "
+                    f"directory '{toolchain_dest_dir_path}'.")
+
         finally:
             for path_to_remove in [
                 archive_temporary_dest_path,
