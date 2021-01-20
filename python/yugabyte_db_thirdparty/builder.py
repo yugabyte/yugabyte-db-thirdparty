@@ -95,6 +95,7 @@ class Builder(BuilderInterface):
                 self.download_manager, self.args.toolchain)
             compiler_prefix = toolchain.toolchain_root
             single_compiler_type = toolchain.get_compiler_type()
+            toolchain.write_url_and_path_files()
         else:
             compiler_prefix = self.args.compiler_prefix
             single_compiler_type = self.args.single_compiler_type
