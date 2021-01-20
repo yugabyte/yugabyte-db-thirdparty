@@ -18,6 +18,7 @@ import os
 from yugabyte_db_thirdparty.checksums import CHECKSUM_FILE_NAME
 from yugabyte_db_thirdparty.os_detection import is_centos, is_mac
 from yugabyte_db_thirdparty.util import log
+from yugabyte_db_thirdparty.toolchain import TOOLCHAIN_TYPES
 from build_definitions import BUILD_TYPES
 
 
@@ -137,6 +138,11 @@ def parse_cmd_line_args() -> argparse.Namespace:
         help='Generate a license report.')
 
     parser.add_argument(
+        '--toolchain',
+        help='Automatically download, install and use the given toolchain',
+        choices=TOOLCHAIN_TYPES)
+
+    parser.add_argument(
         'dependencies',
         nargs=argparse.REMAINDER,
         help='Dependencies to build.')
@@ -180,6 +186,16 @@ def parse_cmd_line_args() -> argparse.Namespace:
             raise ValueError(
                 "--devtoolset is not compatible with compiler type: %s" % args.single_compiler_type)
         args.single_compiler_type = 'gcc'
+
+    if args.toolchain:
+        if args.devtoolset:
+            raise ValueError("--devtoolset and --toolchain are incompatible")
+
+        if args.compiler_prefix:
+            raise ValueError("--compiler-prefix and --toolchain are incompatible")
+
+        if args.compiler_suffix:
+            raise ValueError("--compiler-suffix and --toolchain are incompatible")
 
     if args.llvm_version is None:
         if args.compiler_suffix == '-10':

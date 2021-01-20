@@ -34,17 +34,6 @@ log "YB_BUILD_THIRDPARTY_ARGS: ${YB_BUILD_THIRDPARTY_ARGS:-undefined}"
 YB_BUILD_THIRDPARTY_EXTRA_ARGS=${YB_BUILD_THIRDPARTY_EXTRA_ARGS:-}
 log "YB_BUILD_THIRDPARTY_EXTRA_ARGS: ${YB_BUILD_THIRDPARTY_EXTRA_ARGS:-undefined}"
 
-if [[ -n ${YB_LINUXBREW_DIR:-} ]]; then
-  if "$is_mac"; then
-    log "Un-setting YB_LINUXBREW_DIR on macOS"
-    unset YB_LINUXBREW_DIR
-  elif [[ $YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX != *linuxbrew* ]]; then
-    log "Un-setting YB_LINUXBREW_DIR for build name $YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX"
-    unset YB_LINUXBREW_DIR
-  fi
-fi
-log "YB_LINUXBREW_DIR=${YB_LINUXBREW_DIR:-undefined}"
-
 # -------------------------------------------------------------------------------------------------
 # Installed tools
 # -------------------------------------------------------------------------------------------------
@@ -131,56 +120,6 @@ fi
   git remote set-url origin "$origin_url"
 )
 
-if "$is_centos" && [[ $YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX == *linuxbrew* ]]; then
-  # Grab a recent URL from https://github.com/YugaByte/brew-build/releases
-  brew_url=$(<linuxbrew_url.txt)
-  if [[ $brew_url != https://*.tar.gz ]]; then
-    fatal "Expected the pre-built Homebrew/Linuxbrew URL to be of the form https://*.tar.gz," \
-          "found: $brew_url"
-  fi
-  brew_tarball_name=${brew_url##*/}
-  brew_dir_name=${brew_tarball_name%.tar.gz}
-  brew_parent_dir=/opt/yb-build/brew
-
-  export YB_LINUXBREW_DIR=$brew_parent_dir/$brew_dir_name
-  if [[ -d $YB_LINUXBREW_DIR ]]; then
-    log "Homebrew/Linuxbrew directory already exists at $YB_LINUXBREW_DIR"
-  else
-    log "Downloading and installing Homebrew/Linuxbrew into a subdirectory of $brew_parent_dir"
-    (
-      set -x
-      mkdir -p "$brew_parent_dir"
-      cd "$brew_parent_dir"
-      curl --silent -LO "$brew_url"
-      time tar xzf "$brew_tarball_name"
-    )
-
-    expected_sha256=$( curl --silent -L "$brew_url.sha256" | awk '{print $1}' )
-    actual_sha256=$(
-      cd "$brew_parent_dir"
-      sha256sum "$brew_tarball_name" | awk '{print $1}'
-    )
-    if [[ $expected_sha256 != "$actual_sha256" ]]; then
-      fatal "Invalid SHA256 sum of the Linuxbrew archive: $actual_sha256, expected:" \
-            "$expected_sha256"
-    fi
-
-    log "Downloaded and installed Homebrew/Linuxbrew to $YB_LINUXBREW_DIR"
-    if [[ ! -d $YB_LINUXBREW_DIR ]]; then
-      fatal "Directory $YB_LINUXBREW_DIR still does not exist"
-    fi
-
-    log "Running post_install.sh"
-    (
-      cd "$YB_LINUXBREW_DIR"
-      time ./post_install.sh
-    )
-  fi
-
-  log "Linuxbrew gcc version:"
-  ( set -x; "$YB_LINUXBREW_DIR/bin/gcc" --version )
-fi
-
 echo "Building YugabyteDB third-party code in $repo_dir"
 
 echo "Current directory"
@@ -231,9 +170,6 @@ cd "$build_dir_parent"
 
 archive_tarball_name=$archive_dir_name.tar.gz
 archive_tarball_path=$PWD/$archive_tarball_name
-if [[ -n ${YB_LINUXBREW_DIR:-} ]]; then
-  echo "$YB_LINUXBREW_DIR" >linuxbrew_path.txt
-fi
 
 log "Creating archive: $archive_tarball_name"
 (

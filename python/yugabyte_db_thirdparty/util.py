@@ -201,6 +201,11 @@ def read_file(file_path: str) -> str:
         return input_file.read()
 
 
+def write_file(file_path: str, data: str) -> None:
+    with open(file_path, 'w') as output_file:
+        output_file.write(data)
+
+
 def add_path_entry(new_path_entry: str) -> None:
     """
     Adds a new PATH entry in front of the PATH environment variable, if it is not already present.

@@ -27,6 +27,9 @@ from yugabyte_db_thirdparty.util import (
     YB_THIRDPARTY_DIR,
     add_path_entry,
 )
+from yugabyte_db_thirdparty.compiler_identification import (
+    CompilerIdentification, identify_compiler
+)
 
 
 class CompilerChoice:
@@ -40,6 +43,8 @@ class CompilerChoice:
     linuxbrew_dir: Optional[str]
     use_compiler_wrapper: bool
     use_ccache: bool
+    cc_identification: CompilerIdentification
+    cxx_identification: CompilerIdentification
 
     def __init__(
             self,
@@ -55,6 +60,10 @@ class CompilerChoice:
         self.devtoolset = devtoolset
         self.use_compiler_wrapper = use_compiler_wrapper
         self.use_ccache = use_ccache
+        self.linuxbrew_dir = None
+
+        if self.compiler_prefix and os.path.basename(self.compiler_prefix).startswith('linuxbrew'):
+            self.linuxbrew_dir = self.compiler_prefix
 
     def detect_linuxbrew(self) -> None:
         if (not is_linux() or
@@ -225,3 +234,15 @@ class CompilerChoice:
         else:
             os.environ['CC'] = c_compiler
             os.environ['CXX'] = cxx_compiler
+
+        self.cc_identification = identify_compiler(c_compiler)
+        self.cxx_identification = identify_compiler(cxx_compiler)
+        if not self.cc_identification.is_compatible_with(self.cxx_identification):
+            raise RuntimeError(
+                "C compiler and C++ compiler look incompatible. "
+                f"C compiler: {self.cc_identification}, "
+                f"C++ compiler: {self.cxx_identification}, "
+            )
+
+        self.cc_identification.check_if_acceptable()
+        self.cxx_identification.check_if_acceptable()

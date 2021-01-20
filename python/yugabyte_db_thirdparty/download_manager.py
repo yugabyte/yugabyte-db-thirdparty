@@ -153,7 +153,8 @@ class DownloadManager:
                           "SHA-256 sum (64 hex characters).", sum, fname, self.checksum_file_path)
                 self.filename2checksum[fname] = sum
 
-    def get_expected_checksum(self, filename: str, downloaded_path: str) -> str:
+    def get_expected_checksum_and_maybe_add_to_file(
+            self, filename: str, downloaded_path: str) -> str:
         if filename not in self.filename2checksum:
             if self.should_add_checksum:
                 with open(self.checksum_file_path, 'rt') as inp:
@@ -192,7 +193,7 @@ class DownloadManager:
             # so that we would still download the file even if we don't know the checksum, making it
             # easier to add new third-party dependencies.
             if expected_checksum is None:
-                expected_checksum = self.get_expected_checksum(
+                expected_checksum = self.get_expected_checksum_and_maybe_add_to_file(
                     file_name, downloaded_path=file_path)
             if self.verify_checksum(file_path, expected_checksum):
                 log("No need to re-download %s: checksum already correct", file_name)
@@ -248,7 +249,8 @@ class DownloadManager:
             fatal("Downloaded '%s' but but unable to find '%s'", url, file_path)
         if verify_checksum:
             if expected_checksum is None:
-                expected_checksum = self.get_expected_checksum(file_name, downloaded_path=file_path)
+                expected_checksum = self.get_expected_checksum_and_maybe_add_to_file(
+                    file_name, downloaded_path=file_path)
             if not self.verify_checksum(file_path, expected_checksum):
                 fatal("File '%s' has wrong checksum after downloading from '%s'. "
                       "Has %s, but expected: %s",
@@ -330,9 +332,10 @@ class DownloadManager:
     def download_toolchain(
             self,
             toolchain_url: str,
-            dest_parent_dir: str) -> None:
+            dest_parent_dir: str) -> str:
         """
-        Download a C/C++ compiler toolchain, e.g. Linuxbrew GCC 5.5, or LLVM.
+        Download a C/C++ compiler toolchain, e.g. Linuxbrew GCC 5.5, or LLVM. Returns the directory
+        where the toolchain is installed.
         """
         parsed_url = urlparse(toolchain_url)
         file_name = os.path.basename(parsed_url.path)
@@ -345,9 +348,10 @@ class DownloadManager:
 
         toolchain_dest_dir_path = os.path.join(dest_parent_dir, dest_dir_name)
         if os.path.exists(toolchain_dest_dir_path):
-            log("Toolchain directory already exists, not downloading %s: %s",
-                toolchain_url, toolchain_dest_dir_path)
-            return
+            log(f"Toolchain directory '{toolchain_dest_dir_path}' already exists, not downloading "
+                f"URL {toolchain_url}")
+            return toolchain_dest_dir_path
+
         mkdir_if_missing(dest_parent_dir)
 
         archive_temporary_dest_path = os.path.join(
@@ -389,3 +393,4 @@ class DownloadManager:
                 if os.path.exists(path_to_remove):
                     log("Removing temporary file '%s'", path_to_remove)
                     os.remove(path_to_remove)
+        return toolchain_dest_dir_path
