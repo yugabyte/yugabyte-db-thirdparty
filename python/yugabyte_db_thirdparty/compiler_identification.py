@@ -34,7 +34,7 @@ def create_version_patterns(version_patterns: List[str]) -> List[Pattern]:
     return [create_version_pattern(p) for p in version_patterns]
 
 
-CLANG_VERSION_PATTERN = create_version_pattern('(?:LLVM|clang) version %s ')
+CLANG_VERSION_PATTERN = create_version_pattern('(?:LLVM|clang) version %s(?: |-|$)')
 
 GCC_VERSION_PATTERNS = create_version_patterns([
     'gcc version %s ',

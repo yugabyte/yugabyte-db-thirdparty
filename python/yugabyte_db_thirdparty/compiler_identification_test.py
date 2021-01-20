@@ -40,6 +40,9 @@ class TestCompilerIdentification(unittest.TestCase):
     def test_clang11_centos7_yb_built(self) -> None:
         self.run_one_test('clang-11.0.0-centos7-yb-built.txt', 'clang', '11.0.0')
 
+    def test_clang11_ubuntu1804(self) -> None:
+        self.run_one_test('clang-11.0.1-ubuntu1804.txt', 'clang', '11.0.1')
+
     def test_gcc7_ubuntu(self) -> None:
         self.run_one_test('gcc-7.5.0-ubuntu.txt', 'gcc', '7.5.0')
 
