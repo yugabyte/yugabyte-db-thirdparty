@@ -162,7 +162,7 @@ class CompilerChoice:
 
     def find_clang(self) -> Tuple[str, str]:
         clang_prefix: Optional[str] = None
-        if self.compiler_prefix:
+        if self.compiler_prefix and not self.using_linuxbrew():
             clang_prefix = self.compiler_prefix
         else:
             candidate_dirs = [
