@@ -118,7 +118,7 @@ class Builder(BuilderInterface):
         )
 
     def finish_initialization(self) -> None:
-        self.compiler_choice.detect_linuxbrew()
+        self.compiler_choice.finish_initialization()
         self.populate_dependencies()
         self.select_dependencies_to_build()
         if self.compiler_choice.devtoolset is not None:

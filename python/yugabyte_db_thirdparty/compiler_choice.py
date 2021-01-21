@@ -62,34 +62,59 @@ class CompilerChoice:
         self.use_ccache = use_ccache
 
         self.linuxbrew_dir = None
-        if self.compiler_prefix and os.path.basename(self.compiler_prefix).startswith('linuxbrew'):
-            log("Setting Linuxbrew directory to %s", self.compiler_prefix)
-            self.linuxbrew_dir = self.compiler_prefix
-
         self.cc = None
         self.cxx = None
 
         self.cc_identification = None
         self.cxx_identification = None
 
-        if self.single_compiler_type and not self.devtoolset:
-            # TODO: unify "devtoolset" and "toolchain" configuration paths.
+    def detect_linuxbrew(self) -> None:
+        self.linuxbrew_dir = None
+        if not is_linux():
+            log("Not using Linuxbrew -- this is not Linux")
+            return
+
+        if self.single_compiler_type:
+            log("Not using Linuxbrew, single_compiler_type is set to %s", self.single_compiler_type)
+            return
+
+        if self.compiler_suffix:
+            log("Not using Linuxbrew, compiler_suffix is set to %s", self.compiler_suffix)
+            return
+
+        if self.compiler_prefix:
+            compiler_prefix_basename = os.path.basename(self.compiler_prefix)
+            if compiler_prefix_basename.startswith('linuxbrew'):
+                self.linuxbrew_dir = self.compiler_prefix
+                log("Setting Linuxbrew directory based on compiler prefix %s",
+                    self.compiler_prefix)
+
+        if self.linuxbrew_dir is None:
+            linuxbrew_dir_from_env = os.getenv('YB_LINUXBREW_DIR')
+            if linuxbrew_dir_from_env:
+                self.linuxbrew_dir = linuxbrew_dir_from_env
+                log("Setting Linuxbrew directory based on YB_LINUXBREW_DIR env var: %s",
+                    linuxbrew_dir_from_env)
+
+        if self.linuxbrew_dir:
+            log("Linuxbrew directory: %s", self.linuxbrew_dir)
+            new_path_entry = os.path.join(self.linuxbrew_dir, 'bin')
+            log("Adding PATH entry: %s", new_path_entry)
+            add_path_entry(new_path_entry)
+
+    def detect_clang_version(self) -> None:
+        """
+        Detects Clang version when the only compiler we are using is Clang. This is needed so we can
+        use versions of components that are part of LLVM's repository that match the version of
+        Clang.
+        """
+        if is_linux() and self.single_compiler_type == 'clang':
             self.find_compiler_by_type(self.single_compiler_type)
             self._identify_compiler_version()
 
-    def detect_linuxbrew(self) -> None:
-        if (not is_linux() or
-                self.single_compiler_type or
-                self.compiler_prefix or
-                self.compiler_suffix):
-            self.linuxbrew_dir = None
-            return
-
-        if self.linuxbrew_dir is None:
-            self.linuxbrew_dir = os.getenv('YB_LINUXBREW_DIR')
-
-        if self.linuxbrew_dir:
-            add_path_entry(os.path.join(self.linuxbrew_dir, 'bin'))
+    def finish_initialization(self) -> None:
+        self.detect_linuxbrew()
+        self.detect_clang_version()
 
     def using_linuxbrew(self) -> bool:
         return self.linuxbrew_dir is not None
