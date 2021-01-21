@@ -96,11 +96,13 @@ class Builder(BuilderInterface):
             should_add_checksum=self.args.add_checksum,
             download_dir=self.fs_layout.tp_download_dir)
 
+        single_compiler_type = None
         if self.args.toolchain:
             toolchain = ensure_toolchain_installed(
                 self.download_manager, self.args.toolchain)
             compiler_prefix = toolchain.toolchain_root
-            single_compiler_type = toolchain.get_compiler_type()
+            if toolchain.toolchain_type != 'linuxbrew':
+                single_compiler_type = toolchain.get_compiler_type()
             toolchain.write_url_and_path_files()
         else:
             compiler_prefix = self.args.compiler_prefix
@@ -157,16 +159,17 @@ class Builder(BuilderInterface):
                 ]
 
             if self.compiler_choice.use_only_clang():
+                llvm_version_str = self.compiler_choice.get_llvm_version_str()
                 self.dependencies += [
                     # New LLVM. We will keep supporting new LLVM versions here.
                     get_build_def_module('llvm1x_libunwind').Llvm1xLibUnwindDependency(
-                        version=self.args.llvm_version
+                        version=llvm_version_str
                     ),
                     get_build_def_module('llvm1x_libcxx').Llvm1xLibCxxAbiDependency(
-                        version=self.args.llvm_version
+                        version=llvm_version_str
                     ),
                     get_build_def_module('llvm1x_libcxx').Llvm1xLibCxxDependency(
-                        version=self.args.llvm_version
+                        version=llvm_version_str
                     ),
                 ]
             else:

@@ -197,16 +197,6 @@ def parse_cmd_line_args() -> argparse.Namespace:
         if args.compiler_suffix:
             raise ValueError("--compiler-suffix and --toolchain are incompatible")
 
-    if args.llvm_version is None:
-        if args.compiler_suffix == '-10':
-            args.llvm_version = '10.0.1'
-        elif args.compiler_suffix == '-11':
-            args.llvm_version = '11.0.0'
-        else:
-            args.llvm_version = '11.0.0'
-        log("Will use the version %s of LLVM libraries (libunwind, libc++)",
-            args.llvm_version)
-
     if args.multi_build_conf_name_pattern:
         args.multi_build = True
 
