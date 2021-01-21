@@ -72,7 +72,8 @@ class CompilerChoice:
         self.cc_identification = None
         self.cxx_identification = None
 
-        if self.single_compiler_type:
+        if self.single_compiler_type and not self.devtoolset:
+            # TODO: unify "devtoolset" and "toolchain" configuration paths.
             self.find_compiler_by_type(self.single_compiler_type)
             self._identify_compiler_version()
 
@@ -248,6 +249,9 @@ class CompilerChoice:
             os.environ['CXX'] = cxx_compiler
 
         self._identify_compiler_version()
+
+        log(f"C compiler: {self.cc_identification}")
+        log(f"C++ compiler: {self.cxx_identification}")
 
     def _identify_compiler_version(self) -> None:
         c_compiler = self.get_c_compiler()
