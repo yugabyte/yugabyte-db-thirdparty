@@ -23,9 +23,12 @@ install_cmake_on_macos() {
   sudo chmod 0755 "$top_dir"
   local old_dir=$PWD
   cd "$top_dir"
+
+  log "Downloading '$cmake_url' to '$PWD/$cmake_tarball_name'"
   curl -LO "$cmake_url"
   local actual_sha256
   actual_sha256=$( shasum -a 256 "$cmake_tarball_name" | awk '{print $1}' )
+  log "Actual checksum of '$cmake_tarball_name': $actual_sha256"
   expected_sha256="a6b79ad05f89241a05797510e650354d74ff72cc988981cdd1eb2b3b2bda66ac"
   if [[ $actual_sha256 != "$expected_sha256" ]]; then
     fatal "Wrong SHA256 for CMake: $actual_sha256, expected: $expected_sha256"
@@ -77,7 +80,7 @@ log "YB_BUILD_THIRDPARTY_ARGS: ${YB_BUILD_THIRDPARTY_ARGS:-undefined}"
 YB_BUILD_THIRDPARTY_EXTRA_ARGS=${YB_BUILD_THIRDPARTY_EXTRA_ARGS:-}
 log "YB_BUILD_THIRDPARTY_EXTRA_ARGS: ${YB_BUILD_THIRDPARTY_EXTRA_ARGS:-undefined}"
 
-log "CIRCLE_PULL_REQUEST: ${CIRCLE_PULL_REQUEST:-}"
+log "CIRCLE_PULL_REQUEST: ${CIRCLE_PULL_REQUEST:-undefined}"
 
 # -------------------------------------------------------------------------------------------------
 # Installed tools
