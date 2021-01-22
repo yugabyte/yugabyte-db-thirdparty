@@ -17,6 +17,9 @@ import hashlib
 import shutil
 import shlex
 import subprocess
+import time
+import datetime
+import random
 
 from yugabyte_db_thirdparty.custom_logging import log, fatal
 from yugabyte_db_thirdparty.string_util import normalize_cmd_args, shlex_join
@@ -198,6 +201,11 @@ def read_file(file_path: str) -> str:
         return input_file.read()
 
 
+def write_file(file_path: str, data: str) -> None:
+    with open(file_path, 'w') as output_file:
+        output_file.write(data)
+
+
 def add_path_entry(new_path_entry: str) -> None:
     """
     Adds a new PATH entry in front of the PATH environment variable, if it is not already present.
@@ -221,3 +229,28 @@ def log_and_get_cmd_output(args: List[Any]) -> str:
     args = normalize_cmd_args(args)
     _log_cmd_to_run(args)
     return subprocess.check_output(args).decode('utf-8')
+
+
+def get_seconds_timestamp_for_file_name() -> str:
+    """
+    Returns the current timestamp at a second-level granularity in a format suitable for inclusion
+    in file and directory names.
+    """
+    return datetime.datetime.now().strftime('%Y-%m-%dT%H_%M_%S')
+
+
+def get_random_suffix_for_file_name() -> str:
+    """
+    Returns a random 9-digit integer.
+
+    >>> len(get_random_suffix_for_file_name())
+    9
+    """
+    return str(random.randint(10 ** 8, 10 ** 9 - 1))
+
+
+def get_temporal_randomized_file_name_suffix() -> str:
+    return "%s-%s" % (
+        get_seconds_timestamp_for_file_name(),
+        get_random_suffix_for_file_name()
+    )

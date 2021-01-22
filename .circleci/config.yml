@@ -60,6 +60,7 @@ workflows:
           name: centos7-linuxbrew-gcc5
           archive_name_suffix: centos7-linuxbrew
           docker_image: yugabyteci/yb_build_infra_centos7:v2020-12-14T01_12_21
+          build_thirdparty_args: "--toolchain=linuxbrew"
       - build:
           name: centos7-gcc-devtoolset-8
           archive_name_suffix: centos7-devtoolset-8
@@ -76,8 +77,7 @@ workflows:
           docker_image: yugabyteci/yb_build_infra_centos7:v2020-12-14T01_12_21
           build_thirdparty_args: >-
             --single-compiler-type=clang
-            --compiler-prefix=/usr/local
-            --compiler-suffix=-11
+            --toolchain=llvm11
       - build:
           name: ubuntu1804-gcc7
           archive_name_suffix: ubuntu1804-gcc7

@@ -20,12 +20,15 @@ from build_definitions import (
     BUILD_TYPE_CLANG_UNINSTRUMENTED,
     BUILD_TYPE_UNINSTRUMENTED
 )
-from yugabyte_db_thirdparty.custom_logging import fatal
+from yugabyte_db_thirdparty.custom_logging import log, fatal
 from yugabyte_db_thirdparty.os_detection import is_linux, is_mac
 from yugabyte_db_thirdparty.util import (
     which_must_exist,
     YB_THIRDPARTY_DIR,
     add_path_entry,
+)
+from yugabyte_db_thirdparty.compiler_identification import (
+    CompilerIdentification, identify_compiler
 )
 
 
@@ -40,6 +43,8 @@ class CompilerChoice:
     linuxbrew_dir: Optional[str]
     use_compiler_wrapper: bool
     use_ccache: bool
+    cc_identification: Optional[CompilerIdentification]
+    cxx_identification: Optional[CompilerIdentification]
 
     def __init__(
             self,
@@ -56,18 +61,60 @@ class CompilerChoice:
         self.use_compiler_wrapper = use_compiler_wrapper
         self.use_ccache = use_ccache
 
+        self.linuxbrew_dir = None
+        self.cc = None
+        self.cxx = None
+
+        self.cc_identification = None
+        self.cxx_identification = None
+
     def detect_linuxbrew(self) -> None:
-        if (not is_linux() or
-                self.single_compiler_type or
-                self.compiler_prefix or
-                self.compiler_suffix):
-            self.linuxbrew_dir = None
+        self.linuxbrew_dir = None
+        if not is_linux():
+            log("Not using Linuxbrew -- this is not Linux")
             return
 
-        self.linuxbrew_dir = os.getenv('YB_LINUXBREW_DIR')
+        if self.single_compiler_type:
+            log("Not using Linuxbrew, single_compiler_type is set to %s", self.single_compiler_type)
+            return
+
+        if self.compiler_suffix:
+            log("Not using Linuxbrew, compiler_suffix is set to %s", self.compiler_suffix)
+            return
+
+        if self.compiler_prefix:
+            compiler_prefix_basename = os.path.basename(self.compiler_prefix)
+            if compiler_prefix_basename.startswith('linuxbrew'):
+                self.linuxbrew_dir = self.compiler_prefix
+                log("Setting Linuxbrew directory based on compiler prefix %s",
+                    self.compiler_prefix)
+
+        if self.linuxbrew_dir is None:
+            linuxbrew_dir_from_env = os.getenv('YB_LINUXBREW_DIR')
+            if linuxbrew_dir_from_env:
+                self.linuxbrew_dir = linuxbrew_dir_from_env
+                log("Setting Linuxbrew directory based on YB_LINUXBREW_DIR env var: %s",
+                    linuxbrew_dir_from_env)
 
         if self.linuxbrew_dir:
-            add_path_entry(os.path.join(self.linuxbrew_dir, 'bin'))
+            log("Linuxbrew directory: %s", self.linuxbrew_dir)
+            new_path_entry = os.path.join(self.linuxbrew_dir, 'bin')
+            log("Adding PATH entry: %s", new_path_entry)
+            add_path_entry(new_path_entry)
+
+    def detect_clang_version(self) -> None:
+        """
+        Detects Clang version when the only compiler we are using is Clang. This is needed so we can
+        use versions of components that are part of LLVM's repository that match the version of
+        Clang.
+        """
+        if is_linux() and self.single_compiler_type == 'clang':
+            self.find_compiler_by_type(self.single_compiler_type)
+            self._identify_compiler_version()
+
+    def finish_initialization(self) -> None:
+        self.detect_linuxbrew()
+        self.detect_clang_version()
 
     def using_linuxbrew(self) -> bool:
         return self.linuxbrew_dir is not None
@@ -140,7 +187,7 @@ class CompilerChoice:
 
     def find_clang(self) -> Tuple[str, str]:
         clang_prefix: Optional[str] = None
-        if self.compiler_prefix:
+        if self.compiler_prefix and not self.using_linuxbrew():
             clang_prefix = self.compiler_prefix
         else:
             candidate_dirs = [
@@ -225,3 +272,30 @@ class CompilerChoice:
         else:
             os.environ['CC'] = c_compiler
             os.environ['CXX'] = cxx_compiler
+
+        self._identify_compiler_version()
+
+        log(f"C compiler: {self.cc_identification}")
+        log(f"C++ compiler: {self.cxx_identification}")
+
+    def _identify_compiler_version(self) -> None:
+        c_compiler = self.get_c_compiler()
+        cxx_compiler = self.get_cxx_compiler()
+
+        self.cc_identification = identify_compiler(c_compiler)
+        self.cxx_identification = identify_compiler(cxx_compiler)
+        if not self.cc_identification.is_compatible_with(self.cxx_identification):
+            raise RuntimeError(
+                "C compiler and C++ compiler look incompatible. "
+                f"C compiler: {self.cc_identification}, "
+                f"C++ compiler: {self.cxx_identification}, "
+            )
+
+        self.cc_identification.check_if_acceptable()
+        self.cxx_identification.check_if_acceptable()
+
+    def get_llvm_version_str(self) -> str:
+        assert self.single_compiler_type == 'clang', \
+            f"Expected the compiler type to be 'clang' only but found '{self.single_compiler_type}'"
+        assert self.cxx_identification is not None
+        return self.cxx_identification.version_str

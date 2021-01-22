@@ -6,6 +6,52 @@ set -euo pipefail
 . "${BASH_SOURCE%/*}/yb-thirdparty-common.sh"
 
 # -------------------------------------------------------------------------------------------------
+# Functions
+# -------------------------------------------------------------------------------------------------
+
+install_cmake_on_macos() {
+  # We need to avoid using CMake 3.19.1.
+  #
+  local cmake_version=3.19.3
+  local cmake_dir_name=cmake-${cmake_version}-macos-universal
+  local cmake_tarball_name=${cmake_dir_name}.tar.gz
+  local cmake_download_base_url=https://github.com/Kitware/CMake/releases/download
+  local cmake_url=${cmake_download_base_url}/v${cmake_version}/${cmake_tarball_name}
+  local top_dir=/opt/yb-build/cmake
+  sudo mkdir -p "$top_dir"
+  sudo chown "$USER" "$top_dir"
+  sudo chmod 0755 "$top_dir"
+  local old_dir=$PWD
+  cd "$top_dir"
+
+  log "Downloading '$cmake_url' to '$PWD/$cmake_tarball_name'"
+  curl -LO "$cmake_url"
+  local actual_sha256
+  actual_sha256=$( shasum -a 256 "$cmake_tarball_name" | awk '{print $1}' )
+  log "Actual checksum of '$cmake_tarball_name': $actual_sha256"
+  expected_sha256="a6b79ad05f89241a05797510e650354d74ff72cc988981cdd1eb2b3b2bda66ac"
+  if [[ $actual_sha256 != "$expected_sha256" ]]; then
+    fatal "Wrong SHA256 for CMake: $actual_sha256, expected: $expected_sha256"
+  fi
+  tar xzf "$cmake_tarball_name"
+  local cmake_bin_path=$PWD/$cmake_dir_name/CMake.app/Contents/bin
+  if [[ ! -d $cmake_bin_path ]]; then
+    fatal "Directory does not exist: $cmake_bin_path"
+  fi
+  export PATH=$cmake_bin_path:$PATH
+  rm -f "$cmake_tarball_name"
+  log "Installed CMake at $cmake_bin_path"
+  cd "$old_dir"
+}
+
+detect_cmake_version() {
+  cmake_version=$( cmake --version | grep '^cmake version ' | awk '{print $NF}' )
+  if [[ -z $cmake_version ]]; then
+    fatal "Failed to determine CMake version."
+  fi
+}
+
+# -------------------------------------------------------------------------------------------------
 # OS detection
 # -------------------------------------------------------------------------------------------------
 
@@ -34,16 +80,7 @@ log "YB_BUILD_THIRDPARTY_ARGS: ${YB_BUILD_THIRDPARTY_ARGS:-undefined}"
 YB_BUILD_THIRDPARTY_EXTRA_ARGS=${YB_BUILD_THIRDPARTY_EXTRA_ARGS:-}
 log "YB_BUILD_THIRDPARTY_EXTRA_ARGS: ${YB_BUILD_THIRDPARTY_EXTRA_ARGS:-undefined}"
 
-if [[ -n ${YB_LINUXBREW_DIR:-} ]]; then
-  if "$is_mac"; then
-    log "Un-setting YB_LINUXBREW_DIR on macOS"
-    unset YB_LINUXBREW_DIR
-  elif [[ $YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX != *linuxbrew* ]]; then
-    log "Un-setting YB_LINUXBREW_DIR for build name $YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX"
-    unset YB_LINUXBREW_DIR
-  fi
-fi
-log "YB_LINUXBREW_DIR=${YB_LINUXBREW_DIR:-undefined}"
+log "CIRCLE_PULL_REQUEST: ${CIRCLE_PULL_REQUEST:-undefined}"
 
 # -------------------------------------------------------------------------------------------------
 # Installed tools
@@ -73,10 +110,18 @@ for tool_name in "${tools_to_show_versions[@]}"; do
   echo
 done
 
-if cmake --version | grep -E "^cmake version 3.19.1$"; then
-  log "CMake 3.19.1 is not supported"
-  log "See https://gitlab.kitware.com/cmake/cmake/-/issues/21529 for more details."
-  exit 1
+detect_cmake_version
+unsupported_cmake_version=3.19.1
+if [[ $is_mac == "true" && $cmake_version == "$unsupported_cmake_version" ]]; then
+  install_cmake_on_macos
+  detect_cmake_version
+  if [[ $cmake_version == "$unsupported_cmake_version" ]]; then
+    fatal "CMake 3.19.1 is not supported." \
+          "See https://gitlab.kitware.com/cmake/cmake/-/issues/21529 for more details."
+  fi
+
+  log "Newly installed CMake version:"
+  ( set -x; cmake --version )
 fi
 
 # -------------------------------------------------------------------------------------------------
@@ -131,56 +176,6 @@ fi
   git remote set-url origin "$origin_url"
 )
 
-if "$is_centos" && [[ $YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX == *linuxbrew* ]]; then
-  # Grab a recent URL from https://github.com/YugaByte/brew-build/releases
-  brew_url=$(<linuxbrew_url.txt)
-  if [[ $brew_url != https://*.tar.gz ]]; then
-    fatal "Expected the pre-built Homebrew/Linuxbrew URL to be of the form https://*.tar.gz," \
-          "found: $brew_url"
-  fi
-  brew_tarball_name=${brew_url##*/}
-  brew_dir_name=${brew_tarball_name%.tar.gz}
-  brew_parent_dir=/opt/yb-build/brew
-
-  export YB_LINUXBREW_DIR=$brew_parent_dir/$brew_dir_name
-  if [[ -d $YB_LINUXBREW_DIR ]]; then
-    log "Homebrew/Linuxbrew directory already exists at $YB_LINUXBREW_DIR"
-  else
-    log "Downloading and installing Homebrew/Linuxbrew into a subdirectory of $brew_parent_dir"
-    (
-      set -x
-      mkdir -p "$brew_parent_dir"
-      cd "$brew_parent_dir"
-      curl --silent -LO "$brew_url"
-      time tar xzf "$brew_tarball_name"
-    )
-
-    expected_sha256=$( curl --silent -L "$brew_url.sha256" | awk '{print $1}' )
-    actual_sha256=$(
-      cd "$brew_parent_dir"
-      sha256sum "$brew_tarball_name" | awk '{print $1}'
-    )
-    if [[ $expected_sha256 != "$actual_sha256" ]]; then
-      fatal "Invalid SHA256 sum of the Linuxbrew archive: $actual_sha256, expected:" \
-            "$expected_sha256"
-    fi
-
-    log "Downloaded and installed Homebrew/Linuxbrew to $YB_LINUXBREW_DIR"
-    if [[ ! -d $YB_LINUXBREW_DIR ]]; then
-      fatal "Directory $YB_LINUXBREW_DIR still does not exist"
-    fi
-
-    log "Running post_install.sh"
-    (
-      cd "$YB_LINUXBREW_DIR"
-      time ./post_install.sh
-    )
-  fi
-
-  log "Linuxbrew gcc version:"
-  ( set -x; "$YB_LINUXBREW_DIR/bin/gcc" --version )
-fi
-
 echo "Building YugabyteDB third-party code in $repo_dir"
 
 echo "Current directory"
@@ -231,9 +226,6 @@ cd "$build_dir_parent"
 
 archive_tarball_name=$archive_dir_name.tar.gz
 archive_tarball_path=$PWD/$archive_tarball_name
-if [[ -n ${YB_LINUXBREW_DIR:-} ]]; then
-  echo "$YB_LINUXBREW_DIR" >linuxbrew_path.txt
-fi
 
 log "Creating archive: $archive_tarball_name"
 (
@@ -254,7 +246,11 @@ compute_sha256sum "$archive_tarball_path"
 log "Computed SHA256 sum of the archive: $sha256_sum"
 echo -n "$sha256_sum" >"$archive_tarball_path.sha256"
 
-if [[ -n ${GITHUB_TOKEN:-} ]]; then
+if [[ -n ${CIRCLE_PULL_REQUEST:-} ]]; then
+  log "This is a pull request, skipping archive upload"
+elif [[ -z ${GITHUB_TOKEN:-} ]]; then
+  log "GITHUB_TOKEN is not set, skipping archive upload"
+else
   cd "$repo_dir"
   (
     set -x
@@ -264,6 +260,4 @@ if [[ -n ${GITHUB_TOKEN:-} ]]; then
       -a "$archive_tarball_path.sha256" \
       -t "$git_sha1"
   )
-else
-  log "GITHUB_TOKEN is not set, skipping archive upload"
 fi

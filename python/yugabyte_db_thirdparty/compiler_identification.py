@@ -23,6 +23,8 @@ from typing import Optional, List, Pattern
 
 NUMERIC_VERSION_RE_STR = r'(\d+([.]\d+)*)'
 
+LOWEST_GCC_VERSION_STR = '5.5.0'
+
 
 def create_version_pattern(version_pattern_str: str) -> Pattern:
     return re.compile(version_pattern_str % NUMERIC_VERSION_RE_STR)
@@ -32,7 +34,7 @@ def create_version_patterns(version_patterns: List[str]) -> List[Pattern]:
     return [create_version_pattern(p) for p in version_patterns]
 
 
-CLANG_VERSION_PATTERN = create_version_pattern('(?:LLVM|clang) version %s ')
+CLANG_VERSION_PATTERN = create_version_pattern('(?:LLVM|clang) version %s(?: |-|$)')
 
 GCC_VERSION_PATTERNS = create_version_patterns([
     'gcc version %s ',
@@ -78,7 +80,41 @@ class CompilerIdentification:
             error_msg += ". Compiler path: %s" % self.compiler_path
         raise ValueError(error_msg)
 
+    def __str__(self) -> str:
+        return (
+            "CompilerIdentification("
+            f"family={self.family}, "
+            f"version={self.version_str}, "
+            f"compiler_path={self.compiler_path}"
+            ")"
+        )
+
+    def is_compatible_with(self, other: 'CompilerIdentification') -> bool:
+        return self.family == other.family and self.version_str == other.version_str
+
+    def check_if_acceptable(self) -> None:
+        if self.family == 'gcc' and self.parsed_version < parse_version(LOWEST_GCC_VERSION_STR):
+            raise AssertionError(
+                f"GCC version is too old: {self}; required at least {LOWEST_GCC_VERSION_STR}")
+
 
 def identify_compiler(compiler_path: str) -> CompilerIdentification:
-    full_version_output_str = subprocess.check_output([compiler_path, '-v']).decode('utf-8')
-    return CompilerIdentification(full_version_output_str, compiler_path)
+    proc = subprocess.Popen(
+        [compiler_path, '-v'],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    stdout_bytes, stderr_bytes = proc.communicate()
+    if proc.returncode != 0:
+        raise RuntimeError(
+            f"Could not determine compiler version for '{compiler_path}': compiler invoked with "
+            f"-v failed with exit code f{proc.returncode}")
+
+    for output_bytes in [stdout_bytes, stderr_bytes]:
+        output_str = output_bytes.decode('utf-8').strip()
+        if not output_str:
+            continue
+        return CompilerIdentification(output_str, compiler_path)
+
+    raise RuntimeError(
+        f"Could not determine compiler version for '{compiler_path}'. Output is empty.")

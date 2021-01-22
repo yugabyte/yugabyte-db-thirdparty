@@ -24,6 +24,7 @@ from yugabyte_db_thirdparty.custom_logging import (
 from yugabyte_db_thirdparty.multi_build import MultiBuilder
 from yugabyte_db_thirdparty.remote_build import build_remotely
 from yugabyte_db_thirdparty.shared_library_checking import get_lib_tester
+from yugabyte_db_thirdparty.download_manager import DownloadManager
 import json
 
 import_submodules(build_definitions)
@@ -31,6 +32,7 @@ import_submodules(build_definitions)
 
 def main() -> None:
     configure_logging()
+
     unset_env_var_if_set('CC')
     unset_env_var_if_set('CXX')
 
@@ -42,7 +44,7 @@ def main() -> None:
 
     builder = Builder()
     builder.parse_args()
-    if builder.args.remote_build_server and builder.args.remote_build_dir:
+    if builder.remote_build:
         build_remotely(
             remote_server=builder.args.remote_build_server,
             remote_build_code_path=builder.args.remote_build_dir)

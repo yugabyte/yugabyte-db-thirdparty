@@ -40,6 +40,7 @@ from yugabyte_db_thirdparty.string_util import indent_lines
 from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR, remove_path, \
     mkdir_if_missing, PushDir, assert_list_contains, assert_dir_exists, EnvVarContext
 from yugabyte_db_thirdparty.file_system_layout import FileSystemLayout
+from yugabyte_db_thirdparty.toolchain import Toolchain, ensure_toolchain_installed
 
 
 ASAN_FLAGS = [
@@ -68,6 +69,8 @@ class Builder(BuilderInterface):
     compiler_choice: CompilerChoice
     fs_layout: FileSystemLayout
     license_report: List[Any]
+    toolchain: Optional[Toolchain]
+    remote_build: bool
 
     """
     This class manages the overall process of building third-party dependencies, including the set
@@ -80,18 +83,34 @@ class Builder(BuilderInterface):
         self.license_report = []
 
     def parse_args(self) -> None:
-        os.environ['YB_IS_THIRDPARTY_BUILD'] = '1'
-
         self.args = parse_cmd_line_args()
+
+        self.remote_build = self.args.remote_build_server and self.args.remote_build_dir
+        if self.remote_build:
+            return
+
         if self.args.make_parallelism:
             os.environ['YB_MAKE_PARALLELISM'] = str(self.args.make_parallelism)
+
         self.download_manager = DownloadManager(
             should_add_checksum=self.args.add_checksum,
             download_dir=self.fs_layout.tp_download_dir)
 
+        single_compiler_type = None
+        if self.args.toolchain:
+            toolchain = ensure_toolchain_installed(
+                self.download_manager, self.args.toolchain)
+            compiler_prefix = toolchain.toolchain_root
+            if toolchain.toolchain_type != 'linuxbrew':
+                single_compiler_type = toolchain.get_compiler_type()
+            toolchain.write_url_and_path_files()
+        else:
+            compiler_prefix = self.args.compiler_prefix
+            single_compiler_type = self.args.single_compiler_type
+
         self.compiler_choice = CompilerChoice(
-            single_compiler_type=self.args.single_compiler_type,
-            compiler_prefix=self.args.compiler_prefix,
+            single_compiler_type=single_compiler_type,
+            compiler_prefix=compiler_prefix,
             compiler_suffix=self.args.compiler_suffix,
             devtoolset=self.args.devtoolset,
             use_compiler_wrapper=self.args.use_compiler_wrapper,
@@ -99,7 +118,7 @@ class Builder(BuilderInterface):
         )
 
     def finish_initialization(self) -> None:
-        self.compiler_choice.detect_linuxbrew()
+        self.compiler_choice.finish_initialization()
         self.populate_dependencies()
         self.select_dependencies_to_build()
         if self.compiler_choice.devtoolset is not None:
@@ -140,16 +159,17 @@ class Builder(BuilderInterface):
                 ]
 
             if self.compiler_choice.use_only_clang():
+                llvm_version_str = self.compiler_choice.get_llvm_version_str()
                 self.dependencies += [
                     # New LLVM. We will keep supporting new LLVM versions here.
                     get_build_def_module('llvm1x_libunwind').Llvm1xLibUnwindDependency(
-                        version=self.args.llvm_version
+                        version=llvm_version_str
                     ),
                     get_build_def_module('llvm1x_libcxx').Llvm1xLibCxxAbiDependency(
-                        version=self.args.llvm_version
+                        version=llvm_version_str
                     ),
                     get_build_def_module('llvm1x_libcxx').Llvm1xLibCxxDependency(
-                        version=self.args.llvm_version
+                        version=llvm_version_str
                     ),
                 ]
             else:

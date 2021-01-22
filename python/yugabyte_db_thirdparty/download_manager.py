@@ -19,6 +19,7 @@ import re
 import time
 
 from datetime import datetime
+from urllib.parse import urlparse
 from typing import Optional, List, cast
 
 from yugabyte_db_thirdparty.custom_logging import log, fatal
@@ -32,8 +33,11 @@ from yugabyte_db_thirdparty.util import (
     remove_path,
     YB_THIRDPARTY_DIR,
     which_must_exist,
+    get_temporal_randomized_file_name_suffix,
+    read_file
 )
 from yugabyte_db_thirdparty.string_util import shlex_join
+from yugabyte_db_thirdparty.archive_handling import split_archive_file_name
 
 MAX_FETCH_ATTEMPTS = 20
 INITIAL_DOWNLOAD_RETRY_SLEEP_TIME_SEC = 1.0
@@ -85,10 +89,10 @@ class DownloadManager:
 
         # Extract the archive into a temporary directory.
         tmp_out_dir = os.path.join(
-            out_dir, 'tmp-extract-%s-%s-%d' % (
+            out_dir, 'tmp-extract-%s-%s' % (
                 os.path.basename(archive_file_name),
-                datetime.now().strftime('%Y-%m-%dT%H_%M_%S'),  # Current second-level timestamp.
-                random.randint(10 ** 8, 10 ** 9 - 1)))  # A random 9-digit integer.
+                get_temporal_randomized_file_name_suffix()
+            ))
         if os.path.exists(tmp_out_dir):
             raise IOError("Just-generated unique directory name already exists: %s" % tmp_out_dir)
         os.makedirs(tmp_out_dir)
@@ -150,7 +154,8 @@ class DownloadManager:
                           "SHA-256 sum (64 hex characters).", sum, fname, self.checksum_file_path)
                 self.filename2checksum[fname] = sum
 
-    def get_expected_checksum(self, filename: str, downloaded_path: str) -> str:
+    def get_expected_checksum_and_maybe_add_to_file(
+            self, filename: str, downloaded_path: str) -> str:
         if filename not in self.filename2checksum:
             if self.should_add_checksum:
                 with open(self.checksum_file_path, 'rt') as inp:
@@ -172,29 +177,42 @@ class DownloadManager:
         real_checksum = compute_file_sha256(file_name)
         return real_checksum == expected_checksum
 
-    def ensure_file_downloaded(self, url: str, path: str) -> None:
-        log(f"Ensuring {url} is downloaded to path {path}")
-        file_name = os.path.basename(path)
+    def ensure_file_downloaded(
+            self,
+            url: str,
+            file_path: str,
+            enable_using_alternative_url: bool,
+            expected_checksum: Optional[str] = None,
+            verify_checksum: bool = True) -> None:
+        log(f"Ensuring {url} is downloaded to path {file_path}")
+        file_name = os.path.basename(file_path)
 
         mkdir_if_missing(self.download_dir)
 
-        if os.path.exists(path):
+        if os.path.exists(file_path) and verify_checksum:
             # We check the filename against our checksum map only if the file exists. This is done
             # so that we would still download the file even if we don't know the checksum, making it
             # easier to add new third-party dependencies.
-            expected_checksum = self.get_expected_checksum(file_name, downloaded_path=path)
-            if self.verify_checksum(path, expected_checksum):
+            if expected_checksum is None:
+                expected_checksum = self.get_expected_checksum_and_maybe_add_to_file(
+                    file_name, downloaded_path=file_path)
+            if self.verify_checksum(file_path, expected_checksum):
                 log("No need to re-download %s: checksum already correct", file_name)
                 return
-            log("File %s already exists but has wrong checksum, removing", path)
-            remove_path(path)
+            log("File %s already exists but has wrong checksum, removing", file_path)
+            remove_path(file_path)
 
         log("Fetching %s from %s", file_name, url)
 
         download_successful = False
         alternative_url = ALTERNATIVE_URL_PREFIX + file_name
         total_attempts = 0
-        for effective_url in [url, alternative_url]:
+
+        url_candidates = [url]
+        if enable_using_alternative_url:
+            url_candidates += [alternative_url]
+
+        for effective_url in url_candidates:
             if effective_url == alternative_url:
                 log("Switching to alternative download URL %s after %d attempts",
                     alternative_url, total_attempts)
@@ -203,7 +221,9 @@ class DownloadManager:
                 try:
                     total_attempts += 1
                     curl_cmd_line = [
-                        self.curl_path, '-o', path,
+                        self.curl_path,
+                        '-o',
+                        file_path,
                         '-L',  # follow redirects
                         '--silent',
                         '--show-error',
@@ -226,13 +246,19 @@ class DownloadManager:
             if download_successful:
                 break
 
-        if not os.path.exists(path):
-            fatal("Downloaded '%s' but but unable to find '%s'", url, path)
-        expected_checksum = self.get_expected_checksum(file_name, downloaded_path=path)
-        if not self.verify_checksum(path, expected_checksum):
-            fatal("File '%s' has wrong checksum after downloading from '%s'. "
-                  "Has %s, but expected: %s",
-                  path, url, compute_file_sha256(path), expected_checksum)
+        if not os.path.exists(file_path):
+            fatal("Downloaded '%s' but but unable to find '%s'", url, file_path)
+        if verify_checksum:
+            if expected_checksum is None:
+                expected_checksum = self.get_expected_checksum_and_maybe_add_to_file(
+                    file_name, downloaded_path=file_path)
+            if not self.verify_checksum(file_path, expected_checksum):
+                fatal("File '%s' has wrong checksum after downloading from '%s'. "
+                      "Has %s, but expected: %s",
+                      file_path,
+                      url,
+                      compute_file_sha256(file_path),
+                      expected_checksum)
 
     def download_dependency(
             self,
@@ -252,7 +278,10 @@ class DownloadManager:
         if download_url != 'mkdir':
             if archive_path is None:
                 return
-            self.ensure_file_downloaded(download_url, archive_path)
+            self.ensure_file_downloaded(
+                url=download_url,
+                file_path=archive_path,
+                enable_using_alternative_url=True)
             self.extract_archive(archive_path,
                                  os.path.dirname(src_path),
                                  os.path.basename(src_path))
@@ -265,7 +294,10 @@ class DownloadManager:
                 assert extra.archive_name is not None
                 archive_path = os.path.join(self.download_dir, extra.archive_name)
                 log("Downloading %s from %s", extra.archive_name, extra.download_url)
-                self.ensure_file_downloaded(extra.download_url, archive_path)
+                self.ensure_file_downloaded(
+                    url=extra.download_url,
+                    file_path=archive_path,
+                    enable_using_alternative_url=True)
                 output_path = os.path.join(src_path, extra.dir_name)
                 self.extract_archive(archive_path, output_path)
                 if extra.post_exec is not None:
@@ -297,3 +329,90 @@ class DownloadManager:
         with open(patch_level_path, 'wb') as out:
             # Just create an empty file.
             pass
+
+    def download_toolchain(
+            self,
+            toolchain_url: str,
+            dest_parent_dir: str) -> str:
+        """
+        Download a C/C++ compiler toolchain, e.g. Linuxbrew GCC 5.5, or LLVM. Returns the directory
+        where the toolchain is installed.
+        """
+        parsed_url = urlparse(toolchain_url)
+        file_name = os.path.basename(parsed_url.path)
+
+        dest_dir_name, archive_extension = split_archive_file_name(file_name)
+        assert archive_extension.startswith('.'), \
+            "Expected the archive extension to start with a dot, got: '%s'. URL: %s" % (
+                toolchain_url, archive_extension
+            )
+
+        toolchain_dest_dir_path = os.path.join(dest_parent_dir, dest_dir_name)
+        if os.path.exists(toolchain_dest_dir_path):
+            log(f"Toolchain directory '{toolchain_dest_dir_path}' already exists, not downloading "
+                f"URL {toolchain_url}")
+            return toolchain_dest_dir_path
+
+        mkdir_if_missing(dest_parent_dir)
+
+        tmp_suffix = ".tmp-%s" % get_temporal_randomized_file_name_suffix()
+
+        archive_temporary_dest_path = os.path.join(
+            dest_parent_dir,
+            "".join([
+                dest_dir_name,
+                tmp_suffix,
+                archive_extension
+            ])
+        )
+        checksum_suffix = '.sha256'
+        archive_temporary_dest_checksum_path = archive_temporary_dest_path + checksum_suffix
+
+        try:
+            self.ensure_file_downloaded(
+                toolchain_url + checksum_suffix,
+                archive_temporary_dest_checksum_path,
+                enable_using_alternative_url=False,
+                verify_checksum=False)
+            with open(archive_temporary_dest_checksum_path) as checksum_file:
+                expected_checksum = checksum_file.read().strip().split()[0]
+
+            self.ensure_file_downloaded(
+                toolchain_url,
+                archive_temporary_dest_path,
+                enable_using_alternative_url=False,
+                expected_checksum=expected_checksum)
+
+            if dest_dir_name.startswith('linuxbrew'):
+                dest_dir_name_tmp = dest_dir_name + tmp_suffix
+                self.extract_archive(
+                    archive_file_name=archive_temporary_dest_path,
+                    out_dir=dest_parent_dir,
+                    out_name=dest_dir_name_tmp
+                )
+                orig_brew_home = read_file(
+                    os.path.join(dest_parent_dir, dest_dir_name_tmp, 'ORIG_BREW_HOME')
+                ).strip()
+                os.rename(os.path.join(dest_parent_dir, dest_dir_name_tmp), orig_brew_home)
+                os.symlink(os.path.basename(orig_brew_home), toolchain_dest_dir_path)
+            else:
+                self.extract_archive(
+                    archive_file_name=archive_temporary_dest_path,
+                    out_dir=dest_parent_dir,
+                    out_name=dest_dir_name
+                )
+
+            if not os.path.isdir(toolchain_dest_dir_path):
+                raise RuntimeError(
+                    f"Extracting the archive downloaded from {toolchain_url} did not create "
+                    f"directory '{toolchain_dest_dir_path}'.")
+
+        finally:
+            for path_to_remove in [
+                archive_temporary_dest_path,
+                archive_temporary_dest_checksum_path
+            ]:
+                if os.path.exists(path_to_remove):
+                    log("Removing temporary file '%s'", path_to_remove)
+                    os.remove(path_to_remove)
+        return toolchain_dest_dir_path
