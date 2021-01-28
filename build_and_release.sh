@@ -252,12 +252,29 @@ elif [[ -z ${GITHUB_TOKEN:-} ]]; then
   log "GITHUB_TOKEN is not set, skipping archive upload"
 else
   cd "$repo_dir"
-  (
-    set -x
-    hub release create "$tag" \
-      -m "Release $tag" \
-      -a "$archive_tarball_path" \
-      -a "$archive_tarball_path.sha256" \
-      -t "$git_sha1"
-  )
+  attempt_index=1
+  max_attempts=20
+  success=false
+  delay_sec=10
+  while [[ $attempt_index -lt $max_attempts ]]; do
+    if (
+      set -x
+      hub release create "$tag" \
+        -m "Release $tag" \
+        -a "$archive_tarball_path" \
+        -a "$archive_tarball_path.sha256" \
+        -t "$git_sha1"
+    ); then
+      log "Release upload succeeded after attempt $attempt_index"
+      success=true
+      break
+    fi
+    log "Upload failed at attempt $attempt_index."
+    log "Waiting for $delay_sec seconds before next attempt."
+    (( attempt_index+=1 ))
+    sleep "$delay_sec"
+  done
+  if ! "$success"; then
+    fatal "Failed to upload release after $max_attempts attempts"
+  fi
 fi
