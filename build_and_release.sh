@@ -192,6 +192,13 @@ echo
 
 cd "$repo_dir"
 
+if [[ -n ${GITHUB_TOKEN:-} ]]; then
+  log "GITHUB_TOKEN is set. Checking it by listing 0 issues."
+  ( set -x; hub issue -L 0 )
+else
+  log "GITHUB_TOKEN is not set, not checking it."
+fi
+
 # We intentionally don't escape variables here so they get split into multiple arguments.
 build_thirdparty_cmd_str=./build_thirdparty.sh
 if [[ -n ${YB_BUILD_THIRDPARTY_ARGS:-} ]]; then
