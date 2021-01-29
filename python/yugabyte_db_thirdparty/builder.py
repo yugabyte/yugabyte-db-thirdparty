@@ -886,7 +886,7 @@ class Builder(BuilderInterface):
         if not os.path.isdir(src_dir):
             fatal("Directory '{}' does not exist".format(src_dir))
 
-        build_dir = os.path.join(self.fs_layout.tp_build_dir, self.build_type, dep.dir_name)
+        build_dir = self.fs_layout.get_build_dir_for_dependency(dep, self.build_type)
         mkdir_if_missing(build_dir)
 
         if dep.copy_sources:
