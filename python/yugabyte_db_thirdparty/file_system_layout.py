@@ -15,7 +15,7 @@ from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR
 from yugabyte_db_thirdparty.dependency import Dependency
 from yugabyte_db_thirdparty.custom_logging import heading, log
 from yugabyte_db_thirdparty.util import remove_path
-from build_definitions import BUILD_TYPES, BUILD_TYPE_COMMON
+from build_definitions import BUILD_TYPES, BUILD_TYPE_COMMON, validate_build_type
 
 import os
 from typing import Optional, List
@@ -47,6 +47,18 @@ class FileSystemLayout:
     def get_source_path(self, dep: Dependency) -> str:
         return os.path.join(self.tp_src_dir, dep.get_source_dir_basename())
 
+    def _remove_path_for_dependency(
+            self, dep: Dependency, path: Optional[str], description: str) -> None:
+        full_description = f"{description} for dependency {dep.name}"
+        if path is None:
+            log(f"Path to {full_description} is not defined")
+            return
+        if os.path.exists(path):
+            log(f"Removing {full_description} at {path}")
+            remove_path(path)
+        else:
+            log(f"Could not find {full_description} at {path}, nothing to remove")
+
     def clean(
             self,
             selected_dependencies: List[Dependency],
@@ -56,25 +68,34 @@ class FileSystemLayout:
         clean_thirdparty.sh script.
         """
         heading('Clean')
+
         for dependency in selected_dependencies:
-            for dir_name in BUILD_TYPES:
-                for leaf in [dependency.name, '.build-stamp-{}'.format(dependency)]:
-                    path = os.path.join(self.tp_build_dir, dir_name, leaf)
-                    if os.path.exists(path):
-                        log("Removing %s build output: %s", dependency.name, path)
-                        remove_path(path)
-            if dependency.dir_name is not None:
-                src_dir = self.get_source_path(dependency)
-                if os.path.exists(src_dir):
-                    log("Removing %s source: %s", dependency.name, src_dir)
-                    remove_path(src_dir)
+            for build_type in BUILD_TYPES:
+                self._remove_path_for_dependency(
+                    dep=dependency,
+                    path=self.get_build_stamp_path_for_dependency(dependency, build_type),
+                    description="build stamp")
+                self._remove_path_for_dependency(
+                    dep=dependency,
+                    path=self.get_build_dir_for_dependency(dependency, build_type),
+                    description="build stamp")
+
+                if dependency.dir_name is not None:
+                    self._remove_path_for_dependency(
+                        dep=dependency,
+                        path=self.get_source_path(dependency),
+                        description="source")
 
             if clean_downloads:
-                archive_path = self.get_archive_path(dependency)
-                if archive_path is not None:
-                    log("Removing %s archive: %s", dependency.name, archive_path)
-                    remove_path(archive_path)
+                self._remove_path_for_dependency(
+                    dep=dependency,
+                    path=self.get_archive_path(dependency),
+                    description="downloaded archive")
 
     def get_build_stamp_path_for_dependency(self, dep: Dependency, build_type: str) -> str:
-        return os.path.join(
-            self.tp_build_dir, build_type, '.build-stamp-{}'.format(dep.name))
+        validate_build_type(build_type)
+        return os.path.join(self.tp_build_dir, build_type, '.build-stamp-{}'.format(dep.name))
+
+    def get_build_dir_for_dependency(self, dep: Dependency, build_type: str) -> str:
+        validate_build_type(build_type)
+        return os.path.join(self.tp_build_dir, build_type, dep.dir_name)

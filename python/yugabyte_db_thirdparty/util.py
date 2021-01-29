@@ -20,6 +20,7 @@ import subprocess
 import time
 import datetime
 import random
+import subprocess
 
 from yugabyte_db_thirdparty.custom_logging import log, fatal
 from yugabyte_db_thirdparty.string_util import normalize_cmd_args, shlex_join
@@ -102,7 +103,9 @@ def remove_path(path: str) -> None:
     if not os.path.exists(path):
         return
     if os.path.isdir(path):
-        shutil.rmtree(path)
+        assert path != '/'
+        # shutil.rmtree is very slow compared to rm -rf.
+        subprocess.check_call(['rm', '-rf', path])
     else:
         os.remove(path)
 

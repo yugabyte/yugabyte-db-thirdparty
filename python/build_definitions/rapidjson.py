@@ -22,8 +22,8 @@ class RapidJsonDependency(Dependency):
     def __init__(self) -> None:
         super(RapidJsonDependency, self).__init__(
             name='rapidjson',
-            version='1.1.0',
-            url_pattern='https://github.com/Tencent/rapidjson/archive/v{0}.zip',
+            version='1.1.0-yb-1',
+            url_pattern='https://github.com/yugabyte/rapidjson/archive/v{0}.zip',
             build_group=BUILD_GROUP_COMMON)
         self.copy_sources = False
 

@@ -113,3 +113,7 @@ class ExtraDownload:
 
 def get_build_def_module(submodule_name: str) -> Any:
     return getattr(sys.modules['build_definitions'], submodule_name)
+
+
+def validate_build_type(build_type: str) -> None:
+    assert build_type in BUILD_TYPES, f"Invalid build type: {build_type}"
