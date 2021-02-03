@@ -27,3 +27,4 @@ toolchain_url.txt
 prebuilt_downloads/
 src/
 venv/
+.pyre
