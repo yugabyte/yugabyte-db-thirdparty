@@ -21,7 +21,7 @@ class CQLShDependency(Dependency):
     def __init__(self) -> None:
         super(CQLShDependency, self).__init__(
             name='cqlsh',
-            version='3.10-yb-6',
+            version='3.10-yb-7',
             url_pattern='https://github.com/YugaByte/cqlsh/archive/v{0}.tar.gz',
             build_group=BUILD_GROUP_COMMON)
         self.copy_sources = True
