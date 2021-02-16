@@ -13,6 +13,7 @@
 #
 
 import os
+import platform
 
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
@@ -21,7 +22,7 @@ class OpenSSLDependency(Dependency):
     def __init__(self) -> None:
         super(OpenSSLDependency, self).__init__(
             name='openssl',
-            version='1.0.2u',
+            version='1.1.1i',  # https://github.com/openssl/openssl/issues/12254
             url_pattern='https://www.openssl.org/source/openssl-{0}.tar.gz',
             build_group=BUILD_GROUP_COMMON)
         self.copy_sources = True
@@ -30,8 +31,9 @@ class OpenSSLDependency(Dependency):
         common_configure_options = ['shared']
         if is_mac():
             # On macOS x86_64, OpenSSL 1.0.2 fails to detect the proper architecture.
+            arch = platform.uname().machine
             configure_cmd = [
-                '/bin/bash', './Configure', 'darwin64-x86_64-cc'] + common_configure_options
+                './Configure', 'darwin64-' + arch + '-cc'] + common_configure_options
         else:
             install_path = os.path.join(builder.tp_installed_common_dir, "lib")
             configure_cmd = ['./config'] + common_configure_options + ['-Wl,-rpath=' + install_path]
