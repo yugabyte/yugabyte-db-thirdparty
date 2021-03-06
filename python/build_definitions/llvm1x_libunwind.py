@@ -24,6 +24,9 @@ class Llvm1xLibUnwindDependency(Llvm1xPartDependencyBase):
             version=version,
             build_group=BUILD_GROUP_COMMON)
 
+    def get_additional_cxx_flags(self, builder: 'BuilderInterface') -> List[str]:
+        return ['-D_LIBUNWIND_NO_HEAP']
+
     def build(self, builder: BuilderInterface) -> None:
         src_subdir_name = 'libunwind'
         source_path = builder.fs_layout.get_source_path(self)
