@@ -129,7 +129,8 @@ class Builder(BuilderInterface):
         # otherwise MyPy gets confused.
 
         self.dependencies = [
-            get_build_def_module('zlib').ZLibDependency(),
+            # Avoiding a name collision with the standard zlib module, hence "zlib_dependency".
+            get_build_def_module('zlib_dependency').ZLibDependency(),
             get_build_def_module('lz4').LZ4Dependency(),
             get_build_def_module('openssl').OpenSSLDependency(),
             get_build_def_module('libev').LibEvDependency(),
