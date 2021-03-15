@@ -81,6 +81,7 @@ class Builder(BuilderInterface):
         self.linuxbrew_dir = None
         self.additional_allowed_shared_lib_paths = set()
         self.license_report = []
+        self.toolchain = None
 
     def parse_args(self) -> None:
         self.args = parse_cmd_line_args()
