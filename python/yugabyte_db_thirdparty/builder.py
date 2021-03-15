@@ -98,17 +98,15 @@ class Builder(BuilderInterface):
 
         single_compiler_type = None
         if self.args.toolchain:
-            toolchain = ensure_toolchain_installed(
+            self.toolchain = ensure_toolchain_installed(
                 self.download_manager, self.args.toolchain)
-            compiler_prefix = toolchain.toolchain_root
-            if toolchain.toolchain_type != 'linuxbrew':
-                single_compiler_type = toolchain.get_compiler_type()
-            toolchain.write_url_and_path_files()
+            compiler_prefix = self.toolchain.toolchain_root
+            if self.toolchain.toolchain_type != 'linuxbrew':
+                single_compiler_type = self.toolchain.get_compiler_type()
+            self.toolchain.write_url_and_path_files()
         else:
             compiler_prefix = self.args.compiler_prefix
             single_compiler_type = self.args.single_compiler_type
-
-        self.toolchain = toolchain
 
         self.compiler_choice = CompilerChoice(
             single_compiler_type=single_compiler_type,
