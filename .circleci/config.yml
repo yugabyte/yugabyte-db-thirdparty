@@ -79,6 +79,13 @@ workflows:
             --single-compiler-type=clang
             --toolchain=llvm11
       - build:
+          name: centos7-clang12rc1
+          archive_name_suffix: centos7-clang12rc1
+          docker_image: yugabyteci/yb_build_infra_centos7:v2020-12-14T01_12_21
+          build_thirdparty_args: >-
+            --single-compiler-type=clang
+            --toolchain=llvm12rc1
+      - build:
           name: ubuntu1804-gcc7
           archive_name_suffix: ubuntu1804-gcc7
           docker_image: yugabyteci/yb_build_infra_ubuntu1804:v2020-12-14T01_12_20

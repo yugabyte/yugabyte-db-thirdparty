@@ -29,9 +29,15 @@ LLVM11_CENTOS7_URL = (
     'v11.0.0-1607398732/yb-llvm-v11.0.0-1607398732.tar.gz'
 )
 
+LLVM12_RC1_CENTOS7_URL = (
+    'https://github.com/yugabyte/build-clang/releases/download/'
+    'v12.0.0-rc1-1615746246-8364f536/yb-llvm-v12.0.0-rc1-1615746246-8364f536.tar.gz'
+)
+
 TOOLCHAIN_TYPE_TO_URL = {
     'linuxbrew': LINUXBREW_URL,
-    'llvm11': LLVM11_CENTOS7_URL
+    'llvm11': LLVM11_CENTOS7_URL,
+    'llvm12rc1': LLVM12_RC1_CENTOS7_URL
 }
 
 TOOLCHAIN_TYPES = sorted(TOOLCHAIN_TYPE_TO_URL.keys())
