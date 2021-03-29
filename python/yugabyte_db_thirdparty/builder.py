@@ -69,6 +69,7 @@ class Builder(BuilderInterface):
     compiler_choice: CompilerChoice
     fs_layout: FileSystemLayout
     license_report: List[Any]
+    fossa_modules: List[Any]
     toolchain: Optional[Toolchain]
     remote_build: bool
 
@@ -80,8 +81,10 @@ class Builder(BuilderInterface):
         self.fs_layout = FileSystemLayout()
         self.linuxbrew_dir = None
         self.additional_allowed_shared_lib_paths = set()
+
         self.license_report = []
         self.toolchain = None
+        self.fossa_modules = []
 
     def parse_args(self) -> None:
         self.args = parse_cmd_line_args()
@@ -764,6 +767,15 @@ class Builder(BuilderInterface):
                     "url": dep.download_url
                 }
             )
+
+            archive_name = dep.get_archive_name()
+            if archive_name:
+                archive_path = os.path.join('downloads', archive_name)
+                self.fossa_modules.append({
+                    "name": f"{dep.name}-{dep.version}",
+                    "type": "raw",
+                    "target": archive_path
+                })
 
     def build_dependency(self, dep: Dependency) -> None:
 

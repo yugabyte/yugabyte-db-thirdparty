@@ -26,6 +26,7 @@ from yugabyte_db_thirdparty.remote_build import build_remotely
 from yugabyte_db_thirdparty.shared_library_checking import get_lib_tester
 from yugabyte_db_thirdparty.download_manager import DownloadManager
 import json
+import yaml
 
 import_submodules(build_definitions)
 
@@ -60,6 +61,9 @@ def main() -> None:
     if builder.args.license_report:
         with open('license_report.json', 'w') as output_file:
             json.dump(builder.license_report, output_file, indent=2)
+
+        with open('fossa_modules.yml', 'w') as output_file:
+            yaml.dump(builder.fossa_modules, output_file, indent=2)
 
     if not builder.args.download_extract_only:
         # Check that the executables and libraries we have built don't depend on any unexpected
