@@ -7,4 +7,4 @@ set -euo pipefail
 
 activate_virtualenv
 
-codecheck
+codecheck --verbose
