@@ -12,20 +12,20 @@
 #
 
 import os
-import random
-import subprocess
-import shutil
 import re
+import shutil
+import subprocess
 import time
 
-from datetime import datetime
+from typing import Optional, List, Dict, cast
 from urllib.parse import urlparse
-from typing import Optional, List, cast
 
+from yugabyte_db_thirdparty.archive_handling import ARCHIVE_TYPES
+from yugabyte_db_thirdparty.archive_handling import split_archive_file_name
+from yugabyte_db_thirdparty.checksums import get_checksum_file_path
 from yugabyte_db_thirdparty.custom_logging import log, fatal
 from yugabyte_db_thirdparty.dependency import Dependency
-from yugabyte_db_thirdparty.archive_handling import ARCHIVE_TYPES
-from yugabyte_db_thirdparty.checksums import get_checksum_file_path
+from yugabyte_db_thirdparty.string_util import shlex_join
 from yugabyte_db_thirdparty.util import (
     PushDir,
     compute_file_sha256,
@@ -36,8 +36,6 @@ from yugabyte_db_thirdparty.util import (
     get_temporal_randomized_file_name_suffix,
     read_file
 )
-from yugabyte_db_thirdparty.string_util import shlex_join
-from yugabyte_db_thirdparty.archive_handling import split_archive_file_name
 
 MAX_FETCH_ATTEMPTS = 20
 INITIAL_DOWNLOAD_RETRY_SLEEP_TIME_SEC = 1.0
@@ -46,6 +44,12 @@ ALTERNATIVE_URL_PREFIX = 'https://downloads.yugabyte.com/yugabyte-db-thirdparty/
 
 
 class DownloadManager:
+    should_add_checksum: bool
+    download_dir: str
+    filename2checksum: Dict[str, str]
+    checksum_file_path: str
+    curl_path: str
+
     def __init__(
             self,
             should_add_checksum: bool,
@@ -154,10 +158,17 @@ class DownloadManager:
                           "SHA-256 sum (64 hex characters).", sum, fname, self.checksum_file_path)
                 self.filename2checksum[fname] = sum
 
+    def get_expected_checksum(self, filename: str) -> str:
+        return self.get_expected_checksum_and_maybe_add_to_file(
+            filename=filename,
+            downloaded_path=None)
+
     def get_expected_checksum_and_maybe_add_to_file(
-            self, filename: str, downloaded_path: str) -> str:
+            self,
+            filename: str,
+            downloaded_path: Optional[str]) -> str:
         if filename not in self.filename2checksum:
-            if self.should_add_checksum:
+            if self.should_add_checksum and downloaded_path:
                 with open(self.checksum_file_path, 'rt') as inp:
                     lines = inp.readlines()
                 lines = [line.rstrip() for line in lines]
