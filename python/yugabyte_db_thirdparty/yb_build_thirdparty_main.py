@@ -83,7 +83,8 @@ def main() -> None:
         packager.create_package()
 
         if builder.args.upload_as_tag:
-            if 'GITHUB_TOKEN' in os.environ:
+            github_token = os.environ.get('GITHUB_TOKEN')
+            if github_token is not None and github_token.strip():
                 packager.upload_package(builder.args.upload_as_tag)
             else:
                 logging.info("GITHUB_TOKEN is not set, not uploading the release package")
