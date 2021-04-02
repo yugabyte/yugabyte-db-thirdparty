@@ -23,19 +23,14 @@ import sys
 
 from typing import List
 
+from yugabyte_db_thirdparty.git_util import get_current_git_branch_name
 from yugabyte_db_thirdparty.util import (
     log,
     log_and_run_cmd,
-    log_and_get_cmd_output,
     PushDir,
     YB_THIRDPARTY_DIR,
 )
 from yugabyte_db_thirdparty.string_util import shlex_join
-
-
-def get_current_git_branch_name() -> str:
-    return subprocess.check_output(
-        shlex.split('git rev-parse --abbrev-ref HEAD')).strip().decode('utf-8')
 
 
 def rsync_code_to(rsync_dest: str) -> None:
@@ -65,8 +60,8 @@ def copy_code_to(dest_dir: str) -> None:
     parent_dir = os.path.dirname(dest_dir)
     assert os.path.isdir(parent_dir), 'Directory %s does not exist' % parent_dir
     assert not os.path.exists(dest_dir), 'Already exists: %s' % dest_dir
+    current_branch_name = get_current_git_branch_name(YB_THIRDPARTY_DIR)
     with PushDir(YB_THIRDPARTY_DIR):
-        current_branch_name = get_current_git_branch_name()
         log_and_run_cmd(['git', 'clone', YB_THIRDPARTY_DIR, dest_dir])
         with PushDir(dest_dir):
             log_and_run_cmd(['git', 'checkout', current_branch_name])
@@ -92,9 +87,8 @@ def build_remotely(remote_server: str, remote_build_code_path: str) -> None:
     # Ensure the remote directory exists. We are not attempting to create it if it does not.
     run_remote_bash_script('[[ -d %s ]]' % quoted_remote_path)
 
+    local_branch_name = get_current_git_branch_name(YB_THIRDPARTY_DIR)
     with PushDir(YB_THIRDPARTY_DIR):
-        local_branch_name = get_current_git_branch_name()
-
         local_git_remotes = subprocess.check_output(
             shlex.split('git remote -v')).decode('utf-8')
 

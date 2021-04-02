@@ -218,20 +218,21 @@ def add_path_entry(new_path_entry: str) -> None:
         os.environ['PATH'] = '%s:%s' % (new_path_entry, os.environ['PATH'])
 
 
-def _log_cmd_to_run(args: List[str]) -> None:
-    log("Running command: %s (current directory: %s)", shlex_join(args), os.getcwd())
+def _log_cmd_to_run(args: List[str], cwd: Optional[Any]) -> None:
+    cwd = cwd or os.getcwd()
+    log("Running command: %s (in directory: %s)", shlex_join(args), cwd)
 
 
-def log_and_run_cmd(args: List[Any]) -> None:
+def log_and_run_cmd(args: List[Any], **kwargs: Any) -> None:
     args = normalize_cmd_args(args)
-    _log_cmd_to_run(args)
-    subprocess.check_call(args)
+    _log_cmd_to_run(args, cwd=kwargs.get('cwd'))
+    subprocess.check_call(args, **kwargs)
 
 
-def log_and_get_cmd_output(args: List[Any]) -> str:
+def log_and_get_cmd_output(args: List[Any], **kwargs: Any) -> str:
     args = normalize_cmd_args(args)
-    _log_cmd_to_run(args)
-    return subprocess.check_output(args).decode('utf-8')
+    _log_cmd_to_run(args, cwd=kwargs.get('cwd'))
+    return subprocess.check_output(args, **kwargs).decode('utf-8')
 
 
 def get_seconds_timestamp_for_file_name() -> str:

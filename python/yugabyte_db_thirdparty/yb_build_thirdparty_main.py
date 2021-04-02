@@ -13,7 +13,12 @@
 # under the License.
 #
 
+import yaml
+
 import build_definitions
+import logging
+import time
+
 from build_definitions import *  # noqa
 from yugabyte_db_thirdparty.builder import Builder
 from yugabyte_db_thirdparty.custom_logging import (
@@ -22,10 +27,9 @@ from yugabyte_db_thirdparty.custom_logging import (
     configure_logging,
 )
 from yugabyte_db_thirdparty.multi_build import MultiBuilder
+from yugabyte_db_thirdparty.packager import Packager
 from yugabyte_db_thirdparty.remote_build import build_remotely
 from yugabyte_db_thirdparty.shared_library_checking import get_lib_tester
-from yugabyte_db_thirdparty.download_manager import DownloadManager
-import json
 
 import_submodules(build_definitions)
 
@@ -56,17 +60,38 @@ def main() -> None:
         return
 
     builder.finish_initialization()
+
+    start_time_sec = time.time()
     builder.run()
-    if builder.args.license_report:
-        with open('license_report.json', 'w') as output_file:
-            json.dump(builder.license_report, output_file, indent=2)
+    logging.info("Build finished in %.1f sec", time.time() - start_time_sec)
 
     if not builder.args.download_extract_only:
+        lib_checking_start_time_sec = time.time()
+
         # Check that the executables and libraries we have built don't depend on any unexpected
         # dynamic libraries installed on this system.
         lib_tester = get_lib_tester()
         lib_tester.add_allowed_shared_lib_paths(builder.additional_allowed_shared_lib_paths)
         lib_tester.run()
+
+        logging.info("Libraries checked in %.1f sec", time.time() - lib_checking_start_time_sec)
+
+    if builder.args.create_package or builder.args.upload_as_tag:
+        packaging_and_upload_start_time_sec = time.time()
+
+        packager = Packager()
+        packager.create_package()
+
+        if builder.args.upload_as_tag:
+            github_token = os.environ.get('GITHUB_TOKEN')
+            if github_token is not None and github_token.strip():
+                packager.upload_package(builder.args.upload_as_tag)
+            else:
+                logging.info("GITHUB_TOKEN is not set, not uploading the release package")
+
+        logging.info(
+            "Time taken for packaging/upload %.1f sec",
+            time.time() - packaging_and_upload_start_time_sec)
 
 
 if __name__ == "__main__":

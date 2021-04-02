@@ -28,3 +28,4 @@ prebuilt_downloads/
 src/
 venv/
 .pyre
+fossa_modules.yml

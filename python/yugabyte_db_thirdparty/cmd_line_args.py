@@ -143,6 +143,17 @@ def parse_cmd_line_args() -> argparse.Namespace:
         choices=TOOLCHAIN_TYPES)
 
     parser.add_argument(
+        '--create-package',
+        help='Create the package tarball',
+        action='store_true')
+
+    parser.add_argument(
+        '--upload-as-tag',
+        help='Upload the package tarball as a GitHub release under this tag. '
+             'Implies --create-package. Requires GITHUB_TOKEN to be set. If GITHUB_TOKEN is not '
+             'set, this is a no-op (with success exit code).')
+
+    parser.add_argument(
         'dependencies',
         nargs=argparse.REMAINDER,
         help='Dependencies to build.')

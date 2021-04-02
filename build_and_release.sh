@@ -128,7 +128,7 @@ fi
 # Check for errors in Python code of this repository
 # -------------------------------------------------------------------------------------------------
 
-( set -x; "$YB_THIRDPARTY_DIR/check_python_code.sh" )
+( set -x; "$YB_THIRDPARTY_DIR/check_code.sh" )
 
 # -------------------------------------------------------------------------------------------------
 
@@ -214,74 +214,5 @@ fi
     export PATH=$YB_LINUXBREW_DIR/bin:$PATH
   fi
   set -x
-  time $build_thirdparty_cmd_str
+  time $build_thirdparty_cmd_str --upload-as-tag "$tag"
 )
-
-log "Build finished. See timing information above."
-
-# -------------------------------------------------------------------------------------------------
-# Cleanup
-# -------------------------------------------------------------------------------------------------
-
-( set -x; find . -name "*.pyc" -exec rm -f {} \; )
-
-# -------------------------------------------------------------------------------------------------
-# Archive creation and upload
-# -------------------------------------------------------------------------------------------------
-
-cd "$build_dir_parent"
-
-archive_tarball_name=$archive_dir_name.tar.gz
-archive_tarball_path=$PWD/$archive_tarball_name
-
-log "Creating archive: $archive_tarball_name"
-(
-  set -x
-  time tar \
-    --exclude "$archive_dir_name/.git" \
-    --exclude "$archive_dir_name/src" \
-    --exclude "$archive_dir_name/build" \
-    --exclude "$archive_dir_name/venv" \
-    --exclude "$archive_dir_name/download" \
-    -czf \
-    "$archive_tarball_name" \
-    "$archive_dir_name"
-)
-log "Finished creating archive: $archive_tarball_name. See timing information above."
-
-compute_sha256sum "$archive_tarball_path"
-log "Computed SHA256 sum of the archive: $sha256_sum"
-echo -n "$sha256_sum" >"$archive_tarball_path.sha256"
-
-if [[ -n ${CIRCLE_PULL_REQUEST:-} ]]; then
-  log "This is a pull request, skipping archive upload"
-elif [[ -z ${GITHUB_TOKEN:-} ]]; then
-  log "GITHUB_TOKEN is not set, skipping archive upload"
-else
-  cd "$repo_dir"
-  attempt_index=1
-  max_attempts=20
-  success=false
-  delay_sec=10
-  while [[ $attempt_index -lt $max_attempts ]]; do
-    if (
-      set -x
-      hub release create "$tag" \
-        -m "Release $tag" \
-        -a "$archive_tarball_path" \
-        -a "$archive_tarball_path.sha256" \
-        -t "$git_sha1"
-    ); then
-      log "Release upload succeeded after attempt $attempt_index"
-      success=true
-      break
-    fi
-    log "Upload failed at attempt $attempt_index."
-    log "Waiting for $delay_sec seconds before next attempt."
-    (( attempt_index+=1 ))
-    sleep "$delay_sec"
-  done
-  if ! "$success"; then
-    fatal "Failed to upload release after $max_attempts attempts"
-  fi
-fi

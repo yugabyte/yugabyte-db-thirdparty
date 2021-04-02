@@ -74,23 +74,6 @@ detect_os() {
   fi
 }
 
-check_bash_scripts() {
-  if ! command -v shellcheck >/dev/null; then
-    return
-  fi
-
-  cd "$YB_THIRDPARTY_DIR"
-  local bash_scripts
-  # Use the fact that there are no spaces in the shell script names in this repository.
-  # shellcheck disable=SC2207
-  bash_scripts=( $( find . -mindepth 1 -maxdepth 1 -type f -name "*.sh" ) )
-
-  local shell_script
-  for shell_script in "${bash_scripts[@]}"; do
-    shellcheck -x "$shell_script"
-  done
-}
-
 activate_virtualenv() {
   if [[ ! -d $YB_THIRDPARTY_DIR/venv ]]; then
     python3 -m venv "$YB_THIRDPARTY_DIR/venv"

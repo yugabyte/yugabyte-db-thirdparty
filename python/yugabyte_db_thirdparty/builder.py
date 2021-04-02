@@ -18,6 +18,7 @@ import os
 import platform
 import subprocess
 import sys
+import yaml
 from typing import Optional, List, Set, Tuple, Dict, Any
 
 from build_definitions import BUILD_TYPE_COMMON, get_build_def_module, BUILD_TYPE_UNINSTRUMENTED, \
@@ -68,7 +69,7 @@ class Builder(BuilderInterface):
     download_manager: DownloadManager
     compiler_choice: CompilerChoice
     fs_layout: FileSystemLayout
-    license_report: List[Any]
+    fossa_modules: List[Any]
     toolchain: Optional[Toolchain]
     remote_build: bool
 
@@ -80,8 +81,9 @@ class Builder(BuilderInterface):
         self.fs_layout = FileSystemLayout()
         self.linuxbrew_dir = None
         self.additional_allowed_shared_lib_paths = set()
-        self.license_report = []
+
         self.toolchain = None
+        self.fossa_modules = []
 
     def parse_args(self) -> None:
         self.args = parse_cmd_line_args()
@@ -259,6 +261,9 @@ class Builder(BuilderInterface):
 
         for build_type in build_types:
             self.build_one_build_type(build_type)
+
+        with open(os.path.join(YB_THIRDPARTY_DIR, 'fossa_modules.yml'), 'w') as output_file:
+            yaml.dump(self.fossa_modules, output_file, indent=2)
 
     def get_build_types(self) -> List[str]:
         build_types: List[str] = list(BUILD_TYPES)
@@ -707,7 +712,10 @@ class Builder(BuilderInterface):
     def get_common_cmake_flag_args(self, dep: Dependency) -> List[str]:
         c_flags_str = ' '.join(self.get_effective_c_flags(dep))
         cxx_flags_str = ' '.join(self.get_effective_cxx_flags(dep))
+
+        # TODO: we are not using this. What is the best way to plug this into CMake?
         preprocessor_flags_str = ' '.join(self.get_effective_preprocessor_flags(dep))
+
         ld_flags_str = ' '.join(self.get_effective_ld_flags(dep))
         exe_ld_flags_str = ' '.join(self.get_effective_executable_ld_flags(dep))
         return [
@@ -731,39 +739,20 @@ class Builder(BuilderInterface):
             src_path=self.fs_layout.get_source_path(dep),
             archive_path=self.fs_layout.get_archive_path(dep))
 
-        if self.args.license_report:
-            notices: Dict[str, List[str]] = {}
-            src_path = os.path.abspath(self.fs_layout.get_source_path(dep))
-            for root, dirs, files in os.walk(src_path):
-                for name in files:
-                    if os.path.splitext(name)[0] in ['LICENSE', 'COPYING', 'NOTICE', 'CREDITS']:
-                        file_path = os.path.join(root, name)
-                        rel_path = os.path.relpath(
-                            os.path.abspath(file_path), src_path
-                        )
-
-                        log("Found copyright notice file: %s", file_path)
-                        with open(file_path) as input_file:
-                            notice = input_file.read()
-                        notice = notice.rstrip()
-                        if notice not in notices:
-                            notices[notice] = []
-                        notices[notice].append(rel_path)
-
-            self.license_report.append(
-                {
-                    "name": dep.name,
-                    "version": dep.version,
-                    "copyright_notices": [
-                        {
-                            "notice": notice,
-                            "files": sorted(files)
-                        }
-                        for notice, files in notices.items()
-                    ],
-                    "url": dep.download_url
+        archive_name = dep.get_archive_name()
+        if archive_name:
+            archive_path = os.path.join('downloads', archive_name)
+            self.fossa_modules.append({
+                "fossa_module": {
+                    "name": f"{dep.name}-{dep.version}",
+                    "type": "raw",
+                    "target": os.path.basename(archive_path)
+                },
+                "yb_metadata": {
+                    "url": dep.download_url,
+                    "sha256sum": self.download_manager.get_expected_checksum(archive_name)
                 }
-            )
+            })
 
     def build_dependency(self, dep: Dependency) -> None:
 
