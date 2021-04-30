@@ -21,7 +21,7 @@ class OpenSSLDependency(Dependency):
     def __init__(self) -> None:
         super(OpenSSLDependency, self).__init__(
             name='openssl',
-            version='1.0.2u',
+            version='1.1.1k',
             url_pattern='https://www.openssl.org/source/openssl-{0}.tar.gz',
             build_group=BUILD_GROUP_COMMON)
         self.copy_sources = True
@@ -31,7 +31,7 @@ class OpenSSLDependency(Dependency):
         if is_mac():
             # On macOS x86_64, OpenSSL 1.0.2 fails to detect the proper architecture.
             configure_cmd = [
-                '/bin/bash', './Configure', 'darwin64-x86_64-cc'] + common_configure_options
+                './Configure', 'darwin64-x86_64-cc'] + common_configure_options
         else:
             install_path = os.path.join(
                 builder.fs_layout.tp_installed_common_dir, "lib")
