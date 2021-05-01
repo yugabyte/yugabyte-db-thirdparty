@@ -154,18 +154,23 @@ class Builder(BuilderInterface):
                 get_build_def_module('libuuid').LibUuidDependency(),
             ]
 
-            if (not self.compiler_choice.use_only_gcc() and
-                    not self.compiler_choice.use_only_clang()):
+            using_both_gcc_and_clang = (
+                    not self.compiler_choice.use_only_gcc() and
+                    not self.compiler_choice.use_only_clang())
+            if using_both_gcc_and_clang:
                 # Old LLVM. We will migrate away from this.
-                self.dependencies += [
-                    get_build_def_module('llvm7').LLVM7Dependency(),
-                    get_build_def_module('llvm7_libcxx').Llvm7LibCXXDependency(),
-                ]
+                self.dependencies.append(get_build_def_module('llvm7').LLVM7Dependency())
+            standalone_llvm7_toolchain = self.toolchain and self.toolchain.toolchain_type == 'llvm7'
+            if using_both_gcc_and_clang or standalone_llvm7_toolchain:
+                self.dependencies.append(
+                        get_build_def_module('llvm7_libcxx').Llvm7LibCXXDependency())
 
-            if self.compiler_choice.use_only_clang():
-                if self.toolchain and self.toolchain.toolchain_type == 'llvm12rc1':
-                    # Still use libunwind/libcxxabi libraries from LLVM 11.0.1. TODO: upgrade.
-                    llvm_version_str = '11.0.1'
+            if (self.compiler_choice.use_only_clang() and
+                    self.compiler_choice.get_llvm_major_version() >= 10):
+                if self.toolchain and self.toolchain.toolchain_type == 'llvm12':
+                    # Still use libunwind/libcxxabi libraries from LLVM 11.x.
+                    # TODO: fix the compilation errors and upgrade.
+                    llvm_version_str = '11.1.0'
                 else:
                     llvm_version_str = self.compiler_choice.get_llvm_version_str()
                 self.dependencies += [
@@ -549,12 +554,16 @@ class Builder(BuilderInterface):
 
         if not is_mac() and self.compiler_choice.building_with_clang(self.build_type):
             # Special setup for Clang on Linux.
-            if self.compiler_choice.single_compiler_type == 'clang':
+            compiler_choice = self.compiler_choice
+            llvm_major_version = compiler_choice.get_llvm_major_version()
+            if compiler_choice.single_compiler_type == 'clang' and llvm_major_version >= 10:
                 # We are assuming that --single-compiler-type will only be used for Clang 10 and
                 # newer.
                 self.init_linux_clang1x_flags(dep)
-            else:
+            elif llvm_major_version == 7:
                 self.init_linux_clang7_flags(dep)
+            else:
+                raise ValueError(f"Unsupported LLVM major version: {llvm_major_version}")
 
     def get_libcxx_dirs(self, libcxx_installed_suffix: str) -> Tuple[str, str]:
         libcxx_installed_path = os.path.join(
@@ -591,6 +600,12 @@ class Builder(BuilderInterface):
         if self.compiler_choice.using_linuxbrew():
             self.compiler_flags.append('--gcc-toolchain={}'.format(
                 self.compiler_choice.get_linuxbrew_dir()))
+
+        if self.toolchain and self.toolchain.toolchain_type == 'llvm7':
+            # This is needed when building with Clang 7 but without Linuxbrew.
+            # TODO: this might only be needed due to using an old version of libunwind that is
+            # different from libunwind included in the LLVM 7 repository. Just a hypothesis.
+            self.ld_flags.append('-lgcc_s')
 
     def init_linux_clang1x_flags(self, dep: Dependency) -> None:
         """

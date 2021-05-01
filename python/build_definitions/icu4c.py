@@ -37,6 +37,16 @@ class Icu4cDependency(Dependency):
         if builder.compiler_choice.is_linux_clang1x() and builder.build_type == BUILD_TYPE_ASAN:
             # Needed to find dlsym.
             return ['-ldl']
+
+        compiler_choice = builder.compiler_choice
+        if (compiler_choice.single_compiler_type == 'clang' and
+                compiler_choice.get_llvm_major_version() == 7):
+            # This is needed with a standalone Clang 7 build (without Linuxbrew) to avoid the 
+            # following error:
+            # ld: makeconv.o: undefined reference to symbol '_Unwind_Resume@@GCC_3.0'
+            # /lib64/libgcc_s.so.1: error adding symbols: DSO missing from command line
+            return ['-lgcc_s']
+
         return []
 
     def build(self, builder: BuilderInterface) -> None:

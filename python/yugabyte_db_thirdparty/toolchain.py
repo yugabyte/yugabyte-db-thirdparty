@@ -24,21 +24,19 @@ LINUXBREW_URL = (
     '20181203T161736v9/linuxbrew-20181203T161736v9.tar.gz'
 )
 
-LLVM11_CENTOS7_URL = (
-    'https://github.com/yugabyte/build-clang/releases/download/'
-    'v11.0.0-1607398732/yb-llvm-v11.0.0-1607398732.tar.gz'
-)
 
-LLVM12_RC1_CENTOS7_URL = (
-    'https://github.com/yugabyte/build-clang/releases/download/'
-    'v12.0.0-rc1-1615746246-8364f536/yb-llvm-v12.0.0-rc1-1615746246-8364f536.tar.gz'
-)
+def get_llvm_url(tag: str) -> str:
+    return 'https://github.com/yugabyte/build-clang/releases/download/%s/yb-llvm-%s.tar.gz' % (
+            tag, tag)
+
 
 TOOLCHAIN_TYPE_TO_URL = {
     'linuxbrew': LINUXBREW_URL,
-    'llvm11': LLVM11_CENTOS7_URL,
-    'llvm12rc1': LLVM12_RC1_CENTOS7_URL
+    'llvm7': get_llvm_url('v7.1.0-1617644423-4856a933'),
+    'llvm11': get_llvm_url('v11.1.0-1617470305-1fdec59b'),
+    'llvm12': get_llvm_url('v12.0.0-1618930576-d28af7c6')
 }
+
 
 TOOLCHAIN_TYPES = sorted(TOOLCHAIN_TYPE_TO_URL.keys())
 
