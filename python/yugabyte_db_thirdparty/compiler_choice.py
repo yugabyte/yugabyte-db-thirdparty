@@ -299,6 +299,6 @@ class CompilerChoice:
             f"Expected the compiler type to be 'clang' only but found '{self.single_compiler_type}'"
         assert self.cxx_identification is not None
         return self.cxx_identification.version_str
-    
+
     def get_llvm_major_version(self) -> int:
         return int(self.get_llvm_version_str().split('.')[0])
