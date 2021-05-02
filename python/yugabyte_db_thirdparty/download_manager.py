@@ -181,11 +181,18 @@ class DownloadManager:
                 log("Added checksum for %s to %s: %s", filename, self.checksum_file_path, checksum)
                 return checksum
 
-            fatal("No expected checksum provided for {}".format(filename))
+            return None
         return self.filename2checksum[filename]
 
     def verify_checksum(self, file_name: str, expected_checksum: str) -> bool:
         real_checksum = compute_file_sha256(file_name)
+        file_basename = os.path.baename(file_name)
+        if expected_checksum is None:
+            fatal(
+                f"No expected checksum provided for file '{file_basename}'. Consider adding the "
+                f"following line to thirdparty_src_checksums.txt:\n"
+                f"{real_checksum}  {file_basename}\n"
+            )
         return real_checksum == expected_checksum
 
     def ensure_file_downloaded(
