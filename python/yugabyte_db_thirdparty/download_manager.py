@@ -186,7 +186,7 @@ class DownloadManager:
 
     def verify_checksum(self, file_name: str, expected_checksum: str) -> bool:
         real_checksum = compute_file_sha256(file_name)
-        file_basename = os.path.baename(file_name)
+        file_basename = os.path.basename(file_name)
         if expected_checksum is None:
             fatal(
                 f"No expected checksum provided for file '{file_basename}'. Consider adding the "
