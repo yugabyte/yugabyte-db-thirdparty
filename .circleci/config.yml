@@ -72,19 +72,20 @@ workflows:
           docker_image: yugabyteci/yb_build_infra_centos7:v2020-12-14T01_12_21
           build_thirdparty_args: "--devtoolset=9"
       - build:
+          name: centos7-clang7
+          archive_name_suffix: centos7-clang7
+          docker_image: yugabyteci/yb_build_infra_centos7:v2020-12-14T01_12_21
+          build_thirdparty_args: --toolchain=llvm7
+      - build:
           name: centos7-clang11
           archive_name_suffix: centos7-clang11
           docker_image: yugabyteci/yb_build_infra_centos7:v2020-12-14T01_12_21
-          build_thirdparty_args: >-
-            --single-compiler-type=clang
-            --toolchain=llvm11
+          build_thirdparty_args: --toolchain=llvm11
       - build:
-          name: centos7-clang12rc1
-          archive_name_suffix: centos7-clang12rc1
+          name: centos7-clang12
+          archive_name_suffix: centos7-clang12
           docker_image: yugabyteci/yb_build_infra_centos7:v2020-12-14T01_12_21
-          build_thirdparty_args: >-
-            --single-compiler-type=clang
-            --toolchain=llvm12rc1
+          build_thirdparty_args: --toolchain=llvm12
       - build:
           name: ubuntu1804-gcc7
           archive_name_suffix: ubuntu1804-gcc7
