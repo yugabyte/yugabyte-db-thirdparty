@@ -173,6 +173,7 @@ class Builder(BuilderInterface):
                     llvm_version_str = '11.1.0'
                 else:
                     llvm_version_str = self.compiler_choice.get_llvm_version_str()
+                raise RuntimeError("Should not get here")
                 self.dependencies += [
                     # New LLVM. We will keep supporting new LLVM versions here.
                     get_build_def_module('llvm1x_libunwind').Llvm1xLibUnwindDependency(
@@ -560,7 +561,8 @@ class Builder(BuilderInterface):
                 # We are assuming that --single-compiler-type will only be used for Clang 10 and
                 # newer.
                 self.init_linux_clang1x_flags(dep)
-            elif llvm_major_version == 7:
+            elif compiler_choice.single_compiler_type is None:
+                # This must be the Linuxbrew-based build with both GCC and Clang. This will go away.
                 self.init_linux_clang7_flags(dep)
             else:
                 raise ValueError(f"Unsupported LLVM major version: {llvm_major_version}")

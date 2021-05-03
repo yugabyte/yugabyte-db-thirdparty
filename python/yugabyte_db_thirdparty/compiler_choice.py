@@ -301,4 +301,6 @@ class CompilerChoice:
         return self.cxx_identification.version_str
 
     def get_llvm_major_version(self) -> int:
+        if self.single_compiler_type is None:
+            return None
         return int(self.get_llvm_version_str().split('.')[0])
