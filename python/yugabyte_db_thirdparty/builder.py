@@ -518,11 +518,16 @@ class Builder(BuilderInterface):
         )
 
         for dep in self.selected_dependencies:
-            self.perform_pre_build_steps(dep)
-            if (dep.build_group == build_group and
-                    dep.should_build(self) and
-                    self.should_rebuild_dependency(dep)):
-                self.build_dependency(dep)
+            if build_group == dep.build_group:
+                self.perform_pre_build_steps(dep)
+                should_build = dep.should_build(self)
+                should_rebuild = self.should_rebuild_dependency(dep)
+                if should_build and should_rebuild:
+                    self.build_dependency(dep)
+                else:
+                    log(f"Skipping dependency {dep.name}: "
+                        f"should_build={should_build}, "
+                        f"should_rebuild={should_rebuild}.")
 
     def get_install_prefix_with_qualifier(self, qualifier: Optional[str] = None) -> str:
         return os.path.join(
@@ -562,8 +567,9 @@ class Builder(BuilderInterface):
                 # We are assuming that --single-compiler-type will only be used for Clang 10 and
                 # newer.
                 self.init_linux_clang1x_flags(dep)
-            elif compiler_choice.single_compiler_type is None:
-                # This must be the Linuxbrew-based build with both GCC and Clang. This will go away.
+            elif llvm_major_version == 7 or compiler_choice.single_compiler_type is None:
+                # We are either building with LLVM 7 without Linuxbrew, or this is the
+                # Linuxbrew-based build with both GCC and Clang (which will go away).
                 self.init_linux_clang7_flags(dep)
             else:
                 raise ValueError(f"Unsupported LLVM major version: {llvm_major_version}")
@@ -840,13 +846,13 @@ class Builder(BuilderInterface):
         if old_build_stamp == new_build_stamp:
             log("Not rebuilding %s (%s) -- nothing changed.", dep.name, self.build_type)
             return False
-        else:
-            log("Have to rebuild %s (%s):", dep.name, self.build_type)
-            log("Old build stamp for %s (from %s):\n%s",
-                dep.name, stamp_path, indent_lines(old_build_stamp))
-            log("New build stamp for %s:\n%s",
-                dep.name, indent_lines(new_build_stamp))
-            return True
+
+        log("Have to rebuild %s (%s):", dep.name, self.build_type)
+        log("Old build stamp for %s (from %s):\n%s",
+            dep.name, stamp_path, indent_lines(old_build_stamp))
+        log("New build stamp for %s:\n%s",
+            dep.name, indent_lines(new_build_stamp))
+        return True
 
     # Come up with a string that allows us to tell when to rebuild a particular third-party
     # dependency. The result is returned in the get_build_stamp_for_component_rv variable, which
