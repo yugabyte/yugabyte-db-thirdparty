@@ -3,7 +3,7 @@ on: [push, pull_request]
 jobs:
   build:
     name: ${{ matrix.archive_name_suffix }}
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     strategy:
       matrix:
         include:
