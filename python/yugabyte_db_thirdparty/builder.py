@@ -21,9 +21,16 @@ import sys
 import yaml
 from typing import Optional, List, Set, Tuple, Dict, Any
 
-from build_definitions import BUILD_TYPE_COMMON, get_build_def_module, BUILD_TYPE_UNINSTRUMENTED, \
-    BUILD_TYPE_CLANG_UNINSTRUMENTED, BUILD_TYPE_ASAN, BUILD_TYPE_TSAN, BUILD_TYPES, \
-    BUILD_GROUP_COMMON, BUILD_GROUP_INSTRUMENTED
+from build_definitions import (
+    BUILD_GROUP_COMMON,
+    BUILD_GROUP_INSTRUMENTED
+    BUILD_TYPE_ASAN,
+    BUILD_TYPE_COMMON,
+    BUILD_TYPE_TSAN,
+    BUILD_TYPE_UNINSTRUMENTED,
+    BUILD_TYPES,
+    get_build_def_module,
+)
 from yugabyte_db_thirdparty.builder_helpers import PLACEHOLDER_RPATH, get_make_parallelism, \
     get_rpath_flag, sanitize_flags_line_for_log, log_and_set_env_var_to_list
 from yugabyte_db_thirdparty.builder_helpers import is_ninja_available
@@ -104,8 +111,7 @@ class Builder(BuilderInterface):
             self.toolchain = ensure_toolchain_installed(
                 self.download_manager, self.args.toolchain)
             compiler_prefix = self.toolchain.toolchain_root
-            if self.toolchain.toolchain_type != 'linuxbrew':
-                single_compiler_type = self.toolchain.get_compiler_type()
+            single_compiler_type = self.toolchain.get_compiler_type()
             self.toolchain.write_url_and_path_files()
         else:
             compiler_prefix = self.args.compiler_prefix
@@ -248,21 +254,16 @@ class Builder(BuilderInterface):
         ])
 
         self.build_one_build_type(BUILD_TYPE_COMMON)
-        build_types = []
-        if is_linux():
-            build_types.append(BUILD_TYPE_UNINSTRUMENTED)
+        build_types = [BUILD_TYPE_UNINSTRUMENTED]
 
         if self.compiler_choice.use_only_gcc():
             if is_linux() and not self.compiler_choice.using_linuxbrew():
                 # Starting to support ASAN for GCC compilers
                 # (not for the current GCC 5.5 build on Linuxbrew, though).
                 build_types.append(BUILD_TYPE_ASAN)
-        else:
-            if self.compiler_choice.using_linuxbrew() or is_mac():
-                build_types.append(BUILD_TYPE_CLANG_UNINSTRUMENTED)
-            if is_linux() and not self.args.skip_sanitizers:
-                build_types.append(BUILD_TYPE_ASAN)
-                build_types.append(BUILD_TYPE_TSAN)
+        elif is_linux() and not self.args.skip_sanitizers:
+            build_types.append(BUILD_TYPE_ASAN)
+            build_types.append(BUILD_TYPE_TSAN)
         log(f"Full list of build types: {build_types}")
 
         for build_type in build_types:
@@ -272,10 +273,7 @@ class Builder(BuilderInterface):
             yaml.dump(self.fossa_modules, output_file, indent=2)
 
     def get_build_types(self) -> List[str]:
-        build_types: List[str] = list(BUILD_TYPES)
-        if is_linux() and self.args.single_compiler_type is not None:
-            build_types.remove(BUILD_TYPE_CLANG_UNINSTRUMENTED)
-        return build_types
+        return list(BUILD_TYPES)
 
     def prepare_out_dirs(self) -> None:
         build_types = self.get_build_types()
@@ -918,9 +916,7 @@ class Builder(BuilderInterface):
         Distinguishes between build types that are potentially used in production releases from
         build types that are only used in testing (e.g. ASAN+UBSAN, TSAN).
         """
-        return self.build_type in [
-            BUILD_TYPE_COMMON, BUILD_TYPE_UNINSTRUMENTED, BUILD_TYPE_CLANG_UNINSTRUMENTED
-        ]
+        return self.build_type in [BUILD_TYPE_COMMON, BUILD_TYPE_UNINSTRUMENTED]
 
     def cmake_build_type_for_test_only_dependencies(self) -> str:
         return 'Release' if self.is_release_build() else 'Debug'
