@@ -165,8 +165,9 @@ class Builder(BuilderInterface):
                 self.dependencies.append(
                         get_build_def_module('llvm7_libcxx').Llvm7LibCXXDependency())
 
+            llvm_major_version: Optional[int] = self.compiler_choice.get_llvm_major_version()
             if (self.compiler_choice.use_only_clang() and
-                    self.compiler_choice.get_llvm_major_version() >= 10):
+                    llvm_major_version is not None and llvm_major_version >= 10):
                 if self.toolchain and self.toolchain.toolchain_type == 'llvm12':
                     # Still use libunwind/libcxxabi libraries from LLVM 11.x.
                     # TODO: fix the compilation errors and upgrade.
@@ -556,8 +557,9 @@ class Builder(BuilderInterface):
         if not is_mac() and self.compiler_choice.building_with_clang(self.build_type):
             # Special setup for Clang on Linux.
             compiler_choice = self.compiler_choice
-            llvm_major_version = compiler_choice.get_llvm_major_version()
-            if compiler_choice.single_compiler_type == 'clang' and llvm_major_version >= 10:
+            llvm_major_version: Optional[int] = compiler_choice.get_llvm_major_version()
+            if (compiler_choice.single_compiler_type == 'clang' and
+                    llvm_major_version is not None and llvm_major_version >= 10):
                 # We are assuming that --single-compiler-type will only be used for Clang 10 and
                 # newer.
                 self.init_linux_clang1x_flags(dep)

@@ -29,3 +29,4 @@ src/
 venv/
 .pyre
 fossa_modules.yml
+clang-toolchain

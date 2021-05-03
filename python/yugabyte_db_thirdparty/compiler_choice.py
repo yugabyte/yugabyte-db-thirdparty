@@ -300,7 +300,7 @@ class CompilerChoice:
         assert self.cxx_identification is not None
         return self.cxx_identification.version_str
 
-    def get_llvm_major_version(self) -> int:
+    def get_llvm_major_version(self) -> Optional[int]:
         if self.single_compiler_type is None:
             return None
         return int(self.get_llvm_version_str().split('.')[0])
