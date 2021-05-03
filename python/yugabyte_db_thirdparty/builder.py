@@ -23,7 +23,7 @@ from typing import Optional, List, Set, Tuple, Dict, Any
 
 from build_definitions import (
     BUILD_GROUP_COMMON,
-    BUILD_GROUP_INSTRUMENTED
+    BUILD_GROUP_INSTRUMENTED,
     BUILD_TYPE_ASAN,
     BUILD_TYPE_COMMON,
     BUILD_TYPE_TSAN,
