@@ -5,6 +5,8 @@ jobs:
     name: ${{ matrix.archive_name_suffix }}
     runs-on: self-hosted
     strategy:
+      # To avoid terminating all jobs when one job fails.
+      fail-fast: false
       matrix:
         include:
           - name: centos7-linuxbrew-gcc5
