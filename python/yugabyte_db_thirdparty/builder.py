@@ -174,7 +174,6 @@ class Builder(BuilderInterface):
                     llvm_version_str = '11.1.0'
                 else:
                     llvm_version_str = self.compiler_choice.get_llvm_version_str()
-                raise RuntimeError("Should not get here")
                 self.dependencies += [
                     # New LLVM. We will keep supporting new LLVM versions here.
                     get_build_def_module('llvm1x_libunwind').Llvm1xLibUnwindDependency(
