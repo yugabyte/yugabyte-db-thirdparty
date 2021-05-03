@@ -46,7 +46,7 @@ ALTERNATIVE_URL_PREFIX = 'https://downloads.yugabyte.com/yugabyte-db-thirdparty/
 class DownloadManager:
     should_add_checksum: bool
     download_dir: str
-    filename2checksum: Dict[str, str]
+    file_name_to_checksum: Dict[str, str]
     checksum_file_path: str
     curl_path: str
 
@@ -146,7 +146,7 @@ class DownloadManager:
         if not os.path.exists(self.checksum_file_path):
             fatal("Expected checksum file not found at %s", self.checksum_file_path)
 
-        self.filename2checksum = {}
+        self.file_name_to_checksum = {}
         with open(self.checksum_file_path, 'rt') as inp:
             for line in inp:
                 line = line.strip()
@@ -156,36 +156,46 @@ class DownloadManager:
                 if not re.match('^[0-9a-f]{64}$', sum):
                     fatal("Invalid checksum: '%s' for archive name: '%s' in %s. Expected to be a "
                           "SHA-256 sum (64 hex characters).", sum, fname, self.checksum_file_path)
-                self.filename2checksum[fname] = sum
+                self.file_name_to_checksum[fname] = sum
 
-    def get_expected_checksum(self, filename: str) -> str:
-        return self.get_expected_checksum_and_maybe_add_to_file(
-            filename=filename,
+    def get_expected_checksum(self, file_name: str) -> str:
+        checksum = self.get_expected_checksum_and_maybe_add_to_file(
+            file_name=file_name,
             downloaded_path=None)
+        if checksum is None:
+            raise ValueError(f"No expected checksum found for file name {file_name}")
+        return checksum
 
     def get_expected_checksum_and_maybe_add_to_file(
             self,
-            filename: str,
-            downloaded_path: Optional[str]) -> str:
-        if filename not in self.filename2checksum:
+            file_name: str,
+            downloaded_path: Optional[str]) -> Optional[str]:
+        if file_name not in self.file_name_to_checksum:
             if self.should_add_checksum and downloaded_path:
                 with open(self.checksum_file_path, 'rt') as inp:
                     lines = inp.readlines()
                 lines = [line.rstrip() for line in lines]
                 checksum = compute_file_sha256(downloaded_path)
-                lines.append("%s  %s" % (checksum, filename))
+                lines.append("%s  %s" % (checksum, file_name))
                 with open(self.checksum_file_path, 'wt') as out:
                     for line in lines:
                         out.write(line + "\n")
-                self.filename2checksum[filename] = checksum
-                log("Added checksum for %s to %s: %s", filename, self.checksum_file_path, checksum)
+                self.file_name_to_checksum[file_name] = checksum
+                log("Added checksum for %s to %s: %s", file_name, self.checksum_file_path, checksum)
                 return checksum
 
-            fatal("No expected checksum provided for {}".format(filename))
-        return self.filename2checksum[filename]
+            return None
+        return self.file_name_to_checksum[file_name]
 
-    def verify_checksum(self, file_name: str, expected_checksum: str) -> bool:
+    def verify_checksum(self, file_name: str, expected_checksum: Optional[str]) -> bool:
         real_checksum = compute_file_sha256(file_name)
+        file_basename = os.path.basename(file_name)
+        if expected_checksum is None:
+            fatal(
+                f"No expected checksum provided for file '{file_basename}'. Consider adding the "
+                f"following line to thirdparty_src_checksums.txt:\n"
+                f"{real_checksum}  {file_basename}\n"
+            )
         return real_checksum == expected_checksum
 
     def ensure_file_downloaded(
@@ -201,7 +211,7 @@ class DownloadManager:
         mkdir_if_missing(self.download_dir)
 
         if os.path.exists(file_path) and verify_checksum:
-            # We check the filename against our checksum map only if the file exists. This is done
+            # We check the file name against our checksum map only if the file exists. This is done
             # so that we would still download the file even if we don't know the checksum, making it
             # easier to add new third-party dependencies.
             if expected_checksum is None:
