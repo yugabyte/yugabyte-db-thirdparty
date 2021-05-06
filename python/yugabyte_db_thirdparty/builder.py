@@ -45,8 +45,17 @@ from yugabyte_db_thirdparty.download_manager import DownloadManager
 from yugabyte_db_thirdparty.env_helpers import write_env_vars
 from yugabyte_db_thirdparty.os_detection import is_mac, is_linux
 from yugabyte_db_thirdparty.string_util import indent_lines
-from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR, remove_path, \
-    mkdir_if_missing, PushDir, assert_list_contains, assert_dir_exists, EnvVarContext
+from yugabyte_db_thirdparty.util import (
+    assert_dir_exists,
+    assert_list_contains,
+    EnvVarContext,
+    mkdir_if_missing,
+    PushDir,
+    read_file,
+    write_file,
+    remove_path,
+    YB_THIRDPARTY_DIR,
+)
 from yugabyte_db_thirdparty.file_system_layout import FileSystemLayout
 from yugabyte_db_thirdparty.toolchain import Toolchain, ensure_toolchain_installed
 
@@ -407,7 +416,28 @@ class Builder(BuilderInterface):
             configure_args = (
                 configure_cmd.copy() + ['--prefix={}'.format(self.prefix)] + extra_args
             )
-            log_output(log_prefix, configure_args)
+            try:
+                log_output(log_prefix, configure_args)
+            except Exception as ex:
+                log(f"The configure step failed. Looking for relevant files in {dir_for_build} "
+                    f"to show.")
+                num_files_shown = 0
+                for root, dirs, files in os.walk('.'):
+                    for file_name in files:
+                        if file_name == 'config.log':
+                            file_path = os.path.abspath(os.path.join(root, file_name))
+                            log(
+                                f"Contents of {file_path}:\n"
+                                f"\n"
+                                f"{read_file(file_path)}\n"
+                                f"\n"
+                                f"(End of {file_path}).\n"
+                                f"\n"
+                            )
+                            num_files_shown += 1
+                log(f"Logged contents of {num_files_shown} relevant files in {dir_for_build}.")
+                raise
+
             log_output(log_prefix, ['make', '-j{}'.format(get_make_parallelism())])
             if install:
                 log_output(log_prefix, ['make'] + install)
