@@ -17,7 +17,6 @@ from typing import Optional, Tuple
 from build_definitions import (
     BUILD_TYPE_ASAN,
     BUILD_TYPE_TSAN,
-    BUILD_TYPE_CLANG_UNINSTRUMENTED,
     BUILD_TYPE_UNINSTRUMENTED
 )
 from yugabyte_db_thirdparty.custom_logging import log, fatal
@@ -220,7 +219,6 @@ class CompilerChoice:
         return build_type in [
             BUILD_TYPE_ASAN,
             BUILD_TYPE_TSAN,
-            BUILD_TYPE_CLANG_UNINSTRUMENTED
         ]
 
     def will_need_clang(self, build_type: str) -> bool:
