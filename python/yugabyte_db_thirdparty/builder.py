@@ -408,15 +408,15 @@ class Builder(BuilderInterface):
 
         with PushDir(dir_for_build):
             log("Building in %s", dir_for_build)
-            if run_autogen:
-                log_output(log_prefix, ['./autogen.sh'])
-            if autoconf:
-                log_output(log_prefix, ['autoreconf', '-i'])
-
-            configure_args = (
-                configure_cmd.copy() + ['--prefix={}'.format(self.prefix)] + extra_args
-            )
             try:
+                if run_autogen:
+                    log_output(log_prefix, ['./autogen.sh'])
+                if autoconf:
+                    log_output(log_prefix, ['autoreconf', '-i'])
+
+                configure_args = (
+                    configure_cmd.copy() + ['--prefix={}'.format(self.prefix)] + extra_args
+                )
                 log_output(log_prefix, configure_args)
             except Exception as ex:
                 log(f"The configure step failed. Looking for relevant files in {dir_for_build} "
