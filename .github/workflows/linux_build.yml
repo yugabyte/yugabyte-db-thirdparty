@@ -3,7 +3,7 @@ on: [push, pull_request]
 jobs:
   build:
     name: ${{ matrix.archive_name_suffix }}
-    runs-on: self-hosted
+    runs-on: ubuntu-20.04
     strategy:
       # To avoid terminating all jobs when one job fails.
       fail-fast: false
