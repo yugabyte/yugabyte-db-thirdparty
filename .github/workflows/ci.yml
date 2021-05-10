@@ -1,4 +1,4 @@
-name: Linux
+name: ci
 
 # TODO: deduplicate this across multiple workflow files.
 on:
