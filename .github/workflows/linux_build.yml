@@ -20,37 +20,49 @@ on:
 jobs:
   build:
     name: ${{ matrix.name }}
-    runs-on: ubuntu-20.04
+    runs-on: ${{ matrix.os }}
+    if: >
+      (github.event_name == 'push' &&
+       !contains(github.event.head_commit.message, 'skip ci') &&
+       !contains(github.event.head_commit.message, 'ci skip')) ||
+      github.event_name == 'pull_request'
     strategy:
       # To avoid terminating all jobs when one job fails.
       fail-fast: false
       matrix:
         include:
           - name: centos7-linuxbrew-gcc5
+            os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_centos7:v2021-03-26T05_02_29
             build_thirdparty_args: "--toolchain=linuxbrew"
 
           - name: centos7-gcc8
+            os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_centos7:v2021-03-26T05_02_29
             build_thirdparty_args: "--devtoolset=8"
 
           - name: centos7-gcc9
+            os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_centos7:v2021-03-26T05_02_29
             build_thirdparty_args: "--devtoolset=9"
 
           - name: centos7-clang7
+            os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_centos7:v2021-03-26T05_02_29
             build_thirdparty_args: --toolchain=llvm7
 
           - name: centos7-clang11
+            os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_centos7:v2021-03-26T05_02_29
             build_thirdparty_args: --toolchain=llvm11
 
           - name: centos7-clang12
+            os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_centos7:v2021-03-26T05_02_29
             build_thirdparty_args: --toolchain=llvm12
 
           - name: ubuntu1804-gcc7
+            os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_ubuntu1804:v2021-03-26T05_02_28
             build_thirdparty_args: >-
               --compiler-prefix=/usr
@@ -58,6 +70,7 @@ jobs:
               --compiler-suffix=-7
 
           - name: ubuntu1804-gcc8
+            os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_ubuntu1804:v2021-03-26T05_02_28
             build_thirdparty_args: >-
               --compiler-prefix=/usr
@@ -65,6 +78,7 @@ jobs:
               --compiler-suffix=-8
 
           - name: ubuntu1804-clang10
+            os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_ubuntu1804:v2021-03-26T05_02_28
             build_thirdparty_args: >-
               --single-compiler-type=clang
@@ -72,6 +86,7 @@ jobs:
               --compiler-suffix=-10
 
           - name: ubuntu1804-clang11
+            os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_ubuntu1804:v2021-03-26T05_02_28
             build_thirdparty_args: >-
               --single-compiler-type=clang
@@ -79,6 +94,7 @@ jobs:
               --compiler-suffix=-11
 
           - name: ubuntu2004-gcc9
+            os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_ubuntu2004:v2021-03-26T05_02_29
             build_thirdparty_args: >-
               --compiler-prefix=/usr
@@ -86,18 +102,29 @@ jobs:
               --compiler-suffix=-9
 
           - name: ubuntu2004-clang11
+            os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_ubuntu2004:v2021-03-26T05_02_29
             build_thirdparty_args: >-
               --compiler-prefix=/usr
               --single-compiler-type=clang
               --compiler-suffix=-11
 
+          - name: macos
+            os: macos-10.15
+            docker_image:
+            build_thirdparty_args:
+
     steps:
       - name: Clone repository
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
 
       - name: Build
-        run: ./.github/workflows/linux_build.sh
+        run: |
+          if [[ $OSTYPE == darwin* ]]; then
+            ./.github/workflows/macos_build.sh
+          else
+            ./.github/workflows/linux_build.sh
+          fi
         env:
           YB_DOCKER_IMAGE: ${{ matrix.docker_image }}
           YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX: ${{ matrix.name }}
