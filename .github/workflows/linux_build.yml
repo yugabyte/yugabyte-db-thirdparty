@@ -1,5 +1,22 @@
-name: ci
-on: [push, pull_request]
+name: Linux
+
+# TODO: deduplicate this across multiple workflow files.
+on:
+  push:
+    branches:
+      - '*'
+
+    paths-ignore:
+      - README.md
+
+  # Run tests for any PRs.
+  pull_request:
+    branches:
+      - master
+
+    paths-ignore:
+      - README.md
+
 jobs:
   build:
     name: ${{ matrix.archive_name_suffix }}
@@ -79,6 +96,6 @@ jobs:
         run: ./.github/workflows/linux_build.sh
         env:
           YB_DOCKER_IMAGE: ${{ matrix.docker_image }}
-          YB_ARCHIVE_NAME_SUFFIX: ${{ matrix.archive_name_suffix }}
+          YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX: ${{ matrix.archive_name_suffix }}
           YB_BUILD_THIRDPARTY_ARGS: ${{ matrix.build_thirdparty_args }}
           GITHUB_TOKEN: ${{ secrets.CUSTOM_GITHUB_TOKEN }}
