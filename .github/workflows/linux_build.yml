@@ -19,7 +19,7 @@ on:
 
 jobs:
   build:
-    name: ${{ matrix.archive_name_suffix }}
+    name: ${{ matrix.name }}
     runs-on: ubuntu-20.04
     strategy:
       # To avoid terminating all jobs when one job fails.
@@ -27,37 +27,30 @@ jobs:
       matrix:
         include:
           - name: centos7-linuxbrew-gcc5
-            archive_name_suffix: centos7-linuxbrew
             docker_image: yugabyteci/yb_build_infra_centos7:v2021-03-26T05_02_29
             build_thirdparty_args: "--toolchain=linuxbrew"
 
-          - name: centos7-gcc-devtoolset-8
-            archive_name_suffix: centos7-devtoolset-8
+          - name: centos7-gcc8
             docker_image: yugabyteci/yb_build_infra_centos7:v2021-03-26T05_02_29
             build_thirdparty_args: "--devtoolset=8"
 
-          - name: centos7-gcc-devtoolset-9
-            archive_name_suffix: centos7-devtoolset-9
+          - name: centos7-gcc9
             docker_image: yugabyteci/yb_build_infra_centos7:v2021-03-26T05_02_29
             build_thirdparty_args: "--devtoolset=9"
 
           - name: centos7-clang7
-            archive_name_suffix: centos7-clang7
             docker_image: yugabyteci/yb_build_infra_centos7:v2021-03-26T05_02_29
             build_thirdparty_args: --toolchain=llvm7
 
           - name: centos7-clang11
-            archive_name_suffix: centos7-clang11
             docker_image: yugabyteci/yb_build_infra_centos7:v2021-03-26T05_02_29
             build_thirdparty_args: --toolchain=llvm11
 
           - name: centos7-clang12
-            archive_name_suffix: centos7-clang12
             docker_image: yugabyteci/yb_build_infra_centos7:v2021-03-26T05_02_29
             build_thirdparty_args: --toolchain=llvm12
 
           - name: ubuntu1804-gcc7
-            archive_name_suffix: ubuntu1804-gcc7
             docker_image: yugabyteci/yb_build_infra_ubuntu1804:v2021-03-26T05_02_28
             build_thirdparty_args: >-
               --compiler-prefix=/usr
@@ -65,7 +58,6 @@ jobs:
               --compiler-suffix=-7
 
           - name: ubuntu1804-gcc8
-            archive_name_suffix: ubuntu1804-gcc8
             docker_image: yugabyteci/yb_build_infra_ubuntu1804:v2021-03-26T05_02_28
             build_thirdparty_args: >-
               --compiler-prefix=/usr
@@ -73,7 +65,6 @@ jobs:
               --compiler-suffix=-8
 
           - name: ubuntu1804-clang10
-            archive_name_suffix: ubuntu1804-clang10
             docker_image: yugabyteci/yb_build_infra_ubuntu1804:v2021-03-26T05_02_28
             build_thirdparty_args: >-
               --single-compiler-type=clang
@@ -81,11 +72,24 @@ jobs:
               --compiler-suffix=-10
 
           - name: ubuntu1804-clang11
-            archive_name_suffix: ubuntu1804-clang11
             docker_image: yugabyteci/yb_build_infra_ubuntu1804:v2021-03-26T05_02_28
             build_thirdparty_args: >-
               --single-compiler-type=clang
               --compiler-prefix=/usr
+              --compiler-suffix=-11
+
+          - name: ubuntu2004-gcc9
+            docker_image: yugabyteci/yb_build_infra_ubuntu2004:v2021-03-26T05_02_29
+            build_thirdparty_args: >-
+              --compiler-prefix=/usr
+              --single-compiler-type=gcc
+              --compiler-suffix=-9
+
+          - name: ubuntu2004-clang11
+            docker_image: yugabyteci/yb_build_infra_ubuntu2004:v2021-03-26T05_02_29
+            build_thirdparty_args: >-
+              --compiler-prefix=/usr
+              --single-compiler-type=clang
               --compiler-suffix=-11
 
     steps:
@@ -96,6 +100,18 @@ jobs:
         run: ./.github/workflows/linux_build.sh
         env:
           YB_DOCKER_IMAGE: ${{ matrix.docker_image }}
-          YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX: ${{ matrix.archive_name_suffix }}
+          YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX: ${{ matrix.name }}
           YB_BUILD_THIRDPARTY_ARGS: ${{ matrix.build_thirdparty_args }}
           GITHUB_TOKEN: ${{ secrets.CUSTOM_GITHUB_TOKEN }}
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: yugabyte-db-thirdparty-${{ matrix.name }}
+          path: |
+            .
+            !build/**
+            !src/**
+            !download/**
+            !a.out
+            !__pycache__
+            !venv/**
