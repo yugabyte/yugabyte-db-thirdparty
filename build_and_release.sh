@@ -80,8 +80,6 @@ log "YB_BUILD_THIRDPARTY_ARGS: ${YB_BUILD_THIRDPARTY_ARGS:-undefined}"
 YB_BUILD_THIRDPARTY_EXTRA_ARGS=${YB_BUILD_THIRDPARTY_EXTRA_ARGS:-}
 log "YB_BUILD_THIRDPARTY_EXTRA_ARGS: ${YB_BUILD_THIRDPARTY_EXTRA_ARGS:-undefined}"
 
-log "CIRCLE_PULL_REQUEST: ${CIRCLE_PULL_REQUEST:-undefined}"
-
 # -------------------------------------------------------------------------------------------------
 # Installed tools
 # -------------------------------------------------------------------------------------------------
@@ -132,10 +130,7 @@ fi
 
 # -------------------------------------------------------------------------------------------------
 
-if [[ -n ${CIRCLE_PULL_REQUEST:-} ]]; then
-  echo "CIRCLE_PULL_REQUEST is set: $CIRCLE_PULL_REQUEST. Will not upload artifacts."
-  unset GITHUB_TOKEN
-elif [[ -z ${GITHUB_TOKEN:-} || $GITHUB_TOKEN == *githubToken* ]]; then
+if [[ -z ${GITHUB_TOKEN:-} || $GITHUB_TOKEN == *githubToken* ]]; then
   echo "This must be a pull request build. Will not upload artifacts."
   GITHUB_TOKEN=""
 else
@@ -149,13 +144,12 @@ git_sha1=$( git rev-parse HEAD )
 tag=v$( date +%Y%m%d%H%M%S )-${git_sha1:0:10}
 
 archive_dir_name=yugabyte-db-thirdparty-$tag
-if [[ -n $YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX ]]; then
-  effective_suffix="-$YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX"
-else
-  effective_suffix="-$os_name"
+if [[ -z ${YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX:-} ]]; then
+  fatal "YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX is not specified."
 fi
-archive_dir_name+=$effective_suffix
-tag+=$effective_suffix
+to_append="-$YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX"
+archive_dir_name+=$to_append
+tag+=$to_append
 
 build_dir_parent=/opt/yb-build/thirdparty
 repo_dir=$build_dir_parent/$archive_dir_name
