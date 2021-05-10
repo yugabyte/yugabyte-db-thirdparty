@@ -1,5 +1,6 @@
 name: macOS
 
+# TODO: deduplicate this across multiple workflow files.
 on:
   push:
     branches:

@@ -1,5 +1,22 @@
-name: ci
-on: [push, pull_request]
+name: Linux
+
+# TODO: deduplicate this across multiple workflow files.
+on:
+  push:
+    branches:
+      - '*'
+
+    paths-ignore:
+      - README.md
+
+  # Run tests for any PRs.
+  pull_request:
+    branches:
+      - master
+
+    paths-ignore:
+      - README.md
+
 jobs:
   build:
     name: ${{ matrix.archive_name_suffix }}
