@@ -258,3 +258,8 @@ def get_temporal_randomized_file_name_suffix() -> str:
         get_seconds_timestamp_for_file_name(),
         get_random_suffix_for_file_name()
     )
+
+
+def create_symlink_and_log(link_to: str, symlink_path: str) -> None:
+    log(f"Creating symlink {symlink_path} -> {link_to}")
+    os.symlink(link_to, symlink_path)

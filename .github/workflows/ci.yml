@@ -1,4 +1,4 @@
-name: Linux
+name: ci
 
 # TODO: deduplicate this across multiple workflow files.
 on:
@@ -19,45 +19,50 @@ on:
 
 jobs:
   build:
-    name: ${{ matrix.archive_name_suffix }}
-    runs-on: ubuntu-20.04
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    if: >
+      (github.event_name == 'push' &&
+       !contains(github.event.head_commit.message, 'skip ci') &&
+       !contains(github.event.head_commit.message, 'ci skip')) ||
+      github.event_name == 'pull_request'
     strategy:
       # To avoid terminating all jobs when one job fails.
       fail-fast: false
       matrix:
         include:
           - name: centos7-linuxbrew-gcc5
-            archive_name_suffix: centos7-linuxbrew
+            os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_centos7:v2021-03-26T05_02_29
             build_thirdparty_args: "--toolchain=linuxbrew"
 
-          - name: centos7-gcc-devtoolset-8
-            archive_name_suffix: centos7-devtoolset-8
+          - name: centos7-gcc8
+            os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_centos7:v2021-03-26T05_02_29
             build_thirdparty_args: "--devtoolset=8"
 
-          - name: centos7-gcc-devtoolset-9
-            archive_name_suffix: centos7-devtoolset-9
+          - name: centos7-gcc9
+            os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_centos7:v2021-03-26T05_02_29
             build_thirdparty_args: "--devtoolset=9"
 
           - name: centos7-clang7
-            archive_name_suffix: centos7-clang7
+            os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_centos7:v2021-03-26T05_02_29
             build_thirdparty_args: --toolchain=llvm7
 
           - name: centos7-clang11
-            archive_name_suffix: centos7-clang11
+            os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_centos7:v2021-03-26T05_02_29
             build_thirdparty_args: --toolchain=llvm11
 
           - name: centos7-clang12
-            archive_name_suffix: centos7-clang12
+            os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_centos7:v2021-03-26T05_02_29
             build_thirdparty_args: --toolchain=llvm12
 
           - name: ubuntu1804-gcc7
-            archive_name_suffix: ubuntu1804-gcc7
+            os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_ubuntu1804:v2021-03-26T05_02_28
             build_thirdparty_args: >-
               --compiler-prefix=/usr
@@ -65,7 +70,7 @@ jobs:
               --compiler-suffix=-7
 
           - name: ubuntu1804-gcc8
-            archive_name_suffix: ubuntu1804-gcc8
+            os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_ubuntu1804:v2021-03-26T05_02_28
             build_thirdparty_args: >-
               --compiler-prefix=/usr
@@ -73,7 +78,7 @@ jobs:
               --compiler-suffix=-8
 
           - name: ubuntu1804-clang10
-            archive_name_suffix: ubuntu1804-clang10
+            os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_ubuntu1804:v2021-03-26T05_02_28
             build_thirdparty_args: >-
               --single-compiler-type=clang
@@ -81,21 +86,61 @@ jobs:
               --compiler-suffix=-10
 
           - name: ubuntu1804-clang11
-            archive_name_suffix: ubuntu1804-clang11
+            os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_ubuntu1804:v2021-03-26T05_02_28
             build_thirdparty_args: >-
               --single-compiler-type=clang
               --compiler-prefix=/usr
               --compiler-suffix=-11
 
+          - name: ubuntu2004-gcc9
+            os: ubuntu-20.04
+            docker_image: yugabyteci/yb_build_infra_ubuntu2004:v2021-03-26T05_02_29
+            build_thirdparty_args: >-
+              --compiler-prefix=/usr
+              --single-compiler-type=gcc
+              --compiler-suffix=-9
+
+          - name: ubuntu2004-clang11
+            os: ubuntu-20.04
+            docker_image: yugabyteci/yb_build_infra_ubuntu2004:v2021-03-26T05_02_29
+            build_thirdparty_args: >-
+              --compiler-prefix=/usr
+              --single-compiler-type=clang
+              --compiler-suffix=-11
+
+          - name: macos
+            os: macos-10.15
+            docker_image:
+            build_thirdparty_args:
+
     steps:
       - name: Clone repository
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
+        with:
+          # We need to fetch all history because we are cloning the checkout directory further
+          # in test code.
+          fetch-depth: 0
 
       - name: Build
-        run: ./.github/workflows/linux_build.sh
+        run: |
+          if [[ $OSTYPE == darwin* ]]; then
+            ./.github/workflows/macos_build.sh
+          else
+            ./.github/workflows/linux_build.sh
+          fi
         env:
           YB_DOCKER_IMAGE: ${{ matrix.docker_image }}
-          YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX: ${{ matrix.archive_name_suffix }}
+          YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX: ${{ matrix.name }}
           YB_BUILD_THIRDPARTY_ARGS: ${{ matrix.build_thirdparty_args }}
           GITHUB_TOKEN: ${{ secrets.CUSTOM_GITHUB_TOKEN }}
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: yugabyte-db-thirdparty-${{ matrix.name }}.tar.gz
+          path: archive.tar.gz
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: yugabyte-db-thirdparty-${{ matrix.name }}.tar.gz.sha256
+          path: archive.tar.gz.sha256

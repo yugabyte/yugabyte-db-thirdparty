@@ -30,3 +30,5 @@ venv/
 .pyre
 fossa_modules.yml
 clang-toolchain
+archive.tar.gz
+archive.tar.gz.sha256
