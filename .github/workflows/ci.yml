@@ -117,6 +117,10 @@ jobs:
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
+        with:
+          # We need to fetch all history because we are cloning the checkout directory further
+          # in test code.
+          fetch-depth: 0
 
       - name: Build
         run: |
@@ -133,12 +137,10 @@ jobs:
 
       - uses: actions/upload-artifact@v2
         with:
-          name: yugabyte-db-thirdparty-${{ matrix.name }}
-          path: |
-            .
-            !build/**
-            !src/**
-            !download/**
-            !a.out
-            !__pycache__
-            !venv/**
+          name: yugabyte-db-thirdparty-${{ matrix.name }}.tar.gz
+          path: archive.tar.gz
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: yugabyte-db-thirdparty-${{ matrix.name }}.tar.gz.sha256
+          path: archive.tar.gz.sha256

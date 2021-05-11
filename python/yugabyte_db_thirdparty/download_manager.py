@@ -22,7 +22,8 @@ from urllib.parse import urlparse
 
 from yugabyte_db_thirdparty.archive_handling import ARCHIVE_TYPES
 from yugabyte_db_thirdparty.archive_handling import split_archive_file_name
-from yugabyte_db_thirdparty.checksums import get_checksum_file_path
+from yugabyte_db_thirdparty.checksums import (
+    get_checksum_file_path, CHECKSUM_SUFFIX)
 from yugabyte_db_thirdparty.custom_logging import log, fatal
 from yugabyte_db_thirdparty.dependency import Dependency
 from yugabyte_db_thirdparty.string_util import shlex_join
@@ -386,12 +387,11 @@ class DownloadManager:
                 archive_extension
             ])
         )
-        checksum_suffix = '.sha256'
-        archive_temporary_dest_checksum_path = archive_temporary_dest_path + checksum_suffix
+        archive_temporary_dest_checksum_path = archive_temporary_dest_path + CHECKSUM_SUFFIX
 
         try:
             self.ensure_file_downloaded(
-                toolchain_url + checksum_suffix,
+                toolchain_url + CHECKSUM_SUFFIX,
                 archive_temporary_dest_checksum_path,
                 enable_using_alternative_url=False,
                 verify_checksum=False)

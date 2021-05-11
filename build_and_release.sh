@@ -210,3 +210,11 @@ fi
   set -x
   time $build_thirdparty_cmd_str --upload-as-tag "$tag"
 )
+
+for file_to_copy in archive.tar.gz archive.tar.gz.sha256; do
+  if [[ -f $file_to_copy ]]; then
+    cp "$file_to_copy" "$original_repo_dir"
+  else
+    log "Warning: file $file_to_copy not found. Artifact upload may fail."
+  fi
+done

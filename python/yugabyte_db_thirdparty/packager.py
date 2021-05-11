@@ -1,5 +1,12 @@
 from yugabyte_db_thirdparty.git_util import get_git_sha1
-from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR, log_and_run_cmd, compute_file_sha256
+from yugabyte_db_thirdparty.util import (
+    compute_file_sha256,
+    create_symlink_and_log,
+    log_and_run_cmd,
+    remove_path,
+    YB_THIRDPARTY_DIR,
+)
+from yugabyte_db_thirdparty.checksums import CHECKSUM_SUFFIX
 
 import os
 import logging
@@ -9,17 +16,18 @@ import time
 
 EXCLUDE_PATTERNS_RELATIVE_TO_ARCHIVE_ROOT = [
     '.git',
-    'src',
+    'a.out',  # TODO: figure out what generates this file.
     'build',
-    'venv',
     'download',
-    # TODO: figure out what generates this file.
-    'a.out'
+    'src',
+    'venv',
 ]
 
 GENERAL_EXCLUDE_PATTERNS = ['*.pyc', '*.o']
 
 MAX_UPLOAD_ATTEMPTS = 20
+
+ARCHIVE_SUFFIX = '.tar.gz'
 
 
 class Packager:
@@ -27,15 +35,15 @@ class Packager:
     archive_dir_name: str
     archive_tarball_name: str
     archive_tarball_path: str
-    archive_sha256_path: str
+    archive_checksum_path: str
     git_sha1: str
 
     def __init__(self) -> None:
         self.build_dir_parent = os.path.dirname(YB_THIRDPARTY_DIR)
         self.archive_dir_name = os.path.basename(YB_THIRDPARTY_DIR)
-        self.archive_tarball_name = self.archive_dir_name + '.tar.gz'
+        self.archive_tarball_name = self.archive_dir_name + ARCHIVE_SUFFIX
         self.archive_tarball_path = os.path.join(self.build_dir_parent, self.archive_tarball_name)
-        self.archive_sha256_path = self.archive_tarball_path + '.sha256'
+        self.archive_checksum_path = self.archive_tarball_path + CHECKSUM_SUFFIX
         self.git_sha1 = get_git_sha1(YB_THIRDPARTY_DIR)
 
     def create_package(self) -> None:
@@ -43,8 +51,18 @@ class Packager:
             logging.info("File already exists, deleting: %s", self.archive_tarball_path)
             os.remove(self.archive_tarball_path)
 
+        # Create a symlink with a constant name so we can copy the file around and use it for
+        # creating artifacts for pull request builds.
+        archive_symlink_path = os.path.join(YB_THIRDPARTY_DIR, 'archive' + ARCHIVE_SUFFIX)
+        archive_checksum_symlink_path = archive_symlink_path + CHECKSUM_SUFFIX
+
         tar_cmd = ['tar']
-        for excluded_pattern in EXCLUDE_PATTERNS_RELATIVE_TO_ARCHIVE_ROOT:
+        patterns_to_exclude = EXCLUDE_PATTERNS_RELATIVE_TO_ARCHIVE_ROOT + [
+            os.path.basename(file_path) for file_path in [
+                archive_symlink_path, archive_checksum_symlink_path
+            ]
+        ]
+        for excluded_pattern in patterns_to_exclude:
             tar_cmd.extend([
                 '--exclude',
                 '%s/%s' % (self.archive_dir_name, excluded_pattern)
@@ -56,18 +74,24 @@ class Packager:
         log_and_run_cmd(tar_cmd, cwd=self.build_dir_parent)
 
         sha256 = compute_file_sha256(self.archive_tarball_path)
-        with open(self.archive_sha256_path, 'w') as sha256_file:
+        with open(self.archive_checksum_path, 'w') as sha256_file:
             sha256_file.write('%s  %s\n' % (sha256, self.archive_tarball_name))
         logging.info(
             "Archive SHA256 checksum: %s, created checksum file: %s",
-            sha256, self.archive_sha256_path)
+            sha256, self.archive_checksum_path)
+
+        for file_path in [archive_symlink_path, archive_checksum_symlink_path]:
+            remove_path(file_path)
+
+        create_symlink_and_log(self.archive_tarball_path, archive_symlink_path)
+        create_symlink_and_log(self.archive_checksum_path, archive_checksum_symlink_path)
 
     def upload_package(self, tag: str) -> None:
         hub_cmd = [
             'hub', 'release', 'create', tag,
             '-m', 'Release %s' % tag,
             '-a', self.archive_tarball_path,
-            '-a', self.archive_sha256_path,
+            '-a', self.archive_checksum_path,
             '-t', self.git_sha1
         ]
         delay_sec = 10
