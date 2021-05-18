@@ -28,3 +28,6 @@ prebuilt_downloads/
 src/
 venv/
 .pyre
+archive.tar.gz
+archive.tar.gz.sha256
+fossa_modules.yml
