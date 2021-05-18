@@ -4,7 +4,8 @@ name: macOS
 on:
   push:
     branches:
-      - '*'
+      - master
+      - 2.4
 
     paths-ignore:
       - README.md
@@ -13,9 +14,11 @@ on:
   pull_request:
     branches:
       - master
+      - 2.4
 
     paths-ignore:
       - README.md
+
 
 env:
   GITHUB_ORG_AND_REPO: "${{ github.repository }}"

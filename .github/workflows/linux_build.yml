@@ -4,7 +4,8 @@ name: Linux
 on:
   push:
     branches:
-      - '*'
+      - master
+      - 2.4
 
     paths-ignore:
       - README.md
@@ -13,6 +14,7 @@ on:
   pull_request:
     branches:
       - master
+      - 2.4
 
     paths-ignore:
       - README.md
