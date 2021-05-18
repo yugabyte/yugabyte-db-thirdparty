@@ -48,20 +48,10 @@ jobs:
             docker_image: yugabyteci/yb_build_infra_centos7:v2021-03-26T05_02_29
             build_thirdparty_args: "--devtoolset=9"
 
-          - name: centos7-clang7
-            archive_name_suffix: centos7-clang7
-            docker_image: yugabyteci/yb_build_infra_centos7:v2021-03-26T05_02_29
-            build_thirdparty_args: --toolchain=llvm7
-
           - name: centos7-clang11
             archive_name_suffix: centos7-clang11
             docker_image: yugabyteci/yb_build_infra_centos7:v2021-03-26T05_02_29
             build_thirdparty_args: --toolchain=llvm11
-
-          - name: centos7-clang12
-            archive_name_suffix: centos7-clang12
-            docker_image: yugabyteci/yb_build_infra_centos7:v2021-03-26T05_02_29
-            build_thirdparty_args: --toolchain=llvm12
 
           - name: ubuntu1804-gcc7
             archive_name_suffix: ubuntu1804-gcc7
