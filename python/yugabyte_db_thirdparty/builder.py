@@ -113,7 +113,7 @@ class Builder(BuilderInterface):
             download_dir=self.fs_layout.tp_download_dir)
 
         single_compiler_type = None
-        if self.args.toolchain:
+        if self.toolchain:
             toolchain = ensure_toolchain_installed(
                 self.download_manager, self.args.toolchain)
             compiler_prefix = toolchain.toolchain_root
