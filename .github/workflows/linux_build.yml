@@ -95,3 +95,4 @@ jobs:
           YB_DOCKER_IMAGE: ${{ matrix.docker_image }}
           YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX: ${{ matrix.archive_name_suffix }}
           YB_BUILD_THIRDPARTY_ARGS: ${{ matrix.build_thirdparty_args }}
+          GITHUB_TOKEN: ${{ secrets.CUSTOM_GITHUB_TOKEN }}
