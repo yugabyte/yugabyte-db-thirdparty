@@ -36,10 +36,7 @@ jobs:
           - name: centos7-linuxbrew-gcc5
             archive_name_suffix: centos7-linuxbrew
             docker_image: yugabyteci/yb_build_infra_centos7:v2021-03-26T05_02_29
-            build_thirdparty_args: >-
-              --toolchain=linuxbrew
-              --skip-sanitizers
-              --skip=llvm7
+            build_thirdparty_args: ""
 
           - name: centos7-gcc-devtoolset-8
             archive_name_suffix: centos7-devtoolset-8
