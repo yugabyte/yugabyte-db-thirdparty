@@ -1,9 +1,11 @@
 name: macOS
 
+# TODO: deduplicate this across multiple workflow files.
 on:
   push:
     branches:
-      - '*'
+      - master
+      - 2.6
 
     paths-ignore:
       - README.md
@@ -12,6 +14,7 @@ on:
   pull_request:
     branches:
       - master
+      - 2.6
 
     paths-ignore:
       - README.md

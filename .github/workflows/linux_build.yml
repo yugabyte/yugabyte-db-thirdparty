@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - master
-      - 2.4
+      - 2.6
 
     paths-ignore:
       - README.md
@@ -14,7 +14,7 @@ on:
   pull_request:
     branches:
       - master
-      - 2.4
+      - 2.6
 
     paths-ignore:
       - README.md
