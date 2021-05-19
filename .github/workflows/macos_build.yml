@@ -36,4 +36,5 @@ jobs:
       - name: Build YugabyteDB third-party dependencies
         env:
           GITHUB_TOKEN: ${{ secrets.CUSTOM_GITHUB_TOKEN }}
+          YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX: macos
         run: ./.github/workflows/macos_build.sh
