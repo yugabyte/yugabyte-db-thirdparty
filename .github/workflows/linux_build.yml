@@ -86,6 +86,10 @@ jobs:
               --compiler-suffix=-11
 
     steps:
+      # We need this because LLVM build consumes a lot of space.
+      - name: Maximize build space
+        uses: yugabyte/maximize-build-space@master
+
       - name: Clone repository
         uses: actions/checkout@v1
 
