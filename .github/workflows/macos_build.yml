@@ -1,9 +1,11 @@
 name: macOS
 
+# TODO: deduplicate this across multiple workflow files.
 on:
   push:
     branches:
-      - '*'
+      - master
+      - 2.6
 
     paths-ignore:
       - README.md
@@ -12,6 +14,7 @@ on:
   pull_request:
     branches:
       - master
+      - 2.6
 
     paths-ignore:
       - README.md
@@ -33,8 +36,5 @@ jobs:
       - name: Build YugabyteDB third-party dependencies
         env:
           GITHUB_TOKEN: ${{ secrets.CUSTOM_GITHUB_TOKEN }}
-        run: |
-          brew install autoconf automake pkg-config shellcheck
-          sudo mkdir -p /opt/yb-build/{thirdparty,brew,tmp}
-          sudo chmod 777 /opt/yb-build/{thirdparty,brew,tmp}
-          ./build_and_release.sh
+          YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX: macos
+        run: ./.github/workflows/macos_build.sh
