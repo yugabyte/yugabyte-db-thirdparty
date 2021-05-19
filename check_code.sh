@@ -8,4 +8,4 @@ set -euo pipefail
 activate_virtualenv
 
 set -x
-codecheck --verbose
+codecheck --verbose "$@"

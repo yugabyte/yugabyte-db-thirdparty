@@ -34,7 +34,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.CUSTOM_GITHUB_TOKEN }}
         run: |
-          brew install autoconf automake pkg-config shellcheck
+          brew install autoconf automake pkg-config
           sudo mkdir -p /opt/yb-build/{thirdparty,brew,tmp}
           sudo chmod 777 /opt/yb-build/{thirdparty,brew,tmp}
           ./build_and_release.sh
