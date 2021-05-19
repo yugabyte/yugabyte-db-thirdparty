@@ -18,8 +18,6 @@ set -euo pipefail
 # shellcheck source=./yb-thirdparty-common.sh
 . "${BASH_SOURCE[0]%/*}/yb-thirdparty-common.sh"
 
-check_bash_scripts
-
 echo "YB_THIRDPARTY_DIR=$YB_THIRDPARTY_DIR"
 
 activate_virtualenv
