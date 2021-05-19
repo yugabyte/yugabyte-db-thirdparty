@@ -97,6 +97,7 @@ class Builder(BuilderInterface):
         self.linuxbrew_dir = None
         self.additional_allowed_shared_lib_paths = set()
         self.license_report = []
+        self.toolchain = None
 
     def parse_args(self) -> None:
         self.args = parse_cmd_line_args()
@@ -113,12 +114,12 @@ class Builder(BuilderInterface):
             download_dir=self.fs_layout.tp_download_dir)
 
         single_compiler_type = None
-        if self.toolchain:
-            toolchain = ensure_toolchain_installed(
+        if self.args.toolchain:
+            self.toolchain = ensure_toolchain_installed(
                 self.download_manager, self.args.toolchain)
-            compiler_prefix = toolchain.toolchain_root
+            compiler_prefix = self.toolchain.toolchain_root
             single_compiler_type = self.toolchain.get_compiler_type()
-            toolchain.write_url_and_path_files()
+            self.toolchain.write_url_and_path_files()
         else:
             compiler_prefix = self.args.compiler_prefix
             single_compiler_type = self.args.single_compiler_type
