@@ -39,7 +39,7 @@ jobs:
             build_thirdparty_args: >-
               --toolchain=linuxbrew
               --skip-sanitizers
-              --skip=llvm
+              --skip=llvm7
 
           - name: centos7-gcc-devtoolset-8
             archive_name_suffix: centos7-devtoolset-8
