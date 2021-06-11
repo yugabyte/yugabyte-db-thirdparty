@@ -71,10 +71,12 @@ jobs:
           - name: centos8-gcc8
             os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_centos8:v2021-05-27T23_53_30
+            # TODO: we are making an assumption here that the default GCC version is 8.
+            # Are we validating it somewhere? Perhaps we need to pass the target GCC version
+            # argument to the build script and find the compiler based on it.
             build_thirdparty_args: >-
               --compiler-prefix=/usr
               --single-compiler-type=gcc
-              --compiler-suffix=-8
 
           - name: centos8-gcc9
             os: centos8
