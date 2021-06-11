@@ -79,7 +79,7 @@ jobs:
               --single-compiler-type=gcc
 
           - name: centos8-gcc9
-            os: centos8
+            os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_centos8:v2021-05-27T23_53_30
             build_thirdparty_args: "--devtoolset=9"
 
