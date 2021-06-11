@@ -18,7 +18,7 @@ import os
 import platform
 import subprocess
 import sys
-import ruamel.yaml  # type: ignore
+import ruamel.yaml as ruamel_yaml  # type: ignore
 from typing import Optional, List, Set, Tuple, Dict, Any
 
 from build_definitions import (
@@ -278,7 +278,7 @@ class Builder(BuilderInterface):
         for build_type in build_types:
             self.build_one_build_type(build_type)
 
-        yaml = ruamel.yaml.YAML(typ='safe', pure=True)
+        yaml = ruamel_yaml.YAML(typ='safe', pure=True)
         with open(os.path.join(YB_THIRDPARTY_DIR, 'fossa_modules.yml'), 'w') as output_file:
             yaml.dump(self.fossa_modules, output_file)
 
