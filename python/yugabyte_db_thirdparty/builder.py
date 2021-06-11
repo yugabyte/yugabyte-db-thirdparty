@@ -18,7 +18,7 @@ import os
 import platform
 import subprocess
 import sys
-import ruamel.yaml
+import ruamel.yaml  # type: ignore
 from typing import Optional, List, Set, Tuple, Dict, Any
 
 from build_definitions import (

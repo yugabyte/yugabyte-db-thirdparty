@@ -92,6 +92,7 @@ tools_to_show_versions=(
   autoconf
   autoreconf
   pkg-config
+  python3
 )
 
 if "$is_mac"; then
