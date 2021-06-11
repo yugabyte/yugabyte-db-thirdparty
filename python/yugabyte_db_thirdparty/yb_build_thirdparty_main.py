@@ -13,8 +13,6 @@
 # under the License.
 #
 
-import yaml
-
 import build_definitions
 import logging
 import time

@@ -19,7 +19,7 @@ import os
 import subprocess
 
 from typing import Set
-from yugabyte_db_thirdparty.util import log
+from yugabyte_db_thirdparty.util import log, fatal
 from yugabyte_db_thirdparty.string_util import split_into_word_set
 
 
@@ -38,9 +38,20 @@ DEVTOOLSET_ENV_VARS_OK_IF_UNSET: Set[str] = set(['PERL5LIB'])
 
 
 def activate_devtoolset(devtoolset_number: int) -> None:
-    devtoolset_enable_script = (
-        '/opt/rh/devtoolset-%d/enable' % devtoolset_number
-    )
+    devtoolset_enable_script_candidates = [
+        f'/opt/rh/{toolset_name_prefix}-{devtoolset_number}/enable'
+        for toolset_name_prefix in ['devtoolset', 'gcc-toolset']
+    ]
+    existing_devtoolset_enable_scripts = [
+        script_path for script_path in devtoolset_enable_script_candidates
+        if os.path.exists(script_path)
+    ]
+    if len(existing_devtoolset_enable_scripts) != 1:
+        fatal(
+            f"Expected exactly one of the scripts to exist: {devtoolset_enable_script_candidates}. "
+            f"Found that {len(existing_devtoolset_enable_scripts)} exist.")
+    devtoolset_enable_script = existing_devtoolset_enable_scripts[0]
+
     log("Enabling devtoolset-%s by sourcing the script %s",
         devtoolset_number, devtoolset_enable_script)
     if not os.path.exists(devtoolset_enable_script):
