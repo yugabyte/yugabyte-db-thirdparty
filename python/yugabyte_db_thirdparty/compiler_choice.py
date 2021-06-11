@@ -12,7 +12,7 @@
 #
 
 import os
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 
 from build_definitions import (
     BUILD_TYPE_ASAN,
@@ -147,11 +147,20 @@ class CompilerChoice:
 
     def validate_compiler_path(self, compiler_path: str) -> None:
         if self.devtoolset:
-            devtoolset_substring = '/devtoolset-%d/' % self.devtoolset
-            if devtoolset_substring not in compiler_path:
+            substring_found = False
+            devtoolset_substrings: List[str] = []
+            for substring_candidate in ['devtoolset', 'gcc-toolset']:
+                devtoolset_substring = f'/{substring_candidate}-{self.devtoolset}/'
+                devtoolset_substrings.append(devtoolset_substring)
+                if devtoolset_substring in compiler_path:
+                    substring_found = True
+                    break
+
+            if not substring_found:
                 raise ValueError(
-                    "Invalid compiler path: %s. Substring not found: %s" % (
-                        compiler_path, devtoolset_substring))
+                    f"Invalid compiler path: {compiler_path}. No devtoolset-related substring "
+                    f"found: {devtoolset_substrings}")
+
         if not os.path.exists(compiler_path):
             raise IOError("Compiler does not exist: %s" % compiler_path)
 

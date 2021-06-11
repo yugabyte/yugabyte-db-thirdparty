@@ -1,8 +1,7 @@
-yugabyte_pycommon
-mypy
-pycodestyle
-docker
-pyyaml
-docker
-packaging
 codecheck
+docker
+mypy
+packaging
+pycodestyle
+ruamel.yaml
+yugabyte_pycommon

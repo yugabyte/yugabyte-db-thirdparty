@@ -31,6 +31,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # ---------------------------------------------------------------------------------------
+          # CentOS 7
+          # ---------------------------------------------------------------------------------------
           - name: centos7-linuxbrew-gcc5
             os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_centos7:v2021-03-26T05_02_29
@@ -60,6 +63,29 @@ jobs:
             os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_centos7:v2021-03-26T05_02_29
             build_thirdparty_args: --toolchain=llvm12
+
+          # ---------------------------------------------------------------------------------------
+          # CentOS 8
+          # ---------------------------------------------------------------------------------------
+
+          - name: centos8-gcc8
+            os: ubuntu-20.04
+            docker_image: yugabyteci/yb_build_infra_centos8:v2021-05-27T23_53_30
+            # TODO: we are making an assumption here that the default GCC version is 8.
+            # Are we validating it somewhere? Perhaps we need to pass the target GCC version
+            # argument to the build script and find the compiler based on it.
+            build_thirdparty_args: >-
+              --compiler-prefix=/usr
+              --single-compiler-type=gcc
+
+          - name: centos8-gcc9
+            os: ubuntu-20.04
+            docker_image: yugabyteci/yb_build_infra_centos8:v2021-05-27T23_53_30
+            build_thirdparty_args: "--devtoolset=9"
+
+          # ---------------------------------------------------------------------------------------
+          # Ubuntu 18.04
+          # ---------------------------------------------------------------------------------------
 
           - name: ubuntu1804-gcc7
             os: ubuntu-20.04
@@ -93,6 +119,10 @@ jobs:
               --compiler-prefix=/usr
               --compiler-suffix=-11
 
+          # ---------------------------------------------------------------------------------------
+          # Ubuntu 20.04
+          # ---------------------------------------------------------------------------------------
+
           - name: ubuntu2004-gcc9
             os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_ubuntu2004:v2021-03-26T05_02_29
@@ -108,6 +138,10 @@ jobs:
               --compiler-prefix=/usr
               --single-compiler-type=clang
               --compiler-suffix=-11
+
+          # ---------------------------------------------------------------------------------------
+          # macOS
+          # ---------------------------------------------------------------------------------------
 
           - name: macos
             os: macos-10.15
