@@ -21,7 +21,7 @@ class GPerfToolsDependency(Dependency):
     def __init__(self) -> None:
         super(GPerfToolsDependency, self).__init__(
             name='gperftools',
-            version='2.7',
+            version='2.8.1',
             url_pattern='https://github.com/gperftools/gperftools/releases/download/gperftools-{0}/'
                         'gperftools-{0}.tar.gz',
             build_group=BUILD_GROUP_INSTRUMENTED)
