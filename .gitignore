@@ -29,3 +29,6 @@ src/
 venv/
 .pyre
 fossa_modules.yml
+archive.tar.gz
+archive.tar.gz.sha256
+

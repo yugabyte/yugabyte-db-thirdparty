@@ -50,20 +50,15 @@ VALID_BUILD_GROUPS = [BUILD_GROUP_COMMON, BUILD_GROUP_INSTRUMENTED]
 
 BUILD_TYPE_COMMON = 'common'
 
-# This build type is built with GCC on Linux, unless --custom-clang-prefix is specified.
-# In the latter case this is built with Clang and BUILD_TYPE_CLANG_UNINSTRUMENTED is not used.
 BUILD_TYPE_UNINSTRUMENTED = 'uninstrumented'
 
 # Clang-based builds with ASAN+UBSAN and TSAN enabled.
 BUILD_TYPE_ASAN = 'asan'
 BUILD_TYPE_TSAN = 'tsan'
 
-BUILD_TYPE_CLANG_UNINSTRUMENTED = 'clang_uninstrumented'
-
 BUILD_TYPES = [
     BUILD_TYPE_COMMON,
     BUILD_TYPE_UNINSTRUMENTED,
-    BUILD_TYPE_CLANG_UNINSTRUMENTED,
     BUILD_TYPE_ASAN,
     BUILD_TYPE_TSAN
 ]
