@@ -19,8 +19,9 @@ class LibUnwindDependency(Dependency):
     def __init__(self) -> None:
         super(LibUnwindDependency, self).__init__(
             name='libunwind',
-            version='1.1a',
-            url_pattern='https://github.com/yugabyte/libunwind/archive/libunwind-{0}.tar.gz',
+            version='1.5.0',
+            url_pattern='https://github.com/libunwind/libunwind/releases/download/'
+                        'v1.5/libunwind-{0}.tar.gz',
             build_group=BUILD_GROUP_COMMON)
         self.copy_sources = True
 
