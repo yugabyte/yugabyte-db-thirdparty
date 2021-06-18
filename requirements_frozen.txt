@@ -11,6 +11,7 @@ pyparsing==2.4.7
 PyYAML==5.4.1
 requests==2.25.1
 toml==0.10.2
+types-PyYAML==5.4.3
 typing-extensions==3.10.0.0
 urllib3==1.26.5
 websocket-client==1.1.0
