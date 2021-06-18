@@ -5,4 +5,4 @@ docker
 pyyaml
 docker
 packaging
-codecheck
+codecheck>=1.0.9
