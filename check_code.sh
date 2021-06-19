@@ -8,4 +8,5 @@ set -euo pipefail
 activate_virtualenv
 
 set -x
+rm -rf .mypy_cache
 codecheck --verbose "$@"

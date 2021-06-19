@@ -1,8 +1,7 @@
-yugabyte_pycommon
+codecheck>=1.0.9
 mypy
-pycodestyle
-docker
-pyyaml
-docker
 packaging
-codecheck
+pycodestyle
+pyyaml
+types-pyyaml
+yugabyte_pycommon

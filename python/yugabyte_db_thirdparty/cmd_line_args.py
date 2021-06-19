@@ -120,19 +120,6 @@ def parse_cmd_line_args() -> argparse.Namespace:
         action='store_true')
 
     parser.add_argument(
-        '--multi-build',
-        action='store_true',
-        help='Build multiple configurations in parallel. Most other arguments will get ignored '
-             'if this is specified. Configurations to build are taken from .circleci/config.yml. '
-             'The set of configurations to build can be customized using the '
-             '--multi-build-conf-name-pattern flag.')
-
-    parser.add_argument(
-        '--multi-build-conf-name-pattern',
-        help='Only build configurations matching this glob-style pattern, anchored on both ends. '
-             'This implies --multi-build.')
-
-    parser.add_argument(
         '--license-report',
         action='store_true',
         help='Generate a license report.')
@@ -207,8 +194,5 @@ def parse_cmd_line_args() -> argparse.Namespace:
 
         if args.compiler_suffix:
             raise ValueError("--compiler-suffix and --toolchain are incompatible")
-
-    if args.multi_build_conf_name_pattern:
-        args.multi_build = True
 
     return args
