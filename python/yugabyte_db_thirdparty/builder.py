@@ -183,12 +183,7 @@ class Builder(BuilderInterface):
             llvm_major_version: Optional[int] = self.compiler_choice.get_llvm_major_version()
             if (self.compiler_choice.use_only_clang() and
                     llvm_major_version is not None and llvm_major_version >= 10):
-                if self.toolchain and self.toolchain.toolchain_type == 'llvm12':
-                    # Still use libunwind/libcxxabi libraries from LLVM 11.x.
-                    # TODO: fix the compilation errors and upgrade.
-                    llvm_version_str = '11.1.0'
-                else:
-                    llvm_version_str = self.compiler_choice.get_llvm_version_str()
+                llvm_version_str = self.compiler_choice.get_llvm_version_str()
                 self.dependencies += [
                     # New LLVM. We will keep supporting new LLVM versions here.
                     get_build_def_module('llvm1x_libunwind').Llvm1xLibUnwindDependency(

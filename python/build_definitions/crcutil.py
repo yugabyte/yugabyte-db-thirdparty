@@ -12,6 +12,8 @@
 # under the License.
 #
 
+import platform
+
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
 
@@ -19,16 +21,17 @@ class CRCUtilDependency(Dependency):
     def __init__(self) -> None:
         super(CRCUtilDependency, self).__init__(
             name='crcutil',
-            version='440ba7babeff77ffad992df3a10c767f184e946e',
-            url_pattern='https://github.com/yugabyte/crcutil/archive/crcutil-{0}.tar.gz',
+            version='v20210630-8678969f02c4679fa40abaa9c5d7afadec50ed84',
+            url_pattern='https://github.com/yugabyte/crcutil/archive/refs/tags/{0}.tar.gz',
             build_group=BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = True
-        self.patch_version = 2
+        self.patch_version = 1
         self.patch_strip = 0
-        self.patches = ['crcutil-fix-libtoolize-on-osx.patch', 'crcutil-fix-offsetof.patch']
+        self.patches = ['crcutil-fix-offsetof.patch']
 
     def get_additional_compiler_flags(self, builder: BuilderInterface) -> List[str]:
-        if builder.compiler_choice.building_with_clang(builder.build_type):
+        if (builder.compiler_choice.building_with_clang(builder.build_type) or
+                platform.uname().processor == 'aarch64'):
             return []
         # -mcrc32 (https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html)
         # This option enables built-in functions __builtin_ia32_crc32qi, __builtin_ia32_crc32hi,
