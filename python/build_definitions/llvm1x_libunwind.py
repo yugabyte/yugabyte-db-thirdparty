@@ -30,13 +30,16 @@ class Llvm1xLibUnwindDependency(Llvm1xPartDependencyBase):
     def build(self, builder: BuilderInterface) -> None:
         src_subdir_name = 'libunwind'
         source_path = builder.fs_layout.get_source_path(self)
+        llvm_path = os.path.join(source_path, 'llvm')
+        if not os.path.exists(llvm_path):
+            raise IOError(f"Main llvm project directory not found at {llvm_path}")
         builder.build_with_cmake(
             self,
             extra_args=[
                 '-DCMAKE_BUILD_TYPE=Release',
                 '-DBUILD_SHARED_LIBS=ON',
                 '-DLIBUNWIND_USE_COMPILER_RT=ON',
-                '-DLLVM_PATH=%s' % source_path,
+                f'-DLLVM_PATH={llvm_path}',
             ],
             src_subdir_name=src_subdir_name)
         src_include_path = os.path.join(source_path, src_subdir_name, 'include')
