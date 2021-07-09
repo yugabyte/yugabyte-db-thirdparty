@@ -1,6 +1,6 @@
 # yugabyte-db-thirdparty
 
-This repository contains Python-based automation to build and package third-party dependencies that are needed to build YugabyteDB. We package these dependencies as GitHub releases so that they can be downloaded by YugabyteDB CI/CD systems without having to rebuild them every time. Here is an example of how to build yugabyte-db-thirdparty and then YugabyteDB with GCC 9, although many other toolchains are usable.
+This repository contains Python-based automation to build and package third-party dependencies that are needed to build YugabyteDB. We package these dependencies as GitHub releases so that they can be downloaded by YugabyteDB CI/CD systems without having to rebuild them every time. Here is an example of how to build yugabyte-db-thirdparty and then YugabyteDB with GCC 9, although many GCC and Clang versionsare usable.
 
 ```bash
 cd ~/code
@@ -10,6 +10,7 @@ cd yugabyte-db-thirdparty
 
 cd ~/code
 git clone https://github.com/yugabyte/yugabyte-db.git
+cd yugabyte-db
 export YB_THIRDPARTY_DIR=~/code/yugabyte-db-thirdparty
 ./yb_build.sh --gcc9
 ```
