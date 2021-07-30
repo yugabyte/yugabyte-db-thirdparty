@@ -16,7 +16,7 @@ import os
 import multiprocessing
 import subprocess
 import sys
-import build_definitions.llvm7
+from build_definitions.llvm7 import LLVM7_VERSION
 
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 from build_definitions import ExtraDownload
@@ -26,7 +26,7 @@ class Llvm7LibCXXDependency(Dependency):
     def __init__(self) -> None:
         super(Llvm7LibCXXDependency, self).__init__(
             name='llvm7_libcxx',
-            version=build_definitions.llvm7.LLVM7Dependency.VERSION,
+            version=LLVM7_VERSION,
             # This is a special "URL pattern" we support.
             url_pattern='mkdir',
             build_group=BUILD_GROUP_INSTRUMENTED)

@@ -26,9 +26,12 @@ from yugabyte_db_thirdparty.util import (
     YB_THIRDPARTY_DIR,
     add_path_entry,
 )
-from yugabyte_db_thirdparty.compiler_identification import (
+from compiler_identification import (
     CompilerIdentification, identify_compiler
 )
+from packaging.version import parse as parse_version
+
+LOWEST_GCC_VERSION_STR = '5.5.0'
 
 
 class CompilerChoice:
@@ -285,6 +288,14 @@ class CompilerChoice:
         log(f"C compiler: {self.cc_identification}")
         log(f"C++ compiler: {self.cxx_identification}")
 
+    @staticmethod
+    def _ensure_compiler_is_acceptable(compiler_identification: CompilerIdentification) -> None:
+        if (compiler_identification.family == 'gcc' and
+                compiler_identification.parsed_version < parse_version(LOWEST_GCC_VERSION_STR)):
+            raise AssertionError(
+                f"GCC version is too old: {compiler_identification}; "
+                f"required at least {LOWEST_GCC_VERSION_STR}")
+
     def _identify_compiler_version(self) -> None:
         c_compiler = self.get_c_compiler()
         cxx_compiler = self.get_cxx_compiler()
@@ -298,8 +309,8 @@ class CompilerChoice:
                 f"C++ compiler: {self.cxx_identification}, "
             )
 
-        self.cc_identification.check_if_acceptable()
-        self.cxx_identification.check_if_acceptable()
+        self._ensure_compiler_is_acceptable(self.cc_identification)
+        self._ensure_compiler_is_acceptable(self.cxx_identification)
 
     def get_llvm_version_str(self) -> str:
         assert self.single_compiler_type == 'clang', \
