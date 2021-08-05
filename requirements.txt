@@ -5,3 +5,4 @@ packaging
 pycodestyle
 ruamel.yaml
 yugabyte_pycommon
+compiler-identification

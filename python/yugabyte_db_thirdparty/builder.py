@@ -169,14 +169,8 @@ class Builder(BuilderInterface):
                 get_build_def_module('libuuid').LibUuidDependency(),
             ]
 
-            using_both_gcc_and_clang = (
-                    not self.compiler_choice.use_only_gcc() and
-                    not self.compiler_choice.use_only_clang())
-            if using_both_gcc_and_clang:
-                # Old LLVM. We will migrate away from this.
-                self.dependencies.append(get_build_def_module('llvm7').LLVM7Dependency())
             standalone_llvm7_toolchain = self.toolchain and self.toolchain.toolchain_type == 'llvm7'
-            if using_both_gcc_and_clang or standalone_llvm7_toolchain:
+            if standalone_llvm7_toolchain:
                 self.dependencies.append(
                         get_build_def_module('llvm7_libcxx').Llvm7LibCXXDependency())
 
@@ -722,6 +716,8 @@ class Builder(BuilderInterface):
             # This is needed for libc++ to find libc++abi headers.
             assert_dir_exists(libcxx_installed_include)
             self.cxx_flags.append('-I%s' % libcxx_installed_include)
+            # libc++ build needs to be able to find libc++abi library installed here.
+            self.ld_flags.append('-L%s' % libcxx_installed_lib)
 
         if is_libcxx or is_libcxxabi:
             log("Adding special linker flags for Clang 10 or newer for libc++ or libc++abi")
