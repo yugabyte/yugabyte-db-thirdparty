@@ -34,32 +34,32 @@ jobs:
           # ---------------------------------------------------------------------------------------
           # CentOS 7
           # ---------------------------------------------------------------------------------------
-          - name: centos7-x84_64-linuxbrew-gcc5
+          - name: centos7-x86_64-linuxbrew-gcc5
             os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_centos7:v2021-03-26T05_02_29
             build_thirdparty_args: "--toolchain=linuxbrew"
 
-          - name: centos7-x84_64-gcc8
+          - name: centos7-x86_64-gcc8
             os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_centos7:v2021-03-26T05_02_29
             build_thirdparty_args: "--devtoolset=8"
 
-          - name: centos7-x84_64-gcc9
+          - name: centos7-x86_64-gcc9
             os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_centos7:v2021-03-26T05_02_29
             build_thirdparty_args: "--devtoolset=9"
 
-          - name: centos7-x84_64-clang7
+          - name: centos7-x86_64-clang7
             os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_centos7:v2021-03-26T05_02_29
             build_thirdparty_args: --toolchain=llvm7
 
-          - name: centos7-x84_64-clang11
+          - name: centos7-x86_64-clang11
             os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_centos7:v2021-03-26T05_02_29
             build_thirdparty_args: --toolchain=llvm11
 
-          - name: centos7-x84_64-clang12
+          - name: centos7-x86_64-clang12
             os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_centos7:v2021-03-26T05_02_29
             build_thirdparty_args: --toolchain=llvm12
@@ -68,7 +68,7 @@ jobs:
           # CentOS 8
           # ---------------------------------------------------------------------------------------
 
-          - name: centos8-x84_64-gcc8
+          - name: centos8-x86_64-gcc8
             os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_centos8:v2021-05-27T23_53_30
             # TODO: we are making an assumption here that the default GCC version is 8.
@@ -78,7 +78,7 @@ jobs:
               --compiler-prefix=/usr
               --single-compiler-type=gcc
 
-          - name: centos8-x84_64-gcc9
+          - name: centos8-x86_64-gcc9
             os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_centos8:v2021-05-27T23_53_30
             build_thirdparty_args: "--devtoolset=9"
@@ -87,7 +87,7 @@ jobs:
           # Ubuntu 18.04
           # ---------------------------------------------------------------------------------------
 
-          - name: ubuntu1804-x84_64-gcc7
+          - name: ubuntu1804-x86_64-gcc7
             os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_ubuntu1804:v2021-03-26T05_02_28
             build_thirdparty_args: >-
@@ -95,7 +95,7 @@ jobs:
               --single-compiler-type=gcc
               --compiler-suffix=-7
 
-          - name: ubuntu1804-x84_64-gcc8
+          - name: ubuntu1804-x86_64-gcc8
             os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_ubuntu1804:v2021-03-26T05_02_28
             build_thirdparty_args: >-
@@ -103,7 +103,7 @@ jobs:
               --single-compiler-type=gcc
               --compiler-suffix=-8
 
-          - name: ubuntu1804-x84_64-clang10
+          - name: ubuntu1804-x86_64-clang10
             os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_ubuntu1804:v2021-03-26T05_02_28
             build_thirdparty_args: >-
@@ -111,7 +111,7 @@ jobs:
               --compiler-prefix=/usr
               --compiler-suffix=-10
 
-          - name: ubuntu1804-x84_64-clang11
+          - name: ubuntu1804-x86_64-clang11
             os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_ubuntu1804:v2021-03-26T05_02_28
             build_thirdparty_args: >-
@@ -123,7 +123,7 @@ jobs:
           # Ubuntu 20.04
           # ---------------------------------------------------------------------------------------
 
-          - name: ubuntu2004-x84_64-gcc9
+          - name: ubuntu2004-x86_64-gcc9
             os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_ubuntu2004:v2021-03-26T05_02_29
             build_thirdparty_args: >-
@@ -131,7 +131,7 @@ jobs:
               --single-compiler-type=gcc
               --compiler-suffix=-9
 
-          - name: ubuntu2004-x84_64-clang11
+          - name: ubuntu2004-x86_64-clang11
             os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_ubuntu2004:v2021-03-26T05_02_29
             build_thirdparty_args: >-
@@ -143,7 +143,7 @@ jobs:
           # macOS
           # ---------------------------------------------------------------------------------------
 
-          - name: macos-x84_64
+          - name: macos-x86_64
             os: macos-10.15
             docker_image:
             build_thirdparty_args:
