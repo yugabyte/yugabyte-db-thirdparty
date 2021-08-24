@@ -37,32 +37,44 @@ jobs:
           - name: centos7-x86_64-linuxbrew-gcc5
             os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_centos7:v2021-03-26T05_02_29
-            build_thirdparty_args: "--toolchain=linuxbrew"
+            build_thirdparty_args: >-
+              --toolchain=linuxbrew
+              --expected-compiler-major-version=5
 
           - name: centos7-x86_64-gcc8
             os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_centos7:v2021-03-26T05_02_29
-            build_thirdparty_args: "--devtoolset=8"
+            build_thirdparty_args: >-
+                --devtoolset=8
+                --expected-compiler-major-version=8
 
           - name: centos7-x86_64-gcc9
             os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_centos7:v2021-03-26T05_02_29
-            build_thirdparty_args: "--devtoolset=9"
+            build_thirdparty_args: >-
+              --devtoolset=9
+              --expected-compiler-major-version=9
 
           - name: centos7-x86_64-clang7
             os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_centos7:v2021-03-26T05_02_29
-            build_thirdparty_args: --toolchain=llvm7
+            build_thirdparty_args: >-
+              --toolchain=llvm7
+              --expected-compiler-major-version=7
 
           - name: centos7-x86_64-clang11
             os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_centos7:v2021-03-26T05_02_29
-            build_thirdparty_args: --toolchain=llvm11
+            build_thirdparty_args: >-
+              --toolchain=llvm11
+              --expected-compiler-major-version=11
 
           - name: centos7-x86_64-clang12
             os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_centos7:v2021-03-26T05_02_29
-            build_thirdparty_args: --toolchain=llvm12
+            build_thirdparty_args: >-
+              --toolchain=llvm12
+              --expected-compiler-major-version=12
 
           # ---------------------------------------------------------------------------------------
           # CentOS 8
@@ -71,17 +83,17 @@ jobs:
           - name: centos8-x86_64-gcc8
             os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_centos8:v2021-05-27T23_53_30
-            # TODO: we are making an assumption here that the default GCC version is 8.
-            # Are we validating it somewhere? Perhaps we need to pass the target GCC version
-            # argument to the build script and find the compiler based on it.
             build_thirdparty_args: >-
               --compiler-prefix=/usr
               --single-compiler-type=gcc
+              --expected-compiler-major-version=8
 
           - name: centos8-x86_64-gcc9
             os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_centos8:v2021-05-27T23_53_30
-            build_thirdparty_args: "--devtoolset=9"
+            build_thirdparty_args: >-
+              --devtoolset=9
+              --expected-compiler-major-version=9
 
           # ---------------------------------------------------------------------------------------
           # Ubuntu 18.04
@@ -94,6 +106,7 @@ jobs:
               --compiler-prefix=/usr
               --single-compiler-type=gcc
               --compiler-suffix=-7
+              --expected-compiler-major-version=7
 
           - name: ubuntu1804-x86_64-gcc8
             os: ubuntu-20.04
@@ -102,6 +115,7 @@ jobs:
               --compiler-prefix=/usr
               --single-compiler-type=gcc
               --compiler-suffix=-8
+              --expected-compiler-major-version=8
 
           - name: ubuntu1804-x86_64-clang10
             os: ubuntu-20.04
@@ -110,6 +124,7 @@ jobs:
               --single-compiler-type=clang
               --compiler-prefix=/usr
               --compiler-suffix=-10
+              --expected-compiler-major-version=10
 
           - name: ubuntu1804-x86_64-clang11
             os: ubuntu-20.04
@@ -118,6 +133,7 @@ jobs:
               --single-compiler-type=clang
               --compiler-prefix=/usr
               --compiler-suffix=-11
+              --expected-compiler-major-version=11
 
           # ---------------------------------------------------------------------------------------
           # Ubuntu 20.04
@@ -130,6 +146,7 @@ jobs:
               --compiler-prefix=/usr
               --single-compiler-type=gcc
               --compiler-suffix=-9
+              --expected-compiler-major-version=9
 
           - name: ubuntu2004-x86_64-clang11
             os: ubuntu-20.04
@@ -138,6 +155,7 @@ jobs:
               --compiler-prefix=/usr
               --single-compiler-type=clang
               --compiler-suffix=-11
+              --expected-compiler-major-version=11
 
           # ---------------------------------------------------------------------------------------
           # AlmaLinux 8
@@ -146,10 +164,10 @@ jobs:
           - name: almalinux8-x86_64-gcc9
             os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_almalinux8:v2021-08-24T18_45_16
-            # TODO: validate the assumption that the default GCC version is 9.
             build_thirdparty_args: >-
               --compiler-prefix=/usr
               --single-compiler-type=gcc
+              --expected-compiler-major-version=9
 
           - name: almalinux8-x86_64-clang11
             os: ubuntu-20.04
@@ -158,6 +176,7 @@ jobs:
               --compiler-prefix=/usr
               --single-compiler-type=clang
               --compiler-suffix=-11
+              --expected-compiler-major-version=11
 
           # ---------------------------------------------------------------------------------------
           # macOS

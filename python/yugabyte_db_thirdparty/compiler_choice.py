@@ -25,6 +25,7 @@ from yugabyte_db_thirdparty.util import (
     which_must_exist,
     YB_THIRDPARTY_DIR,
     add_path_entry,
+    extract_major_version,
 )
 from compiler_identification import (
     CompilerIdentification, identify_compiler
@@ -47,6 +48,7 @@ class CompilerChoice:
     use_ccache: bool
     cc_identification: Optional[CompilerIdentification]
     cxx_identification: Optional[CompilerIdentification]
+    compiler_version_str: Optional[str]
 
     def __init__(
             self,
@@ -69,6 +71,8 @@ class CompilerChoice:
 
         self.cc_identification = None
         self.cxx_identification = None
+
+        self.compiler_version_str = None
 
     def detect_linuxbrew(self) -> None:
         self.linuxbrew_dir = None
@@ -311,14 +315,39 @@ class CompilerChoice:
 
         self._ensure_compiler_is_acceptable(self.cc_identification)
         self._ensure_compiler_is_acceptable(self.cxx_identification)
+        if self.cc_identification.version_str != self.cxx_identification.version_str:
+            raise ValueError(
+                "Different C and C++ compiler versions: %s vs %s",
+                self.cc_identification.version_str,
+                self.cxx_identification.version_str)
+        self.compiler_version_str = self.cc_identification.version_str
 
     def get_llvm_version_str(self) -> str:
         assert self.single_compiler_type == 'clang', \
             f"Expected the compiler type to be 'clang' only but found '{self.single_compiler_type}'"
-        assert self.cxx_identification is not None
-        return self.cxx_identification.version_str
+        assert self.compiler_version_str is not None
+        return self.compiler_version_str
+
+    def get_compiler_major_version(self) -> int:
+        assert self.compiler_version_str is not None
+        return extract_major_version(self.compiler_version_str)
 
     def get_llvm_major_version(self) -> Optional[int]:
         if self.single_compiler_type is None or self.single_compiler_type == 'gcc':
             return None
-        return int(self.get_llvm_version_str().split('.')[0])
+        return extract_major_version(self.get_llvm_version_str())
+
+    def check_compiler_major_version(self, expected_major_version: int) -> None:
+        actual_major_version = self.get_compiler_major_version()
+        if actual_major_version != expected_major_version:
+            raise ValueError(
+                "Expected the C/C++ compiler major version to be %d, found %d. "
+                "Full compiler version string: %s. "
+                "Compiler type: %s. C compiler: %s. C++ compiler: %s" % (
+                    expected_major_version,
+                    actual_major_version,
+                    self.compiler_version_str,
+                    self.compiler_type,
+                    self.cc_identification,
+                    self.cxx_identification
+                ))

@@ -50,18 +50,32 @@ detect_os() {
   is_centos=false
   # shellcheck disable=SC2034
   is_mac=false
+  # shellcheck disable=SC2034
+  is_almalinux=false
+  # shellcheck disable=SC2034
+  is_redhat_family=false
+  # shellcheck disable=SC2034
+  is_debian_family=false
 
   if [[ $OSTYPE == linux* ]]; then
     if grep -q Ubuntu /etc/issue; then
       # shellcheck disable=SC2034
       is_ubuntu=true
+      is_debian_family=true
       os_name="ubuntu"
     fi
 
-    if [[ -f /etc/os-release ]] && grep -q CentOS /etc/os-release; then
-      # shellcheck disable=SC2034
-      is_centos=true
-      os_name="centos"
+    if [[ -f /etc/os-release ]]; then
+      if grep -q CentOS /etc/os-release; then
+        # shellcheck disable=SC2034
+        is_centos=true
+        is_redhat_family=true
+        os_name="centos"
+      elif grep -q AlmaLinux /etc/os-release; then
+        is_almalinux=true
+        is_redhat_family=true
+        os_name="almalinux"
+      fi
     fi
   elif [[ $OSTYPE == darwin* ]]; then
     # shellcheck disable=SC2034

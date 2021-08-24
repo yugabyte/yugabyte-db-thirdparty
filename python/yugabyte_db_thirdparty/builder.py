@@ -142,6 +142,10 @@ class Builder(BuilderInterface):
         if self.compiler_choice.devtoolset is not None:
             activate_devtoolset(self.compiler_choice.devtoolset)
 
+        if self.args.expected_compiler_major_version is not None:
+            self.compiler_choice.check_compiler_major_version(
+                self.args.expected_compiler_major_version)
+
     def populate_dependencies(self) -> None:
         # We have to use get_build_def_module to access submodules of build_definitions,
         # otherwise MyPy gets confused.
