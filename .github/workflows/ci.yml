@@ -140,6 +140,26 @@ jobs:
               --compiler-suffix=-11
 
           # ---------------------------------------------------------------------------------------
+          # AlmaLinux 8
+          # ---------------------------------------------------------------------------------------
+
+          - name: almalinux8-x86_64-gcc9
+            os: ubuntu-20.04
+            docker_image: yugabyteci/yb_build_infra_almalinux8:v2021-08-24T18_45_16
+            # TODO: validate the assumption that the default GCC version is 9.
+            build_thirdparty_args: >-
+              --compiler-prefix=/usr
+              --single-compiler-type=gcc
+
+          - name: almalinux8-x86_64-clang11
+            os: ubuntu-20.04
+            docker_image: yugabyteci/yb_build_infra_almalinux8:v2021-08-24T18_45_16
+            build_thirdparty_args: >-
+              --compiler-prefix=/usr
+              --single-compiler-type=clang
+              --compiler-suffix=-11
+
+          # ---------------------------------------------------------------------------------------
           # macOS
           # ---------------------------------------------------------------------------------------
 
