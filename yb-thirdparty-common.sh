@@ -61,6 +61,7 @@ detect_os() {
     if grep -q Ubuntu /etc/issue; then
       # shellcheck disable=SC2034
       is_ubuntu=true
+      # shellcheck disable=SC2034
       is_debian_family=true
       os_name="ubuntu"
     fi
@@ -69,10 +70,13 @@ detect_os() {
       if grep -q CentOS /etc/os-release; then
         # shellcheck disable=SC2034
         is_centos=true
+        # shellcheck disable=SC2034
         is_redhat_family=true
         os_name="centos"
       elif grep -q AlmaLinux /etc/os-release; then
+        # shellcheck disable=SC2034
         is_almalinux=true
+        # shellcheck disable=SC2034
         is_redhat_family=true
         os_name="almalinux"
       fi
