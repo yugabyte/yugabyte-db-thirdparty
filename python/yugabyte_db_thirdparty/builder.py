@@ -811,7 +811,7 @@ class Builder(BuilderInterface):
             #
             # Also do not detect memory leaks during the build process. E.g. configure scripts might
             # create some programs that have memory leaks and the configure process would fail.
-            env_vars["ASAN_OPTIONS"] = ':'.join("detect_odr_violation=0", "detect_leaks=0")
+            env_vars["ASAN_OPTIONS"] = ':'.join(["detect_odr_violation=0", "detect_leaks=0"])
 
         with PushDir(self.create_build_dir_and_prepare(dep)):
             with EnvVarContext(**env_vars):

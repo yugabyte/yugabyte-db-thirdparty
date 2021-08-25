@@ -32,7 +32,7 @@ def get_clang_library_dir(clang_executable_path: str) -> str:
         raise ValueError(
             f"Could not find a line starting with '{library_dirs}' in the "
             f"output of the command: {shlex_join(search_dirs_cmd)}:\n{search_dirs_output}")
-    candidate_dirs = []
+    candidate_dirs: List[str] = []
     for library_dir in library_dirs:
         candidate_dir = os.path.join(library_dir, 'lib', 'linux')
         if os.path.isdir(candidate_dir):

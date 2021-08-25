@@ -173,7 +173,6 @@ jobs:
             os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_almalinux8:v2021-08-24T18_45_16
             build_thirdparty_args: >-
-              --compiler-prefix=/usr
               --single-compiler-type=gcc
               --devtoolset=9
               --expected-major-compiler-version=9

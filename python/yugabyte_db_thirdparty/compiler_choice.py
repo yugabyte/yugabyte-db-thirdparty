@@ -27,6 +27,8 @@ from yugabyte_db_thirdparty.util import (
     add_path_entry,
     extract_major_version,
 )
+from yugabyte_db_thirdparty.devtoolset import validate_devtoolset_compiler_path
+
 from compiler_identification import (
     CompilerIdentification, identify_compiler
 )
@@ -157,23 +159,11 @@ class CompilerChoice:
         self.validate_compiler_path(self.cxx)
 
     def validate_compiler_path(self, compiler_path: str) -> None:
-        if self.devtoolset:
-            substring_found = False
-            devtoolset_substrings: List[str] = []
-            for substring_candidate in ['devtoolset', 'gcc-toolset']:
-                devtoolset_substring = f'/{substring_candidate}-{self.devtoolset}/'
-                devtoolset_substrings.append(devtoolset_substring)
-                if devtoolset_substring in compiler_path:
-                    substring_found = True
-                    break
-
-            if not substring_found:
-                raise ValueError(
-                    f"Invalid compiler path: {compiler_path}. No devtoolset-related substring "
-                    f"found: {devtoolset_substrings}")
-
         if not os.path.exists(compiler_path):
             raise IOError("Compiler does not exist: %s" % compiler_path)
+
+        if self.devtoolset:
+            validate_devtoolset_compiler_path(compiler_path, self.devtoolset)
 
     def get_c_compiler(self) -> str:
         assert self.cc is not None
@@ -184,9 +174,9 @@ class CompilerChoice:
         return self.cxx
 
     def find_gcc(self) -> Tuple[str, str]:
-        return self.do_find_gcc('gcc', 'g++')
+        return self._do_find_gcc('gcc', 'g++')
 
-    def do_find_gcc(self, c_compiler: str, cxx_compiler: str) -> Tuple[str, str]:
+    def _do_find_gcc(self, c_compiler: str, cxx_compiler: str) -> Tuple[str, str]:
         if self.using_linuxbrew():
             gcc_dir = self.get_linuxbrew_dir()
         elif self.compiler_prefix:
