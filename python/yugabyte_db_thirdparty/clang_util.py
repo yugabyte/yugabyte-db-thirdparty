@@ -26,7 +26,7 @@ def get_clang_library_dir(clang_executable_path: str) -> str:
     for line in search_dirs_output.split('\n'):
         line = line.strip()
         if line.startswith(LIBRARY_DIRS_PREFIX):
-            library_dirs = line.split(':')
+            library_dirs = [s.strip() for s in line[len(LIBRARY_DIRS_PREFIX):].split(':')]
             break
     if library_dirs is None:
         raise ValueError(
@@ -37,8 +37,9 @@ def get_clang_library_dir(clang_executable_path: str) -> str:
         candidate_dir = os.path.join(library_dir, 'lib', 'linux')
         if os.path.isdir(candidate_dir):
             return candidate_dir
+        candidate_dirs.append(candidate_dir)
 
     raise ValueError(
         f"Could not find a 'lib/linux' subdirectory in any of the library directories "
-        f"returned by 'clang -print-search-dirs' (clang path: {clang_executable_path}): "
-        f"{search_dirs_output}")
+        f"returned by 'clang -print-search-dirs' (clang path: {clang_executable_path}):\n"
+        f"{search_dirs_output}\n.Considered candidate directories:{candidate_dirs}")
