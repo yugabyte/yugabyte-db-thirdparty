@@ -49,6 +49,7 @@ class CompilerChoice:
     cc_identification: Optional[CompilerIdentification]
     cxx_identification: Optional[CompilerIdentification]
     compiler_version_str: Optional[str]
+    expected_major_compiler_version: Optional[int]
 
     def __init__(
             self,
@@ -57,7 +58,8 @@ class CompilerChoice:
             compiler_suffix: str,
             devtoolset: Optional[int],
             use_compiler_wrapper: bool,
-            use_ccache: bool) -> None:
+            use_ccache: bool,
+            expected_major_compiler_version: Optional[int]) -> None:
         self.single_compiler_type = single_compiler_type
         self.compiler_prefix = compiler_prefix
         self.compiler_suffix = compiler_suffix
@@ -73,6 +75,8 @@ class CompilerChoice:
         self.cxx_identification = None
 
         self.compiler_version_str = None
+
+        self.expected_major_compiler_version = expected_major_compiler_version
 
     def detect_linuxbrew(self) -> None:
         self.linuxbrew_dir = None
@@ -292,6 +296,9 @@ class CompilerChoice:
         log(f"C compiler: {self.cc_identification}")
         log(f"C++ compiler: {self.cxx_identification}")
 
+        if self.expected_major_compiler_version:
+            self.check_compiler_major_version()
+
     @staticmethod
     def _ensure_compiler_is_acceptable(compiler_identification: CompilerIdentification) -> None:
         if (compiler_identification.family == 'gcc' and
@@ -337,14 +344,15 @@ class CompilerChoice:
             return None
         return extract_major_version(self.get_llvm_version_str())
 
-    def check_compiler_major_version(self, expected_major_version: int) -> None:
+    def check_compiler_major_version(self) -> None:
+        assert self.expected_major_compiler_version is not None
         actual_major_version = self.get_compiler_major_version()
-        if actual_major_version != expected_major_version:
+        if actual_major_version != self.expected_major_compiler_version:
             raise ValueError(
                 "Expected the C/C++ compiler major version to be %d, found %d. "
                 "Full compiler version string: %s. "
                 "Compiler type: %s. C compiler: %s. C++ compiler: %s" % (
-                    expected_major_version,
+                    self.expected_major_compiler_version,
                     actual_major_version,
                     self.compiler_version_str,
                     self.compiler_type,

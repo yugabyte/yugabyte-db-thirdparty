@@ -132,7 +132,8 @@ class Builder(BuilderInterface):
             compiler_suffix=self.args.compiler_suffix,
             devtoolset=self.args.devtoolset,
             use_compiler_wrapper=self.args.use_compiler_wrapper,
-            use_ccache=self.args.use_ccache
+            use_ccache=self.args.use_ccache,
+            expected_major_compiler_version=self.args.expected_major_compiler_version
         )
 
     def finish_initialization(self) -> None:
@@ -141,10 +142,6 @@ class Builder(BuilderInterface):
         self.select_dependencies_to_build()
         if self.compiler_choice.devtoolset is not None:
             activate_devtoolset(self.compiler_choice.devtoolset)
-
-        if self.args.expected_compiler_major_version is not None:
-            self.compiler_choice.check_compiler_major_version(
-                self.args.expected_compiler_major_version)
 
     def populate_dependencies(self) -> None:
         # We have to use get_build_def_module to access submodules of build_definitions,
