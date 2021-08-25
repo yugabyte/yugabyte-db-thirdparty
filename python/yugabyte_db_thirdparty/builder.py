@@ -58,6 +58,7 @@ from yugabyte_db_thirdparty.util import (
 )
 from yugabyte_db_thirdparty.file_system_layout import FileSystemLayout
 from yugabyte_db_thirdparty.toolchain import Toolchain, ensure_toolchain_installed
+from yugabyte_db_thirdparty.clang_util import get_clang_library_dir
 
 
 ASAN_FLAGS = [
@@ -255,12 +256,8 @@ class Builder(BuilderInterface):
         self.build_one_build_type(BUILD_TYPE_COMMON)
         build_types = [BUILD_TYPE_UNINSTRUMENTED]
 
-        if self.compiler_choice.use_only_gcc():
-            if is_linux() and not self.compiler_choice.using_linuxbrew():
-                # Starting to support ASAN for GCC compilers
-                # (not for the current GCC 5.5 build on Linuxbrew, though).
-                build_types.append(BUILD_TYPE_ASAN)
-        elif is_linux() and not self.args.skip_sanitizers:
+        if is_linux() and self.compiler_choice.use_only_clang() and not self.args.skip_sanitizers:
+            # We only support ASAN/TSAN builds on Clang.
             build_types.append(BUILD_TYPE_ASAN)
             build_types.append(BUILD_TYPE_TSAN)
         log(f"Full list of build types: {build_types}")
@@ -662,36 +659,14 @@ class Builder(BuilderInterface):
                 # https://gist.githubusercontent.com/mbautin/ad9ea4715669da3b3a5fb9495659c4a9/raw
                 self.compiler_flags.append('-fno-sanitize=vptr')
 
-            # TODO mbautin: a centralized way to find paths inside LLVM installation.
             assert self.compiler_choice.cc is not None
-
-            compiler_rt_lib_dir_ancestor = os.path.join(
-                os.path.dirname(os.path.dirname(os.path.realpath(self.compiler_choice.cc))),
-                'lib', 'clang')
-            compiler_rt_lib_dir_candidates = []
-            nonexistent_compiler_rt_lib_dirs = []
-            for llvm_version_subdir in os.listdir(compiler_rt_lib_dir_ancestor):
-                compiler_rt_lib_dir = os.path.join(
-                    compiler_rt_lib_dir_ancestor, llvm_version_subdir, 'lib', 'linux')
-                if os.path.isdir(compiler_rt_lib_dir):
-                    compiler_rt_lib_dir_candidates.append(compiler_rt_lib_dir)
-                else:
-                    nonexistent_compiler_rt_lib_dirs.append(compiler_rt_lib_dir)
-            if len(compiler_rt_lib_dir_candidates) != 1:
-                if not compiler_rt_lib_dir_candidates:
-                    raise IOError(
-                        "Could not find the compiler-rt library directory, looked at: %s" %
-                        nonexistent_compiler_rt_lib_dirs)
-                raise IOError(
-                    "Multiple possible compiler-rt library directories: %s" %
-                    compiler_rt_lib_dir_candidates)
-
-            assert len(compiler_rt_lib_dir_candidates) == 1
-            compiler_rt_lib_dir = compiler_rt_lib_dir_candidates[0]
-            if not os.path.isdir(compiler_rt_lib_dir):
-                raise IOError("Directory does not exist: %s", compiler_rt_lib_dir)
+            compiler_rt_lib_dir = get_clang_library_dir(self.compiler_choice.cc)
             self.add_lib_dir_and_rpath(compiler_rt_lib_dir)
-            self.ld_flags.append('-lclang_rt.ubsan_minimal-x86_64')
+            ubsan_lib_name = 'clang_rt.ubsan_minimal-x86_64'
+            ubsan_lib_so_path = os.path.join(compiler_rt_lib_dir, 'lib{ubsan_lib_name}.so')
+            if not os.path.exists(ubsan_lib_so_path):
+                raise IOError(f"UBSAN library not found at {ubsan_lib_so_path}")
+            self.ld_flags.append(f'-l{ubsan_lib_name}')
 
         self.ld_flags += ['-lunwind']
 

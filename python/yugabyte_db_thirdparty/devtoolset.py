@@ -12,11 +12,12 @@
 #
 
 """
-Support for CentOS/RedHat devtoolsets.
+Support for RedHat devtoolsets, also known as gcc-toolsets.
 """
 
 import os
 import subprocess
+import shlex
 
 from typing import Set
 from yugabyte_db_thirdparty.util import log, fatal
@@ -57,7 +58,9 @@ def activate_devtoolset(devtoolset_number: int) -> None:
     if not os.path.exists(devtoolset_enable_script):
         raise IOError("Devtoolset script does not exist: %s" % devtoolset_enable_script)
 
-    cmd_args = ['bash', '-c', '. "%s" && env' % devtoolset_enable_script]
+    echo_env_vars_str = '; '.join(
+        ['echo %s=$%s' % (k, shlex.quote(k)) for k in DEVTOOLSET_ENV_VARS])
+    cmd_args = ['bash', '-c', '. "%s" && ( %s )' % (devtoolset_enable_script, echo_env_vars_str)]
     log("Running command: %s", cmd_args)
     devtoolset_env_str = subprocess.check_output(cmd_args).decode('utf-8')
 
