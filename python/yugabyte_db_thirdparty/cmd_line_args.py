@@ -16,7 +16,7 @@ import sys
 import os
 
 from yugabyte_db_thirdparty.checksums import CHECKSUM_FILE_NAME
-from yugabyte_db_thirdparty.os_detection import is_centos, is_mac
+from yugabyte_db_thirdparty.os_detection import is_redhat_family, is_mac
 from yugabyte_db_thirdparty.util import log
 from yugabyte_db_thirdparty.toolchain import TOOLCHAIN_TYPES
 from build_definitions import BUILD_TYPES
@@ -196,8 +196,8 @@ def parse_cmd_line_args() -> argparse.Namespace:
     is_remote_build = args.remote_build_server is not None
 
     if args.devtoolset is not None and not is_remote_build:
-        if not is_centos():
-            raise ValueError("--devtoolset can only be used on CentOS Linux")
+        if not is_redhat_family():
+            raise ValueError("--devtoolset can only be used on Red Hat Enterprise Linux OS family")
         if args.single_compiler_type not in [None, 'gcc']:
             raise ValueError(
                 "--devtoolset is not compatible with compiler type: %s" % args.single_compiler_type)
