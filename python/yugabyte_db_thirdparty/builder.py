@@ -663,7 +663,7 @@ class Builder(BuilderInterface):
             compiler_rt_lib_dir = get_clang_library_dir(self.compiler_choice.cc)
             self.add_lib_dir_and_rpath(compiler_rt_lib_dir)
             ubsan_lib_name = 'clang_rt.ubsan_minimal-{platform.processor()}'
-            ubsan_lib_so_path = os.path.join(compiler_rt_lib_dir, 'lib{ubsan_lib_name}.so')
+            ubsan_lib_so_path = os.path.join(compiler_rt_lib_dir, f'lib{ubsan_lib_name}.so')
             if not os.path.exists(ubsan_lib_so_path):
                 raise IOError(f"UBSAN library not found at {ubsan_lib_so_path}")
             self.ld_flags.append(f'-l{ubsan_lib_name}')
