@@ -154,7 +154,7 @@ def parse_cmd_line_args() -> argparse.Namespace:
              'set, this is a no-op (with success exit code).')
 
     parser.add_argument(
-        '--expected-compiler-major-version',
+        '--expected-major-compiler-version',
         type=int,
         help='Expect the major version of the compiler to be as specified')
 
