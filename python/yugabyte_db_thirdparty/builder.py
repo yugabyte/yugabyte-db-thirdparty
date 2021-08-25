@@ -808,7 +808,10 @@ class Builder(BuilderInterface):
             # -mllvm -asan-use-private-alias=1
             # but applying that flag to all builds is complicated in practice and is probably
             # best done using a compiler wrapper script, which would slow things down.
-            env_vars["ASAN_OPTIONS"] = "detect_odr_violation=0"
+            #
+            # Also do not detect memory leaks during the build process. E.g. configure scripts might
+            # create some programs that have memory leaks and the configure process would fail.
+            env_vars["ASAN_OPTIONS"] = ':'.join("detect_odr_violation=0", "detect_leaks=0")
 
         with PushDir(self.create_build_dir_and_prepare(dep)):
             with EnvVarContext(**env_vars):
