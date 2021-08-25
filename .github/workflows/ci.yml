@@ -39,42 +39,42 @@ jobs:
             docker_image: yugabyteci/yb_build_infra_centos7:v2021-03-26T05_02_29
             build_thirdparty_args: >-
               --toolchain=linuxbrew
-              --expected-compiler-major-version=5
+              --expected-major-compiler-version=5
 
           - name: centos7-x86_64-gcc8
             os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_centos7:v2021-03-26T05_02_29
             build_thirdparty_args: >-
                 --devtoolset=8
-                --expected-compiler-major-version=8
+                --expected-major-compiler-version=8
 
           - name: centos7-x86_64-gcc9
             os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_centos7:v2021-03-26T05_02_29
             build_thirdparty_args: >-
               --devtoolset=9
-              --expected-compiler-major-version=9
+              --expected-major-compiler-version=9
 
           - name: centos7-x86_64-clang7
             os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_centos7:v2021-03-26T05_02_29
             build_thirdparty_args: >-
               --toolchain=llvm7
-              --expected-compiler-major-version=7
+              --expected-major-compiler-version=7
 
           - name: centos7-x86_64-clang11
             os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_centos7:v2021-03-26T05_02_29
             build_thirdparty_args: >-
               --toolchain=llvm11
-              --expected-compiler-major-version=11
+              --expected-major-compiler-version=11
 
           - name: centos7-x86_64-clang12
             os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_centos7:v2021-03-26T05_02_29
             build_thirdparty_args: >-
               --toolchain=llvm12
-              --expected-compiler-major-version=12
+              --expected-major-compiler-version=12
 
           # ---------------------------------------------------------------------------------------
           # CentOS 8
@@ -86,14 +86,14 @@ jobs:
             build_thirdparty_args: >-
               --compiler-prefix=/usr
               --single-compiler-type=gcc
-              --expected-compiler-major-version=8
+              --expected-major-compiler-version=8
 
           - name: centos8-x86_64-gcc9
             os: ubuntu-20.04
             docker_image: yugabyteci/yb_build_infra_centos8:v2021-05-27T23_53_30
             build_thirdparty_args: >-
               --devtoolset=9
-              --expected-compiler-major-version=9
+              --expected-major-compiler-version=9
 
           # ---------------------------------------------------------------------------------------
           # Ubuntu 18.04
@@ -106,7 +106,7 @@ jobs:
               --compiler-prefix=/usr
               --single-compiler-type=gcc
               --compiler-suffix=-7
-              --expected-compiler-major-version=7
+              --expected-major-compiler-version=7
 
           - name: ubuntu1804-x86_64-gcc8
             os: ubuntu-20.04
@@ -115,7 +115,7 @@ jobs:
               --compiler-prefix=/usr
               --single-compiler-type=gcc
               --compiler-suffix=-8
-              --expected-compiler-major-version=8
+              --expected-major-compiler-version=8
 
           - name: ubuntu1804-x86_64-clang10
             os: ubuntu-20.04
@@ -124,7 +124,7 @@ jobs:
               --single-compiler-type=clang
               --compiler-prefix=/usr
               --compiler-suffix=-10
-              --expected-compiler-major-version=10
+              --expected-major-compiler-version=10
 
           - name: ubuntu1804-x86_64-clang11
             os: ubuntu-20.04
@@ -133,7 +133,7 @@ jobs:
               --single-compiler-type=clang
               --compiler-prefix=/usr
               --compiler-suffix=-11
-              --expected-compiler-major-version=11
+              --expected-major-compiler-version=11
 
           # ---------------------------------------------------------------------------------------
           # Ubuntu 20.04
@@ -146,7 +146,7 @@ jobs:
               --compiler-prefix=/usr
               --single-compiler-type=gcc
               --compiler-suffix=-9
-              --expected-compiler-major-version=9
+              --expected-major-compiler-version=9
 
           - name: ubuntu2004-x86_64-clang11
             os: ubuntu-20.04
@@ -155,7 +155,7 @@ jobs:
               --compiler-prefix=/usr
               --single-compiler-type=clang
               --compiler-suffix=-11
-              --expected-compiler-major-version=11
+              --expected-major-compiler-version=11
 
           # ---------------------------------------------------------------------------------------
           # AlmaLinux 8
@@ -167,7 +167,7 @@ jobs:
             build_thirdparty_args: >-
               --compiler-prefix=/usr
               --single-compiler-type=gcc
-              --expected-compiler-major-version=9
+              --expected-major-compiler-version=9
 
           - name: almalinux8-x86_64-clang11
             os: ubuntu-20.04
@@ -176,7 +176,7 @@ jobs:
               --compiler-prefix=/usr
               --single-compiler-type=clang
               --compiler-suffix=-11
-              --expected-compiler-major-version=11
+              --expected-major-compiler-version=11
 
           # ---------------------------------------------------------------------------------------
           # macOS
