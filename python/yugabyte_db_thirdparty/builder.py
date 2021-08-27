@@ -279,6 +279,8 @@ class Builder(BuilderInterface):
         ]
         libcxx_dirs = [os.path.join(dir, 'libcxx') for dir in dirs]
         for dir in dirs + libcxx_dirs:
+            if self.args.verbose:
+                log("Preparing output directory %s", dir)
             lib_dir = os.path.join(dir, 'lib')
             mkdir_if_missing(lib_dir)
             mkdir_if_missing(os.path.join(dir, 'include'))
