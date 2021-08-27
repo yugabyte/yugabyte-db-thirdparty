@@ -547,9 +547,10 @@ class Builder(BuilderInterface):
                 should_build = dep.should_build(self)
                 should_rebuild = self.should_rebuild_dependency(dep)
                 if should_build and should_rebuild:
-                    self.build_dependency(dep)
+                    self.build_dependency(dep, only_process_flags=False)
                 else:
-                    log(f"Skipping dependency {dep.name}: "
+                    self.build_dependency(dep, only_process_flags=True)
+                    log(f"Skipped dependency {dep.name}: "
                         f"should_build={should_build}, "
                         f"should_rebuild={should_rebuild}.")
 
@@ -782,15 +783,28 @@ class Builder(BuilderInterface):
                 }
             })
 
-    def build_dependency(self, dep: Dependency) -> None:
+    def build_dependency(self, dep: Dependency, only_process_flags: bool = False) -> None:
+        """
+        Build the given dependency.
+
+        :param only_process_flags: if this is True, we will only set up the compiler and linker
+            flags and apply all the side effects of that process, such as collecting the set of
+            allowed library paths referred by the final artifacts. If False, we will actually do
+            the build.
+        """
 
         self.init_flags(dep)
 
         # This is needed at least for glog to be able to find gflags.
         self.add_rpath(os.path.join(self.fs_layout.tp_installed_dir, self.build_type, 'lib'))
+
         if self.build_type != BUILD_TYPE_COMMON:
             # Needed to find libunwind for Clang 10 when using compiler-rt.
             self.add_rpath(os.path.join(self.fs_layout.tp_installed_dir, BUILD_TYPE_COMMON, 'lib'))
+
+        if only_process_flags:
+            log("Skipping the build of dependecy %s", dep.name)
+            return
 
         if self.args.download_extract_only:
             log("Skipping build of dependency %s, build type %s, --download-extract-only is "
