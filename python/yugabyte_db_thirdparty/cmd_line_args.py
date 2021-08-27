@@ -159,6 +159,11 @@ def parse_cmd_line_args() -> argparse.Namespace:
         help='Expect the major version of the compiler to be as specified')
 
     parser.add_argument(
+        '--verbose',
+        help='Show verbose output',
+        action='store_true')
+
+    parser.add_argument(
         'dependencies',
         nargs=argparse.REMAINDER,
         help='Dependencies to build.')

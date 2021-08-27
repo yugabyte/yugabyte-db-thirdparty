@@ -43,10 +43,13 @@ class LibTestBase:
     # additional pattern).
     allowed_patterns: Pattern
 
+    # To make sure that we log each allowed pattern no more than once.
+    logged_allowed_patterns: Set[str]
+
     def __init__(self) -> None:
         self.tp_installed_dir = os.path.join(YB_THIRDPARTY_DIR, 'installed')
         self.lib_re_list = []
-        self.logged_allowed_patterns = False
+        self.logged_allowed_patterns = set()
 
     def init_regex(self) -> None:
         self.allowed_patterns = compile_re_list(self.lib_re_list)
@@ -58,18 +61,17 @@ class LibTestBase:
             additional_allowed_pattern: Optional[Pattern] = None) -> bool:
 
         status = True
-        logged_allowed_patterns = False
         for line in cmdout.splitlines():
             if (not self.allowed_patterns.match(line) and
                     not (additional_allowed_pattern is not None and
                          additional_allowed_pattern.match(line))):
-                if not logged_allowed_patterns:
-                    # Log the allowed patterns for easier debugging.
-                    for allowed_pattern in [self.allowed_patterns] + (
-                        [additional_allowed_pattern] if additional_allowed_pattern else []
-                    ):
+                # Log the allowed patterns for easier debugging.
+                for allowed_pattern in [self.allowed_patterns] + (
+                    [additional_allowed_pattern] if additional_allowed_pattern else []
+                ):
+                    if allowed_pattern.pattern not in self.logged_allowed_patterns:
                         log("Allowed pattern: %s", allowed_pattern.pattern)
-                    logged_allowed_patterns = True
+                        self.logged_allowed_patterns.add(allowed_pattern.pattern)
 
                 if status:
                     log(file_path + ":")
@@ -79,7 +81,7 @@ class LibTestBase:
         return status
 
     # overridden in platform specific classes
-    def good_libs(self, file_path: str) -> bool:
+    def check_libs_for_file(self, file_path: str) -> bool:
         raise NotImplementedError()
 
     def run(self) -> None:
@@ -102,7 +104,7 @@ class LibTestBase:
                                 full_path = os.path.join(dirpath, file_name)
                                 if os.path.islink(full_path):
                                     continue
-                                if not self.good_libs(full_path):
+                                if not self.check_libs_for_file(full_path):
                                     test_pass = False
         if not test_pass:
             fatal(f"Found problematic library dependencies, using tool: {self.tool}")
@@ -129,7 +131,7 @@ class LibTestMac(LibTestBase):
         # TODO: implement this on macOS for more precise checking of allowed dylib paths.
         pass
 
-    def good_libs(self, file_path: str) -> bool:
+    def check_libs_for_file(self, file_path: str) -> bool:
         libout = subprocess.check_output(['otool', '-L', file_path]).decode('utf-8')
         if 'is not an object file' in libout:
             return True
@@ -160,7 +162,7 @@ class LibTestLinux(LibTestBase):
         for shared_lib_path in sorted(shared_lib_paths):
             self.lib_re_list.append(f".* => {re.escape(shared_lib_path)}/")
 
-    def good_libs(self, file_path: str) -> bool:
+    def check_libs_for_file(self, file_path: str) -> bool:
         try:
             libout = subprocess.check_output(
                 ['ldd', file_path],

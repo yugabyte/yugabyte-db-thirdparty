@@ -61,7 +61,8 @@ def convert_log_args_to_message(*args: Any) -> str:
 def fatal(*args: Any) -> NoReturn:
     log(*args)
     traceback.print_stack()
-    sys.exit(1)
+    # Do not use sys.exit here because that would skip upstream exception handling.
+    raise RuntimeError("Fatal error")
 
 
 def log(*args: Any) -> None:
@@ -102,7 +103,8 @@ def log_output(
         process.stdout.close()
         exit_code = process.wait()
         if exit_code:
-            fatal("Execution failed with code: {}".format(exit_code))
+            # We do not use fatal() here because that would skip upstream exception handling.
+            raise RuntimeError("Execution failed with code: {}".format(exit_code))
     except OSError as err:
         log("Error when trying to execute command: " + str(args))
         log("PATH is: %s", os.getenv("PATH"))

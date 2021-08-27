@@ -295,6 +295,8 @@ class Builder(BuilderInterface):
             os.symlink('lib', lib64_dir)
 
     def add_include_path(self, include_path: str) -> None:
+        if self.args.verbose:
+            log("Adding an include path: %s", include_path)
         cmd_line_arg = f'-I{include_path}'
         self.preprocessor_flags.append(cmd_line_arg)
         self.compiler_flags.append(cmd_line_arg)
@@ -324,8 +326,8 @@ class Builder(BuilderInterface):
         # -fPIC is there to always generate position-independent code, even for static libraries.
         self.compiler_flags += ['-fno-omit-frame-pointer', '-fPIC', '-O2', '-Wall']
         if is_linux():
-            # On Linux, ensure we set a long enough rpath so we can change it later with chrpath or
-            # a similar tool.
+            # On Linux, ensure we set a long enough rpath so we can change it later with chrpath,
+            # patchelf, or a similar tool.
             self.add_rpath(PLACEHOLDER_RPATH)
 
             self.dylib_suffix = "so"
@@ -362,20 +364,26 @@ class Builder(BuilderInterface):
             self.add_lib_dir_and_rpath(lib_dir)
 
     def add_lib_dir_and_rpath(self, lib_dir: str) -> None:
+        if self.args.verbose:
+            log("Adding a library directory and RPATH at the end of linker flags: %s", lib_dir)
         self.ld_flags.append("-L{}".format(lib_dir))
         self.add_rpath(lib_dir)
 
     def prepend_lib_dir_and_rpath(self, lib_dir: str) -> None:
+        if self.args.verbose:
+            log("Adding a library directory and RPATH at the front of linker flags: %s", lib_dir)
         self.ld_flags.insert(0, "-L{}".format(lib_dir))
         self.prepend_rpath(lib_dir)
 
     def add_rpath(self, path: str) -> None:
-        log("Adding RPATH: %s", path)
+        log("Adding RPATH at the end of linker flags: %s", path)
         self.ld_flags.append(get_rpath_flag(path))
         self.additional_allowed_shared_lib_paths.add(path)
 
     def prepend_rpath(self, path: str) -> None:
+        log("Adding RPATH at the front of linker flags: %s", path)
         self.ld_flags.insert(0, get_rpath_flag(path))
+        self.additional_allowed_shared_lib_paths.add(path)
 
     def log_prefix(self, dep: Dependency) -> str:
         return '{} ({})'.format(dep.name, self.build_type)
@@ -395,7 +403,7 @@ class Builder(BuilderInterface):
             dir_for_build = os.path.join(dir_for_build, src_subdir_name)
 
         with PushDir(dir_for_build):
-            log("Building in %s", dir_for_build)
+            log("Building in %s using the configure tool", dir_for_build)
             try:
                 if run_autogen:
                     log_output(log_prefix, ['./autogen.sh'])
