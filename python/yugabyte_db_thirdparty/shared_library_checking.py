@@ -35,15 +35,21 @@ class LibTestBase:
     libraries.
     """
 
+    tp_installed_dir: str
     lib_re_list: List[str]
     tool: str
+
+    # A compiled regex containing almost all of the allowed patterns (except for an an optional
+    # additional pattern).
+    allowed_patterns: Pattern
 
     def __init__(self) -> None:
         self.tp_installed_dir = os.path.join(YB_THIRDPARTY_DIR, 'installed')
         self.lib_re_list = []
+        self.logged_allowed_patterns = False
 
     def init_regex(self) -> None:
-        self.okay_paths = compile_re_list(self.lib_re_list)
+        self.allowed_patterns = compile_re_list(self.lib_re_list)
 
     def check_lib_deps(
             self,
@@ -52,14 +58,24 @@ class LibTestBase:
             additional_allowed_pattern: Optional[Pattern] = None) -> bool:
 
         status = True
+        logged_allowed_patterns = False
         for line in cmdout.splitlines():
-            if (not self.okay_paths.match(line) and
-                    not (additional_allowed_pattern and
+            if (not self.allowed_patterns.match(line) and
+                    not (additional_allowed_pattern is not None and
                          additional_allowed_pattern.match(line))):
+                if not logged_allowed_patterns:
+                    # Log the allowed patterns for easier debugging.
+                    for allowed_pattern in [self.allowed_patterns] + (
+                        [additional_allowed_pattern] if additional_allowed_pattern else []
+                    ):
+                        log("Allowed pattern: %s", allowed_pattern.pattern)
+                    logged_allowed_patterns = True
+
                 if status:
                     log(file_path + ":")
                     status = False
                 log("Bad path: %s", line)
+
         return status
 
     # overridden in platform specific classes
@@ -163,7 +179,7 @@ class LibTestLinux(LibTestBase):
             # One exception: libc++abi.so is not able to find libc++ because it loads the ASAN
             # runtime library that is part of the LLVM distribution and does not have the correct
             # rpath set. This happens on CentOS with our custom build of LLVM. We might be able to
-            # fix this by specifyng rpath correctly when building LLVM, but as of 12/2020 we just
+            # fix this by specifying rpath correctly when building LLVM, but as of 12/2020 we just
             # ignore this error here.
             #
             # $ ldd installed/asan/libcxx/lib/libc++abi.so.1.0
