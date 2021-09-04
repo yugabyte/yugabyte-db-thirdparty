@@ -18,7 +18,6 @@
 from yugabyte_db_thirdparty.builder_interface import BuilderInterface
 from yugabyte_db_thirdparty.dependency import Dependency
 from yugabyte_db_thirdparty.custom_logging import log, log_output, fatal
-from yugabyte_db_thirdparty.os_detection import is_mac
 from yugabyte_db_thirdparty.util import (
     mkdir_if_missing,
     PushDir,
@@ -34,3 +33,4 @@ from build_definitions import (
 )
 
 from typing import List, Dict, Any
+from sys_detection import is_macos

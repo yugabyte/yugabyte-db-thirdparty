@@ -18,8 +18,9 @@ import subprocess
 import platform
 import logging
 
+from sys_detection import is_macos, is_linux
+
 from typing import List, Any, Set, Optional, Pattern
-from yugabyte_db_thirdparty.os_detection import is_mac, is_linux
 from yugabyte_db_thirdparty.custom_logging import log, fatal, heading
 from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR
 from build_definitions import BUILD_TYPES
@@ -217,7 +218,7 @@ class LibTestLinux(LibTestBase):
 
 
 def get_lib_tester() -> LibTestBase:
-    if is_mac():
+    if is_macos():
         return LibTestMac()
     if is_linux():
         return LibTestLinux()

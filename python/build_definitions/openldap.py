@@ -25,7 +25,7 @@ class OpenLDAPDependency(Dependency):
         self.copy_sources = True
 
     def get_additional_compiler_flags(self, builder: BuilderInterface) -> List[str]:
-        if is_mac():
+        if is_macos():
             return ['-Wno-error=implicit-function-declaration']
         return []
 

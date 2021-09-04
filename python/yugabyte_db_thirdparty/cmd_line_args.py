@@ -15,8 +15,9 @@ import argparse
 import sys
 import os
 
+from sys_detection import is_macos, local_sys_conf
+
 from yugabyte_db_thirdparty.checksums import CHECKSUM_FILE_NAME
-from yugabyte_db_thirdparty.os_detection import is_redhat_family, is_mac
 from yugabyte_db_thirdparty.util import log
 from yugabyte_db_thirdparty.toolchain import TOOLCHAIN_TYPES
 from build_definitions import BUILD_TYPES
@@ -177,7 +178,7 @@ def parse_cmd_line_args() -> argparse.Namespace:
     if args.dependencies and args.skip:
         raise ValueError("--skip is not compatible with specifying a list of dependencies to build")
 
-    if is_mac():
+    if is_macos():
         if args.single_compiler_type not in [None, 'clang']:
             raise ValueError(
                 "--single-compiler-type=%s is not allowed on macOS" % args.single_compiler_type)
@@ -201,7 +202,7 @@ def parse_cmd_line_args() -> argparse.Namespace:
     is_remote_build = args.remote_build_server is not None
 
     if args.devtoolset is not None and not is_remote_build:
-        if not is_redhat_family():
+        if not local_sys_conf().is_redhat_family():
             raise ValueError("--devtoolset can only be used on Red Hat Enterprise Linux OS family")
         if args.single_compiler_type not in [None, 'gcc']:
             raise ValueError(

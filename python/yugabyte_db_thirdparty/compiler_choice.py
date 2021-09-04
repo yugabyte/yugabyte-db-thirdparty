@@ -20,7 +20,7 @@ from build_definitions import (
     BUILD_TYPE_UNINSTRUMENTED
 )
 from yugabyte_db_thirdparty.custom_logging import log, fatal
-from yugabyte_db_thirdparty.os_detection import is_linux, is_mac
+from sys_detection import is_linux, is_macos
 from yugabyte_db_thirdparty.util import (
     which_must_exist,
     YB_THIRDPARTY_DIR,
@@ -241,7 +241,7 @@ class CompilerChoice:
         return build_type != BUILD_TYPE_UNINSTRUMENTED
 
     def use_only_clang(self) -> bool:
-        return is_mac() or self.single_compiler_type == 'clang'
+        return is_macos() or self.single_compiler_type == 'clang'
 
     def use_only_gcc(self) -> bool:
         return self.devtoolset is not None or self.single_compiler_type == 'gcc'
@@ -249,13 +249,13 @@ class CompilerChoice:
     def is_linux_clang1x(self) -> bool:
         # TODO: actually check compiler version.
         return (
-            not is_mac() and
+            not is_macos() and
             self.single_compiler_type == 'clang' and
             not self.using_linuxbrew()
         )
 
     def set_compiler(self, compiler_type: str) -> None:
-        if is_mac():
+        if is_macos():
             if compiler_type != 'clang':
                 raise ValueError(
                     "Cannot set compiler type to %s on macOS, only clang is supported" %

@@ -36,7 +36,7 @@ class RedisCliDependency(Dependency):
         log_output(log_prefix, ['make', '-j{}'.format(multiprocessing.cpu_count()), 'redis-cli'])
         log_output(log_prefix, ['cp', 'src/redis-cli', builder.prefix_bin])
 
-        if is_mac():
+        if is_macos():
             lib_dir = os.path.realpath(os.path.join(builder.prefix, "lib"))
             redis_lib_paths = glob.glob(os.path.join(lib_dir, "libhiredis*.dylib"))
 

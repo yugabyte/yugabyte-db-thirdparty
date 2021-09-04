@@ -51,7 +51,7 @@ class GMockDependency(Dependency):
         mkdir_if_missing(build_dir)
         cmake_opts = ['-DCMAKE_BUILD_TYPE=Debug',
                       '-DBUILD_SHARED_LIBS={}'.format('ON' if mode == 'shared' else 'OFF')]
-        if is_mac():
+        if is_macos():
             cmake_opts += ['-DCMAKE_MACOSX_RPATH=ON']
         with PushDir(build_dir):
             builder.build_with_cmake(

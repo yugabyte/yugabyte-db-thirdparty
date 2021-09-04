@@ -21,6 +21,8 @@ import sys
 import ruamel.yaml as ruamel_yaml  # type: ignore
 from typing import Optional, List, Set, Tuple, Dict, Any
 
+from sys_detection import is_macos, is_linux
+
 from build_definitions import (
     BUILD_GROUP_COMMON,
     BUILD_GROUP_INSTRUMENTED,
@@ -43,7 +45,6 @@ from yugabyte_db_thirdparty.dependency import Dependency
 from yugabyte_db_thirdparty.devtoolset import activate_devtoolset
 from yugabyte_db_thirdparty.download_manager import DownloadManager
 from yugabyte_db_thirdparty.env_helpers import write_env_vars
-from yugabyte_db_thirdparty.os_detection import is_mac, is_linux
 from yugabyte_db_thirdparty.string_util import indent_lines
 from yugabyte_db_thirdparty.util import (
     assert_dir_exists,
@@ -333,7 +334,7 @@ class Builder(BuilderInterface):
             self.add_rpath(PLACEHOLDER_RPATH)
 
             self.dylib_suffix = "so"
-        elif is_mac():
+        elif is_macos():
             self.dylib_suffix = "dylib"
 
             # YugaByte builds with C++11, which on OS X requires using libc++ as the standard
@@ -585,7 +586,7 @@ class Builder(BuilderInterface):
         """
         self.init_compiler_independent_flags(dep)
 
-        if not is_mac() and self.compiler_choice.building_with_clang(self.build_type):
+        if not is_macos() and self.compiler_choice.building_with_clang(self.build_type):
             # Special setup for Clang on Linux.
             compiler_choice = self.compiler_choice
             llvm_major_version: Optional[int] = compiler_choice.get_llvm_major_version()

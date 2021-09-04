@@ -15,14 +15,14 @@ import os
 import glob
 import subprocess
 
-from yugabyte_db_thirdparty.os_detection import is_mac
+from sys_detection import is_macos
 from yugabyte_db_thirdparty.custom_logging import log
 
 
 def fix_shared_library_references(
         install_prefix: str,
         lib_name_prefix: str) -> None:
-    if not is_mac():
+    if not is_macos():
         return
 
     lib_dir = os.path.realpath(os.path.join(install_prefix, "lib"))

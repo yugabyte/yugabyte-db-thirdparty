@@ -75,7 +75,7 @@ class BoostDependency(Dependency):
                     ' '.join(['--with-{}'.format(lib) for lib in libs])))
         log_output(log_prefix, ['./b2', 'install', 'cxxstd=14'])
 
-        if is_mac():
+        if is_macos():
             for lib in libs:
                 path = os.path.join(builder.prefix_lib, self.libfile(lib, builder))
                 log_output(log_prefix, ['install_name_tool', '-id', path, path])
