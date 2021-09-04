@@ -58,11 +58,16 @@ def convert_log_args_to_message(*args: Any) -> str:
     return message
 
 
+class FatalError(Exception):
+    pass
+
+
 def fatal(*args: Any) -> NoReturn:
     log(*args)
     traceback.print_stack()
+    msg = convert_log_args_to_message(*args)
     # Do not use sys.exit here because that would skip upstream exception handling.
-    raise RuntimeError("Fatal error")
+    raise FatalError(msg)
 
 
 def log(*args: Any) -> None:
