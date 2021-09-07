@@ -28,7 +28,7 @@ class OpenSSLDependency(Dependency):
 
     def build(self, builder: BuilderInterface) -> None:
         common_configure_options = ['shared']
-        if is_mac():
+        if is_macos():
             # On macOS x86_64, OpenSSL 1.0.2 fails to detect the proper architecture.
             configure_cmd = [
                 './Configure', 'darwin64-x86_64-cc'] + common_configure_options

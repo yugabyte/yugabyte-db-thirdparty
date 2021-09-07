@@ -13,11 +13,12 @@
 
 import os
 
+import sys_detection
+
 from yugabyte_db_thirdparty.download_manager import DownloadManager
 from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR, write_file
 
 from typing import Optional
-
 
 LINUXBREW_URL = (
     'https://github.com/yugabyte/brew-build/releases/download/'
@@ -30,15 +31,24 @@ def get_llvm_url(tag: str) -> str:
             tag, tag)
 
 
-TOOLCHAIN_TYPE_TO_URL = {
-    'linuxbrew': LINUXBREW_URL,
-    'llvm7': get_llvm_url('v7.1.0-1617644423-4856a933'),
-    'llvm11': get_llvm_url('v11.1.0-1617470305-1fdec59b'),
-    'llvm12': get_llvm_url('v12.0.0-1618930576-d28af7c6')
+TOOLCHAIN_TO_OS_AND_ARCH_TO_URL = {
+    'linuxbrew': {
+        'centos7-x86_64': LINUXBREW_URL,
+    },
+    'llvm7': {
+        'centos7-x86_64': get_llvm_url('v7.1.0-1617644423-4856a933'),
+    },
+    'llvm11': {
+        'centos7-x86_64': get_llvm_url('v11.1.0-1617470305-1fdec59b'),
+        'almalinux8-x86_64': get_llvm_url('v11.1.0-1630702159-1fdec59b-almalinux8-x86_64'),
+    },
+    'llvm12': {
+        'centos7-x86_64': get_llvm_url('v12.0.0-1618930576-d28af7c6'),
+        'almalinux8-x86_64': get_llvm_url('v12.0.1-1630702139-fed41342-almalinux8-x86_64'),
+    }
 }
 
-
-TOOLCHAIN_TYPES = sorted(TOOLCHAIN_TYPE_TO_URL.keys())
+TOOLCHAIN_TYPES = sorted(TOOLCHAIN_TO_OS_AND_ARCH_TO_URL.keys())
 
 
 class Toolchain:
@@ -94,7 +104,14 @@ def ensure_toolchain_installed(
         f"{', '.join(TOOLCHAIN_TYPES)}."
     )
 
-    toolchain_url = TOOLCHAIN_TYPE_TO_URL[toolchain_type]
+    os_and_arch_to_url = TOOLCHAIN_TO_OS_AND_ARCH_TO_URL[toolchain_type]
+    os_and_arch = sys_detection.local_sys_conf().id_for_packaging()
+    if os_and_arch not in os_and_arch_to_url:
+        raise ValueError(
+                f"Toolchain {toolchain_type} not found for OS/architecture combination "
+                f"{os_and_arch}")
+
+    toolchain_url = os_and_arch_to_url[os_and_arch]
     compiler_type = None
     if toolchain_type.startswith('llvm'):
         parent_dir = '/opt/yb-build/llvm'

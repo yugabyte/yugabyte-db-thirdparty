@@ -20,12 +20,15 @@ from build_definitions import (
     BUILD_TYPE_UNINSTRUMENTED
 )
 from yugabyte_db_thirdparty.custom_logging import log, fatal
-from yugabyte_db_thirdparty.os_detection import is_linux, is_mac
+from sys_detection import is_linux, is_macos
 from yugabyte_db_thirdparty.util import (
     which_must_exist,
     YB_THIRDPARTY_DIR,
     add_path_entry,
+    extract_major_version,
 )
+from yugabyte_db_thirdparty.devtoolset import validate_devtoolset_compiler_path
+
 from compiler_identification import (
     CompilerIdentification, identify_compiler
 )
@@ -47,6 +50,8 @@ class CompilerChoice:
     use_ccache: bool
     cc_identification: Optional[CompilerIdentification]
     cxx_identification: Optional[CompilerIdentification]
+    compiler_version_str: Optional[str]
+    expected_major_compiler_version: Optional[int]
 
     def __init__(
             self,
@@ -55,7 +60,8 @@ class CompilerChoice:
             compiler_suffix: str,
             devtoolset: Optional[int],
             use_compiler_wrapper: bool,
-            use_ccache: bool) -> None:
+            use_ccache: bool,
+            expected_major_compiler_version: Optional[int]) -> None:
         self.single_compiler_type = single_compiler_type
         self.compiler_prefix = compiler_prefix
         self.compiler_suffix = compiler_suffix
@@ -69,6 +75,10 @@ class CompilerChoice:
 
         self.cc_identification = None
         self.cxx_identification = None
+
+        self.compiler_version_str = None
+
+        self.expected_major_compiler_version = expected_major_compiler_version
 
     def detect_linuxbrew(self) -> None:
         self.linuxbrew_dir = None
@@ -149,23 +159,11 @@ class CompilerChoice:
         self.validate_compiler_path(self.cxx)
 
     def validate_compiler_path(self, compiler_path: str) -> None:
-        if self.devtoolset:
-            substring_found = False
-            devtoolset_substrings: List[str] = []
-            for substring_candidate in ['devtoolset', 'gcc-toolset']:
-                devtoolset_substring = f'/{substring_candidate}-{self.devtoolset}/'
-                devtoolset_substrings.append(devtoolset_substring)
-                if devtoolset_substring in compiler_path:
-                    substring_found = True
-                    break
-
-            if not substring_found:
-                raise ValueError(
-                    f"Invalid compiler path: {compiler_path}. No devtoolset-related substring "
-                    f"found: {devtoolset_substrings}")
-
         if not os.path.exists(compiler_path):
             raise IOError("Compiler does not exist: %s" % compiler_path)
+
+        if self.devtoolset:
+            validate_devtoolset_compiler_path(compiler_path, self.devtoolset)
 
     def get_c_compiler(self) -> str:
         assert self.cc is not None
@@ -176,9 +174,9 @@ class CompilerChoice:
         return self.cxx
 
     def find_gcc(self) -> Tuple[str, str]:
-        return self.do_find_gcc('gcc', 'g++')
+        return self._do_find_gcc('gcc', 'g++')
 
-    def do_find_gcc(self, c_compiler: str, cxx_compiler: str) -> Tuple[str, str]:
+    def _do_find_gcc(self, c_compiler: str, cxx_compiler: str) -> Tuple[str, str]:
         if self.using_linuxbrew():
             gcc_dir = self.get_linuxbrew_dir()
         elif self.compiler_prefix:
@@ -243,7 +241,7 @@ class CompilerChoice:
         return build_type != BUILD_TYPE_UNINSTRUMENTED
 
     def use_only_clang(self) -> bool:
-        return is_mac() or self.single_compiler_type == 'clang'
+        return is_macos() or self.single_compiler_type == 'clang'
 
     def use_only_gcc(self) -> bool:
         return self.devtoolset is not None or self.single_compiler_type == 'gcc'
@@ -251,13 +249,13 @@ class CompilerChoice:
     def is_linux_clang1x(self) -> bool:
         # TODO: actually check compiler version.
         return (
-            not is_mac() and
+            not is_macos() and
             self.single_compiler_type == 'clang' and
             not self.using_linuxbrew()
         )
 
     def set_compiler(self, compiler_type: str) -> None:
-        if is_mac():
+        if is_macos():
             if compiler_type != 'clang':
                 raise ValueError(
                     "Cannot set compiler type to %s on macOS, only clang is supported" %
@@ -288,6 +286,9 @@ class CompilerChoice:
         log(f"C compiler: {self.cc_identification}")
         log(f"C++ compiler: {self.cxx_identification}")
 
+        if self.expected_major_compiler_version:
+            self.check_compiler_major_version()
+
     @staticmethod
     def _ensure_compiler_is_acceptable(compiler_identification: CompilerIdentification) -> None:
         if (compiler_identification.family == 'gcc' and
@@ -311,14 +312,40 @@ class CompilerChoice:
 
         self._ensure_compiler_is_acceptable(self.cc_identification)
         self._ensure_compiler_is_acceptable(self.cxx_identification)
+        if self.cc_identification.version_str != self.cxx_identification.version_str:
+            raise ValueError(
+                "Different C and C++ compiler versions: %s vs %s",
+                self.cc_identification.version_str,
+                self.cxx_identification.version_str)
+        self.compiler_version_str = self.cc_identification.version_str
 
     def get_llvm_version_str(self) -> str:
         assert self.single_compiler_type == 'clang', \
             f"Expected the compiler type to be 'clang' only but found '{self.single_compiler_type}'"
-        assert self.cxx_identification is not None
-        return self.cxx_identification.version_str
+        assert self.compiler_version_str is not None
+        return self.compiler_version_str
+
+    def get_compiler_major_version(self) -> int:
+        assert self.compiler_version_str is not None
+        return extract_major_version(self.compiler_version_str)
 
     def get_llvm_major_version(self) -> Optional[int]:
         if self.single_compiler_type is None or self.single_compiler_type == 'gcc':
             return None
-        return int(self.get_llvm_version_str().split('.')[0])
+        return extract_major_version(self.get_llvm_version_str())
+
+    def check_compiler_major_version(self) -> None:
+        assert self.expected_major_compiler_version is not None
+        actual_major_version = self.get_compiler_major_version()
+        if actual_major_version != self.expected_major_compiler_version:
+            raise ValueError(
+                "Expected the C/C++ compiler major version to be %d, found %d. "
+                "Full compiler version string: %s. "
+                "Compiler type: %s. C compiler: %s. C++ compiler: %s" % (
+                    self.expected_major_compiler_version,
+                    actual_major_version,
+                    self.compiler_version_str,
+                    self.compiler_type,
+                    self.cc_identification,
+                    self.cxx_identification
+                ))

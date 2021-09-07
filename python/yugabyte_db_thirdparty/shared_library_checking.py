@@ -18,8 +18,9 @@ import subprocess
 import platform
 import logging
 
+from sys_detection import is_macos, is_linux
+
 from typing import List, Any, Set, Optional, Pattern
-from yugabyte_db_thirdparty.os_detection import is_mac, is_linux
 from yugabyte_db_thirdparty.custom_logging import log, fatal, heading
 from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR
 from build_definitions import BUILD_TYPES
@@ -35,15 +36,24 @@ class LibTestBase:
     libraries.
     """
 
+    tp_installed_dir: str
     lib_re_list: List[str]
     tool: str
+
+    # A compiled regex containing almost all of the allowed patterns (except for an an optional
+    # additional pattern).
+    allowed_patterns: Pattern
+
+    # To make sure that we log each allowed pattern no more than once.
+    logged_allowed_patterns: Set[str]
 
     def __init__(self) -> None:
         self.tp_installed_dir = os.path.join(YB_THIRDPARTY_DIR, 'installed')
         self.lib_re_list = []
+        self.logged_allowed_patterns = set()
 
     def init_regex(self) -> None:
-        self.okay_paths = compile_re_list(self.lib_re_list)
+        self.allowed_patterns = compile_re_list(self.lib_re_list)
 
     def check_lib_deps(
             self,
@@ -53,17 +63,26 @@ class LibTestBase:
 
         status = True
         for line in cmdout.splitlines():
-            if (not self.okay_paths.match(line) and
-                    not (additional_allowed_pattern and
+            if (not self.allowed_patterns.match(line) and
+                    not (additional_allowed_pattern is not None and
                          additional_allowed_pattern.match(line))):
+                # Log the allowed patterns for easier debugging.
+                for allowed_pattern in [self.allowed_patterns] + (
+                    [additional_allowed_pattern] if additional_allowed_pattern else []
+                ):
+                    if allowed_pattern.pattern not in self.logged_allowed_patterns:
+                        log("Allowed pattern: %s", allowed_pattern.pattern)
+                        self.logged_allowed_patterns.add(allowed_pattern.pattern)
+
                 if status:
                     log(file_path + ":")
                     status = False
                 log("Bad path: %s", line)
+
         return status
 
     # overridden in platform specific classes
-    def good_libs(self, file_path: str) -> bool:
+    def check_libs_for_file(self, file_path: str) -> bool:
         raise NotImplementedError()
 
     def run(self) -> None:
@@ -86,7 +105,7 @@ class LibTestBase:
                                 full_path = os.path.join(dirpath, file_name)
                                 if os.path.islink(full_path):
                                     continue
-                                if not self.good_libs(full_path):
+                                if not self.check_libs_for_file(full_path):
                                     test_pass = False
         if not test_pass:
             fatal(f"Found problematic library dependencies, using tool: {self.tool}")
@@ -113,7 +132,7 @@ class LibTestMac(LibTestBase):
         # TODO: implement this on macOS for more precise checking of allowed dylib paths.
         pass
 
-    def good_libs(self, file_path: str) -> bool:
+    def check_libs_for_file(self, file_path: str) -> bool:
         libout = subprocess.check_output(['otool', '-L', file_path]).decode('utf-8')
         if 'is not an object file' in libout:
             return True
@@ -144,7 +163,7 @@ class LibTestLinux(LibTestBase):
         for shared_lib_path in sorted(shared_lib_paths):
             self.lib_re_list.append(f".* => {re.escape(shared_lib_path)}/")
 
-    def good_libs(self, file_path: str) -> bool:
+    def check_libs_for_file(self, file_path: str) -> bool:
         try:
             libout = subprocess.check_output(
                 ['ldd', file_path],
@@ -163,7 +182,7 @@ class LibTestLinux(LibTestBase):
             # One exception: libc++abi.so is not able to find libc++ because it loads the ASAN
             # runtime library that is part of the LLVM distribution and does not have the correct
             # rpath set. This happens on CentOS with our custom build of LLVM. We might be able to
-            # fix this by specifyng rpath correctly when building LLVM, but as of 12/2020 we just
+            # fix this by specifying rpath correctly when building LLVM, but as of 12/2020 we just
             # ignore this error here.
             #
             # $ ldd installed/asan/libcxx/lib/libc++abi.so.1.0
@@ -199,7 +218,7 @@ class LibTestLinux(LibTestBase):
 
 
 def get_lib_tester() -> LibTestBase:
-    if is_mac():
+    if is_macos():
         return LibTestMac()
     if is_linux():
         return LibTestLinux()

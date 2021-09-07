@@ -263,3 +263,11 @@ def get_temporal_randomized_file_name_suffix() -> str:
 def create_symlink_and_log(link_to: str, symlink_path: str) -> None:
     log(f"Creating symlink {symlink_path} -> {link_to}")
     os.symlink(link_to, symlink_path)
+
+
+def extract_major_version(version_str: str) -> int:
+    '''
+    >>> extract_major_version('2.3.4')
+    2
+    '''
+    return int(version_str.split('.')[0])

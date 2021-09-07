@@ -21,6 +21,8 @@ import sys
 import ruamel.yaml as ruamel_yaml  # type: ignore
 from typing import Optional, List, Set, Tuple, Dict, Any
 
+from sys_detection import is_macos, is_linux
+
 from build_definitions import (
     BUILD_GROUP_COMMON,
     BUILD_GROUP_INSTRUMENTED,
@@ -43,7 +45,6 @@ from yugabyte_db_thirdparty.dependency import Dependency
 from yugabyte_db_thirdparty.devtoolset import activate_devtoolset
 from yugabyte_db_thirdparty.download_manager import DownloadManager
 from yugabyte_db_thirdparty.env_helpers import write_env_vars
-from yugabyte_db_thirdparty.os_detection import is_mac, is_linux
 from yugabyte_db_thirdparty.string_util import indent_lines
 from yugabyte_db_thirdparty.util import (
     assert_dir_exists,
@@ -58,6 +59,7 @@ from yugabyte_db_thirdparty.util import (
 )
 from yugabyte_db_thirdparty.file_system_layout import FileSystemLayout
 from yugabyte_db_thirdparty.toolchain import Toolchain, ensure_toolchain_installed
+from yugabyte_db_thirdparty.clang_util import get_clang_library_dir
 
 
 ASAN_FLAGS = [
@@ -132,7 +134,8 @@ class Builder(BuilderInterface):
             compiler_suffix=self.args.compiler_suffix,
             devtoolset=self.args.devtoolset,
             use_compiler_wrapper=self.args.use_compiler_wrapper,
-            use_ccache=self.args.use_ccache
+            use_ccache=self.args.use_ccache,
+            expected_major_compiler_version=self.args.expected_major_compiler_version
         )
 
     def finish_initialization(self) -> None:
@@ -254,12 +257,8 @@ class Builder(BuilderInterface):
         self.build_one_build_type(BUILD_TYPE_COMMON)
         build_types = [BUILD_TYPE_UNINSTRUMENTED]
 
-        if self.compiler_choice.use_only_gcc():
-            if is_linux() and not self.compiler_choice.using_linuxbrew():
-                # Starting to support ASAN for GCC compilers
-                # (not for the current GCC 5.5 build on Linuxbrew, though).
-                build_types.append(BUILD_TYPE_ASAN)
-        elif is_linux() and not self.args.skip_sanitizers:
+        if is_linux() and self.compiler_choice.use_only_clang() and not self.args.skip_sanitizers:
+            # We only support ASAN/TSAN builds on Clang.
             build_types.append(BUILD_TYPE_ASAN)
             build_types.append(BUILD_TYPE_TSAN)
         log(f"Full list of build types: {build_types}")
@@ -281,6 +280,8 @@ class Builder(BuilderInterface):
         ]
         libcxx_dirs = [os.path.join(dir, 'libcxx') for dir in dirs]
         for dir in dirs + libcxx_dirs:
+            if self.args.verbose:
+                log("Preparing output directory %s", dir)
             lib_dir = os.path.join(dir, 'lib')
             mkdir_if_missing(lib_dir)
             mkdir_if_missing(os.path.join(dir, 'include'))
@@ -297,6 +298,8 @@ class Builder(BuilderInterface):
             os.symlink('lib', lib64_dir)
 
     def add_include_path(self, include_path: str) -> None:
+        if self.args.verbose:
+            log("Adding an include path: %s", include_path)
         cmd_line_arg = f'-I{include_path}'
         self.preprocessor_flags.append(cmd_line_arg)
         self.compiler_flags.append(cmd_line_arg)
@@ -326,12 +329,12 @@ class Builder(BuilderInterface):
         # -fPIC is there to always generate position-independent code, even for static libraries.
         self.compiler_flags += ['-fno-omit-frame-pointer', '-fPIC', '-O2', '-Wall']
         if is_linux():
-            # On Linux, ensure we set a long enough rpath so we can change it later with chrpath or
-            # a similar tool.
+            # On Linux, ensure we set a long enough rpath so we can change it later with chrpath,
+            # patchelf, or a similar tool.
             self.add_rpath(PLACEHOLDER_RPATH)
 
             self.dylib_suffix = "so"
-        elif is_mac():
+        elif is_macos():
             self.dylib_suffix = "dylib"
 
             # YugaByte builds with C++11, which on OS X requires using libc++ as the standard
@@ -364,20 +367,26 @@ class Builder(BuilderInterface):
             self.add_lib_dir_and_rpath(lib_dir)
 
     def add_lib_dir_and_rpath(self, lib_dir: str) -> None:
+        if self.args.verbose:
+            log("Adding a library directory and RPATH at the end of linker flags: %s", lib_dir)
         self.ld_flags.append("-L{}".format(lib_dir))
         self.add_rpath(lib_dir)
 
     def prepend_lib_dir_and_rpath(self, lib_dir: str) -> None:
+        if self.args.verbose:
+            log("Adding a library directory and RPATH at the front of linker flags: %s", lib_dir)
         self.ld_flags.insert(0, "-L{}".format(lib_dir))
         self.prepend_rpath(lib_dir)
 
     def add_rpath(self, path: str) -> None:
-        log("Adding RPATH: %s", path)
+        log("Adding RPATH at the end of linker flags: %s", path)
         self.ld_flags.append(get_rpath_flag(path))
         self.additional_allowed_shared_lib_paths.add(path)
 
     def prepend_rpath(self, path: str) -> None:
+        log("Adding RPATH at the front of linker flags: %s", path)
         self.ld_flags.insert(0, get_rpath_flag(path))
+        self.additional_allowed_shared_lib_paths.add(path)
 
     def log_prefix(self, dep: Dependency) -> str:
         return '{} ({})'.format(dep.name, self.build_type)
@@ -397,7 +406,7 @@ class Builder(BuilderInterface):
             dir_for_build = os.path.join(dir_for_build, src_subdir_name)
 
         with PushDir(dir_for_build):
-            log("Building in %s", dir_for_build)
+            log("Building in %s using the configure tool", dir_for_build)
             try:
                 if run_autogen:
                     log_output(log_prefix, ['./autogen.sh'])
@@ -541,9 +550,10 @@ class Builder(BuilderInterface):
                 should_build = dep.should_build(self)
                 should_rebuild = self.should_rebuild_dependency(dep)
                 if should_build and should_rebuild:
-                    self.build_dependency(dep)
+                    self.build_dependency(dep, only_process_flags=False)
                 else:
-                    log(f"Skipping dependency {dep.name}: "
+                    self.build_dependency(dep, only_process_flags=True)
+                    log(f"Skipped dependency {dep.name}: "
                         f"should_build={should_build}, "
                         f"should_rebuild={should_rebuild}.")
 
@@ -576,7 +586,7 @@ class Builder(BuilderInterface):
         """
         self.init_compiler_independent_flags(dep)
 
-        if not is_mac() and self.compiler_choice.building_with_clang(self.build_type):
+        if not is_macos() and self.compiler_choice.building_with_clang(self.build_type):
             # Special setup for Clang on Linux.
             compiler_choice = self.compiler_choice
             llvm_major_version: Optional[int] = compiler_choice.get_llvm_major_version()
@@ -661,36 +671,14 @@ class Builder(BuilderInterface):
                 # https://gist.githubusercontent.com/mbautin/ad9ea4715669da3b3a5fb9495659c4a9/raw
                 self.compiler_flags.append('-fno-sanitize=vptr')
 
-            # TODO mbautin: a centralized way to find paths inside LLVM installation.
             assert self.compiler_choice.cc is not None
-
-            compiler_rt_lib_dir_ancestor = os.path.join(
-                os.path.dirname(os.path.dirname(os.path.realpath(self.compiler_choice.cc))),
-                'lib', 'clang')
-            compiler_rt_lib_dir_candidates = []
-            nonexistent_compiler_rt_lib_dirs = []
-            for llvm_version_subdir in os.listdir(compiler_rt_lib_dir_ancestor):
-                compiler_rt_lib_dir = os.path.join(
-                    compiler_rt_lib_dir_ancestor, llvm_version_subdir, 'lib', 'linux')
-                if os.path.isdir(compiler_rt_lib_dir):
-                    compiler_rt_lib_dir_candidates.append(compiler_rt_lib_dir)
-                else:
-                    nonexistent_compiler_rt_lib_dirs.append(compiler_rt_lib_dir)
-            if len(compiler_rt_lib_dir_candidates) != 1:
-                if not compiler_rt_lib_dir_candidates:
-                    raise IOError(
-                        "Could not find the compiler-rt library directory, looked at: %s" %
-                        nonexistent_compiler_rt_lib_dirs)
-                raise IOError(
-                    "Multiple possible compiler-rt library directories: %s" %
-                    compiler_rt_lib_dir_candidates)
-
-            assert len(compiler_rt_lib_dir_candidates) == 1
-            compiler_rt_lib_dir = compiler_rt_lib_dir_candidates[0]
-            if not os.path.isdir(compiler_rt_lib_dir):
-                raise IOError("Directory does not exist: %s", compiler_rt_lib_dir)
+            compiler_rt_lib_dir = get_clang_library_dir(self.compiler_choice.cc)
             self.add_lib_dir_and_rpath(compiler_rt_lib_dir)
-            self.ld_flags.append('-lclang_rt.ubsan_minimal-x86_64')
+            ubsan_lib_name = f'clang_rt.ubsan_minimal-{platform.processor()}'
+            ubsan_lib_so_path = os.path.join(compiler_rt_lib_dir, f'lib{ubsan_lib_name}.so')
+            if not os.path.exists(ubsan_lib_so_path):
+                raise IOError(f"UBSAN library not found at {ubsan_lib_so_path}")
+            self.ld_flags.append(f'-l{ubsan_lib_name}')
 
         self.ld_flags += ['-lunwind']
 
@@ -798,15 +786,28 @@ class Builder(BuilderInterface):
                 }
             })
 
-    def build_dependency(self, dep: Dependency) -> None:
+    def build_dependency(self, dep: Dependency, only_process_flags: bool = False) -> None:
+        """
+        Build the given dependency.
+
+        :param only_process_flags: if this is True, we will only set up the compiler and linker
+            flags and apply all the side effects of that process, such as collecting the set of
+            allowed library paths referred by the final artifacts. If False, we will actually do
+            the build.
+        """
 
         self.init_flags(dep)
 
         # This is needed at least for glog to be able to find gflags.
         self.add_rpath(os.path.join(self.fs_layout.tp_installed_dir, self.build_type, 'lib'))
+
         if self.build_type != BUILD_TYPE_COMMON:
             # Needed to find libunwind for Clang 10 when using compiler-rt.
             self.add_rpath(os.path.join(self.fs_layout.tp_installed_dir, BUILD_TYPE_COMMON, 'lib'))
+
+        if only_process_flags:
+            log("Skipping the build of dependecy %s", dep.name)
+            return
 
         if self.args.download_extract_only:
             log("Skipping build of dependency %s, build type %s, --download-extract-only is "
@@ -832,7 +833,10 @@ class Builder(BuilderInterface):
             # -mllvm -asan-use-private-alias=1
             # but applying that flag to all builds is complicated in practice and is probably
             # best done using a compiler wrapper script, which would slow things down.
-            env_vars["ASAN_OPTIONS"] = "detect_odr_violation=0"
+            #
+            # Also do not detect memory leaks during the build process. E.g. configure scripts might
+            # create some programs that have memory leaks and the configure process would fail.
+            env_vars["ASAN_OPTIONS"] = ':'.join(["detect_odr_violation=0", "detect_leaks=0"])
 
         with PushDir(self.create_build_dir_and_prepare(dep)):
             with EnvVarContext(**env_vars):

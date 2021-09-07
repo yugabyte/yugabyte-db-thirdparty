@@ -12,13 +12,15 @@
 #
 
 """
-Support for CentOS/RedHat devtoolsets.
+Support for RedHat devtoolsets, also known as gcc-toolsets.
 """
 
 import os
 import subprocess
+import shlex
 
-from typing import Set
+from typing import Set, List
+
 from yugabyte_db_thirdparty.util import log, fatal
 from yugabyte_db_thirdparty.string_util import split_into_word_set
 
@@ -29,18 +31,19 @@ DEVTOOLSET_ENV_VARS: Set[str] = split_into_word_set("""
     MANPATH
     PATH
     PCP_DIR
-    PERL5LIB
     PKG_CONFIG_PATH
     PYTHONPATH
 """)
 
 DEVTOOLSET_ENV_VARS_OK_IF_UNSET: Set[str] = set(['PERL5LIB'])
 
+DEVTOOLSET_DIR_NAMES = ['devtoolset', 'gcc-toolset']
+
 
 def activate_devtoolset(devtoolset_number: int) -> None:
     devtoolset_enable_script_candidates = [
         f'/opt/rh/{toolset_name_prefix}-{devtoolset_number}/enable'
-        for toolset_name_prefix in ['devtoolset', 'gcc-toolset']
+        for toolset_name_prefix in DEVTOOLSET_DIR_NAMES
     ]
     existing_devtoolset_enable_scripts = [
         script_path for script_path in devtoolset_enable_script_candidates
@@ -57,7 +60,9 @@ def activate_devtoolset(devtoolset_number: int) -> None:
     if not os.path.exists(devtoolset_enable_script):
         raise IOError("Devtoolset script does not exist: %s" % devtoolset_enable_script)
 
-    cmd_args = ['bash', '-c', '. "%s" && env' % devtoolset_enable_script]
+    echo_env_vars_str = '; '.join(
+        ['echo %s=$%s' % (k, shlex.quote(k)) for k in DEVTOOLSET_ENV_VARS])
+    cmd_args = ['bash', '-c', '. "%s" && ( %s )' % (devtoolset_enable_script, echo_env_vars_str)]
     log("Running command: %s", cmd_args)
     devtoolset_env_str = subprocess.check_output(cmd_args).decode('utf-8')
 
@@ -82,3 +87,19 @@ def activate_devtoolset(devtoolset_number: int) -> None:
             "Invalid environment after running devtoolset script %s. Did not set vars: %s" % (
                 devtoolset_enable_script, ', '.join(sorted(missing_vars))
             ))
+
+
+def validate_devtoolset_compiler_path(compiler_path: str, devtoolset: int) -> None:
+    substring_found = False
+    devtoolset_substrings: List[str] = []
+    for substring_candidate in DEVTOOLSET_DIR_NAMES:
+        devtoolset_substring = f'/{substring_candidate}-{devtoolset}/'
+        devtoolset_substrings.append(devtoolset_substring)
+        if devtoolset_substring in compiler_path:
+            substring_found = True
+            break
+
+    if not substring_found:
+        raise ValueError(
+            f"Invalid compiler path: {compiler_path}. No devtoolset-related substring "
+            f"found: {devtoolset_substrings}")
