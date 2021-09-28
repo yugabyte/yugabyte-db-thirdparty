@@ -18,7 +18,6 @@ import os
 import platform
 import subprocess
 import sys
-import ruamel.yaml as ruamel_yaml  # type: ignore
 from typing import Optional, List, Set, Tuple, Dict, Any
 
 from sys_detection import is_macos, is_linux
@@ -87,7 +86,7 @@ class Builder(BuilderInterface):
     download_manager: DownloadManager
     compiler_choice: CompilerChoice
     fs_layout: FileSystemLayout
-    fossa_modules: List[Any]
+    fossa_deps: List[Any]
     toolchain: Optional[Toolchain]
     remote_build: bool
 
@@ -101,7 +100,7 @@ class Builder(BuilderInterface):
         self.additional_allowed_shared_lib_paths = set()
 
         self.toolchain = None
-        self.fossa_modules = []
+        self.fossa_deps = []
 
     def parse_args(self) -> None:
         self.args = parse_cmd_line_args()
@@ -266,9 +265,9 @@ class Builder(BuilderInterface):
         for build_type in build_types:
             self.build_one_build_type(build_type)
 
-        yaml = ruamel_yaml.YAML(typ='safe', pure=True)
-        with open(os.path.join(YB_THIRDPARTY_DIR, 'fossa_modules.yml'), 'w') as output_file:
-            yaml.dump(self.fossa_modules, output_file)
+        fossa_config_deps = { "remote-dependencies": self.fossa_deps }
+        with open(os.path.join(YB_THIRDPARTY_DIR, 'fossa-deps.json'), 'w') as output_file:
+            json.dump(fossa_config_deps, output_file, indent=2)
 
     def get_build_types(self) -> List[str]:
         return list(BUILD_TYPES)
@@ -771,20 +770,11 @@ class Builder(BuilderInterface):
             src_path=self.fs_layout.get_source_path(dep),
             archive_path=self.fs_layout.get_archive_path(dep))
 
-        archive_name = dep.get_archive_name()
-        if archive_name:
-            archive_path = os.path.join('downloads', archive_name)
-            self.fossa_modules.append({
-                "fossa_module": {
-                    "name": f"{dep.name}-{dep.version}",
-                    "type": "raw",
-                    "target": os.path.basename(archive_path)
-                },
-                "yb_metadata": {
-                    "url": dep.download_url,
-                    "sha256sum": self.download_manager.get_expected_checksum(archive_name)
-                }
-            })
+        self.fossa_deps.append({
+            "name": dep.name,
+            "version": dep.version,
+            "url": dep.download_url
+        })
 
     def build_dependency(self, dep: Dependency, only_process_flags: bool = False) -> None:
         """
