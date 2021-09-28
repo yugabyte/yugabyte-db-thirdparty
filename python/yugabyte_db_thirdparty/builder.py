@@ -265,7 +265,7 @@ class Builder(BuilderInterface):
         for build_type in build_types:
             self.build_one_build_type(build_type)
 
-        fossa_config_deps = { "remote-dependencies": self.fossa_deps }
+        fossa_config_deps = {"remote-dependencies": self.fossa_deps}
         with open(os.path.join(YB_THIRDPARTY_DIR, 'fossa-deps.json'), 'w') as output_file:
             json.dump(fossa_config_deps, output_file, indent=2)
 
