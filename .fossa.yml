@@ -1,0 +1,13 @@
+
+version: 3
+
+project:
+  id: yugabyte-db-thirdparty
+
+revision:
+  branch: master
+
+# Look only at fossa-deps.yml
+paths:
+  only:
+    - None
