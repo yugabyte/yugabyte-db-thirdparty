@@ -12,18 +12,24 @@
 #
 
 import os
-
-import sys_detection
+import re
 
 from yugabyte_db_thirdparty.download_manager import DownloadManager
 from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR, write_file
 
 from typing import Optional
 
+import sys_detection
+from sys_detection import SHORT_OS_NAME_REGEX_STR
+
+
 LINUXBREW_URL = (
     'https://github.com/yugabyte/brew-build/releases/download/'
     '20181203T161736v9/linuxbrew-20181203T161736v9.tar.gz'
 )
+
+LLVM_VERSION_FROM_ARCHIVE_NAME_RE = re.compile(
+        rf'^yb-llvm-v(.*)-[0-9]+-[0-9a-f]+-.*')
 
 
 def get_llvm_url(tag: str) -> str:
@@ -43,7 +49,7 @@ TOOLCHAIN_TO_OS_AND_ARCH_TO_URL = {
         'almalinux8-x86_64': get_llvm_url('v11.1.0-yb-1-1633143292-130bd22e-almalinux8-x86_64'),
     },
     'llvm12': {
-        'centos7-x86_64': get_llvm_url('v11.1.0-yb-1-1633099975-130bd22e-centos7-x86_64'),
+        'centos7-x86_64': get_llvm_url('v12.0.1-yb-1-1633099823-bdb147e6-centos7-x86_64'),
         'almalinux8-x86_64': get_llvm_url('v12.0.1-yb-1-1633143152-bdb147e6-almalinux8-x86_64'),
     }
 }
@@ -94,6 +100,16 @@ class Toolchain:
                        self.toolchain_url)
             write_file(os.path.join(YB_THIRDPARTY_DIR, 'linuxbrew_path.txt'),
                        self.toolchain_root)
+
+    def get_llvm_version_str(self) -> str:
+        if not self.toolchain_type.startswith('llvm'):
+            raise ValueError('Expected an LLVM toolchain type, found: %s' % self.toolchain_type)
+        archive_name = os.path.basename(self.toolchain_url)
+        url_match = LLVM_VERSION_FROM_ARCHIVE_NAME_RE.match(archive_name)
+        if not url_match:
+            raise ValueError(
+                    'Could not extract LLVM version from download URL: %s' % archive_name)
+        return url_match.group(1)
 
 
 def ensure_toolchain_installed(

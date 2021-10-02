@@ -20,10 +20,13 @@ class Llvm1xPartDependencyBase(Dependency):
     """
     def __init__(self, name: str, build_group: str, version: str) -> None:
         assert name.startswith('llvm1x_'), f'Invalid name: {name}'
+        github_org = 'yugabyte' if '-yb-' in version else 'llvm'
         super(Llvm1xPartDependencyBase, self).__init__(
             name=name,
             version=version,
-            url_pattern='https://github.com/llvm/llvm-project/archive/llvmorg-{}.tar.gz',
+            url_pattern=(
+                'https://github.com/%s/llvm-project/archive/llvmorg-{}.tar.gz' % github_org
+            ),
             archive_name_prefix='llvm',
             build_group=build_group)
 
