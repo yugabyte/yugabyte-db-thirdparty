@@ -39,12 +39,12 @@ TOOLCHAIN_TO_OS_AND_ARCH_TO_URL = {
         'centos7-x86_64': get_llvm_url('v7.1.0-1617644423-4856a933'),
     },
     'llvm11': {
-        'centos7-x86_64': get_llvm_url('v11.1.0-1617470305-1fdec59b'),
-        'almalinux8-x86_64': get_llvm_url('v11.1.0-1630702159-1fdec59b-almalinux8-x86_64'),
+        'centos7-x86_64': get_llvm_url('v11.1.0-yb-1-1633099975-130bd22e-centos7-x86_64'),
+        'almalinux8-x86_64': get_llvm_url('v11.1.0-yb-1-1633143292-130bd22e-almalinux8-x86_64'),
     },
     'llvm12': {
-        'centos7-x86_64': get_llvm_url('v12.0.0-1618930576-d28af7c6'),
-        'almalinux8-x86_64': get_llvm_url('v12.0.1-1630702139-fed41342-almalinux8-x86_64'),
+        'centos7-x86_64': get_llvm_url('v11.1.0-yb-1-1633099975-130bd22e-centos7-x86_64'),
+        'almalinux8-x86_64': get_llvm_url('v12.0.1-yb-1-1633143152-bdb147e6-almalinux8-x86_64'),
     }
 }
 
@@ -105,7 +105,8 @@ def ensure_toolchain_installed(
     )
 
     os_and_arch_to_url = TOOLCHAIN_TO_OS_AND_ARCH_TO_URL[toolchain_type]
-    os_and_arch = sys_detection.local_sys_conf().id_for_packaging()
+    local_sys_conf = sys_detection.local_sys_conf()
+    os_and_arch = local_sys_conf.id_for_packaging()
     if os_and_arch not in os_and_arch_to_url:
         raise ValueError(
                 f"Toolchain {toolchain_type} not found for OS/architecture combination "
