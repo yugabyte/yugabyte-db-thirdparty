@@ -32,3 +32,5 @@ fossa_modules.yml
 clang-toolchain
 archive.tar.gz
 archive.tar.gz.sha256
+# TODO: figure out where this file comes from.
+a.out
