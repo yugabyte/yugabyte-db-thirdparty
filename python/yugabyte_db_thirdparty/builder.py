@@ -179,7 +179,10 @@ class Builder(BuilderInterface):
             llvm_major_version: Optional[int] = self.compiler_choice.get_llvm_major_version()
             if (self.compiler_choice.use_only_clang() and
                     llvm_major_version is not None and llvm_major_version >= 10):
-                llvm_version_str = self.compiler_choice.get_llvm_version_str()
+                if self.toolchain:
+                    llvm_version_str = self.toolchain.get_llvm_version_str()
+                else:
+                    llvm_version_str = self.compiler_choice.get_llvm_version_str()
                 self.dependencies += [
                     # New LLVM. We will keep supporting new LLVM versions here.
                     get_build_def_module('llvm1x_libunwind').Llvm1xLibUnwindDependency(

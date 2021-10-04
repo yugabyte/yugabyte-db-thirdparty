@@ -17,8 +17,6 @@ from build_definitions.llvm1x_part import Llvm1xPartDependencyBase
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 from yugabyte_db_thirdparty.util import replace_string_in_file
 
-LIBCXX_LLVM_VERSION = '10.0.1'
-
 
 class Llvm1xLibCxxDependencyBase(Llvm1xPartDependencyBase):
     def __init__(self, name: str, version: str) -> None:

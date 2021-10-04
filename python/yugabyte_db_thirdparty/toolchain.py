@@ -12,18 +12,24 @@
 #
 
 import os
-
-import sys_detection
+import re
 
 from yugabyte_db_thirdparty.download_manager import DownloadManager
 from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR, write_file
 
 from typing import Optional
 
+import sys_detection
+from sys_detection import SHORT_OS_NAME_REGEX_STR, is_compatible_os_and_version
+
+
 LINUXBREW_URL = (
     'https://github.com/yugabyte/brew-build/releases/download/'
     '20181203T161736v9/linuxbrew-20181203T161736v9.tar.gz'
 )
+
+LLVM_VERSION_FROM_ARCHIVE_NAME_RE = re.compile(
+        rf'^yb-llvm-v(.*)-[0-9]+-[0-9a-f]+-.*')
 
 
 def get_llvm_url(tag: str) -> str:
@@ -39,12 +45,12 @@ TOOLCHAIN_TO_OS_AND_ARCH_TO_URL = {
         'centos7-x86_64': get_llvm_url('v7.1.0-1617644423-4856a933'),
     },
     'llvm11': {
-        'centos7-x86_64': get_llvm_url('v11.1.0-1617470305-1fdec59b'),
-        'almalinux8-x86_64': get_llvm_url('v11.1.0-1630702159-1fdec59b-almalinux8-x86_64'),
+        'centos7-x86_64': get_llvm_url('v11.1.0-yb-1-1633099975-130bd22e-centos7-x86_64'),
+        'almalinux8-x86_64': get_llvm_url('v11.1.0-yb-1-1633143292-130bd22e-almalinux8-x86_64'),
     },
     'llvm12': {
-        'centos7-x86_64': get_llvm_url('v12.0.0-1618930576-d28af7c6'),
-        'almalinux8-x86_64': get_llvm_url('v12.0.1-1630702139-fed41342-almalinux8-x86_64'),
+        'centos7-x86_64': get_llvm_url('v12.0.1-yb-1-1633099823-bdb147e6-centos7-x86_64'),
+        'almalinux8-x86_64': get_llvm_url('v12.0.1-yb-1-1633143152-bdb147e6-almalinux8-x86_64'),
     }
 }
 
@@ -95,6 +101,22 @@ class Toolchain:
             write_file(os.path.join(YB_THIRDPARTY_DIR, 'linuxbrew_path.txt'),
                        self.toolchain_root)
 
+    def get_llvm_version_str(self) -> str:
+        if not self.toolchain_type.startswith('llvm'):
+            raise ValueError('Expected an LLVM toolchain type, found: %s' % self.toolchain_type)
+        archive_name = os.path.basename(self.toolchain_url)
+        url_match = LLVM_VERSION_FROM_ARCHIVE_NAME_RE.match(archive_name)
+        if not url_match:
+            raise ValueError(
+                    'Could not extract LLVM version from download URL: %s' % archive_name)
+        return url_match.group(1)
+
+
+def is_compatible_os_arch_combination(os_arch1: str, os_arch2: str) -> bool:
+    os1, arch1 = os_arch1.split('-')
+    os2, arch2 = os_arch2.split('-')
+    return is_compatible_os_and_version(os1, os2) and arch1 == arch2
+
 
 def ensure_toolchain_installed(
         download_manager: DownloadManager,
@@ -105,14 +127,27 @@ def ensure_toolchain_installed(
     )
 
     os_and_arch_to_url = TOOLCHAIN_TO_OS_AND_ARCH_TO_URL[toolchain_type]
-    os_and_arch = sys_detection.local_sys_conf().id_for_packaging()
-    if os_and_arch not in os_and_arch_to_url:
-        raise ValueError(
-                f"Toolchain {toolchain_type} not found for OS/architecture combination "
-                f"{os_and_arch}")
+    local_sys_conf = sys_detection.local_sys_conf()
+    os_and_arch = local_sys_conf.id_for_packaging()
+    if os_and_arch in os_and_arch_to_url:
+        toolchain_url = os_and_arch_to_url[os_and_arch]
+    else:
+        os_and_arch_candidates = []
+        for os_and_arch_candidate in os_and_arch_to_url.keys():
+            if is_compatible_os_arch_combination(os_and_arch_candidate, os_and_arch):
+                os_and_arch_candidates.append(os_and_arch_candidate)
+        err_msg_prefix = (
+            f"Toolchain {toolchain_type} not found for OS/architecture combination {os_and_arch}")
+        if not os_and_arch_candidates:
+            raise ValueError(
+                    f"{err_msg_prefix}, and no compatible OS/architecture combinations found.")
+        if len(os_and_arch_candidates) > 1:
+            raise ValueError(
+                    f"{err_msg_prefix}, and too many compatible OS/architecture combinations "
+                    "found, cannot choose automatically: {os_and_arch_candidates}")
+        effective_os_and_arch = os_and_arch_candidates[0]
+        toolchain_url = os_and_arch_to_url[effective_os_and_arch]
 
-    toolchain_url = os_and_arch_to_url[os_and_arch]
-    compiler_type = None
     if toolchain_type.startswith('llvm'):
         parent_dir = '/opt/yb-build/llvm'
     elif toolchain_type == 'linuxbrew':
