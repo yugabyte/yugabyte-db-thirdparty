@@ -148,6 +148,7 @@ class LibTestLinux(LibTestBase):
         self.lib_re_list = [
             "^\tlinux-vdso",
             "^\t/lib64/",
+            "^\t/lib/ld-linux-.*",
             "^\t/opt/yb-build/brew/linuxbrew",
             "^\tstatically linked",
             "^\tnot a dynamic executable",
