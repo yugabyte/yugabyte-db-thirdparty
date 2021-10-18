@@ -45,7 +45,7 @@ class BoostDependency(Dependency):
         self.patch_strip = 1
 
     def build(self, builder: BuilderInterface) -> None:
-        libs = ['system', 'thread', 'atomic']
+        libs = ['system', 'thread', 'atomic', 'program_options']
 
         log_prefix = builder.log_prefix(self)
         prefix = self.get_install_prefix(builder)
