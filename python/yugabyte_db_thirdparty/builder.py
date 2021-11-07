@@ -249,7 +249,7 @@ class Builder(BuilderInterface):
                 os.path.join(self.fs_layout.tp_installed_common_dir, 'bin'),
                 os.path.join(self.fs_layout.tp_installed_llvm7_common_dir, 'bin'),
         ]
-        
+
         if platform.system() == 'Darwin' and platform.machine() == 'arm64':
             path_components.append('/opt/homebrew/bin')
 
@@ -546,7 +546,7 @@ class Builder(BuilderInterface):
             build_internal()
             self.validate_build_output()
 
-    def validate_build_output(self):
+    def validate_build_output(self) -> None:
         if platform.system() == 'Darwin' and platform.machine() == 'arm64':
             log("Verifying achitecture of object files and libraries in %s", os.getcwd())
             object_files = subprocess.check_output(

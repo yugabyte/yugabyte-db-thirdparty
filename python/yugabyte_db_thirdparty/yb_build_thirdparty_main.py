@@ -18,6 +18,7 @@ import logging
 import time
 
 from build_definitions import *  # noqa
+from yugabyte_db_thirdparty.arch import verify_arch
 from yugabyte_db_thirdparty.builder import Builder
 from yugabyte_db_thirdparty.custom_logging import (
     log_separator,
@@ -32,10 +33,8 @@ import_submodules(build_definitions)
 
 
 def main() -> None:
-    import platform
-    if platform.machine() != 'arm64':
-        raise IOError("Invalid platform: %s" % platform.machine())
     configure_logging()
+    verify_arch()
 
     unset_env_var_if_set('CC')
     unset_env_var_if_set('CXX')

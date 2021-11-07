@@ -15,13 +15,11 @@
 
 set -euo pipefail
 
-if [[ $OSTYPE == darwin* && $(arch) == "i386" && $(uname -a) == *ARM64* ]]; then
-  exec arch -arm64 "$0" "$@"
-  exit 1
-fi
-
 # shellcheck source=./yb-thirdparty-common.sh
 . "${BASH_SOURCE[0]%/*}/yb-thirdparty-common.sh"
+
+# This may re-execute the current script using the "arch" command based on YB_TARGET_ARCH.
+ensure_correct_mac_architecture "$@"
 
 echo "YB_THIRDPARTY_DIR=$YB_THIRDPARTY_DIR"
 

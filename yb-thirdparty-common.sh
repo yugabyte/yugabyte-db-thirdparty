@@ -107,6 +107,42 @@ activate_virtualenv() {
   )
 }
 
+# Re-executes the current script with the correct macOS architecture.
+ensure_correct_mac_architecture() {
+  if [[ $OSTYPE != darwin* ]]; then
+    return
+  fi
+  if [[ -z ${YB_TARGET_ARCH:-} ]]; then
+    local uname_output
+    uname_output=$( uname -a )
+    if [[ $uname_output == *_ARM64* ]]; then
+      YB_TARGET_ARCH="arm64"
+    elif [[ $uname_output == *_X86_64* ]]; then
+      YB_TARGET_ARCH="x86_64"
+    else
+      fatal "Failed to determine target architecture on macOS from the output of 'uname -a':" \
+            "$uname_output"
+    fi
+  fi
+  if [[ $YB_TARGET_ARCH != "x86_64" && $YB_TARGET_ARCH != "arm64" ]]; then
+    fatal "Invalid value of YB_TARGET_ARCH on macOS (expected x86_64 or arm64): $YB_TARGET_ARCH"
+    exit 1
+  fi
+  export YB_TARGET_ARCH
+  local actual_arch
+  actual_arch=$(arch)
+  if [[ $actual_arch == "i386" ]]; then
+    actual_arch="x86_64"
+  elif [[ $actual_arch != "arm64" && $actual_arch != "x86_64" ]]; then
+    fatal "Unexpected output from arch: $actual_arch"
+  fi
+  if [[ $actual_arch != "$YB_TARGET_ARCH" ]]; then
+    echo "Switching architecture to $YB_TARGET_ARCH"
+    set -x
+    exec arch "-$YB_TARGET_ARCH" "$0" "$@"
+  fi
+}
+
 detect_os
 
 # We ignore the previously set YB_THIRDPARTY_DIR value, because if we are executing Bash scripts

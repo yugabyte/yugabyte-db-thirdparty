@@ -21,6 +21,7 @@ import time
 import datetime
 import random
 import subprocess
+import platform
 
 from yugabyte_db_thirdparty.custom_logging import log, fatal
 from yugabyte_db_thirdparty.string_util import normalize_cmd_args, shlex_join

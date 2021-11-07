@@ -51,6 +51,9 @@ detect_cmake_version() {
   fi
 }
 
+# This may re-execute the current script using the "arch" command based on YB_TARGET_ARCH.
+ensure_correct_mac_architecture "$@"
+
 # -------------------------------------------------------------------------------------------------
 # OS detection
 # -------------------------------------------------------------------------------------------------

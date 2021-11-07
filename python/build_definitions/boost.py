@@ -47,7 +47,7 @@ class BoostDependency(Dependency):
             build_group=BUILD_GROUP_INSTRUMENTED,
             license='Boost Software License 1.0')
         self.dir = '{}_{}'.format(self.name, self.underscored_version)
-        self.copy_sources = True,
+        self.copy_sources = True
         self.patches = ['boost-1-69-remove-pending-integer_log2-include.patch',
                         'boost-1-69-mac-compiler-flags.patch',
                         'boost-1-69-add-arm64-instruction-set.patch']
