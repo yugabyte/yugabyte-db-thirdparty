@@ -20,6 +20,8 @@ from typing import List, Optional
 
 g_target_arch: Optional[str] = None
 
+MACOS_CPU_ARCHITECTURES = ['x86_64', 'arm64']
+
 
 def get_target_arch() -> str:
     global g_target_arch
@@ -32,7 +34,7 @@ def get_target_arch() -> str:
         return g_target_arch
 
     g_target_arch = os.getenv('YB_TARGET_ARCH')
-    if g_target_arch not in ['x86_64', 'arm64']:
+    if g_target_arch not in MACOS_CPU_ARCHITECTURES:
         raise ValueError("Unsupported value of YB_TARGET_ARCH on maOS: %s" % g_target_arch)
 
     return g_target_arch
@@ -57,3 +59,20 @@ def get_arch_switch_cmd_prefix() -> List[str]:
     if actual_arch == target_arch:
         return []
     return ['arch', '-%s' % target_arch]
+
+
+def is_macos_arm64_build() -> bool:
+    return is_macos() and get_target_arch() == 'arm64'
+
+
+def get_other_macos_arch(arch: str) -> str:
+    assert arch in MACOS_CPU_ARCHITECTURES, 'Not a valid CPU arhcitecture for macOS: %s' % arch
+    candidates = []
+    for other_arch in MACOS_CPU_ARCHITECTURES:
+        if other_arch != arch:
+            candidates.append(other_arch)
+    if len(candidates) == 1:
+        return candidates[0]
+    raise ValueError(
+        "Could not unambiguously determine the other macOS CPU architecture for %s. "
+        "Candidates: %s" % (arch, candidates))

@@ -14,7 +14,7 @@
 
 import os
 
-from yugabyte_db_thirdparty.arch import get_target_arch
+from yugabyte_db_thirdparty.arch import is_macos_arm64_build
 
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
@@ -45,7 +45,7 @@ class OpenSSLDependency(Dependency):
         common_configure_options = ['shared']
         install_path = os.path.join(
             builder.fs_layout.tp_installed_common_dir, "lib")
-        if is_macos() and get_target_arch() == 'arm64':
+        if is_macos_arm64_build():
             use_arm64_bash_in_script('config')
         configure_cmd = ['./config'] + common_configure_options
         if not is_macos():

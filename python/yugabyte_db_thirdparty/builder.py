@@ -44,7 +44,12 @@ from yugabyte_db_thirdparty.devtoolset import activate_devtoolset
 from yugabyte_db_thirdparty.download_manager import DownloadManager
 from yugabyte_db_thirdparty.env_helpers import write_env_vars
 from yugabyte_db_thirdparty.string_util import indent_lines
-from yugabyte_db_thirdparty.arch import get_arch_switch_cmd_prefix, get_target_arch
+from yugabyte_db_thirdparty.arch import (
+    get_arch_switch_cmd_prefix,
+    get_target_arch,
+    is_macos_arm64_build,
+    get_other_macos_arch
+)
 from yugabyte_db_thirdparty.util import (
     assert_dir_exists,
     assert_list_contains,
@@ -246,7 +251,7 @@ class Builder(BuilderInterface):
     def _setup_path(self) -> None:
         path_components = [os.path.join(self.fs_layout.tp_installed_common_dir, 'bin')]
 
-        if is_macos() and get_target_arch() == 'arm64':
+        if is_macos_arm64_build():
             path_components.append('/opt/homebrew/bin')
 
         path_components.append(os.environ['PATH'])
@@ -542,18 +547,21 @@ class Builder(BuilderInterface):
             self.validate_build_output()
 
     def validate_build_output(self) -> None:
-        if platform.system() == 'Darwin' and platform.machine() == 'arm64':
-            log("Verifying achitecture of object files and libraries in %s", os.getcwd())
+        if is_macos():
+            target_arch = get_target_arch()
+            disallowed_suffix = ' ' + get_other_macos_arch(target_arch)
+            log("Verifying achitecture of object files and libraries in %s (should be %s)",
+                os.getcwd(), target_arch)
             object_files = subprocess.check_output(
                     ['find', os.getcwd(), '-name', '*.o', '-or', '-name', '*.dylib']
                 ).strip().decode('utf-8').split('\n')
             for object_file_path in object_files:
                 file_type = subprocess.check_output(['file', object_file_path]).strip().decode(
                         'utf-8')
-                if file_type.endswith(' x86_64'):
+                if file_type.endswith(disallowed_suffix):
                     raise ValueError(
-                        "Incorrect object file architecture generated for %s: %s" % (
-                            object_file_path, file_type))
+                        "Incorrect object file architecture generated for %s (%s expected): %s" % (
+                            object_file_path, target_arch, file_type))
 
     def build_one_build_type(self, build_type: str) -> None:
         if (build_type != BUILD_TYPE_COMMON and
