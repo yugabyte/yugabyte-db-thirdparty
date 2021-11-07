@@ -244,17 +244,25 @@ class Builder(BuilderInterface):
         else:
             self.selected_dependencies = self.dependencies
 
+    def _setup_path(self) -> None:
+        path_components = [
+                os.path.join(self.fs_layout.tp_installed_common_dir, 'bin'),
+                os.path.join(self.fs_layout.tp_installed_llvm7_common_dir, 'bin'),
+        ]
+        
+        if platform.system() == 'Darwin' and platform.machine() == 'arm64':
+            path_components.append('/opt/homebrew/bin')
+
+        path_components.append(os.environ['PATH'])
+        os.environ['PATH'] = ':'.join(path_components)
+
     def run(self) -> None:
         self.compiler_choice.set_compiler(
             'clang' if self.compiler_choice.use_only_clang() else 'gcc')
         if self.args.clean or self.args.clean_downloads:
             self.fs_layout.clean(self.selected_dependencies, self.args.clean_downloads)
         self.prepare_out_dirs()
-        os.environ['PATH'] = ':'.join([
-                os.path.join(self.fs_layout.tp_installed_common_dir, 'bin'),
-                os.path.join(self.fs_layout.tp_installed_llvm7_common_dir, 'bin'),
-                os.environ['PATH']
-        ])
+        self._setup_path()
 
         self.build_one_build_type(BUILD_TYPE_COMMON)
         build_types = [BUILD_TYPE_UNINSTRUMENTED]
@@ -418,6 +426,7 @@ class Builder(BuilderInterface):
                 configure_args = (
                     configure_cmd.copy() + ['--prefix={}'.format(self.prefix)] + extra_args
                 )
+                configure_args = ['arch', '-arm64'] + configure_args
                 log_output(log_prefix, configure_args)
             except Exception as ex:
                 log(f"The configure step failed. Looking for relevant files in {dir_for_build} "
@@ -442,6 +451,8 @@ class Builder(BuilderInterface):
             log_output(log_prefix, ['make', '-j{}'.format(get_make_parallelism())])
             if install:
                 log_output(log_prefix, ['make'] + install)
+
+            self.validate_build_output()
 
     def build_with_cmake(
             self,
@@ -530,8 +541,24 @@ class Builder(BuilderInterface):
                     dep.name, self.build_type, build_shared_libs_cmake_arg)
                 with PushDir(build_dir):
                     build_internal([build_shared_libs_cmake_arg])
+                    self.validate_build_output()
         else:
             build_internal()
+            self.validate_build_output()
+
+    def validate_build_output(self):
+        if platform.system() == 'Darwin' and platform.machine() == 'arm64':
+            log("Verifying achitecture of object files and libraries in %s", os.getcwd())
+            object_files = subprocess.check_output(
+                    ['find', os.getcwd(), '-name', '*.o', '-or', '-name', '*.dylib']
+                ).strip().decode('utf-8').split('\n')
+            for object_file_path in object_files:
+                file_type = subprocess.check_output(['file', object_file_path]).strip().decode(
+                        'utf-8')
+                if file_type.endswith(' x86_64'):
+                    raise ValueError(
+                        "Incorrect object file architecture generated for %s: %s" % (
+                            object_file_path, file_type))
 
     def build_one_build_type(self, build_type: str) -> None:
         if (build_type != BUILD_TYPE_COMMON and
@@ -768,6 +795,7 @@ class Builder(BuilderInterface):
         colored_log(YELLOW_COLOR, "Building %s (%s)", dep.name, self.build_type)
         colored_log(YELLOW_COLOR, SEPARATOR)
 
+        log("Downloading %s", dep)
         self.download_manager.download_dependency(
             dep=dep,
             src_path=self.fs_layout.get_source_path(dep),

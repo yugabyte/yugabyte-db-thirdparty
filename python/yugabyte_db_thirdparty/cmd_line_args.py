@@ -14,6 +14,7 @@
 import argparse
 import sys
 import os
+import platform
 
 from sys_detection import is_macos, local_sys_conf
 
@@ -169,6 +170,12 @@ def parse_cmd_line_args() -> argparse.Namespace:
         nargs=argparse.REMAINDER,
         help='Dependencies to build.')
 
+    parser.add_argument(
+        '--enforce_arch',
+        help='Ensure that we use the given architecture, such as arm64. Useful for macOS systems '
+             'with Apple Silicon CPUs and Rosetta 2 installed that can switch between '
+             'architectures.')
+
     args = parser.parse_args()
 
     # ---------------------------------------------------------------------------------------------
@@ -221,5 +228,9 @@ def parse_cmd_line_args() -> argparse.Namespace:
 
     if args.multi_build_conf_name_pattern:
         args.multi_build = True
+
+    if args.enforce_arch and platform.machine() != args.enforce_arch:
+        raise ValueError("Machine architecture is %s but we expect %s" % (
+            platform.machine(), args.enforce_arch))
 
     return args

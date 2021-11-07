@@ -15,6 +15,11 @@
 
 set -euo pipefail
 
+if [[ $OSTYPE == darwin* && $(arch) == "i386" && $(uname -a) == *ARM64* ]]; then
+  exec arch -arm64 "$0" "$@"
+  exit 1
+fi
+
 # shellcheck source=./yb-thirdparty-common.sh
 . "${BASH_SOURCE[0]%/*}/yb-thirdparty-common.sh"
 

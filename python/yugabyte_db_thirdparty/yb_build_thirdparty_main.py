@@ -32,6 +32,9 @@ import_submodules(build_definitions)
 
 
 def main() -> None:
+    import platform
+    if platform.machine() != 'arm64':
+        raise IOError("Invalid platform: %s" % platform.machine())
     configure_logging()
 
     unset_env_var_if_set('CC')

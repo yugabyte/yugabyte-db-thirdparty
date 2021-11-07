@@ -14,6 +14,7 @@
 
 import os
 import sys
+import platform
 
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
@@ -29,19 +30,27 @@ using {0} : {1} :
 
 
 class BoostDependency(Dependency):
+    MAJOR_VERSION = 1
+    MINOR_VERSION = 69
+    PATCH_VERSION = 0
+    VERSION_TUPLE = (MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION)
+    VERSION_STR = "%s.%s.%s" % VERSION_TUPLE
+    VERSION_STR_UNDERSCORES = "%s_%s_%s" % VERSION_TUPLE
+
     def __init__(self) -> None:
         super(BoostDependency, self).__init__(
             name='boost',
-            version='1.69.0',
-            # URL grabbed from https://www.boost.org/users/history/version_1_69_0.html
-            url_pattern='https://boostorg.jfrog.io/artifactory/main/release/1.69.0/source/'
-                        'boost_1_69_0.tar.bz2',
+            version=self.VERSION_STR,
+            # URL grabbed from https://www.boost.org/users/history/version_1_77_0.html
+            url_pattern='https://boostorg.jfrog.io/artifactory/main/release/{}/source/'
+                        'boost_{}.tar.bz2'.format(self.VERSION_STR, self.VERSION_STR_UNDERSCORES),
             build_group=BUILD_GROUP_INSTRUMENTED,
             license='Boost Software License 1.0')
         self.dir = '{}_{}'.format(self.name, self.underscored_version)
-        self.copy_sources = True
+        self.copy_sources = True,
         self.patches = ['boost-1-69-remove-pending-integer_log2-include.patch',
-                        'boost-1-69-mac-compiler-flags.patch']
+                        'boost-1-69-mac-compiler-flags.patch',
+                        'boost-1-69-add-arm64-instruction-set.patch']
         self.patch_strip = 1
 
     def build(self, builder: BuilderInterface) -> None:
@@ -73,7 +82,8 @@ class BoostDependency(Dependency):
                     ' '.join(['<compileflags>' + flag for flag in cxx_flags]),
                     ' '.join(['<linkflags>' + flag for flag in cxx_flags + builder.ld_flags]),
                     ' '.join(['--with-{}'.format(lib) for lib in libs])))
-        log_output(log_prefix, ['./b2', 'install', 'cxxstd=14'])
+        build_cmd = ['./b2', 'install', 'cxxstd=14', 'instruction-set=arm64']
+        log_output(log_prefix, build_cmd)
 
         if is_macos():
             for lib in libs:
