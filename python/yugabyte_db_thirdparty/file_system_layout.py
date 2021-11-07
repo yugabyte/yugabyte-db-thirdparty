@@ -27,7 +27,6 @@ class FileSystemLayout:
     tp_download_dir: str
     tp_installed_dir: str
     tp_installed_common_dir: str
-    tp_installed_llvm7_common_dir: str
 
     def __init__(self) -> None:
         self.tp_build_dir = os.path.join(YB_THIRDPARTY_DIR, 'build')
@@ -35,8 +34,6 @@ class FileSystemLayout:
         self.tp_download_dir = os.path.join(YB_THIRDPARTY_DIR, 'download')
         self.tp_installed_dir = os.path.join(YB_THIRDPARTY_DIR, 'installed')
         self.tp_installed_common_dir = os.path.join(self.tp_installed_dir, BUILD_TYPE_COMMON)
-        self.tp_installed_llvm7_common_dir = os.path.join(
-                self.tp_installed_dir + '_llvm7', BUILD_TYPE_COMMON)
 
     def get_archive_path(self, dep: Dependency) -> Optional[str]:
         archive_name = dep.get_archive_name()

@@ -52,7 +52,6 @@ from yugabyte_db_thirdparty.util import (
     mkdir_if_missing,
     PushDir,
     read_file,
-    write_file,
     remove_path,
     YB_THIRDPARTY_DIR,
 )
@@ -245,10 +244,7 @@ class Builder(BuilderInterface):
             self.selected_dependencies = self.dependencies
 
     def _setup_path(self) -> None:
-        path_components = [
-                os.path.join(self.fs_layout.tp_installed_common_dir, 'bin'),
-                os.path.join(self.fs_layout.tp_installed_llvm7_common_dir, 'bin'),
-        ]
+        path_components = [os.path.join(self.fs_layout.tp_installed_common_dir, 'bin')]
 
         if is_macos() and get_target_arch() == 'arm64':
             path_components.append('/opt/homebrew/bin')
@@ -288,19 +284,18 @@ class Builder(BuilderInterface):
         dirs = [
             os.path.join(self.fs_layout.tp_installed_dir, build_type) for build_type in build_types
         ]
-        libcxx_dirs = [os.path.join(dir, 'libcxx') for dir in dirs]
-        for dir in dirs + libcxx_dirs:
+        libcxx_dirs = [os.path.join(dir_path, 'libcxx') for dir_path in dirs]
+        for dir_path in dirs + libcxx_dirs:
             if self.args.verbose:
-                log("Preparing output directory %s", dir)
-            lib_dir = os.path.join(dir, 'lib')
+                log("Preparing output directory %s", dir_path)
+            mkdir_if_missing(os.path.join(dir_path, 'bin'))
+            lib_dir = os.path.join(dir_path, 'lib')
             mkdir_if_missing(lib_dir)
-            mkdir_if_missing(os.path.join(dir, 'include'))
-            # On some systems, autotools installs libraries to lib64 rather than lib.    Fix
-            # this by setting up lib64 as a symlink to lib.    We have to do this step first
-            # to handle cases where one third-party library depends on another.    Make sure
-            # we create a relative symlink so that the entire PREFIX_DIR could be moved,
-            # e.g. after it is packaged and then downloaded on a different build node.
-            lib64_dir = os.path.join(dir, 'lib64')
+            mkdir_if_missing(os.path.join(dir_path, 'include'))
+            # On some systems, autotools installs libraries to lib64 rather than lib. Fix this by
+            # setting up lib64 as a symlink to lib. We have to do this step first to handle cases
+            # where one third-party library depends on another.
+            lib64_dir = os.path.join(dir_path, 'lib64')
             if os.path.exists(lib64_dir):
                 if os.path.islink(lib64_dir):
                     continue
