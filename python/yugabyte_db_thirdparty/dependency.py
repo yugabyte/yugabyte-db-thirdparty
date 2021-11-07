@@ -51,7 +51,8 @@ class Dependency:
         self.build_group = build_group
 
         self.archive_name = None
-        if mkdir_only:
+        self.mkdir_only = mkdir_only
+        if not mkdir_only:
             self.archive_name = make_archive_name(
                 archive_name_prefix or name, version, self.download_url)
             print("Setting archive name: %s" % self.archive_name)

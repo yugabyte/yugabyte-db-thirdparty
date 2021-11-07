@@ -298,8 +298,8 @@ class DownloadManager:
 
         remove_path(src_path)
 
-        # If download_url is "mkdir" then we just create empty directory with specified name.
         if dep.mkdir_only:
+            # Just create an empty directory with the specified name.
             log("Creating %s", src_path)
             mkdir_if_missing(src_path)
         else:
