@@ -3,6 +3,7 @@ from yugabyte_db_thirdparty.util import (
     compute_file_sha256,
     create_symlink_and_log,
     log_and_run_cmd,
+    log_and_run_cmd_ignore_errors,
     remove_path,
     YB_THIRDPARTY_DIR,
 )
@@ -94,6 +95,13 @@ class Packager:
             '-a', self.archive_checksum_path,
             '-t', self.git_sha1
         ]
+        hub_delete_release_cmd = [
+            'hub', 'release', 'delete', tag
+        ]
+        hub_delete_tag_cmd = [
+            'hub', 'tag', '--delete', tag
+        ]
+
         delay_sec = 10
         for attempt_index in range(1, MAX_UPLOAD_ATTEMPTS + 1):
             try:
@@ -107,3 +115,8 @@ class Packager:
                     attempt_index, MAX_UPLOAD_ATTEMPTS, delay_sec)
                 time.sleep(delay_sec)
                 delay_sec += 2
+
+                logging.info("Deleting release for tag %s", tag)
+                log_and_run_cmd_ignore_errors(hub_delete_release_cmd)
+                logging.info("Deleting tag %s", tag)
+                log_and_run_cmd_ignore_errors(hub_delete_tag_cmd)

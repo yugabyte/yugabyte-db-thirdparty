@@ -17,14 +17,9 @@ import sys
 
 import importlib
 import pkgutil
-import platform
-import shutil
-import subprocess
-import traceback
 
-from typing import Any, List, Optional, Dict, Union, NoReturn
-from yugabyte_db_thirdparty.custom_logging import log, fatal
-from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR
+from typing import Any, List, Dict, Union
+from yugabyte_db_thirdparty.custom_logging import log
 from yugabyte_db_thirdparty.archive_handling import make_archive_name
 
 

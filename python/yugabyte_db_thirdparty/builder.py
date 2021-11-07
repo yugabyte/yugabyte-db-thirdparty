@@ -17,7 +17,6 @@ import json
 import os
 import platform
 import subprocess
-import sys
 from typing import Optional, List, Set, Tuple, Dict, Any
 
 from sys_detection import is_macos, is_linux
@@ -45,7 +44,7 @@ from yugabyte_db_thirdparty.devtoolset import activate_devtoolset
 from yugabyte_db_thirdparty.download_manager import DownloadManager
 from yugabyte_db_thirdparty.env_helpers import write_env_vars
 from yugabyte_db_thirdparty.string_util import indent_lines
-from yugabyte_db_thirdparty.arch import get_arch_switch_cmd_prefix
+from yugabyte_db_thirdparty.arch import get_arch_switch_cmd_prefix, get_target_arch
 from yugabyte_db_thirdparty.util import (
     assert_dir_exists,
     assert_list_contains,
@@ -251,7 +250,7 @@ class Builder(BuilderInterface):
                 os.path.join(self.fs_layout.tp_installed_llvm7_common_dir, 'bin'),
         ]
 
-        if platform.system() == 'Darwin' and platform.machine() == 'arm64':
+        if is_macos() and get_target_arch() == 'arm64':
             path_components.append('/opt/homebrew/bin')
 
         path_components.append(os.environ['PATH'])

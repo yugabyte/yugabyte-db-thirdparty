@@ -28,6 +28,8 @@ class Dependency:
     post_patch: List[str]
     copy_sources: bool
     license: Optional[str]
+    mkdir_only: bool
+    archive_name: Optional[str]
 
     def __init__(
             self,
@@ -36,7 +38,8 @@ class Dependency:
             url_pattern: Optional[str],
             build_group: str,
             archive_name_prefix: Optional[str] = None,
-            license: Optional[str] = None) -> None:
+            license: Optional[str] = None,
+            mkdir_only: bool = False) -> None:
         self.name = name
         self.version = version
         self.dir_name = '{}-{}'.format(name, version)
@@ -46,9 +49,13 @@ class Dependency:
         else:
             self.download_url = None
         self.build_group = build_group
-        self.archive_name = make_archive_name(
-            archive_name_prefix or name, version, self.download_url)
-        print("Setting archive name: %s" % self.archive_name)
+
+        self.archive_name = None
+        if mkdir_only:
+            self.archive_name = make_archive_name(
+                archive_name_prefix or name, version, self.download_url)
+            print("Setting archive name: %s" % self.archive_name)
+
         self.patch_version = 0
         self.extra_downloads = []
         self.patches = []

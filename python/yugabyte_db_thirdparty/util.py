@@ -12,16 +12,13 @@
 #
 
 import os
-import sys
 import hashlib
 import shutil
-import shlex
 import subprocess
-import time
 import datetime
 import random
 import subprocess
-import platform
+import logging
 
 from yugabyte_db_thirdparty.custom_logging import log, fatal
 from yugabyte_db_thirdparty.string_util import normalize_cmd_args, shlex_join
@@ -228,6 +225,16 @@ def log_and_run_cmd(args: List[Any], **kwargs: Any) -> None:
     args = normalize_cmd_args(args)
     _log_cmd_to_run(args, cwd=kwargs.get('cwd'))
     subprocess.check_call(args, **kwargs)
+
+
+def log_and_run_cmd_ignore_errors(args: List[Any], **kwargs: Any) -> None:
+    args = normalize_cmd_args(args)
+    args_str = shlex_join(args)
+    _log_cmd_to_run(args, cwd=kwargs.get('cwd'))
+    try:
+        subprocess.check_call(args, **kwargs)
+    except subprocess.CalledProcessError as ex:
+        logging.exception("Command failed: %s (ignoring the error)", args_str, ex)
 
 
 def log_and_get_cmd_output(args: List[Any], **kwargs: Any) -> str:

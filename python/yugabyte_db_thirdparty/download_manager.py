@@ -299,7 +299,10 @@ class DownloadManager:
         remove_path(src_path)
 
         # If download_url is "mkdir" then we just create empty directory with specified name.
-        if download_url != 'mkdir':
+        if dep.mkdir_only:
+            log("Creating %s", src_path)
+            mkdir_if_missing(src_path)
+        else:
             if archive_path is None:
                 log("archive_path is not set, skipping download")
                 return
@@ -310,9 +313,6 @@ class DownloadManager:
             self.extract_archive(archive_path,
                                  os.path.dirname(src_path),
                                  os.path.basename(src_path))
-        else:
-            log("Creating %s", src_path)
-            mkdir_if_missing(src_path)
 
         if hasattr(dep, 'extra_downloads'):
             for extra in dep.extra_downloads:
