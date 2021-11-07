@@ -45,6 +45,7 @@ from yugabyte_db_thirdparty.devtoolset import activate_devtoolset
 from yugabyte_db_thirdparty.download_manager import DownloadManager
 from yugabyte_db_thirdparty.env_helpers import write_env_vars
 from yugabyte_db_thirdparty.string_util import indent_lines
+from yugabyte_db_thirdparty.arch import get_arch_switch_cmd_prefix
 from yugabyte_db_thirdparty.util import (
     assert_dir_exists,
     assert_list_contains,
@@ -426,7 +427,7 @@ class Builder(BuilderInterface):
                 configure_args = (
                     configure_cmd.copy() + ['--prefix={}'.format(self.prefix)] + extra_args
                 )
-                configure_args = ['arch', '-arm64'] + configure_args
+                configure_args = get_arch_switch_cmd_prefix() + configure_args
                 log_output(log_prefix, configure_args)
             except Exception as ex:
                 log(f"The configure step failed. Looking for relevant files in {dir_for_build} "
