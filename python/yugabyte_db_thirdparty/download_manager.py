@@ -292,10 +292,6 @@ class DownloadManager:
             log("Patch level directory %s already exists, skipping download", patch_level_path)
             return
 
-        download_url = dep.download_url
-        log("Download URL: %s", download_url)
-        assert download_url is not None, "Download URL not specified for dependency %s" % dep.name
-
         remove_path(src_path)
 
         if dep.mkdir_only:
@@ -303,6 +299,11 @@ class DownloadManager:
             log("Creating %s", src_path)
             mkdir_if_missing(src_path)
         else:
+            download_url = dep.download_url
+            log("Download URL: %s", download_url)
+            assert download_url is not None, \
+                   "Download URL not specified for dependency %s" % dep.name
+
             if archive_path is None:
                 log("archive_path is not set, skipping download")
                 return
