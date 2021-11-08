@@ -113,15 +113,15 @@ ensure_correct_mac_architecture() {
     return
   fi
   if [[ -z ${YB_TARGET_ARCH:-} ]]; then
-    local uname_output
-    uname_output=$( uname -a )
-    if [[ $uname_output == *_ARM64* ]]; then
+    local uname_p_output
+    uname_p_output=$( uname -p )
+    if [[ $uname_p_output == arm || $uname_p_output == arm64 ]]; then
       YB_TARGET_ARCH="arm64"
-    elif [[ $uname_output == *_X86_64* ]]; then
+    elif [[ $uname_p_output == i386 || $uname_p_output == x86_64 ]]; then
       YB_TARGET_ARCH="x86_64"
     else
-      fatal "Failed to determine target architecture on macOS from the output of 'uname -a':" \
-            "$uname_output"
+      fatal "Failed to determine target architecture on macOS from the output of 'uname -p':" \
+            "$uname_p_output"
     fi
   fi
   if [[ $YB_TARGET_ARCH != "x86_64" && $YB_TARGET_ARCH != "arm64" ]]; then
