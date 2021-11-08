@@ -47,8 +47,8 @@ from yugabyte_db_thirdparty.string_util import indent_lines
 from yugabyte_db_thirdparty.arch import (
     get_arch_switch_cmd_prefix,
     get_target_arch,
-    is_macos_arm64_build,
-    get_other_macos_arch
+    get_other_macos_arch,
+    add_homebrew_to_path,
 )
 from yugabyte_db_thirdparty.util import (
     assert_dir_exists,
@@ -59,6 +59,7 @@ from yugabyte_db_thirdparty.util import (
     read_file,
     remove_path,
     YB_THIRDPARTY_DIR,
+    add_path_entry,
 )
 from yugabyte_db_thirdparty.file_system_layout import FileSystemLayout
 from yugabyte_db_thirdparty.toolchain import Toolchain, ensure_toolchain_installed
@@ -249,13 +250,8 @@ class Builder(BuilderInterface):
             self.selected_dependencies = self.dependencies
 
     def _setup_path(self) -> None:
-        path_components = [os.path.join(self.fs_layout.tp_installed_common_dir, 'bin')]
-
-        if is_macos_arm64_build():
-            path_components.append('/opt/homebrew/bin')
-
-        path_components.append(os.environ['PATH'])
-        os.environ['PATH'] = ':'.join(path_components)
+        add_path_entry(os.path.join(self.fs_layout.tp_installed_common_dir, 'bin'))
+        add_homebrew_to_path()
 
     def run(self) -> None:
         self.compiler_choice.set_compiler(

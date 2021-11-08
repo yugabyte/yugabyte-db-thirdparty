@@ -17,10 +17,16 @@ import platform
 from sys_detection import is_macos
 from typing import List, Optional
 
+from yugabyte_db_thirdparty.util import add_path_entry
+
 
 g_target_arch: Optional[str] = None
 
 MACOS_CPU_ARCHITECTURES = ['x86_64', 'arm64']
+HOMEBREW_BIN_DIR_BY_ARCH = {
+    'x86_64': '/usr/local/bin',
+    'arm64': '/opt/homebrew/bin'
+}
 
 
 def get_target_arch() -> str:
@@ -76,3 +82,11 @@ def get_other_macos_arch(arch: str) -> str:
     raise ValueError(
         "Could not unambiguously determine the other macOS CPU architecture for %s. "
         "Candidates: %s" % (arch, candidates))
+
+
+def add_homebrew_to_path() -> None:
+    """
+    On macOS, adds the Homebrew bin directory for the correct target architecture to PATH.
+    """
+    if is_macos():
+        add_path_entry(HOMEBREW_BIN_DIR_BY_ARCH[get_target_arch()])

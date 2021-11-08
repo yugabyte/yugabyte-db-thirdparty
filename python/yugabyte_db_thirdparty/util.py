@@ -209,11 +209,18 @@ def write_file(file_path: str, data: str) -> None:
 
 def add_path_entry(new_path_entry: str) -> None:
     """
-    Adds a new PATH entry in front of the PATH environment variable, if it is not already present.
+    Adds a new PATH entry in front of the PATH environment variable, if the new directory is not
+    already present in PATH.
     """
-    existing_path_entries = os.environ['PATH'].split(':')
+    path_str = (os.getenv('PATH') or '').strip()
+    if not path_str:
+        # Should not really happen but let's handle it.
+        os.environ['PATH'] = new_path_entry
+        return
+
+    existing_path_entries = path_str.split(':')
     if new_path_entry not in existing_path_entries:
-        os.environ['PATH'] = '%s:%s' % (new_path_entry, os.environ['PATH'])
+        os.environ['PATH'] = ':'.join([new_path_entry] + existing_path_entries)
 
 
 def _log_cmd_to_run(args: List[str], cwd: Optional[Any]) -> None:
