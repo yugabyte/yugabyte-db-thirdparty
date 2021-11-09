@@ -14,6 +14,7 @@
 import argparse
 import sys
 import os
+import platform
 
 from sys_detection import is_macos, local_sys_conf
 
@@ -121,19 +122,6 @@ def parse_cmd_line_args() -> argparse.Namespace:
         action='store_true')
 
     parser.add_argument(
-        '--multi-build',
-        action='store_true',
-        help='Build multiple configurations in parallel. Most other arguments will get ignored '
-             'if this is specified. Configurations to build are taken from .circleci/config.yml. '
-             'The set of configurations to build can be customized using the '
-             '--multi-build-conf-name-pattern flag.')
-
-    parser.add_argument(
-        '--multi-build-conf-name-pattern',
-        help='Only build configurations matching this glob-style pattern, anchored on both ends. '
-             'This implies --multi-build.')
-
-    parser.add_argument(
         '--license-report',
         action='store_true',
         help='Generate a license report.')
@@ -168,6 +156,12 @@ def parse_cmd_line_args() -> argparse.Namespace:
         'dependencies',
         nargs=argparse.REMAINDER,
         help='Dependencies to build.')
+
+    parser.add_argument(
+        '--enforce_arch',
+        help='Ensure that we use the given architecture, such as arm64. Useful for macOS systems '
+             'with Apple Silicon CPUs and Rosetta 2 installed that can switch between '
+             'architectures.')
 
     args = parser.parse_args()
 
@@ -219,7 +213,8 @@ def parse_cmd_line_args() -> argparse.Namespace:
         if args.compiler_suffix:
             raise ValueError("--compiler-suffix and --toolchain are incompatible")
 
-    if args.multi_build_conf_name_pattern:
-        args.multi_build = True
+    if args.enforce_arch and platform.machine() != args.enforce_arch:
+        raise ValueError("Machine architecture is %s but we expect %s" % (
+            platform.machine(), args.enforce_arch))
 
     return args

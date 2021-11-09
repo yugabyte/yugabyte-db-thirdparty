@@ -23,8 +23,8 @@ from yugabyte_db_thirdparty.rpath_fixes import fix_shared_library_references
 class CassandraCppDriverDependency(Dependency):
     def __init__(self) -> None:
         super(CassandraCppDriverDependency, self).__init__(
-                'cassandra-cpp-driver', '2.9.0-yb-12',
-                'https://github.com/YugaByte/cassandra-cpp-driver/archive/{0}.tar.gz',
+                'cassandra-cpp-driver', '2.9.0-yb-13',
+                'https://github.com/yugabyte/cassandra-cpp-driver/archive/{0}.tar.gz',
                 BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = False
         self.patch_version = 0

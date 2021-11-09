@@ -194,7 +194,7 @@ class DownloadManager:
         if expected_checksum is None:
             fatal(
                 f"No expected checksum provided for file '{file_basename}'. Consider adding the "
-                f"following line to thirdparty_src_checksums.txt:\n"
+                f"following line to thirdparty_src_checksums.txt (or re-run with --add_checksum):\n"
                 f"{real_checksum}  {file_basename}\n"
             )
         return real_checksum == expected_checksum
@@ -289,16 +289,23 @@ class DownloadManager:
             archive_path: Optional[str]) -> None:
         patch_level_path = os.path.join(src_path, 'patchlevel-{}'.format(dep.patch_version))
         if os.path.exists(patch_level_path):
+            log("Patch level directory %s already exists, skipping download", patch_level_path)
             return
-
-        download_url = dep.download_url
-        assert download_url is not None, "Download URL not specified for dependency %s" % dep.name
 
         remove_path(src_path)
 
-        # If download_url is "mkdir" then we just create empty directory with specified name.
-        if download_url != 'mkdir':
+        if dep.mkdir_only:
+            # Just create an empty directory with the specified name.
+            log("Creating %s", src_path)
+            mkdir_if_missing(src_path)
+        else:
+            download_url = dep.download_url
+            log("Download URL: %s", download_url)
+            assert download_url is not None, \
+                   "Download URL not specified for dependency %s" % dep.name
+
             if archive_path is None:
+                log("archive_path is not set, skipping download")
                 return
             self.ensure_file_downloaded(
                 url=download_url,
@@ -307,9 +314,6 @@ class DownloadManager:
             self.extract_archive(archive_path,
                                  os.path.dirname(src_path),
                                  os.path.basename(src_path))
-        else:
-            log("Creating %s", src_path)
-            mkdir_if_missing(src_path)
 
         if hasattr(dep, 'extra_downloads'):
             for extra in dep.extra_downloads:

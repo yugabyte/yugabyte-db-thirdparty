@@ -14,28 +14,42 @@
 
 import os
 
+from yugabyte_db_thirdparty.arch import is_macos_arm64_build
+
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
+
+
+def use_arm64_bash_in_script(script_path: str) -> None:
+    with open(script_path) as script_file:
+        lines = [line.rstrip() for line in script_file]
+
+    if not lines:
+        return
+    if not lines[0].startswith('#!') and lines[0].endswith('bash'):
+        return
+    lines[0] = '#!/opt/homebrew/bin/bash'
+    with open(script_path, 'w') as output_file:
+        output_file.write('\n'.join(lines) + '\n')
 
 
 class OpenSSLDependency(Dependency):
     def __init__(self) -> None:
         super(OpenSSLDependency, self).__init__(
             name='openssl',
-            version='1.1.1k',
+            version='1.1.1l',
             url_pattern='https://www.openssl.org/source/openssl-{0}.tar.gz',
             build_group=BUILD_GROUP_COMMON)
         self.copy_sources = True
 
     def build(self, builder: BuilderInterface) -> None:
         common_configure_options = ['shared']
-        if is_macos():
-            # On macOS x86_64, OpenSSL 1.0.2 fails to detect the proper architecture.
-            configure_cmd = [
-                './Configure', 'darwin64-x86_64-cc'] + common_configure_options
-        else:
-            install_path = os.path.join(
-                builder.fs_layout.tp_installed_common_dir, "lib")
-            configure_cmd = ['./config'] + common_configure_options + ['-Wl,-rpath=' + install_path]
+        install_path = os.path.join(
+            builder.fs_layout.tp_installed_common_dir, "lib")
+        if is_macos_arm64_build():
+            use_arm64_bash_in_script('config')
+        configure_cmd = ['./config'] + common_configure_options
+        if not is_macos():
+            configure_cmd += ['-Wl,-rpath=' + install_path]
 
         builder.build_with_configure(
             log_prefix=builder.log_prefix(self),

@@ -51,12 +51,25 @@ detect_cmake_version() {
   fi
 }
 
+# This may re-execute the current script using the "arch" command based on YB_TARGET_ARCH.
+ensure_correct_mac_architecture "$@"
+
 # -------------------------------------------------------------------------------------------------
 # OS detection
 # -------------------------------------------------------------------------------------------------
 
-if ! "$is_mac"; then
+echo "OSTYPE: $OSTYPE"
+if [[ $is_mac == "true" ]]; then
+  # On macOS, add the Homebrew bin directory corresponding to the target architecture to the PATH.
+  if [[ $YB_TARGET_ARCH == "x86_64" ]]; then
+    export PATH=/usr/local/bin:$PATH
+  elif [[ $YB_TARGET_ARCH == "arm64" ]]; then
+    export PATH=/usr/homebrew/bin:$PATH
+  fi
+else
+  log "Contents of /proc/cpuinfo:"
   cat /proc/cpuinfo
+  export PATH=/usr/local/bin:$PATH
 fi
 
 # -------------------------------------------------------------------------------------------------
@@ -68,7 +81,6 @@ USER=$(whoami)
 log "Current user: $USER"
 
 # PATH
-export PATH=/usr/local/bin:$PATH
 log "PATH: $PATH"
 
 YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX=${YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX:-}
@@ -122,6 +134,7 @@ if [[ $is_mac == "true" && $cmake_version == "$unsupported_cmake_version" ]]; th
   log "Newly installed CMake version:"
   ( set -x; cmake --version )
 fi
+
 
 # -------------------------------------------------------------------------------------------------
 # Check for errors in Python code of this repository

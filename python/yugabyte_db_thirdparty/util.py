@@ -12,15 +12,13 @@
 #
 
 import os
-import sys
 import hashlib
 import shutil
-import shlex
 import subprocess
-import time
 import datetime
 import random
 import subprocess
+import logging
 
 from yugabyte_db_thirdparty.custom_logging import log, fatal
 from yugabyte_db_thirdparty.string_util import normalize_cmd_args, shlex_join
@@ -211,11 +209,18 @@ def write_file(file_path: str, data: str) -> None:
 
 def add_path_entry(new_path_entry: str) -> None:
     """
-    Adds a new PATH entry in front of the PATH environment variable, if it is not already present.
+    Adds a new PATH entry in front of the PATH environment variable, if the new directory is not
+    already present in PATH.
     """
-    existing_path_entries = os.environ['PATH'].split(':')
+    path_str = (os.getenv('PATH') or '').strip()
+    if not path_str:
+        # Should not really happen but let's handle it.
+        os.environ['PATH'] = new_path_entry
+        return
+
+    existing_path_entries = path_str.split(':')
     if new_path_entry not in existing_path_entries:
-        os.environ['PATH'] = '%s:%s' % (new_path_entry, os.environ['PATH'])
+        os.environ['PATH'] = ':'.join([new_path_entry] + existing_path_entries)
 
 
 def _log_cmd_to_run(args: List[str], cwd: Optional[Any]) -> None:
@@ -227,6 +232,16 @@ def log_and_run_cmd(args: List[Any], **kwargs: Any) -> None:
     args = normalize_cmd_args(args)
     _log_cmd_to_run(args, cwd=kwargs.get('cwd'))
     subprocess.check_call(args, **kwargs)
+
+
+def log_and_run_cmd_ignore_errors(args: List[Any], **kwargs: Any) -> None:
+    args = normalize_cmd_args(args)
+    args_str = shlex_join(args)
+    _log_cmd_to_run(args, cwd=kwargs.get('cwd'))
+    try:
+        subprocess.check_call(args, **kwargs)
+    except subprocess.CalledProcessError as ex:
+        logging.exception("Command failed: %s (ignoring the error)", args_str, ex)
 
 
 def log_and_get_cmd_output(args: List[Any], **kwargs: Any) -> str:

@@ -34,6 +34,7 @@ def make_archive_name(name: str, version: str, download_url: Optional[str]) -> O
     for ext in ARCHIVE_TYPES:
         if download_url.endswith(ext):
             return '{}-{}{}'.format(name, version, ext)
+    raise ValueError("Could not determine archive name for URL %s" % download_url)
     return None
 
 

@@ -27,9 +27,9 @@ class Llvm7LibCXXDependency(Dependency):
         super(Llvm7LibCXXDependency, self).__init__(
             name='llvm7_libcxx',
             version=LLVM7_VERSION,
-            # This is a special "URL pattern" we support.
-            url_pattern='mkdir',
-            build_group=BUILD_GROUP_INSTRUMENTED)
+            url_pattern=None,
+            build_group=BUILD_GROUP_INSTRUMENTED,
+            mkdir_only=True)
 
         url_prefix = "http://releases.llvm.org/{0}/"
 

@@ -17,7 +17,6 @@ import json
 import os
 import platform
 import subprocess
-import sys
 from typing import Optional, List, Set, Tuple, Dict, Any
 
 from sys_detection import is_macos, is_linux
@@ -45,6 +44,12 @@ from yugabyte_db_thirdparty.devtoolset import activate_devtoolset
 from yugabyte_db_thirdparty.download_manager import DownloadManager
 from yugabyte_db_thirdparty.env_helpers import write_env_vars
 from yugabyte_db_thirdparty.string_util import indent_lines
+from yugabyte_db_thirdparty.arch import (
+    get_arch_switch_cmd_prefix,
+    get_target_arch,
+    get_other_macos_arch,
+    add_homebrew_to_path,
+)
 from yugabyte_db_thirdparty.util import (
     assert_dir_exists,
     assert_list_contains,
@@ -52,9 +57,9 @@ from yugabyte_db_thirdparty.util import (
     mkdir_if_missing,
     PushDir,
     read_file,
-    write_file,
     remove_path,
     YB_THIRDPARTY_DIR,
+    add_path_entry,
 )
 from yugabyte_db_thirdparty.file_system_layout import FileSystemLayout
 from yugabyte_db_thirdparty.toolchain import Toolchain, ensure_toolchain_installed
@@ -244,17 +249,17 @@ class Builder(BuilderInterface):
         else:
             self.selected_dependencies = self.dependencies
 
+    def _setup_path(self) -> None:
+        add_path_entry(os.path.join(self.fs_layout.tp_installed_common_dir, 'bin'))
+        add_homebrew_to_path()
+
     def run(self) -> None:
         self.compiler_choice.set_compiler(
             'clang' if self.compiler_choice.use_only_clang() else 'gcc')
         if self.args.clean or self.args.clean_downloads:
             self.fs_layout.clean(self.selected_dependencies, self.args.clean_downloads)
         self.prepare_out_dirs()
-        os.environ['PATH'] = ':'.join([
-                os.path.join(self.fs_layout.tp_installed_common_dir, 'bin'),
-                os.path.join(self.fs_layout.tp_installed_llvm7_common_dir, 'bin'),
-                os.environ['PATH']
-        ])
+        self._setup_path()
 
         self.build_one_build_type(BUILD_TYPE_COMMON)
         build_types = [BUILD_TYPE_UNINSTRUMENTED]
@@ -280,19 +285,18 @@ class Builder(BuilderInterface):
         dirs = [
             os.path.join(self.fs_layout.tp_installed_dir, build_type) for build_type in build_types
         ]
-        libcxx_dirs = [os.path.join(dir, 'libcxx') for dir in dirs]
-        for dir in dirs + libcxx_dirs:
+        libcxx_dirs = [os.path.join(dir_path, 'libcxx') for dir_path in dirs]
+        for dir_path in dirs + libcxx_dirs:
             if self.args.verbose:
-                log("Preparing output directory %s", dir)
-            lib_dir = os.path.join(dir, 'lib')
+                log("Preparing output directory %s", dir_path)
+            mkdir_if_missing(os.path.join(dir_path, 'bin'))
+            lib_dir = os.path.join(dir_path, 'lib')
             mkdir_if_missing(lib_dir)
-            mkdir_if_missing(os.path.join(dir, 'include'))
-            # On some systems, autotools installs libraries to lib64 rather than lib.    Fix
-            # this by setting up lib64 as a symlink to lib.    We have to do this step first
-            # to handle cases where one third-party library depends on another.    Make sure
-            # we create a relative symlink so that the entire PREFIX_DIR could be moved,
-            # e.g. after it is packaged and then downloaded on a different build node.
-            lib64_dir = os.path.join(dir, 'lib64')
+            mkdir_if_missing(os.path.join(dir_path, 'include'))
+            # On some systems, autotools installs libraries to lib64 rather than lib. Fix this by
+            # setting up lib64 as a symlink to lib. We have to do this step first to handle cases
+            # where one third-party library depends on another.
+            lib64_dir = os.path.join(dir_path, 'lib64')
             if os.path.exists(lib64_dir):
                 if os.path.islink(lib64_dir):
                     continue
@@ -418,6 +422,7 @@ class Builder(BuilderInterface):
                 configure_args = (
                     configure_cmd.copy() + ['--prefix={}'.format(self.prefix)] + extra_args
                 )
+                configure_args = get_arch_switch_cmd_prefix() + configure_args
                 log_output(log_prefix, configure_args)
             except Exception as ex:
                 log(f"The configure step failed. Looking for relevant files in {dir_for_build} "
@@ -442,6 +447,8 @@ class Builder(BuilderInterface):
             log_output(log_prefix, ['make', '-j{}'.format(get_make_parallelism())])
             if install:
                 log_output(log_prefix, ['make'] + install)
+
+            self.validate_build_output()
 
     def build_with_cmake(
             self,
@@ -530,8 +537,27 @@ class Builder(BuilderInterface):
                     dep.name, self.build_type, build_shared_libs_cmake_arg)
                 with PushDir(build_dir):
                     build_internal([build_shared_libs_cmake_arg])
+                    self.validate_build_output()
         else:
             build_internal()
+            self.validate_build_output()
+
+    def validate_build_output(self) -> None:
+        if is_macos():
+            target_arch = get_target_arch()
+            disallowed_suffix = ' ' + get_other_macos_arch(target_arch)
+            log("Verifying achitecture of object files and libraries in %s (should be %s)",
+                os.getcwd(), target_arch)
+            object_files = subprocess.check_output(
+                    ['find', os.getcwd(), '-name', '*.o', '-or', '-name', '*.dylib']
+                ).strip().decode('utf-8').split('\n')
+            for object_file_path in object_files:
+                file_type = subprocess.check_output(['file', object_file_path]).strip().decode(
+                        'utf-8')
+                if file_type.endswith(disallowed_suffix):
+                    raise ValueError(
+                        "Incorrect object file architecture generated for %s (%s expected): %s" % (
+                            object_file_path, target_arch, file_type))
 
     def build_one_build_type(self, build_type: str) -> None:
         if (build_type != BUILD_TYPE_COMMON and
@@ -768,6 +794,7 @@ class Builder(BuilderInterface):
         colored_log(YELLOW_COLOR, "Building %s (%s)", dep.name, self.build_type)
         colored_log(YELLOW_COLOR, SEPARATOR)
 
+        log("Downloading %s", dep)
         self.download_manager.download_dependency(
             dep=dep,
             src_path=self.fs_layout.get_source_path(dep),
