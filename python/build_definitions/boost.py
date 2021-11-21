@@ -49,9 +49,9 @@ class BoostDependency(Dependency):
         self.dir = '{}_{}'.format(self.name, self.underscored_version)
         self.copy_sources = True
         self.patches = ['boost-1-69-remove-pending-integer_log2-include.patch',
-                        'boost-1-69-mac-compiler-flags.patch',
-                        'boost-1-69-add-arm64-instruction-set.patch']
-        self.patch_strip = 1
+                        'boost-1-69-mac-compiler-flags.patch']
+        if is_macos_arm64_build():
+            self.patches.append('boost-1-69-add-arm64-instruction-set.patch')
 
     def build(self, builder: BuilderInterface) -> None:
         libs = ['system', 'thread', 'atomic', 'program_options']

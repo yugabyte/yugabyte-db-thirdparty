@@ -26,7 +26,6 @@ class SnappyDependency(Dependency):
             build_group=BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = True
         self.patch_version = 1
-        self.patch_strip = 1
         self.patches = ['snappy-define-guard-macro.patch']
         self.post_patch = ['autoreconf', '-fvi']
 

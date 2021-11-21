@@ -27,7 +27,6 @@ class GPerfToolsDependency(Dependency):
             build_group=BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = True
         self.patch_version = 0
-        self.patch_strip = 1
         self.post_patch = ['autoreconf', '-fvi']
 
     def build(self, builder: BuilderInterface) -> None:

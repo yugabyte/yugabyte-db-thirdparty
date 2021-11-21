@@ -14,8 +14,6 @@
 
 import os
 
-from yugabyte_db_thirdparty.arch import is_macos_arm64_build
-
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
 

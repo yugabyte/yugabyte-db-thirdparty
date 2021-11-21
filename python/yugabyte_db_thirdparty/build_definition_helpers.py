@@ -24,6 +24,7 @@ from yugabyte_db_thirdparty.util import (
     remove_path,
     copy_file_and_log
 )
+from yugabyte_db_thirdparty.arch import is_macos_arm64_build
 
 from build_definitions import (
     BUILD_GROUP_COMMON,

@@ -28,7 +28,6 @@ class CassandraCppDriverDependency(Dependency):
                 BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = False
         self.patch_version = 0
-        self.patch_strip = 1
 
     def build(self, builder: BuilderInterface) -> None:
         if not is_macos():
