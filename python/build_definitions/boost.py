@@ -82,7 +82,9 @@ class BoostDependency(Dependency):
                     ' '.join(['<compileflags>' + flag for flag in cxx_flags]),
                     ' '.join(['<linkflags>' + flag for flag in cxx_flags + builder.ld_flags]),
                     ' '.join(['--with-{}'.format(lib) for lib in libs])))
-        build_cmd = ['./b2', 'install', 'cxxstd=14', 'instruction-set=arm64']
+        build_cmd = ['./b2', 'install', 'cxxstd=14']
+        if is_macos_arm64_build():
+            build_cmd.append('instruction-set=arm64')
         log_output(log_prefix, build_cmd)
 
         if is_macos():

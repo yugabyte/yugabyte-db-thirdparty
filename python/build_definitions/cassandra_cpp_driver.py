@@ -50,6 +50,8 @@ class CassandraCppDriverDependency(Dependency):
 
         cmake_args = [
             '-DCMAKE_BUILD_TYPE={}'.format(builder.cmake_build_type_for_test_only_dependencies()),
+            # On macOS, it is important not to use Homebrew-provided libuv.
+            '-DLIBUV_ROOT_DIR={}'.format(builder.prefix),
         ] + builder.get_openssl_related_cmake_args()
         builder.build_with_cmake(self, cmake_args)
 

@@ -163,6 +163,12 @@ def parse_cmd_line_args() -> argparse.Namespace:
              'with Apple Silicon CPUs and Rosetta 2 installed that can switch between '
              'architectures.')
 
+    parser.add_argument(
+        '--force',
+        help='Rebuild dependencies even though the system does not detect any changes compared '
+             'to an earlier completed build.',
+        action='store_true')
+
     args = parser.parse_args()
 
     # ---------------------------------------------------------------------------------------------

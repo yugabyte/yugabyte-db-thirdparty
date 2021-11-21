@@ -120,13 +120,17 @@ class LibTestMac(LibTestBase):
     def __init__(self) -> None:
         super().__init__()
         self.tool = "otool -L"
-        self.lib_re_list = ["^\t/usr/",
-                            "^\t/System/Library/",
-                            "^Archive ",
-                            "^/",
-                            "^\t@rpath",
-                            "^\t@loader_path",
-                            f"^\t{YB_THIRDPARTY_DIR}"]
+        self.lib_re_list = [
+            "^\t/System/Library/",
+            "^Archive ",
+            "^/",
+            "^\t@rpath",
+            "^\t@loader_path",
+            f"^\t{YB_THIRDPARTY_DIR}",
+            # We don't allow to use libraries from /usr/local/... because Homebrew libraries are
+            # installed there and we try to rely on as few of those as possible.
+            "^\t/usr/lib/",
+        ]
 
     def add_allowed_shared_lib_paths(self, shared_lib_paths: Set[str]) -> None:
         # TODO: implement this on macOS for more precise checking of allowed dylib paths.

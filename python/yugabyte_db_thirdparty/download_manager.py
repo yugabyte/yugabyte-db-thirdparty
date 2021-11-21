@@ -287,9 +287,12 @@ class DownloadManager:
             dep: Dependency,
             src_path: str,
             archive_path: Optional[str]) -> None:
-        patch_level_path = os.path.join(src_path, 'patchlevel-{}'.format(dep.patch_version))
-        if os.path.exists(patch_level_path):
-            log("Patch level directory %s already exists, skipping download", patch_level_path)
+        patch_marker_file_path = os.path.join(
+                src_path, 'patchmarker-version{}-{}patches'.format(
+                    dep.patch_version, len(dep.patches)))
+        log("Patch marker file: %s", patch_marker_file_path)
+        if os.path.exists(patch_marker_file_path):
+            log("Patch marker file %s already exists, skipping download", patch_marker_file_path)
             return
 
         remove_path(src_path)
@@ -352,7 +355,7 @@ class DownloadManager:
                 if dep.post_patch:
                     subprocess.check_call(dep.post_patch)
 
-        with open(patch_level_path, 'wb') as out:
+        with open(patch_marker_file_path, 'wb') as out:
             # Just create an empty file.
             pass
 

@@ -17,6 +17,7 @@ import json
 import os
 import platform
 import subprocess
+import stat
 from typing import Optional, List, Set, Tuple, Dict, Any
 
 from sys_detection import is_macos, is_linux
@@ -60,6 +61,7 @@ from yugabyte_db_thirdparty.util import (
     remove_path,
     YB_THIRDPARTY_DIR,
     add_path_entry,
+    shlex_join,
 )
 from yugabyte_db_thirdparty.file_system_layout import FileSystemLayout
 from yugabyte_db_thirdparty.toolchain import Toolchain, ensure_toolchain_installed
@@ -76,6 +78,10 @@ TSAN_FLAGS = [
     '-fsanitize=thread',
     '-DTHREAD_SANITIZER',
 ]
+
+# We create a file named like this in each dependency's build directory, with all the relevant
+# environment variables that we set.
+DEPENDENCY_ENV_FILE_NAME = 'yb_dependency_env.sh'
 
 
 class Builder(BuilderInterface):
@@ -495,19 +501,37 @@ class Builder(BuilderInterface):
             # TODO: a better approach for setting CMake arguments from multiple places.
             args.append('-DBUILD_SHARED_LIBS=ON')
 
-        def build_internal(even_more_cmake_args: List[str] = []) -> None:
-            final_cmake_args = args + even_more_cmake_args
+        def do_build_with_cmake(additional_cmake_args: List[str] = []) -> None:
+            final_cmake_args = args + additional_cmake_args
             log("CMake command line (one argument per line):\n%s" %
                 "\n".join([(" " * 4 + sanitize_flags_line_for_log(line))
                            for line in final_cmake_args]))
-            log_output(log_prefix, final_cmake_args)
-
-            if build_tool == 'ninja':
-                dep.postprocess_ninja_build_file(self, 'build.ninja')
+            cmake_configure_script_path = os.path.abspath('yb_build_with_cmake.sh')
 
             build_tool_cmd = [
                 build_tool, '-j{}'.format(get_make_parallelism())
             ] + extra_build_tool_args
+
+            log("Writing the command line for the CMake-based build to %s",
+                os.path.abspath(cmake_configure_script_path))
+            with open(cmake_configure_script_path, 'w') as cmake_configure_script_file:
+                cmake_configure_script_file.write('\n'.join([
+                    '#!/usr/bin/env bash',
+                    'set -euxo pipefail',
+                    'cd "$( dirname "$0" )"',
+                    '. "./%s"' % DEPENDENCY_ENV_FILE_NAME,
+                    shlex_join(final_cmake_args,
+                               one_arg_per_line=True),
+                    shlex_join(build_tool_cmd)
+                ]) + '\n')
+            os.chmod(cmake_configure_script_path,
+                     stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IWGRP |
+                     stat.S_IROTH)
+
+            log_output(log_prefix, final_cmake_args)
+
+            if build_tool == 'ninja':
+                dep.postprocess_ninja_build_file(self, 'build.ninja')
 
             log_output(log_prefix, build_tool_cmd)
 
@@ -536,10 +560,10 @@ class Builder(BuilderInterface):
                 log("Building dependency '%s' for build type '%s' with option: %s",
                     dep.name, self.build_type, build_shared_libs_cmake_arg)
                 with PushDir(build_dir):
-                    build_internal([build_shared_libs_cmake_arg])
+                    do_build_with_cmake([build_shared_libs_cmake_arg])
                     self.validate_build_output()
         else:
-            build_internal()
+            do_build_with_cmake()
             self.validate_build_output()
 
     def validate_build_output(self) -> None:
@@ -860,7 +884,7 @@ class Builder(BuilderInterface):
 
         with PushDir(self.create_build_dir_and_prepare(dep)):
             with EnvVarContext(**env_vars):
-                write_env_vars('yb_dependency_env.sh')
+                write_env_vars(DEPENDENCY_ENV_FILE_NAME)
                 dep.build(self)
         self.save_build_stamp_for_dependency(dep)
         log("")
@@ -880,16 +904,28 @@ class Builder(BuilderInterface):
 
         new_build_stamp = self.get_build_stamp_for_dependency(dep)
 
+        dep_name_and_build_type_str = "%s (%s)" % (dep.name, self.build_type)
+
         if dep.dir_name is not None:
             src_dir = self.fs_layout.get_source_path(dep)
             if not os.path.exists(src_dir):
-                log("Have to rebuild %s (%s): source dir %s does not exist",
-                    dep.name, self.build_type, src_dir)
+                log("Have to rebuild %s: source dir %s does not exist",
+                    dep_name_and_build_type_str, src_dir)
                 return True
 
+        build_dir = self.fs_layout.get_build_dir_for_dependency(dep, self.build_type)
+        if not os.path.exists(build_dir):
+            log("Have to rebuild %s: build dir %s does not exist",
+                dep_name_and_build_type_str, build_dir)
+            return True
+
         if old_build_stamp == new_build_stamp:
-            log("Not rebuilding %s (%s) -- nothing changed.", dep.name, self.build_type)
-            return False
+            if self.args.force:
+                log("No changes detected for %s, rebuilding anyway (--force specified).",
+                    dep_name_and_build_type_str)
+            else:
+                log("Not rebuilding %s -- nothing changed.", dep_name_and_build_type_str)
+                return False
 
         log("Have to rebuild %s (%s):", dep.name, self.build_type)
         log("Old build stamp for %s (from %s):\n%s",
