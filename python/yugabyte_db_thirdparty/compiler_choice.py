@@ -49,7 +49,7 @@ class CompilerChoice:
     devtoolset: Optional[int]
     linuxbrew_dir: Optional[str]
     use_compiler_wrapper: bool
-    use_compiler_argsache: bool
+    use_ccache: bool
     cc_identification: Optional[CompilerIdentification]
     cxx_identification: Optional[CompilerIdentification]
     compiler_version_str: Optional[str]
