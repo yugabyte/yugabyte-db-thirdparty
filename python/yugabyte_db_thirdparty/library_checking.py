@@ -23,7 +23,7 @@ from sys_detection import is_macos, is_linux
 from typing import List, Any, Set, Optional, Pattern
 from yugabyte_db_thirdparty.custom_logging import log, fatal, heading
 from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR
-from yugabyte_db_thirdparty.macos import MIN_SUPPORTED_MACOS_VERSION
+from yugabyte_db_thirdparty.macos import get_min_supported_macos_version
 from build_definitions import BUILD_TYPES
 
 
@@ -146,6 +146,8 @@ class LibTestMac(LibTestBase):
         if not self.check_lib_deps(file_path, libout):
             return False
 
+        min_supported_macos_version = get_min_supported_macos_version()
+
         # Additionally, check for the minimum macOS version encoded in the library file.
         otool_small_l_output = subprocess.check_output(['otool', '-l', file_path]).decode('utf-8')
         for line in otool_small_l_output.split('\n'):
@@ -153,10 +155,10 @@ class LibTestMac(LibTestBase):
             if line.startswith('minos '):
                 items = line.split()
                 min_macos_version = items[1]
-                if min_macos_version != MIN_SUPPORTED_MACOS_VERSION:
+                if min_macos_version != min_supported_macos_version:
                     log("File %s has wrong minimum supported macOS version: %s. Full line:\n%s\n"
                         "(output from 'otool -l'). Expected: %s",
-                        file_path, min_macos_version, line, MIN_SUPPORTED_MACOS_VERSION)
+                        file_path, min_macos_version, line, min_supported_macos_version)
                     return False
 
         return True

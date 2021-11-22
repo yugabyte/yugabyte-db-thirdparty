@@ -67,7 +67,7 @@ from yugabyte_db_thirdparty.util import (
 from yugabyte_db_thirdparty.file_system_layout import FileSystemLayout
 from yugabyte_db_thirdparty.toolchain import Toolchain, ensure_toolchain_installed
 from yugabyte_db_thirdparty.clang_util import get_clang_library_dir
-from yugabyte_db_thirdparty.macos import MIN_SUPPORTED_MACOS_VERSION
+from yugabyte_db_thirdparty.macos import get_min_supported_macos_version
 
 ASAN_FLAGS = [
     '-fsanitize=address',
@@ -378,7 +378,7 @@ class Builder(BuilderInterface):
             # Build for macOS Mojave or later. See https://bit.ly/37myHbk
             extend_lists(
                 [self.compiler_flags, self.ld_flags, self.assembler_flags],
-                ["-mmacosx-version-min=%s" % MIN_SUPPORTED_MACOS_VERSION])
+                ["-mmacosx-version-min=%s" % get_min_supported_macos_version()])
 
             self.ld_flags.append("-Wl,-headerpad_max_install_names")
         else:
