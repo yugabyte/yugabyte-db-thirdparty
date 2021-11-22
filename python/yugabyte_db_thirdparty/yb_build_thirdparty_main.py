@@ -27,7 +27,7 @@ from yugabyte_db_thirdparty.custom_logging import (
 )
 from yugabyte_db_thirdparty.packager import Packager
 from yugabyte_db_thirdparty.remote_build import build_remotely
-from yugabyte_db_thirdparty.shared_library_checking import get_lib_tester
+from yugabyte_db_thirdparty.library_checking import get_lib_tester
 
 import_submodules(build_definitions)
 

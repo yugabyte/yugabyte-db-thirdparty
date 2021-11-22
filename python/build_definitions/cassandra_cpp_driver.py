@@ -16,7 +16,6 @@ import os
 import sys
 
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
-from yugabyte_db_thirdparty.rpath_fixes import fix_shared_library_references
 
 
 # C++ Cassandra driver
@@ -55,7 +54,7 @@ class CassandraCppDriverDependency(Dependency):
         ] + builder.get_openssl_related_cmake_args()
         builder.build_with_cmake(self, cmake_args)
 
-        fix_shared_library_references(self.get_install_prefix(builder), 'libcassandra')
+        fix_shared_library_references(builder.prefix, 'libcassandra')
 
     def get_additional_cxx_flags(self, builder: 'BuilderInterface') -> List[str]:
         if is_macos():

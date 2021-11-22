@@ -65,16 +65,18 @@ class BoostDependency(Dependency):
         with open(project_config, 'wt') as out:
             for line in original_lines:
                 lstripped = line.lstrip()
-                if not lstripped.startswith('libraries =') and \
-                   not lstripped.startswith('using gcc ;') and \
-                   not lstripped.startswith('project : default-build <toolset>gcc ;'):
+                if (not lstripped.startswith('libraries =') and
+                        not lstripped.startswith('using gcc ;') and
+                        not lstripped.startswith('project : default-build <toolset>gcc ;')):
                     out.write(line)
             cxx_flags = builder.compiler_flags + builder.cxx_flags
             compiler_type = builder.compiler_choice.compiler_type
-            compiler_version = ''
-            if compiler_type == 'gcc8':
-                compiler_type = 'gcc'
-                compiler_version = '8'
+            # To make sure Boost's b2 does not select one of its default "toolsets" and ignores all
+            # of our compiler flags, we add a "-yb" suffix to the compiler "version" that we give
+            # it.--
+            compiler_version = '%dyb' % builder.compiler_choice.get_compiler_major_version()
+            boost_toolset = '%s-%s' % (compiler_type, compiler_version)
+            log("Giving Boost a custom toolset to use: %s", boost_toolset)
             out.write(PROJECT_CONFIG.format(
                     compiler_type,
                     compiler_version,
@@ -82,7 +84,7 @@ class BoostDependency(Dependency):
                     ' '.join(['<compileflags>' + flag for flag in cxx_flags]),
                     ' '.join(['<linkflags>' + flag for flag in cxx_flags + builder.ld_flags]),
                     ' '.join(['--with-{}'.format(lib) for lib in libs])))
-        build_cmd = ['./b2', 'install', 'cxxstd=14']
+        build_cmd = ['./b2', 'install', 'cxxstd=14', 'toolset=%s' % boost_toolset]
         if is_macos_arm64_build():
             build_cmd.append('instruction-set=arm64')
         log_output(log_prefix, build_cmd)

@@ -13,7 +13,6 @@
 #
 
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
-from yugabyte_db_thirdparty.rpath_fixes import fix_shared_library_references
 
 
 class LZ4Dependency(Dependency):

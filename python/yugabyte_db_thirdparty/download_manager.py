@@ -194,7 +194,7 @@ class DownloadManager:
         if expected_checksum is None:
             fatal(
                 f"No expected checksum provided for file '{file_basename}'. Consider adding the "
-                f"following line to thirdparty_src_checksums.txt (or re-run with --add_checksum):\n"
+                f"following line to thirdparty_src_checksums.txt (or re-run with --add-checksum):\n"
                 f"{real_checksum}  {file_basename}\n"
             )
         return real_checksum == expected_checksum

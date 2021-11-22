@@ -31,3 +31,4 @@ class HiRedisDependency(Dependency):
         jobs = multiprocessing.cpu_count()
         log_output(log_prefix,
                    ['make', '-j{}'.format(jobs), 'PREFIX={}'.format(builder.prefix), 'install'])
+        fix_shared_library_references(builder.prefix, 'libhiredis')

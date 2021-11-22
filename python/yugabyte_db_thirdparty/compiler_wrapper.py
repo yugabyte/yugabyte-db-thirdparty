@@ -31,7 +31,17 @@ class CompilerWrapper:
         use_ccache = os.getenv('YB_THIRDPARTY_USE_CCACHE') == '1'
 
         compiler_args = sys.argv[1:]
+
+        # if not any(['version-min' in arg for arg in compiler_args]):
+        #     raise ValueError("Invalid args: %s" % compiler_args)
+
         compiler_path_and_args = [real_compiler_path] + compiler_args
+
+        cmd_line_str = shlex_join(compiler_path_and_args)
+        # if (cmd_line_str.strip() != '/usr/bin/clang++ --version' and
+        #         not '-print-prog-name=' in cmd_line_str and
+        #         not '-dump' in cmd_line_str):
+        #     raise ValueError("Cmd line: %s" % cmd_line_str  )
 
         if use_ccache:
             os.environ['CCACHE_COMPILER'] = real_compiler_path

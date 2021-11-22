@@ -87,6 +87,9 @@ class Dependency:
     def get_additional_ld_flags(self, builder: 'BuilderInterface') -> List[str]:
         return []
 
+    def get_additional_assembler_flags(self, builder: 'BuilderInterface') -> List[str]:
+        return []
+
     def get_additional_cmake_args(self, builder: 'BuilderInterface') -> List[str]:
         return []
 

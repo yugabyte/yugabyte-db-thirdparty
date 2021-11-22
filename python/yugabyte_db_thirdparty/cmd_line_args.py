@@ -42,7 +42,7 @@ def parse_cmd_line_args() -> argparse.Namespace:
                         action='store_true',
                         default=False,
                         help='Clean, including downloads.')
-    parser.add_argument('--add_checksum',
+    parser.add_argument('--add-checksum',
                         help='Compute and add unknown checksums to %s' % CHECKSUM_FILE_NAME,
                         action='store_true')
     parser.add_argument('--skip',
@@ -165,8 +165,14 @@ def parse_cmd_line_args() -> argparse.Namespace:
 
     parser.add_argument(
         '--force',
-        help='Rebuild dependencies even though the system does not detect any changes compared '
+        help='Build dependencies even though the system does not detect any changes compared '
              'to an earlier completed build.',
+        action='store_true')
+
+    parser.add_argument(
+        '--delete-build-dir',
+        help="Delete each dependency's build directory to start each build from scratch. "
+             "Note that this does not affect the corresponding source directory.",
         action='store_true')
 
     args = parser.parse_args()
