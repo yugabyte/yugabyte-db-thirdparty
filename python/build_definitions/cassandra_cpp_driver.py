@@ -16,7 +16,6 @@ import os
 import sys
 
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
-from yugabyte_db_thirdparty.rpath_fixes import fix_shared_library_references
 
 
 # C++ Cassandra driver
@@ -28,7 +27,6 @@ class CassandraCppDriverDependency(Dependency):
                 BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = False
         self.patch_version = 0
-        self.patch_strip = 1
 
     def build(self, builder: BuilderInterface) -> None:
         if not is_macos():
@@ -51,10 +49,12 @@ class CassandraCppDriverDependency(Dependency):
 
         cmake_args = [
             '-DCMAKE_BUILD_TYPE={}'.format(builder.cmake_build_type_for_test_only_dependencies()),
+            # On macOS, it is important not to use Homebrew-provided libuv.
+            '-DLIBUV_ROOT_DIR={}'.format(builder.prefix),
         ] + builder.get_openssl_related_cmake_args()
         builder.build_with_cmake(self, cmake_args)
 
-        fix_shared_library_references(self.get_install_prefix(builder), 'libcassandra')
+        fix_shared_library_references(builder.prefix, 'libcassandra')
 
     def get_additional_cxx_flags(self, builder: 'BuilderInterface') -> List[str]:
         if is_macos():

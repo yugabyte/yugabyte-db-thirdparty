@@ -58,8 +58,11 @@ def normalize_cmd_args(args: List[Any]) -> List[str]:
     return [normalize_cmd_arg(arg) for arg in args]
 
 
-def shlex_join(args: List[str]) -> str:
+def shlex_join(args: List[str], one_arg_per_line: bool = False) -> str:
     """
     We need this to be compatible with Python 3.7.
     """
-    return ' '.join(shlex.quote(arg) for arg in args)
+    quoted_args = [shlex.quote(arg) for arg in args]
+    if one_arg_per_line:
+        return ' \\\n  '.join(quoted_args)
+    return ' '.join(quoted_args)

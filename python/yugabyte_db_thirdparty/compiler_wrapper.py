@@ -31,6 +31,7 @@ class CompilerWrapper:
         use_ccache = os.getenv('YB_THIRDPARTY_USE_CCACHE') == '1'
 
         compiler_args = sys.argv[1:]
+
         compiler_path_and_args = [real_compiler_path] + compiler_args
 
         if use_ccache:

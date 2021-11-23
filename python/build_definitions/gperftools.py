@@ -21,13 +21,12 @@ class GPerfToolsDependency(Dependency):
     def __init__(self) -> None:
         super(GPerfToolsDependency, self).__init__(
             name='gperftools',
-            version='2.8.1',
-            url_pattern='https://github.com/gperftools/gperftools/releases/download/gperftools-{0}/'
+            version='2.8.1-yb-1',
+            url_pattern='https://github.com/yugabyte/gperftools/archive/refs/tags/'
                         'gperftools-{0}.tar.gz',
             build_group=BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = True
         self.patch_version = 0
-        self.patch_strip = 1
         self.post_patch = ['autoreconf', '-fvi']
 
     def build(self, builder: BuilderInterface) -> None:

@@ -17,6 +17,8 @@ import json
 import os
 import platform
 import subprocess
+import stat
+import time
 from typing import Optional, List, Set, Tuple, Dict, Any
 
 from sys_detection import is_macos, is_linux
@@ -60,11 +62,12 @@ from yugabyte_db_thirdparty.util import (
     remove_path,
     YB_THIRDPARTY_DIR,
     add_path_entry,
+    shlex_join,
 )
 from yugabyte_db_thirdparty.file_system_layout import FileSystemLayout
 from yugabyte_db_thirdparty.toolchain import Toolchain, ensure_toolchain_installed
 from yugabyte_db_thirdparty.clang_util import get_clang_library_dir
-
+from yugabyte_db_thirdparty.macos import get_min_supported_macos_version
 
 ASAN_FLAGS = [
     '-fsanitize=address',
@@ -77,15 +80,37 @@ TSAN_FLAGS = [
     '-DTHREAD_SANITIZER',
 ]
 
+# We create a file named like this in each dependency's build directory, with all the relevant
+# environment variables that we set.
+DEPENDENCY_ENV_FILE_NAME = 'yb_dependency_env.sh'
+
+
+def extend_lists(lists: List[List[str]], to_add: List[str]) -> None:
+    for list_to_extend in lists:
+        list_to_extend.extend(to_add.copy())
+
 
 class Builder(BuilderInterface):
     args: argparse.Namespace
+
+    # TODO: move flag management out from here into a separate class.
+
+    # Linker flags.
     ld_flags: List[str]
+
+    assembler_flags: List[str]
+
     executable_only_ld_flags: List[str]
+
+    # These flags apply to both C and C++ compilers.
     compiler_flags: List[str]
+
     preprocessor_flags: List[str]
+
+    # Flags specific for C and C++ compilers.
     c_flags: List[str]
     cxx_flags: List[str]
+
     libs: List[str]
     additional_allowed_shared_lib_paths: Set[str]
     download_manager: DownloadManager
@@ -318,6 +343,7 @@ class Builder(BuilderInterface):
         """
         self.preprocessor_flags = []
         self.ld_flags = []
+        self.assembler_flags = []
         self.executable_only_ld_flags = []
         self.compiler_flags = []
         self.c_flags = []
@@ -350,7 +376,10 @@ class Builder(BuilderInterface):
             self.ld_flags += ["-lc++", "-lc++abi"]
 
             # Build for macOS Mojave or later. See https://bit.ly/37myHbk
-            self.compiler_flags.append("-mmacosx-version-min=10.14")
+            extend_lists(
+                [self.compiler_flags, self.ld_flags, self.assembler_flags],
+                ["-mmacosx-version-min=%s" % get_min_supported_macos_version()])
+
             self.ld_flags.append("-Wl,-headerpad_max_install_names")
         else:
             fatal("Unsupported platform: {}".format(platform.system()))
@@ -495,19 +524,37 @@ class Builder(BuilderInterface):
             # TODO: a better approach for setting CMake arguments from multiple places.
             args.append('-DBUILD_SHARED_LIBS=ON')
 
-        def build_internal(even_more_cmake_args: List[str] = []) -> None:
-            final_cmake_args = args + even_more_cmake_args
+        def do_build_with_cmake(additional_cmake_args: List[str] = []) -> None:
+            final_cmake_args = args + additional_cmake_args
             log("CMake command line (one argument per line):\n%s" %
                 "\n".join([(" " * 4 + sanitize_flags_line_for_log(line))
                            for line in final_cmake_args]))
-            log_output(log_prefix, final_cmake_args)
-
-            if build_tool == 'ninja':
-                dep.postprocess_ninja_build_file(self, 'build.ninja')
+            cmake_configure_script_path = os.path.abspath('yb_build_with_cmake.sh')
 
             build_tool_cmd = [
                 build_tool, '-j{}'.format(get_make_parallelism())
             ] + extra_build_tool_args
+
+            log("Writing the command line for the CMake-based build to %s",
+                os.path.abspath(cmake_configure_script_path))
+            with open(cmake_configure_script_path, 'w') as cmake_configure_script_file:
+                cmake_configure_script_file.write('\n'.join([
+                    '#!/usr/bin/env bash',
+                    'set -euxo pipefail',
+                    'cd "$( dirname "$0" )"',
+                    '. "./%s"' % DEPENDENCY_ENV_FILE_NAME,
+                    shlex_join(final_cmake_args,
+                               one_arg_per_line=True),
+                    shlex_join(build_tool_cmd)
+                ]) + '\n')
+            os.chmod(cmake_configure_script_path,
+                     stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IWGRP |
+                     stat.S_IROTH)
+
+            log_output(log_prefix, final_cmake_args)
+
+            if build_tool == 'ninja':
+                dep.postprocess_ninja_build_file(self, 'build.ninja')
 
             log_output(log_prefix, build_tool_cmd)
 
@@ -536,10 +583,10 @@ class Builder(BuilderInterface):
                 log("Building dependency '%s' for build type '%s' with option: %s",
                     dep.name, self.build_type, build_shared_libs_cmake_arg)
                 with PushDir(build_dir):
-                    build_internal([build_shared_libs_cmake_arg])
+                    do_build_with_cmake([build_shared_libs_cmake_arg])
                     self.validate_build_output()
         else:
-            build_internal()
+            do_build_with_cmake()
             self.validate_build_output()
 
     def validate_build_output(self) -> None:
@@ -763,6 +810,9 @@ class Builder(BuilderInterface):
     def get_effective_ld_flags(self, dep: Dependency) -> List[str]:
         return self.ld_flags + dep.get_additional_ld_flags(self)
 
+    def get_effective_assembler_flags(self, dep: Dependency) -> List[str]:
+        return self.assembler_flags + dep.get_additional_assembler_flags(self)
+
     def get_effective_executable_ld_flags(self, dep: Dependency) -> List[str]:
         return self.ld_flags + self.executable_only_ld_flags + dep.get_additional_ld_flags(self)
 
@@ -841,6 +891,8 @@ class Builder(BuilderInterface):
         log_and_set_env_var_to_list(env_vars, 'CXXFLAGS', self.get_effective_cxx_flags(dep))
         log_and_set_env_var_to_list(env_vars, 'CFLAGS', self.get_effective_c_flags(dep))
         log_and_set_env_var_to_list(env_vars, 'LDFLAGS', self.get_effective_ld_flags(dep))
+        log_and_set_env_var_to_list(
+            env_vars, 'ASFLAGS', self.get_effective_assembler_flags(dep))
         log_and_set_env_var_to_list(env_vars, 'LIBS', self.libs)
         log_and_set_env_var_to_list(
             env_vars, 'CPPFLAGS', self.get_effective_preprocessor_flags(dep))
@@ -860,7 +912,7 @@ class Builder(BuilderInterface):
 
         with PushDir(self.create_build_dir_and_prepare(dep)):
             with EnvVarContext(**env_vars):
-                write_env_vars('yb_dependency_env.sh')
+                write_env_vars(DEPENDENCY_ENV_FILE_NAME)
                 dep.build(self)
         self.save_build_stamp_for_dependency(dep)
         log("")
@@ -880,16 +932,28 @@ class Builder(BuilderInterface):
 
         new_build_stamp = self.get_build_stamp_for_dependency(dep)
 
+        dep_name_and_build_type_str = "%s (%s)" % (dep.name, self.build_type)
+
         if dep.dir_name is not None:
             src_dir = self.fs_layout.get_source_path(dep)
             if not os.path.exists(src_dir):
-                log("Have to rebuild %s (%s): source dir %s does not exist",
-                    dep.name, self.build_type, src_dir)
+                log("Have to rebuild %s: source dir %s does not exist",
+                    dep_name_and_build_type_str, src_dir)
                 return True
 
+        build_dir = self.fs_layout.get_build_dir_for_dependency(dep, self.build_type)
+        if not os.path.exists(build_dir):
+            log("Have to rebuild %s: build dir %s does not exist",
+                dep_name_and_build_type_str, build_dir)
+            return True
+
         if old_build_stamp == new_build_stamp:
-            log("Not rebuilding %s (%s) -- nothing changed.", dep.name, self.build_type)
-            return False
+            if self.args.force:
+                log("No changes detected for %s, rebuilding anyway (--force specified).",
+                    dep_name_and_build_type_str)
+            else:
+                log("Not rebuilding %s -- nothing changed.", dep_name_and_build_type_str)
+                return False
 
         log("Have to rebuild %s (%s):", dep.name, self.build_type)
         log("Old build stamp for %s (from %s):\n%s",
@@ -950,11 +1014,19 @@ class Builder(BuilderInterface):
             fatal("Directory '{}' does not exist".format(src_dir))
 
         build_dir = self.fs_layout.get_build_dir_for_dependency(dep, self.build_type)
+
+        if self.args.delete_build_dir:
+            log("Deleting directory %s (--delete-build-dir specified)", build_dir)
+            subprocess.check_call(['rm', '-rf', build_dir])
         mkdir_if_missing(build_dir)
 
         if dep.copy_sources:
-            log("Bootstrapping %s from %s", build_dir, src_dir)
+            log("Bootstrapping %s from %s using rsync", build_dir, src_dir)
+            bootstrap_start_sec = time.time()
             subprocess.check_call(['rsync', '-a', src_dir + '/', build_dir])
+            bootstrap_elapsed_sec = time.time() - bootstrap_start_sec
+            log("Bootstrapping %s took %.3f sec", build_dir, bootstrap_elapsed_sec)
+
         return build_dir
 
     def is_release_build(self) -> bool:

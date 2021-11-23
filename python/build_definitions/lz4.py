@@ -13,7 +13,6 @@
 #
 
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
-from yugabyte_db_thirdparty.rpath_fixes import fix_shared_library_references
 
 
 class LZ4Dependency(Dependency):
@@ -25,7 +24,6 @@ class LZ4Dependency(Dependency):
             build_group=BUILD_GROUP_COMMON)
         self.copy_sources = False
         self.patch_version = 1
-        self.patch_strip = 1
         self.patches = ['lz4-0001-Fix-cmake-build-to-use-gnu-flags-on-clang.patch']
 
     def build(self, builder: BuilderInterface) -> None:

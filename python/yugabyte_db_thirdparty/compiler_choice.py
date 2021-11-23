@@ -41,6 +41,8 @@ class CompilerChoice:
     compiler_type: str
     cc: Optional[str]
     cxx: Optional[str]
+    c_compiler_or_wrapper: Optional[str]
+    cxx_compiler_or_wrapper: Optional[str]
     single_compiler_type: Optional[str]
     compiler_prefix: Optional[str]
     compiler_suffix: str
@@ -72,6 +74,8 @@ class CompilerChoice:
         self.linuxbrew_dir = None
         self.cc = None
         self.cxx = None
+        self.c_compiler_or_wrapper = None
+        self.cxx_compiler_or_wrapper = None
 
         self.cc_identification = None
         self.cxx_identification = None
@@ -172,6 +176,14 @@ class CompilerChoice:
     def get_cxx_compiler(self) -> str:
         assert self.cxx is not None
         return self.cxx
+
+    def get_c_compiler_or_wrapper(self) -> str:
+        assert self.c_compiler_or_wrapper is not None
+        return self.c_compiler_or_wrapper
+
+    def get_cxx_compiler_or_wrapper(self) -> str:
+        assert self.cxx_compiler_or_wrapper is not None
+        return self.cxx_compiler_or_wrapper
 
     def find_gcc(self) -> Tuple[str, str]:
         return self._do_find_gcc('gcc', 'g++')
@@ -275,11 +287,15 @@ class CompilerChoice:
             os.environ['YB_THIRDPARTY_USE_CCACHE'] = '1' if self.use_ccache else '0'
 
             python_scripts_dir = os.path.join(YB_THIRDPARTY_DIR, 'python', 'yugabyte_db_thirdparty')
-            os.environ['CC'] = os.path.join(python_scripts_dir, 'compiler_wrapper_cc.py')
-            os.environ['CXX'] = os.path.join(python_scripts_dir, 'compiler_wrapper_cxx.py')
+            self.c_compiler_or_wrapper = os.path.join(python_scripts_dir, 'compiler_wrapper_cc.py')
+            self.cxx_compiler_or_wrapper = os.path.join(
+                python_scripts_dir, 'compiler_wrapper_cxx.py')
         else:
-            os.environ['CC'] = c_compiler
-            os.environ['CXX'] = cxx_compiler
+            c_compiler_or_wrapper = c_compiler
+            cxx_compiler_or_wrapper = cxx_compiler
+
+        os.environ['CC'] = c_compiler_or_wrapper
+        os.environ['CXX'] = cxx_compiler_or_wrapper
 
         self._identify_compiler_version()
 

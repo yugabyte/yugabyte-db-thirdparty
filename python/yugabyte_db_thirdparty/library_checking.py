@@ -23,6 +23,7 @@ from sys_detection import is_macos, is_linux
 from typing import List, Any, Set, Optional, Pattern
 from yugabyte_db_thirdparty.custom_logging import log, fatal, heading
 from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR
+from yugabyte_db_thirdparty.macos import get_min_supported_macos_version
 from build_definitions import BUILD_TYPES
 
 
@@ -33,7 +34,8 @@ def compile_re_list(re_list: List[str]) -> Any:
 class LibTestBase:
     """
     Verify correct library paths are used in installed dynamically-linked executables and
-    libraries.
+    libraries. Also verify certain properies of static libraries, e.g. minimum supported macOS
+    version.
     """
 
     tp_installed_dir: str
@@ -120,13 +122,17 @@ class LibTestMac(LibTestBase):
     def __init__(self) -> None:
         super().__init__()
         self.tool = "otool -L"
-        self.lib_re_list = ["^\t/usr/",
-                            "^\t/System/Library/",
-                            "^Archive ",
-                            "^/",
-                            "^\t@rpath",
-                            "^\t@loader_path",
-                            f"^\t{YB_THIRDPARTY_DIR}"]
+        self.lib_re_list = [
+            "^\t/System/Library/",
+            "^Archive ",
+            "^/",
+            "^\t@rpath",
+            "^\t@loader_path",
+            f"^\t{YB_THIRDPARTY_DIR}",
+            # We don't allow to use libraries from /usr/local/... because Homebrew libraries are
+            # installed there and we try to rely on as few of those as possible.
+            "^\t/usr/lib/",
+        ]
 
     def add_allowed_shared_lib_paths(self, shared_lib_paths: Set[str]) -> None:
         # TODO: implement this on macOS for more precise checking of allowed dylib paths.
@@ -136,7 +142,26 @@ class LibTestMac(LibTestBase):
         libout = subprocess.check_output(['otool', '-L', file_path]).decode('utf-8')
         if 'is not an object file' in libout:
             return True
-        return self.check_lib_deps(file_path, libout)
+
+        if not self.check_lib_deps(file_path, libout):
+            return False
+
+        min_supported_macos_version = get_min_supported_macos_version()
+
+        # Additionally, check for the minimum macOS version encoded in the library file.
+        otool_small_l_output = subprocess.check_output(['otool', '-l', file_path]).decode('utf-8')
+        for line in otool_small_l_output.split('\n'):
+            line = line.strip()
+            if line.startswith('minos '):
+                items = line.split()
+                min_macos_version = items[1]
+                if min_macos_version != min_supported_macos_version:
+                    log("File %s has wrong minimum supported macOS version: %s. Full line:\n%s\n"
+                        "(output from 'otool -l'). Expected: %s",
+                        file_path, min_macos_version, line, min_supported_macos_version)
+                    return False
+
+        return True
 
 
 class LibTestLinux(LibTestBase):

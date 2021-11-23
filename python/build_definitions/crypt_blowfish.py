@@ -22,12 +22,11 @@ class CryptBlowfishDependency(Dependency):
     def __init__(self) -> None:
         super(CryptBlowfishDependency, self).__init__(
             name='crypt_blowfish',
-            version='79ee670d1a2977328c481d6578387928ff92896a',
-            url_pattern='https://github.com/YugaByte/crypt_blowfish/archive/{0}.tar.gz',
+            # The original project did not have any versions, so we created our own versions.
+            version='1.0.0',
+            url_pattern='https://github.com/yugabyte/crypt_blowfish/archive/refs/tags/v{0}.tar.gz',
             build_group=BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = True
-        self.patches = ['crypt_blowfish-makefile-cflags.patch']
-        self.patch_strip = 0
 
     def build(self, builder: BuilderInterface) -> None:
         log_prefix = builder.log_prefix(self)
