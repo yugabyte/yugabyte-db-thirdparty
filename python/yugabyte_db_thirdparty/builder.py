@@ -80,6 +80,11 @@ TSAN_FLAGS = [
     '-DTHREAD_SANITIZER',
 ]
 
+# https://github.com/aws/aws-graviton-getting-started/blob/main/c-c++.md
+GRAVITON_FLAGS = [
+    '-march=armv8.2-a+fp16+rcpc+dotprod+crypto'
+]
+
 # We create a file named like this in each dependency's build directory, with all the relevant
 # environment variables that we set.
 DEPENDENCY_ENV_FILE_NAME = 'yb_dependency_env.sh'
@@ -366,6 +371,11 @@ class Builder(BuilderInterface):
             self.add_rpath(PLACEHOLDER_RPATH)
 
             self.dylib_suffix = "so"
+
+            # Currently linux/aarch64 build is optimized for Graviton2.
+            if platform.uname().processor == 'aarch64':
+                self.c_flags += GRAVITON_FLAGS
+
         elif is_macos():
             self.dylib_suffix = "dylib"
 
