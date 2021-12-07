@@ -150,15 +150,19 @@ class LibTestMac(LibTestBase):
 
         # Additionally, check for the minimum macOS version encoded in the library file.
         otool_small_l_output = subprocess.check_output(['otool', '-l', file_path]).decode('utf-8')
+        section = ""
         for line in otool_small_l_output.split('\n'):
             line = line.strip()
+            if line.endswith(':'):
+                section = line
             if line.startswith('minos '):
                 items = line.split()
                 min_macos_version = items[1]
                 if min_macos_version != min_supported_macos_version:
                     log("File %s has wrong minimum supported macOS version: %s. Full line:\n%s\n"
-                        "(output from 'otool -l'). Expected: %s",
-                        file_path, min_macos_version, line, min_supported_macos_version)
+                        "(output from 'otool -l'). Expected: %s, section: %s",
+                        file_path, min_macos_version, line, min_supported_macos_version,
+                        section)
                     return False
 
         return True

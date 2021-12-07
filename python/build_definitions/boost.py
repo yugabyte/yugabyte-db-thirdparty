@@ -54,7 +54,7 @@ class BoostDependency(Dependency):
             self.patches.append('boost-1-69-add-arm64-instruction-set.patch')
 
     def build(self, builder: BuilderInterface) -> None:
-        libs = ['system', 'thread', 'atomic', 'program_options']
+        libs = ['system', 'thread', 'atomic', 'program_options', 'regex', 'date_time']
 
         log_prefix = builder.log_prefix(self)
         prefix = self.get_install_prefix(builder)
