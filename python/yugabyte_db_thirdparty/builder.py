@@ -284,7 +284,7 @@ class Builder(BuilderInterface):
         add_homebrew_to_path()
 
     def run(self) -> None:
-        if is_macos():
+        if is_macos() and get_target_arch() == 'x86_64':
             os.environ['MACOSX_DEPLOYMENT_TARGET'] = get_min_supported_macos_version()
         self.compiler_choice.set_compiler(
             'clang' if self.compiler_choice.use_only_clang() else 'gcc')
