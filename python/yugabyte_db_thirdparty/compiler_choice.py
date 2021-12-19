@@ -90,9 +90,9 @@ class CompilerChoice:
             log("Not using Linuxbrew -- this is not Linux")
             return
 
-        if self.single_compiler_type:
-            log("Not using Linuxbrew, single_compiler_type is set to %s", self.single_compiler_type)
-            return
+        #if self.single_compiler_type:
+        #    log("Not using Linuxbrew, single_compiler_type is set to %s", self.single_compiler_type)
+        #    return
 
         if self.compiler_suffix:
             log("Not using Linuxbrew, compiler_suffix is set to %s", self.compiler_suffix)
@@ -133,6 +133,7 @@ class CompilerChoice:
         self.detect_clang_version()
 
     def using_linuxbrew(self) -> bool:
+        assert self.linuxbrew_dir is not None
         return self.linuxbrew_dir is not None
 
     def get_linuxbrew_dir(self) -> str:
@@ -208,7 +209,7 @@ class CompilerChoice:
 
     def find_clang(self) -> Tuple[str, str]:
         clang_prefix: Optional[str] = None
-        if self.compiler_prefix and not self.using_linuxbrew():
+        if self.compiler_prefix:
             clang_prefix = self.compiler_prefix
         else:
             candidate_dirs = [
@@ -259,11 +260,12 @@ class CompilerChoice:
         return self.devtoolset is not None or self.single_compiler_type == 'gcc'
 
     def is_linux_clang1x(self) -> bool:
-        # TODO: actually check compiler version.
+        llvm_major_version: Optional[int] = self.get_llvm_major_version()
         return (
             not is_macos() and
             self.single_compiler_type == 'clang' and
-            not self.using_linuxbrew()
+            llvm_major_version is not None and
+            llvm_major_version >= 10
         )
 
     def set_compiler(self, compiler_type: str) -> None:
@@ -291,11 +293,11 @@ class CompilerChoice:
             self.cxx_compiler_or_wrapper = os.path.join(
                 python_scripts_dir, 'compiler_wrapper_cxx.py')
         else:
-            c_compiler_or_wrapper = c_compiler
-            cxx_compiler_or_wrapper = cxx_compiler
+            self.c_compiler_or_wrapper = c_compiler
+            self.cxx_compiler_or_wrapper = cxx_compiler
 
-        os.environ['CC'] = c_compiler_or_wrapper
-        os.environ['CXX'] = cxx_compiler_or_wrapper
+        os.environ['CC'] = self.c_compiler_or_wrapper
+        os.environ['CXX'] = self.cxx_compiler_or_wrapper
 
         self._identify_compiler_version()
 

@@ -19,7 +19,7 @@ import platform
 import subprocess
 import stat
 import time
-from typing import Optional, List, Set, Tuple, Dict, Any
+from typing import Optional, List, Set, Tuple, Dict, Any, Callable
 
 from sys_detection import is_macos, is_linux
 
@@ -446,7 +446,8 @@ class Builder(BuilderInterface):
             install: List[str] = ['install'],
             run_autogen: bool = False,
             autoconf: bool = False,
-            src_subdir_name: Optional[str] = None) -> None:
+            src_subdir_name: Optional[str] = None,
+            post_configure_action: Optional[Callable] = None) -> None:
         os.environ["YB_REMOTE_COMPILATION"] = "0"
         dir_for_build = os.getcwd()
         if src_subdir_name:
@@ -484,6 +485,9 @@ class Builder(BuilderInterface):
                             num_files_shown += 1
                 log(f"Logged contents of {num_files_shown} relevant files in {dir_for_build}.")
                 raise
+
+            if post_configure_action:
+                post_configure_action()
 
             log_output(log_prefix, ['make', '-j{}'.format(get_make_parallelism())])
             if install:
@@ -736,10 +740,44 @@ class Builder(BuilderInterface):
         Flags for Clang 10 and beyond. We are using LLVM-supplied libunwind and compiler-rt in this
         configuration.
         """
-        self.ld_flags.append('-rtlib=compiler-rt')
+        #self.ld_flags.append('-rtlib=compiler-rt')
+
+        self.ld_flags.append('-fuse-ld=lld')
+
+        clang_linuxbrew_header_dirs = []
+
+        if self.compiler_choice.using_linuxbrew():
+            linuxbrew_dir = self.compiler_choice.get_linuxbrew_dir()
+            self.ld_flags.append(
+                '-Wl,--dynamic-linker=%s' % os.path.join(linuxbrew_dir, 'lib', 'ld.so'))
+            self.compiler_flags.append('-nostdinc')
+            self.compiler_flags.append('--gcc-toolchain={}'.format(linuxbrew_dir))
+            #self.compiler_flags.extend(['-isystem', os.path.join(linuxbrew_dir, 'include')])
+
+            clang_linuxbrew_header_dirs = [
+                # Both the directories below have an stddef.h (different files), and the first
+                # stddef.h has an include_next that is intended to include the stddef.h from the
+                # second directory, so we have to add these directories in this specific order.
+                #'-isystem',
+                #'/opt/yb-build/brew/yb-linuxbrew-20181203T161736-llvm12.0.1-v1-x86_64-3ba4c2ed9b058704/llvm/include/c++/v1',
+
+
+                '-isystem',
+                '/opt/yb-build/brew/yb-linuxbrew-20181203T161736-llvm12.0.1-v1-x86_64-3ba4c2ed9b058704/llvm/lib/clang/12.0.1/include',
+                # '-isystem',
+                # '/opt/yb-build/brew/yb-linuxbrew-20181203T161736-llvm12.0.1-v1-x86_64-3ba4c2ed9b058704/Cellar/gcc/5.5.0_4/bin/../lib/gcc/x86_64-unknown-linux-gnu/5.5.0/include',
+                # '-isystem',
+                # '/opt/yb-build/brew/yb-linuxbrew-20181203T161736-llvm12.0.1-v1-x86_64-3ba4c2ed9b058704/Cellar/gcc/5.5.0_4/bin/../lib/gcc/x86_64-unknown-linux-gnu/5.5.0/include-fixed',
+                # '-isystem'
+                # '/opt/yb-build/brew/yb-linuxbrew-20181203T161736-llvm12.0.1-v1-x86_64-3ba4c2ed9b058704/Cellar/gcc/5.5.0_4/bin/../lib/gcc/../../include',
+
+                # This is the include directory of the Linuxbrew GCC 5.5 / glibc 2.23 bundle.
+                '-isystem',
+                '/opt/yb-build/brew/yb-linuxbrew-20181203T161736-llvm12.0.1-v1-x86_64-3ba4c2ed9b058704/include'
+            ]
 
         if self.build_type == BUILD_TYPE_COMMON:
-            log("Not configuring any special Clang 10+ flags for build type %s", self.build_type)
+            self.compiler_flags.extend(clang_linuxbrew_header_dirs)
             return
 
         # TODO mbautin: refactor to polymorphism
@@ -800,7 +838,11 @@ class Builder(BuilderInterface):
             # it at build time because libc++abi is built first.
             self.add_rpath(libcxx_installed_lib)
 
+        self.compiler_flags.extend(clang_linuxbrew_header_dirs)
+
+        # TODO: make this conditional only for the Linuxbrew + Clang combination.
         self.cxx_flags.append('-Wno-error=unused-command-line-argument')
+
         log("Flags after the end of setup for Clang 10 or newer:")
         log("cxx_flags : %s", self.cxx_flags)
         log("c_flags   : %s", self.c_flags)

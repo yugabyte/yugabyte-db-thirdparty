@@ -29,11 +29,32 @@ class SnappyDependency(Dependency):
         self.patches = ['snappy-define-guard-macro.patch']
         self.post_patch = ['autoreconf', '-fvi']
 
+    def _disable_lzo2_library_in_test(self) -> None:
+        '''
+        Makes the snappy unit test not use the liblzo2 library. Sometimes the configure script will
+        pick up the library from a system directory when it should not.
+        '''
+        log("Removing HAVE_LIBLZO2 from config.h")
+        lines: List[str] = []
+        removed = False
+        with open('config.h') as input_file:
+            for line in input_file:
+                if line.strip() == '#define HAVE_LIBLZO2 1':
+                    removed = True
+                else:
+                    lines.append(line)
+        if not removed:
+            log("Warning: did not remove HAVE_LIBLZO2 from config.h")
+        with open('config.h', 'w') as output_file:
+            output_file.write('\n'.join(lines) + '\n')
+
+
     def build(self, builder: BuilderInterface) -> None:
         log_prefix = builder.log_prefix(self)
         builder.build_with_configure(
             log_prefix=log_prefix,
-            extra_args=['--with-pic']
+            extra_args=['--with-pic'],
+            post_configure_action=self._disable_lzo2_library_in_test
         )
         # Copy over all the headers into a generic include/ directory.
         mkdir_if_missing('include')
