@@ -148,6 +148,7 @@ class CompilerChoice:
     def _do_find_gcc(self, c_compiler: str, cxx_compiler: str) -> Tuple[str, str]:
         if using_linuxbrew():
             gcc_dir = get_linuxbrew_dir()
+            assert gcc_dir is not None
         elif self.compiler_prefix:
             gcc_dir = self.compiler_prefix
         else:

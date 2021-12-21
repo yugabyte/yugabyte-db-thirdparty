@@ -48,7 +48,6 @@ class SnappyDependency(Dependency):
         with open('config.h', 'w') as output_file:
             output_file.write('\n'.join(lines) + '\n')
 
-
     def build(self, builder: BuilderInterface) -> None:
         log_prefix = builder.log_prefix(self)
         builder.build_with_configure(

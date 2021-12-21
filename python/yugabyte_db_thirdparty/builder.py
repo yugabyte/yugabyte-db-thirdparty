@@ -139,7 +139,7 @@ class Builder(BuilderInterface):
         self.toolchain = None
         self.fossa_deps = []
 
-    def _install_toolchains(self):
+    def _install_toolchains(self) -> None:
         toolchains = ensure_toolchains_installed(
             self.download_manager, self.args.toolchain.split('_'))
 
@@ -180,6 +180,7 @@ class Builder(BuilderInterface):
         single_compiler_type = None
         if self.args.toolchain:
             self._install_toolchains()
+            assert self.toolchain is not None  # _install_toolchains guarantees this.
             compiler_prefix = self.toolchain.toolchain_root
             single_compiler_type = self.toolchain.get_compiler_type()
             self.toolchain.write_url_and_path_files()
@@ -765,22 +766,28 @@ class Builder(BuilderInterface):
         Flags for Clang 10 and beyond. We are using LLVM-supplied libunwind and compiler-rt in this
         configuration.
         """
-        #self.ld_flags.append('-rtlib=compiler-rt')
+        if not using_linuxbrew():
+            # We don't build compiler-rt for Linuxbrew yet.
+            # TODO: we can build compiler-rt here the same way we build other LLVM components,
+            # such as libunwind, libc++abi, and libc++.
+            self.ld_flags.append('-rtlib=compiler-rt')
 
         self.ld_flags.append('-fuse-ld=lld')
 
-        clang_linuxbrew_header_flags = []
+        clang_linuxbrew_isystem_flags = []
 
         if using_linuxbrew():
             linuxbrew_dir = get_linuxbrew_dir()
+            assert linuxbrew_dir is not None
             self.ld_flags.append(
                 '-Wl,--dynamic-linker=%s' % os.path.join(linuxbrew_dir, 'lib', 'ld.so'))
             self.compiler_flags.append('-nostdinc')
             self.compiler_flags.append('--gcc-toolchain={}'.format(linuxbrew_dir))
 
+            assert self.compiler_choice.cc is not None
             clang_include_dir = get_clang_include_dir(self.compiler_choice.cc)
 
-            clang_linuxbrew_header_flags = [
+            clang_linuxbrew_isystem_flags = [
                 '-isystem', clang_include_dir,
 
                 # This is the include directory of the Linuxbrew GCC 5.5 / glibc 2.23 bundle.
@@ -788,7 +795,7 @@ class Builder(BuilderInterface):
             ]
 
         if self.build_type == BUILD_TYPE_COMMON:
-            self.compiler_flags.extend(clang_linuxbrew_header_flags)
+            self.compiler_flags.extend(clang_linuxbrew_isystem_flags)
             return
 
         # TODO mbautin: refactor to polymorphism
@@ -848,7 +855,7 @@ class Builder(BuilderInterface):
             # it at build time because libc++abi is built first.
             self.add_rpath(libcxx_installed_lib)
 
-        self.compiler_flags.extend(clang_linuxbrew_header_flags)
+        self.compiler_flags.extend(clang_linuxbrew_isystem_flags)
 
         # TODO: make this conditional only for the Linuxbrew + Clang combination.
         self.cxx_flags.append('-Wno-error=unused-command-line-argument')

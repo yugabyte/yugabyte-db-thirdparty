@@ -10,7 +10,7 @@
 # or implied. See the License for the specific language governing permissions and limitations
 # under the License.
 
-from typing import List, Optional, TYPE_CHECKING
+from typing import List, Optional, Callable, TYPE_CHECKING
 
 from yugabyte_db_thirdparty.file_system_layout import FileSystemLayout
 
@@ -48,7 +48,8 @@ class BuilderInterface:
             install: List[str] = ['install'],
             run_autogen: bool = False,
             autoconf: bool = False,
-            src_subdir_name: Optional[str] = None) -> None:
+            src_subdir_name: Optional[str] = None,
+            post_configure_action: Optional[Callable] = None) -> None:
         raise NotImplementedError()
 
     def build_with_cmake(

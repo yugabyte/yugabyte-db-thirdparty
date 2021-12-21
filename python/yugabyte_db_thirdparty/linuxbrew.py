@@ -32,12 +32,18 @@ g_linuxbrew_dir: Optional[str] = None
 g_detect_linuxbrew_called: bool = False
 
 
-def get_linuxbrew_dir() -> Optional[str]:
+def get_optional_linuxbrew_dir() -> Optional[str]:
     global g_detect_linuxbrew_called
     if not g_detect_linuxbrew_called:
         _detect_linuxbrew()
-        g_get_linuxbrew_dir_called = True
+        g_get_optional_linuxbrew_dir_called = True
     return g_linuxbrew_dir
+
+
+def get_linuxbrew_dir() -> str:
+    linuxbrew_dir = get_optional_linuxbrew_dir()
+    assert linuxbrew_dir is not None
+    return linuxbrew_dir
 
 
 def _detect_linuxbrew() -> None:
@@ -70,7 +76,7 @@ def _detect_linuxbrew() -> None:
 
 
 def using_linuxbrew() -> bool:
-    return get_linuxbrew_dir() is not None
+    return get_optional_linuxbrew_dir() is not None
 
 
 def set_linuxbrew_dir(linuxbrew_dir: str) -> None:

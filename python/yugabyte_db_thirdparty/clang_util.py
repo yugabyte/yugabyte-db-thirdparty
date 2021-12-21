@@ -47,7 +47,7 @@ def get_clang_library_dir(clang_executable_path: str) -> str:
     raise ValueError(
         f"Could not find a 'lib/linux' subdirectory in any of the library directories "
         f"returned by 'clang -print-search-dirs' (clang path: {clang_executable_path}):\n"
-        f"{search_dirs_output}\n.Considered candidate directories:{candidate_dirs}")
+        f"{library_dirs}\n.Considered candidate directories:{candidate_dirs}")
 
 
 def get_clang_include_dir(clang_executable_path: str) -> str:
@@ -57,4 +57,4 @@ def get_clang_include_dir(clang_executable_path: str) -> str:
         if os.path.isdir(include_dir):
             return include_dir
     raise ValueError(
-        f"Could not find a directory from {library_dirs} that has an 'include' subdirectory")
+        f"Could not find a directory from {library_dirs} that has an 'include' subdirectory.")

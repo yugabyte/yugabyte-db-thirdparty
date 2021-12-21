@@ -88,7 +88,6 @@ class CompilerWrapper:
                 real_included_files = set(os.path.realpath(p) for p in included_files)
                 sys.stderr.write("Included files:\n%s" % "\n".join(sorted(real_included_files)))
 
-
         subprocess.check_call(cmd_args)
         cmd_str = '( cd %s; %s )' % (shlex.quote(os.getcwd()), shlex_join(cmd_args))
         sys.stderr.write(cmd_str)
