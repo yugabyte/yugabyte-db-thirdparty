@@ -31,6 +31,10 @@ class CompilerWrapper:
         use_ccache = os.getenv('YB_THIRDPARTY_USE_CCACHE') == '1'
 
         compiler_args = sys.argv[1:]
+        compiler_args = [
+            arg for arg in compiler_args
+            if arg != '-I"/usr/include"'
+        ]
 
         compiler_path_and_args = [real_compiler_path] + compiler_args
 
@@ -83,6 +87,7 @@ class CompilerWrapper:
                             included_files.add(line[:quote_pos])
                 real_included_files = set(os.path.realpath(p) for p in included_files)
                 sys.stderr.write("Included files:\n%s" % "\n".join(sorted(real_included_files)))
+
 
         subprocess.check_call(cmd_args)
         cmd_str = '( cd %s; %s )' % (shlex.quote(os.getcwd()), shlex_join(cmd_args))
