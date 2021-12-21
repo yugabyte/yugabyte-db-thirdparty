@@ -66,9 +66,10 @@ from yugabyte_db_thirdparty.util import (
     shlex_join,
 )
 from yugabyte_db_thirdparty.file_system_layout import FileSystemLayout
-from yugabyte_db_thirdparty.toolchain import Toolchain, ensure_toolchain_installed
+from yugabyte_db_thirdparty.toolchain import Toolchain, ensure_toolchains_installed
 from yugabyte_db_thirdparty.clang_util import get_clang_library_dir, get_clang_include_dir
 from yugabyte_db_thirdparty.macos import get_min_supported_macos_version
+from yugabyte_db_thirdparty.linuxbrew import get_linuxbrew_dir, using_linuxbrew, set_linuxbrew_dir
 
 ASAN_FLAGS = [
     '-fsanitize=address',
@@ -138,6 +139,30 @@ class Builder(BuilderInterface):
         self.toolchain = None
         self.fossa_deps = []
 
+    def _install_toolchains(self):
+        toolchains = ensure_toolchains_installed(
+            self.download_manager, self.args.toolchain.split('_'))
+
+        # We expect at most one Linuxbrew toolchain to be specified (handled by set_linuxbrew_dir).
+        for toolchain in toolchains:
+            if toolchain.toolchain_type == 'linuxbrew':
+                set_linuxbrew_dir(toolchain.toolchain_root)
+
+        if len(toolchains) == 1:
+            self.toolchain = toolchains[0]
+            return
+        if len(toolchains) != 2:
+            raise ValueError("Unsupported combination of toolchains: %s" % self.args.toolchain)
+        if not toolchains[0].toolchain_type.startswith('llvm'):
+            raise ValueError(
+                "For a combination of toolchains, the first one must be an LLVM one, got: %s" %
+                toolchains[0].toolchain_type)
+        self.toolchain = toolchains[0]
+        if toolchains[1].toolchain_type != 'linuxbrew':
+            raise ValueError(
+                "For a combination of toolchains, the second one must be Linuxbrew, got: %s" %
+                toolchains[1].toolchain_type)
+
     def parse_args(self) -> None:
         self.args = parse_cmd_line_args()
 
@@ -154,8 +179,7 @@ class Builder(BuilderInterface):
 
         single_compiler_type = None
         if self.args.toolchain:
-            self.toolchain = ensure_toolchain_installed(
-                self.download_manager, self.args.toolchain)
+            self._install_toolchains()
             compiler_prefix = self.toolchain.toolchain_root
             single_compiler_type = self.toolchain.get_compiler_type()
             self.toolchain.write_url_and_path_files()
@@ -409,8 +433,8 @@ class Builder(BuilderInterface):
             self.compiler_flags += TSAN_FLAGS
 
     def add_linuxbrew_flags(self) -> None:
-        if self.compiler_choice.using_linuxbrew():
-            lib_dir = os.path.join(self.compiler_choice.get_linuxbrew_dir(), 'lib')
+        if using_linuxbrew():
+            lib_dir = os.path.join(get_linuxbrew_dir(), 'lib')
             self.ld_flags.append(" -Wl,-dynamic-linker={}".format(os.path.join(lib_dir, 'ld.so')))
             self.add_lib_dir_and_rpath(lib_dir)
 
@@ -726,9 +750,9 @@ class Builder(BuilderInterface):
         # -stdlib=libc++ and -nostdinc++ are specified.
         self.cxx_flags.insert(0, '-Wno-error=unused-command-line-argument')
         self.prepend_lib_dir_and_rpath(stdlib_lib)
-        if self.compiler_choice.using_linuxbrew():
+        if using_linuxbrew():
             self.compiler_flags.append('--gcc-toolchain={}'.format(
-                self.compiler_choice.get_linuxbrew_dir()))
+                get_linuxbrew_dir()))
 
         if self.toolchain and self.toolchain.toolchain_type == 'llvm7':
             # This is needed when building with Clang 7 but without Linuxbrew.
@@ -747,8 +771,8 @@ class Builder(BuilderInterface):
 
         clang_linuxbrew_header_flags = []
 
-        if self.compiler_choice.using_linuxbrew():
-            linuxbrew_dir = self.compiler_choice.get_linuxbrew_dir()
+        if using_linuxbrew():
+            linuxbrew_dir = get_linuxbrew_dir()
             self.ld_flags.append(
                 '-Wl,--dynamic-linker=%s' % os.path.join(linuxbrew_dir, 'lib', 'ld.so'))
             self.compiler_flags.append('-nostdinc')
