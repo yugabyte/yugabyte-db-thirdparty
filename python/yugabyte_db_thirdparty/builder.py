@@ -184,6 +184,11 @@ class Builder(BuilderInterface):
             compiler_prefix = self.toolchain.toolchain_root
             single_compiler_type = self.toolchain.get_compiler_type()
             self.toolchain.write_url_and_path_files()
+            if single_compiler_type == 'clang' and using_linuxbrew():
+                log("Automatically enabling compiler wrapper for a Clang Linuxbrew-targeting build "
+                    "and configuring it to disallow headers from /usr/include.")
+                self.args.use_compiler_wrapper = True
+                os.environ['YB_DISALLOWED_INCLUDE_DIRS'] = '/usr/include'
         else:
             compiler_prefix = self.args.compiler_prefix
             single_compiler_type = self.args.single_compiler_type
@@ -322,8 +327,11 @@ class Builder(BuilderInterface):
         self.build_one_build_type(BUILD_TYPE_COMMON)
         build_types = [BUILD_TYPE_UNINSTRUMENTED]
 
-        if is_linux() and self.compiler_choice.use_only_clang() and not self.args.skip_sanitizers:
-            # We only support ASAN/TSAN builds on Clang.
+        if (is_linux() and
+                self.compiler_choice.use_only_clang() and
+                not self.args.skip_sanitizers and
+                not using_linuxbrew()):
+            # We only support ASAN/TSAN builds on Clang, when not using Linuxbrew.
             build_types.append(BUILD_TYPE_ASAN)
             build_types.append(BUILD_TYPE_TSAN)
         log(f"Full list of build types: {build_types}")
