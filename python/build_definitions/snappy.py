@@ -53,7 +53,7 @@ class SnappyDependency(Dependency):
         builder.build_with_configure(
             log_prefix=log_prefix,
             extra_args=['--with-pic'],
-            post_configure_action=self._disable_lzo2_library_in_test
+            post_configure_action=self._disable_lzo2_library_in_test,
         )
         # Copy over all the headers into a generic include/ directory.
         mkdir_if_missing('include')
