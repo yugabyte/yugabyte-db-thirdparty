@@ -70,6 +70,7 @@ class BoostDependency(Dependency):
                         not lstripped.startswith('project : default-build <toolset>gcc ;')):
                     out.write(line)
             cxx_flags = builder.compiler_flags + builder.cxx_flags
+            log("C++ flags to use when building Boost: %s", cxx_flags)
             compiler_type = builder.compiler_choice.compiler_type
             # To make sure Boost's b2 does not select one of its default "toolsets" and ignores all
             # of our compiler flags, we add a "-yb" suffix to the compiler "version" that we give
@@ -80,11 +81,12 @@ class BoostDependency(Dependency):
             out.write(PROJECT_CONFIG.format(
                     compiler_type,
                     compiler_version,
-                    builder.compiler_choice.get_cxx_compiler(),
+                    builder.compiler_choice.get_cxx_compiler_or_wrapper(),
                     ' '.join(['<compileflags>' + flag for flag in cxx_flags]),
                     ' '.join(['<linkflags>' + flag for flag in cxx_flags + builder.ld_flags]),
                     ' '.join(['--with-{}'.format(lib) for lib in libs])))
-        build_cmd = ['./b2', 'install', 'cxxstd=14', 'toolset=%s' % boost_toolset]
+        # -q means stop at first error
+        build_cmd = ['./b2', 'install', 'cxxstd=14', 'toolset=%s' % boost_toolset, '-q']
         if is_macos_arm64_build():
             build_cmd.append('instruction-set=arm64')
         log_output(log_prefix, build_cmd)

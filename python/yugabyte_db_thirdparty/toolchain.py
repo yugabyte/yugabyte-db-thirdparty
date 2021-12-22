@@ -17,7 +17,7 @@ import re
 from yugabyte_db_thirdparty.download_manager import DownloadManager
 from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR, write_file
 
-from typing import Optional
+from typing import Optional, List, Optional
 
 import sys_detection
 from sys_detection import SHORT_OS_NAME_REGEX_STR, is_compatible_os_and_version
@@ -38,9 +38,6 @@ def get_llvm_url(tag: str) -> str:
 
 
 TOOLCHAIN_TO_OS_AND_ARCH_TO_URL = {
-    'linuxbrew': {
-        'centos7-x86_64': LINUXBREW_URL,
-    },
     'llvm7': {
         'centos7-x86_64': get_llvm_url('v7.1.0-1617644423-4856a933'),
     },
@@ -55,7 +52,11 @@ TOOLCHAIN_TO_OS_AND_ARCH_TO_URL = {
     }
 }
 
-TOOLCHAIN_TYPES = sorted(TOOLCHAIN_TO_OS_AND_ARCH_TO_URL.keys())
+TOOLCHAIN_TYPES = sorted(TOOLCHAIN_TO_OS_AND_ARCH_TO_URL.keys()) + [
+    'linuxbrew',
+    'llvm11_linuxbrew',
+    'llvm12_linuxbrew',
+]
 
 
 class Toolchain:
@@ -90,17 +91,15 @@ class Toolchain:
             f"Considered paths: {candidate_paths}.")
 
     def write_url_and_path_files(self) -> None:
-        write_file(os.path.join(YB_THIRDPARTY_DIR, 'toolchain_url.txt'),
-                   self.toolchain_url)
-        write_file(os.path.join(YB_THIRDPARTY_DIR, 'toolchain_path.txt'),
-                   self.toolchain_root)
         if self.toolchain_type == 'linuxbrew':
-            # TODO: remove this after the YugabyteDB build system is upgraded to only look at
-            # toolchain_{url,path}.txt.
-            write_file(os.path.join(YB_THIRDPARTY_DIR, 'linuxbrew_url.txt'),
-                       self.toolchain_url)
-            write_file(os.path.join(YB_THIRDPARTY_DIR, 'linuxbrew_path.txt'),
-                       self.toolchain_root)
+            file_prefix = 'linuxbrew'
+        else:
+            file_prefix = 'toolchain'
+
+        write_file(os.path.join(YB_THIRDPARTY_DIR, '%s_url.txt' % file_prefix),
+                   self.toolchain_url)
+        write_file(os.path.join(YB_THIRDPARTY_DIR, '%s_path.txt' % file_prefix),
+                   self.toolchain_root)
 
     def get_llvm_version_str(self) -> str:
         if not self.toolchain_type.startswith('llvm'):
@@ -119,13 +118,19 @@ def is_compatible_os_arch_combination(os_arch1: str, os_arch2: str) -> bool:
     return is_compatible_os_and_version(os1, os2) and arch1 == arch2
 
 
-def ensure_toolchain_installed(
+def ensure_toolchains_installed(
         download_manager: DownloadManager,
-        toolchain_type: str) -> Toolchain:
-    assert toolchain_type in TOOLCHAIN_TYPES, (
-        f"Invalid toolchain type: '{toolchain_type}'. Valid types: "
-        f"{', '.join(TOOLCHAIN_TYPES)}."
-    )
+        toolchain_types: List[str]) -> List[Toolchain]:
+    return [
+        ensure_toolchain_installed(download_manager, toolchain_type)
+        for toolchain_type in toolchain_types
+    ]
+
+
+def get_toolchain_url(toolchain_type: str) -> str:
+    if toolchain_type == 'linuxbrew':
+        # Does not depend on the OS.
+        return LINUXBREW_URL
 
     os_and_arch_to_url = TOOLCHAIN_TO_OS_AND_ARCH_TO_URL[toolchain_type]
     local_sys_conf = sys_detection.local_sys_conf()
@@ -148,6 +153,18 @@ def ensure_toolchain_installed(
                     "found, cannot choose automatically: {os_and_arch_candidates}")
         effective_os_and_arch = os_and_arch_candidates[0]
         toolchain_url = os_and_arch_to_url[effective_os_and_arch]
+    return toolchain_url
+
+
+def ensure_toolchain_installed(
+        download_manager: DownloadManager,
+        toolchain_type: str) -> Toolchain:
+    assert toolchain_type in TOOLCHAIN_TYPES, (
+        f"Invalid toolchain type: '{toolchain_type}'. Valid types: "
+        f"{', '.join(TOOLCHAIN_TYPES)}."
+    )
+
+    toolchain_url = get_toolchain_url(toolchain_type)
 
     if toolchain_type.startswith('llvm'):
         parent_dir = '/opt/yb-build/llvm'

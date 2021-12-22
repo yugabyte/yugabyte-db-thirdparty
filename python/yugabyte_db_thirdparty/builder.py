@@ -19,9 +19,10 @@ import platform
 import subprocess
 import stat
 import time
-from typing import Optional, List, Set, Tuple, Dict, Any
+from typing import Optional, List, Set, Tuple, Dict, Any, Callable
 
 from sys_detection import is_macos, is_linux
+from pathlib import Path
 
 from build_definitions import (
     BUILD_GROUP_COMMON,
@@ -65,9 +66,10 @@ from yugabyte_db_thirdparty.util import (
     shlex_join,
 )
 from yugabyte_db_thirdparty.file_system_layout import FileSystemLayout
-from yugabyte_db_thirdparty.toolchain import Toolchain, ensure_toolchain_installed
-from yugabyte_db_thirdparty.clang_util import get_clang_library_dir
+from yugabyte_db_thirdparty.toolchain import Toolchain, ensure_toolchains_installed
+from yugabyte_db_thirdparty.clang_util import get_clang_library_dir, get_clang_include_dir
 from yugabyte_db_thirdparty.macos import get_min_supported_macos_version
+from yugabyte_db_thirdparty.linuxbrew import get_linuxbrew_dir, using_linuxbrew, set_linuxbrew_dir
 
 ASAN_FLAGS = [
     '-fsanitize=address',
@@ -137,6 +139,30 @@ class Builder(BuilderInterface):
         self.toolchain = None
         self.fossa_deps = []
 
+    def _install_toolchains(self) -> None:
+        toolchains = ensure_toolchains_installed(
+            self.download_manager, self.args.toolchain.split('_'))
+
+        # We expect at most one Linuxbrew toolchain to be specified (handled by set_linuxbrew_dir).
+        for toolchain in toolchains:
+            if toolchain.toolchain_type == 'linuxbrew':
+                set_linuxbrew_dir(toolchain.toolchain_root)
+
+        if len(toolchains) == 1:
+            self.toolchain = toolchains[0]
+            return
+        if len(toolchains) != 2:
+            raise ValueError("Unsupported combination of toolchains: %s" % self.args.toolchain)
+        if not toolchains[0].toolchain_type.startswith('llvm'):
+            raise ValueError(
+                "For a combination of toolchains, the first one must be an LLVM one, got: %s" %
+                toolchains[0].toolchain_type)
+        self.toolchain = toolchains[0]
+        if toolchains[1].toolchain_type != 'linuxbrew':
+            raise ValueError(
+                "For a combination of toolchains, the second one must be Linuxbrew, got: %s" %
+                toolchains[1].toolchain_type)
+
     def parse_args(self) -> None:
         self.args = parse_cmd_line_args()
 
@@ -153,11 +179,16 @@ class Builder(BuilderInterface):
 
         single_compiler_type = None
         if self.args.toolchain:
-            self.toolchain = ensure_toolchain_installed(
-                self.download_manager, self.args.toolchain)
+            self._install_toolchains()
+            assert self.toolchain is not None  # _install_toolchains guarantees this.
             compiler_prefix = self.toolchain.toolchain_root
             single_compiler_type = self.toolchain.get_compiler_type()
             self.toolchain.write_url_and_path_files()
+            if single_compiler_type == 'clang' and using_linuxbrew():
+                log("Automatically enabling compiler wrapper for a Clang Linuxbrew-targeting build "
+                    "and configuring it to disallow headers from /usr/include.")
+                self.args.use_compiler_wrapper = True
+                os.environ['YB_DISALLOWED_INCLUDE_DIRS'] = '/usr/include'
         else:
             compiler_prefix = self.args.compiler_prefix
             single_compiler_type = self.args.single_compiler_type
@@ -296,8 +327,11 @@ class Builder(BuilderInterface):
         self.build_one_build_type(BUILD_TYPE_COMMON)
         build_types = [BUILD_TYPE_UNINSTRUMENTED]
 
-        if is_linux() and self.compiler_choice.use_only_clang() and not self.args.skip_sanitizers:
-            # We only support ASAN/TSAN builds on Clang.
+        if (is_linux() and
+                self.compiler_choice.use_only_clang() and
+                not self.args.skip_sanitizers and
+                not using_linuxbrew()):
+            # We only support ASAN/TSAN builds on Clang, when not using Linuxbrew.
             build_types.append(BUILD_TYPE_ASAN)
             build_types.append(BUILD_TYPE_TSAN)
         log(f"Full list of build types: {build_types}")
@@ -408,8 +442,8 @@ class Builder(BuilderInterface):
             self.compiler_flags += TSAN_FLAGS
 
     def add_linuxbrew_flags(self) -> None:
-        if self.compiler_choice.using_linuxbrew():
-            lib_dir = os.path.join(self.compiler_choice.get_linuxbrew_dir(), 'lib')
+        if using_linuxbrew():
+            lib_dir = os.path.join(get_linuxbrew_dir(), 'lib')
             self.ld_flags.append(" -Wl,-dynamic-linker={}".format(os.path.join(lib_dir, 'ld.so')))
             self.add_lib_dir_and_rpath(lib_dir)
 
@@ -446,7 +480,8 @@ class Builder(BuilderInterface):
             install: List[str] = ['install'],
             run_autogen: bool = False,
             autoconf: bool = False,
-            src_subdir_name: Optional[str] = None) -> None:
+            src_subdir_name: Optional[str] = None,
+            post_configure_action: Optional[Callable] = None) -> None:
         os.environ["YB_REMOTE_COMPILATION"] = "0"
         dir_for_build = os.getcwd()
         if src_subdir_name:
@@ -484,6 +519,9 @@ class Builder(BuilderInterface):
                             num_files_shown += 1
                 log(f"Logged contents of {num_files_shown} relevant files in {dir_for_build}.")
                 raise
+
+            if post_configure_action:
+                post_configure_action()
 
             log_output(log_prefix, ['make', '-j{}'.format(get_make_parallelism())])
             if install:
@@ -721,9 +759,9 @@ class Builder(BuilderInterface):
         # -stdlib=libc++ and -nostdinc++ are specified.
         self.cxx_flags.insert(0, '-Wno-error=unused-command-line-argument')
         self.prepend_lib_dir_and_rpath(stdlib_lib)
-        if self.compiler_choice.using_linuxbrew():
+        if using_linuxbrew():
             self.compiler_flags.append('--gcc-toolchain={}'.format(
-                self.compiler_choice.get_linuxbrew_dir()))
+                get_linuxbrew_dir()))
 
         if self.toolchain and self.toolchain.toolchain_type == 'llvm7':
             # This is needed when building with Clang 7 but without Linuxbrew.
@@ -736,10 +774,36 @@ class Builder(BuilderInterface):
         Flags for Clang 10 and beyond. We are using LLVM-supplied libunwind and compiler-rt in this
         configuration.
         """
-        self.ld_flags.append('-rtlib=compiler-rt')
+        if not using_linuxbrew():
+            # We don't build compiler-rt for Linuxbrew yet.
+            # TODO: we can build compiler-rt here the same way we build other LLVM components,
+            # such as libunwind, libc++abi, and libc++.
+            self.ld_flags.append('-rtlib=compiler-rt')
+
+        self.ld_flags.append('-fuse-ld=lld')
+
+        clang_linuxbrew_isystem_flags = []
+
+        if using_linuxbrew():
+            linuxbrew_dir = get_linuxbrew_dir()
+            assert linuxbrew_dir is not None
+            self.ld_flags.append(
+                '-Wl,--dynamic-linker=%s' % os.path.join(linuxbrew_dir, 'lib', 'ld.so'))
+            self.compiler_flags.append('-nostdinc')
+            self.compiler_flags.append('--gcc-toolchain={}'.format(linuxbrew_dir))
+
+            assert self.compiler_choice.cc is not None
+            clang_include_dir = get_clang_include_dir(self.compiler_choice.cc)
+
+            clang_linuxbrew_isystem_flags = [
+                '-isystem', clang_include_dir,
+
+                # This is the include directory of the Linuxbrew GCC 5.5 / glibc 2.23 bundle.
+                '-isystem', os.path.join(linuxbrew_dir, 'include')
+            ]
 
         if self.build_type == BUILD_TYPE_COMMON:
-            log("Not configuring any special Clang 10+ flags for build type %s", self.build_type)
+            self.compiler_flags.extend(clang_linuxbrew_isystem_flags)
             return
 
         # TODO mbautin: refactor to polymorphism
@@ -780,10 +844,9 @@ class Builder(BuilderInterface):
 
             self.cxx_flags = [
                 '-stdlib=libc++',
-                '-isystem',
-                libcxx_installed_include,
                 '-nostdinc++'
             ] + self.cxx_flags
+            self.compiler_flags = ['-isystem', libcxx_installed_include] + self.compiler_flags
             self.prepend_lib_dir_and_rpath(libcxx_installed_lib)
 
         if is_libcxx:
@@ -800,11 +863,16 @@ class Builder(BuilderInterface):
             # it at build time because libc++abi is built first.
             self.add_rpath(libcxx_installed_lib)
 
+        self.compiler_flags.extend(clang_linuxbrew_isystem_flags)
+
+        # TODO: make this conditional only for the Linuxbrew + Clang combination.
         self.cxx_flags.append('-Wno-error=unused-command-line-argument')
+
         log("Flags after the end of setup for Clang 10 or newer:")
-        log("cxx_flags : %s", self.cxx_flags)
-        log("c_flags   : %s", self.c_flags)
-        log("ld_flags  : %s", self.ld_flags)
+        log("compiler_flags : %s", self.compiler_flags)
+        log("cxx_flags      : %s", self.cxx_flags)
+        log("c_flags        : %s", self.c_flags)
+        log("ld_flags       : %s", self.ld_flags)
 
     def get_effective_compiler_flags(self, dep: Dependency) -> List[str]:
         return self.compiler_flags + dep.get_additional_compiler_flags(self)

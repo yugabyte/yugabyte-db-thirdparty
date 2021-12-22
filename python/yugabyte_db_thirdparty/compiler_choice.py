@@ -28,6 +28,7 @@ from yugabyte_db_thirdparty.util import (
     extract_major_version,
 )
 from yugabyte_db_thirdparty.devtoolset import validate_devtoolset_compiler_path
+from yugabyte_db_thirdparty.linuxbrew import using_linuxbrew, get_linuxbrew_dir
 
 from compiler_identification import (
     CompilerIdentification, identify_compiler
@@ -47,7 +48,6 @@ class CompilerChoice:
     compiler_prefix: Optional[str]
     compiler_suffix: str
     devtoolset: Optional[int]
-    linuxbrew_dir: Optional[str]
     use_compiler_wrapper: bool
     use_ccache: bool
     cc_identification: Optional[CompilerIdentification]
@@ -71,7 +71,6 @@ class CompilerChoice:
         self.use_compiler_wrapper = use_compiler_wrapper
         self.use_ccache = use_ccache
 
-        self.linuxbrew_dir = None
         self.cc = None
         self.cxx = None
         self.c_compiler_or_wrapper = None
@@ -84,40 +83,6 @@ class CompilerChoice:
 
         self.expected_major_compiler_version = expected_major_compiler_version
 
-    def detect_linuxbrew(self) -> None:
-        self.linuxbrew_dir = None
-        if not is_linux():
-            log("Not using Linuxbrew -- this is not Linux")
-            return
-
-        if self.single_compiler_type:
-            log("Not using Linuxbrew, single_compiler_type is set to %s", self.single_compiler_type)
-            return
-
-        if self.compiler_suffix:
-            log("Not using Linuxbrew, compiler_suffix is set to %s", self.compiler_suffix)
-            return
-
-        if self.compiler_prefix:
-            compiler_prefix_basename = os.path.basename(self.compiler_prefix)
-            if compiler_prefix_basename.startswith('linuxbrew'):
-                self.linuxbrew_dir = self.compiler_prefix
-                log("Setting Linuxbrew directory based on compiler prefix %s",
-                    self.compiler_prefix)
-
-        if self.linuxbrew_dir is None:
-            linuxbrew_dir_from_env = os.getenv('YB_LINUXBREW_DIR')
-            if linuxbrew_dir_from_env:
-                self.linuxbrew_dir = linuxbrew_dir_from_env
-                log("Setting Linuxbrew directory based on YB_LINUXBREW_DIR env var: %s",
-                    linuxbrew_dir_from_env)
-
-        if self.linuxbrew_dir:
-            log("Linuxbrew directory: %s", self.linuxbrew_dir)
-            new_path_entry = os.path.join(self.linuxbrew_dir, 'bin')
-            log("Adding PATH entry: %s", new_path_entry)
-            add_path_entry(new_path_entry)
-
     def detect_clang_version(self) -> None:
         """
         Detects Clang version when the only compiler we are using is Clang. This is needed so we can
@@ -129,15 +94,7 @@ class CompilerChoice:
             self._identify_compiler_version()
 
     def finish_initialization(self) -> None:
-        self.detect_linuxbrew()
         self.detect_clang_version()
-
-    def using_linuxbrew(self) -> bool:
-        return self.linuxbrew_dir is not None
-
-    def get_linuxbrew_dir(self) -> str:
-        assert self.linuxbrew_dir is not None
-        return self.linuxbrew_dir
 
     def find_compiler_by_type(self, compiler_type: str) -> None:
         compilers: Tuple[str, str]
@@ -189,8 +146,9 @@ class CompilerChoice:
         return self._do_find_gcc('gcc', 'g++')
 
     def _do_find_gcc(self, c_compiler: str, cxx_compiler: str) -> Tuple[str, str]:
-        if self.using_linuxbrew():
-            gcc_dir = self.get_linuxbrew_dir()
+        if using_linuxbrew():
+            gcc_dir = get_linuxbrew_dir()
+            assert gcc_dir is not None
         elif self.compiler_prefix:
             gcc_dir = self.compiler_prefix
         else:
@@ -208,7 +166,7 @@ class CompilerChoice:
 
     def find_clang(self) -> Tuple[str, str]:
         clang_prefix: Optional[str] = None
-        if self.compiler_prefix and not self.using_linuxbrew():
+        if self.compiler_prefix:
             clang_prefix = self.compiler_prefix
         else:
             candidate_dirs = [
@@ -259,11 +217,12 @@ class CompilerChoice:
         return self.devtoolset is not None or self.single_compiler_type == 'gcc'
 
     def is_linux_clang1x(self) -> bool:
-        # TODO: actually check compiler version.
+        llvm_major_version: Optional[int] = self.get_llvm_major_version()
         return (
             not is_macos() and
             self.single_compiler_type == 'clang' and
-            not self.using_linuxbrew()
+            llvm_major_version is not None and
+            llvm_major_version >= 10
         )
 
     def set_compiler(self, compiler_type: str) -> None:
@@ -291,11 +250,11 @@ class CompilerChoice:
             self.cxx_compiler_or_wrapper = os.path.join(
                 python_scripts_dir, 'compiler_wrapper_cxx.py')
         else:
-            c_compiler_or_wrapper = c_compiler
-            cxx_compiler_or_wrapper = cxx_compiler
+            self.c_compiler_or_wrapper = c_compiler
+            self.cxx_compiler_or_wrapper = cxx_compiler
 
-        os.environ['CC'] = c_compiler_or_wrapper
-        os.environ['CXX'] = cxx_compiler_or_wrapper
+        os.environ['CC'] = self.c_compiler_or_wrapper
+        os.environ['CXX'] = self.cxx_compiler_or_wrapper
 
         self._identify_compiler_version()
 
