@@ -399,8 +399,8 @@ class Builder(BuilderInterface):
                 self.fs_layout.tp_installed_dir, include_dir_component, 'lib'))
 
         self.compiler_flags += self.preprocessor_flags
-        # -fPIC is there to always generate position-independent code, even for static libraries.
-        self.compiler_flags += ['-fno-omit-frame-pointer', '-fPIC', '-O2', '-Wall']
+        self.compiler_flags += [
+            '-fno-omit-frame-pointer', '-O3', '-Wall', '-fuse-ld=lld', '-flto=full']
         if is_linux():
             # On Linux, ensure we set a long enough rpath so we can change it later with chrpath,
             # patchelf, or a similar tool.

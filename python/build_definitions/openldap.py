@@ -12,6 +12,7 @@
 # under the License.
 #
 
+import os
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
 
@@ -31,7 +32,11 @@ class OpenLDAPDependency(Dependency):
 
     def build(self, builder: BuilderInterface) -> None:
         # build client only
-        disabled_features = ('slapd', 'bdb', 'hdb', 'mdb', 'monitor', 'relay', 'syncprov')
+        disabled_features = (
+            'slapd', 'bdb', 'hdb', 'mdb', 'monitor', 'relay', 'syncprov', 'cyrus-sasl'
+        )
 
+        os.environ['lt_cv_path_LD'] = '/opt/yb-build/llvm/yb-llvm-v12.0.1-yb-1-1633143152-bdb147e6-almalinux8-x86_64/bin/ld.lld'
         builder.build_with_configure(
-            builder.log_prefix(self), ['--disable-' + feature for feature in disabled_features])
+            builder.log_prefix(self),
+                ['--disable-' + feature for feature in disabled_features])

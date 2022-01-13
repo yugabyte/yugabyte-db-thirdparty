@@ -12,6 +12,7 @@
 # under the License.
 #
 
+import os
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
 
@@ -37,6 +38,7 @@ class CurlDependency(Dependency):
             '--without-librtmp',
             '--without-nghttp2'
         ]
+        os.environ['NM'] = '/opt/yb-build/llvm/yb-llvm-v12.0.1-yb-1-1633143152-bdb147e6-almalinux8-x86_64/bin/llvm-nm'
 
         builder.build_with_configure(
             log_prefix=builder.log_prefix(self),

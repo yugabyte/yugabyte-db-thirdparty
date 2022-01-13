@@ -32,6 +32,7 @@ class GPerfToolsDependency(Dependency):
     def build(self, builder: BuilderInterface) -> None:
         log_prefix = builder.log_prefix(self)
         os.environ["YB_REMOTE_COMPILATION"] = "0"
+        os.environ['NM'] = '/opt/yb-build/llvm/yb-llvm-v12.0.1-yb-1-1633143152-bdb147e6-almalinux8-x86_64/bin/llvm-nm'
         log_output(log_prefix, ['./configure', '--prefix={}'.format(builder.prefix),
                                 '--enable-frame-pointers', '--enable-heap-checker', '--with-pic'])
         log_output(log_prefix, ['make', 'clean'])
