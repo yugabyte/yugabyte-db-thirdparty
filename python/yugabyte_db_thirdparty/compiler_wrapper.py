@@ -59,6 +59,13 @@ class CompilerWrapper:
 
         compiler_path_and_args = self._get_compiler_path_and_args()
 
+        if (len(self.compiler_args) >= 2 and
+                self.compiler_args[-2] == '-o' and
+                '.so.' in self.compiler_args[-1]):
+            # Needed for linker invocations via libtool from openldap build. It fails to pass
+            # the -fuse-ld=lld argument to the linker when creating shared libraries.
+            self.compiler_args.append('-fuse-ld=lld')
+
         if use_ccache:
             os.environ['CCACHE_COMPILER'] = self.real_compiler_path
             cmd_args = ['ccache', 'compiler'] + self.compiler_args
