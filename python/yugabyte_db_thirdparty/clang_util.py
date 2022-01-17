@@ -15,6 +15,8 @@ import subprocess
 import os
 from typing import Optional, List
 from yugabyte_db_thirdparty.string_util import shlex_join
+from yugabyte_db_thirdparty.util import mkdir_if_missing, create_symlink
+from yugabyte_db_thirdparty.custom_logging import log
 
 LIBRARY_DIRS_PREFIX = 'libraries: ='
 
@@ -58,3 +60,33 @@ def get_clang_include_dir(clang_executable_path: str) -> str:
             return include_dir
     raise ValueError(
         f"Could not find a directory from {library_dirs} that has an 'include' subdirectory.")
+
+
+def create_llvm_tool_dir(clang_path: str, tool_dir_path: str) -> bool:
+    """
+    Create a directory with tools that are named like
+    """
+    if not os.path.abspath(clang_path).endswith('/bin/clang'):
+        log("Clang compiler path does not end with '/bin/clang', not creating a directory with "
+            "LLVM tools to put on PATH. Clang path: %s" % clang_path)
+        return False
+
+    mkdir_if_missing(tool_dir_path)
+    llvm_bin_dir = os.path.dirname(os.path.abspath(clang_path))
+    for src_name, dst_names in (
+        ('llvm-nm', 'nm'),
+        ('llvm-ar', 'ar'),
+        ('lld', 'ld'),
+        ('clang', ('gcc', 'cc', 'clang')),
+        ('clang++', ('g++', 'c++', 'clang++'))
+    ):
+        if isinstance(dst_names, str):
+            dst_names = (dst_names, )
+        assert isinstance(dst_names, tuple)
+        for dst_name in dst_names:
+            create_symlink(
+                os.path.join(llvm_bin_dir, src_name),
+                os.path.join(tool_dir_path, dst_name),
+                src_must_exist=True
+            )
+    return True

@@ -280,6 +280,25 @@ def create_symlink_and_log(link_to: str, symlink_path: str) -> None:
     os.symlink(link_to, symlink_path)
 
 
+def create_symlink(src: str, dst: str, src_must_exist: bool = False) -> None:
+    """
+    Creates a symlink dst pointing to src. Does nothing if the symlink already exists and points
+    to the same location.
+    """
+    if src_must_exist and not os.path.exists(src):
+        raise IOError(f"Trying to create a symlink to '{src}' but that location does not exist")
+
+    if os.path.exists(dst):
+        if os.path.islink(dst):
+            current_target = os.readlink(dst)
+            if current_target == src:
+                return
+            raise IOError(f"Symbolic link '{dst}' already exists and does not point to '{src}'.")
+        else:
+            raise IOError(f"File already exists and is not a symlink: '{dst}'")
+    create_symlink_and_log(src, dst)
+
+
 def extract_major_version(version_str: str) -> int:
     '''
     >>> extract_major_version('2.3.4')

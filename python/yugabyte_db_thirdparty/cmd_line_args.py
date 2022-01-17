@@ -175,6 +175,14 @@ def parse_cmd_line_args() -> argparse.Namespace:
              "Note that this does not affect the corresponding source directory.",
         action='store_true')
 
+    parser.add_argument(
+        '--lto_type',
+        help='Link time optimization (LTO) type. The "full" and "thin" LTO types are the '
+             'according to the LLVM terminology (see '
+             'https://llvm.org/docs/LinkTimeOptimization.html).',
+        choices=['full', 'thin'],
+        default=None
+    )
     args = parser.parse_args()
 
     # ---------------------------------------------------------------------------------------------
