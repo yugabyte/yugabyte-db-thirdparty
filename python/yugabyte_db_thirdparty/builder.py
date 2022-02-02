@@ -418,14 +418,14 @@ class Builder(BuilderInterface):
             # patchelf, or a similar tool.
             self.add_rpath(PLACEHOLDER_RPATH)
 
-            self.dylib_suffix = "so"
+            self.shared_lib_suffix = "so"
 
             # Currently linux/aarch64 build is optimized for Graviton2.
             if platform.uname().processor == 'aarch64':
                 self.c_flags += GRAVITON_FLAGS
 
         elif is_macos():
-            self.dylib_suffix = "dylib"
+            self.shared_lib_suffix = "dylib"
 
             # YugaByte builds with C++11, which on OS X requires using libc++ as the standard
             # library implementation. Some of the dependencies do not compile against libc++ by
@@ -1159,8 +1159,9 @@ class Builder(BuilderInterface):
         """
         openssl_dir = self.get_openssl_dir()
         openssl_options = ['-DOPENSSL_ROOT_DIR=' + openssl_dir]
-        openssl_crypto_library = os.path.join(openssl_dir, 'lib', 'libcrypto.' + self.dylib_suffix)
-        openssl_ssl_library = os.path.join(openssl_dir, 'lib', 'libssl.' + self.dylib_suffix)
+        openssl_crypto_library = os.path.join(
+            openssl_dir, 'lib', 'libcrypto.' + self.shared_lib_suffix)
+        openssl_ssl_library = os.path.join(openssl_dir, 'lib', 'libssl.' + self.shared_lib_suffix)
         openssl_options += [
             '-DOPENSSL_CRYPTO_LIBRARY=' + openssl_crypto_library,
             '-DOPENSSL_SSL_LIBRARY=' + openssl_ssl_library,

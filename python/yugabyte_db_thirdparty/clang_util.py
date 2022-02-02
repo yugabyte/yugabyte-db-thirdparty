@@ -13,7 +13,7 @@
 
 import subprocess
 import os
-from typing import Optional, List
+from typing import Optional, List, Tuple
 from yugabyte_db_thirdparty.string_util import shlex_join
 from yugabyte_db_thirdparty.util import mkdir_if_missing, create_symlink
 from yugabyte_db_thirdparty.custom_logging import log

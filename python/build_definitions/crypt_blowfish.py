@@ -38,7 +38,7 @@ class CryptBlowfishDependency(Dependency):
         mkdir_if_missing(crypt_blowfish_include_dir)
         # Copy over all the headers into a generic include/ directory.
         subprocess.check_call('rsync -av *.h {}'.format(crypt_blowfish_include_dir), shell=True)
-        for suffix in ['a', builder.dylib_suffix]:
+        for suffix in ['a', builder.shared_lib_suffix]:
             file_name = 'libcrypt_blowfish.' + suffix
             src_path = os.path.abspath(file_name)
             dest_path = os.path.join(builder.prefix_lib, file_name)

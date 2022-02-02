@@ -32,7 +32,7 @@ class BuilderInterface:
     prefix_lib: str
     prefix_bin: str
     ld_flags: List[str]
-    dylib_suffix: str
+    shared_lib_suffix: str
     tp_installed_common_dir: str
     prefix_include: str
     tp_dir: str

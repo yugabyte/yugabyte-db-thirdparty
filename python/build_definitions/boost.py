@@ -102,4 +102,4 @@ class BoostDependency(Dependency):
                                             sublib_path, path])
 
     def libfile(self, lib: str, builder: BuilderInterface) -> str:
-        return 'libboost_{}.{}'.format(lib, builder.dylib_suffix)
+        return 'libboost_{}.{}'.format(lib, builder.shared_lib_suffix)
