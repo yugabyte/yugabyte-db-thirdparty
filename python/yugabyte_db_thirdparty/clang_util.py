@@ -73,20 +73,14 @@ def create_llvm_tool_dir(clang_path: str, tool_dir_path: str) -> bool:
 
     mkdir_if_missing(tool_dir_path)
     llvm_bin_dir = os.path.dirname(os.path.abspath(clang_path))
-    for src_name, dst_names in (
-        ('llvm-nm', 'nm'),
-        ('llvm-ar', 'ar'),
-        ('lld', 'ld'),
-        ('clang', ('gcc', 'cc', 'clang')),
-        ('clang++', ('g++', 'c++', 'clang++'))
-    ):
-        if isinstance(dst_names, str):
-            dst_names = (dst_names, )
-        assert isinstance(dst_names, tuple)
-        for dst_name in dst_names:
-            create_symlink(
-                os.path.join(llvm_bin_dir, src_name),
-                os.path.join(tool_dir_path, dst_name),
-                src_must_exist=True
-            )
+    src_dst_names: List[Tuple[str, str]] = [
+        ('llvm-%s' % tool_name, tool_name)
+        for tool_name in ['nm', 'ar', 'ld', 'ranlib']
+    ] + [('lld', 'ld')]
+    for src_name, dst_name in src_dst_names:
+        create_symlink(
+            os.path.join(llvm_bin_dir, src_name),
+            os.path.join(tool_dir_path, dst_name),
+            src_must_exist=True
+        )
     return True
