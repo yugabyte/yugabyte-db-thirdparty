@@ -74,7 +74,12 @@ def create_llvm_tool_dir(clang_path: str, tool_dir_path: str) -> bool:
     mkdir_if_missing(tool_dir_path)
     llvm_bin_dir = os.path.dirname(os.path.abspath(clang_path))
     src_dst_names: List[Tuple[str, str]] = [
-        ('llvm-%s' % tool_name, tool_name) for tool_name in ['nm', 'ar', 'ranlib']
+        ('llvm-%s' % tool_name, tool_name) for tool_name in [
+            'ar',
+            'as',
+            'nm',
+            'ranlib',
+        ]
     ] + [('lld', 'ld')]
     for src_name, dst_name in src_dst_names:
         create_symlink(

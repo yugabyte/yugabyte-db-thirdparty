@@ -36,12 +36,6 @@ class OpenLDAPDependency(Dependency):
             'slapd', 'bdb', 'hdb', 'mdb', 'monitor', 'relay', 'syncprov', 'cyrus-sasl'
         )
 
-        # TODO: see if we can get rid of this, or use a non-hardcoded path.
-        # llvm_bin_dir = (
-        #     '/opt/yb-build/llvm/yb-llvm-v12.0.1-yb-1-1633143152-bdb147e6-almalinux8-x86_64/bin')
-        # os.environ['lt_cv_path_LD'] = os.path.join(llvm_bin_dir, 'ld.lld')
-        # os.environ['lt_cv_path_NM'] = os.path.join(llvm_bin_dir, 'llvm-nm')
-
         builder.build_with_configure(
             builder.log_prefix(self),
             extra_args=['--disable-' + feature for feature in disabled_features])
