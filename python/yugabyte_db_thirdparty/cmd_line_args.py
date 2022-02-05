@@ -176,7 +176,7 @@ def parse_cmd_line_args() -> argparse.Namespace:
         action='store_true')
 
     parser.add_argument(
-        '--lto_type',
+        '--lto',
         help='Link time optimization (LTO) type. The "full" and "thin" LTO types are the '
              'according to the LLVM terminology (see '
              'https://llvm.org/docs/LinkTimeOptimization.html).',

@@ -210,7 +210,7 @@ class Builder(BuilderInterface):
             expected_major_compiler_version=self.args.expected_major_compiler_version
         )
 
-        self.lto_type = self.args.lto_type
+        self.lto_type = self.args.lto
 
     def finish_initialization(self) -> None:
         self.compiler_choice.finish_initialization()

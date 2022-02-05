@@ -28,11 +28,11 @@ class ProtobufDependency(Dependency):
 
     def build(self, builder: BuilderInterface) -> None:
         log_prefix = builder.log_prefix(self)
-        llvm_bin_dir = (
-            '/opt/yb-build/llvm/yb-llvm-v12.0.1-yb-1-1633143152-bdb147e6-almalinux8-x86_64/bin')
-        os.environ['lt_cv_path_LD'] = os.path.join(llvm_bin_dir, 'lld')
-        os.environ['lt_cv_path_NM'] = os.path.join(llvm_bin_dir, 'llvm-nm')
-        os.environ['lt_cv_path_AR'] = os.path.join(llvm_bin_dir, 'llvm-ar')
+        # llvm_bin_dir = (
+        #     '/opt/yb-build/llvm/yb-llvm-v12.0.1-yb-1-1633143152-bdb147e6-almalinux8-x86_64/bin')
+        # os.environ['lt_cv_path_LD'] = os.path.join(llvm_bin_dir, 'lld')
+        # os.environ['lt_cv_path_NM'] = os.path.join(llvm_bin_dir, 'llvm-nm')
+        # os.environ['lt_cv_path_AR'] = os.path.join(llvm_bin_dir, 'llvm-ar')
 
         builder.build_with_configure(
             log_prefix=log_prefix,
