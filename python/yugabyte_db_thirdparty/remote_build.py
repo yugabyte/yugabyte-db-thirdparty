@@ -128,8 +128,30 @@ def build_remotely(remote_server: str, remote_build_code_path: str) -> None:
             quoted_remote_path, shlex.quote(local_branch_name)))
 
         rsync_code_to('%s:%s' % (remote_server, remote_build_code_path))
+
+        remote_args = []
+
+        skip_next_arg = False
+        for arg in sys.argv[1:]:
+            if skip_next_arg:
+                skip_next_arg = False
+                continue
+            skip_next_arg = False
+            skip_this_arg = False
+            for remote_arg in ['--remote-build-server', '--remote-build-dir']:
+                if arg == remote_arg:
+                    skip_next_arg = True
+                    skip_this_arg = True
+                    break
+                if arg.startswith(remote_arg + '='):
+                    skip_this_arg = True
+                    break
+            if skip_this_arg:
+                continue
+            remote_args.append(arg)
+
         remote_bash_script = 'cd %s && ./build_thirdparty.sh %s' % (
-            quoted_remote_path, shlex_join(sys.argv[1:])
+            quoted_remote_path, shlex_join(remote_args)
         )
 
         run_remote_bash_script(remote_bash_script)

@@ -30,6 +30,9 @@ class CryptBlowfishDependency(Dependency):
             build_group=BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = True
 
+    def get_lib_name(self, suffix: str) -> str:
+        return 'lib%s.%s' % (self.name, suffix)
+
     def build(self, builder: BuilderInterface) -> None:
         log_prefix = builder.log_prefix(self)
         log_output(log_prefix, ['make', 'clean'])
@@ -38,9 +41,10 @@ class CryptBlowfishDependency(Dependency):
         mkdir_if_missing(crypt_blowfish_include_dir)
         # Copy over all the headers into a generic include/ directory.
         subprocess.check_call('rsync -av *.h {}'.format(crypt_blowfish_include_dir), shell=True)
-        for suffix in ['a', builder.shared_lib_suffix]:
-            file_name = 'libcrypt_blowfish.' + suffix
+        for suffix in ('a', builder.shared_lib_suffix):
+            file_name = self.get_lib_name(suffix)
             src_path = os.path.abspath(file_name)
             dest_path = os.path.join(builder.prefix_lib, file_name)
             log("Copying file %s to %s", src_path, dest_path)
             copyfile(src_path, dest_path)
+        fix_shared_library_references(builder.prefix, 'lib%s' % self.name)
