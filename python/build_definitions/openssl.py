@@ -40,7 +40,7 @@ class OpenSSLDependency(Dependency):
         self.copy_sources = True
 
     def build(self, builder: BuilderInterface) -> None:
-        common_configure_options = ['shared']
+        common_configure_options = ['shared', 'no-tests']
         install_path = os.path.join(
             builder.fs_layout.tp_installed_common_dir, "lib")
         if is_macos_arm64_build():

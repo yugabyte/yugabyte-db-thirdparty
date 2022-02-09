@@ -32,13 +32,19 @@ ENV_VARS_TO_SAVE = split_into_word_set("""
     LDFLAGS
     PATH
     PYTHONPATH
+    NM
+    AR
+    LD
+    AS
 """)
 
 
 def write_env_vars(file_path: str) -> None:
     env_script = ''
     for k, v in sorted(dict(os.environ).items()):
-        if k in ENV_VARS_TO_SAVE or k in DEVTOOLSET_ENV_VARS or k.startswith('YB_'):
+        if (k in ENV_VARS_TO_SAVE or
+                k in DEVTOOLSET_ENV_VARS or
+                k.startswith('YB_')):
             env_script += 'export %s=%s\n' % (k, shlex.quote(v))
     with open(file_path, 'w') as output_file:
         output_file.write(env_script)

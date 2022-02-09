@@ -59,20 +59,9 @@ def _detect_linuxbrew() -> None:
             linuxbrew_dir_from_env)
         return
 
-    # if self.compiler_prefix:
-    #     compiler_prefix_basename = os.path.basename(self.compiler_prefix)
-    #     if compiler_prefix_basename.startswith('linuxbrew'):
-    #         g_linuxbrew_dir = self.compiler_prefix
-    #         log("Setting Linuxbrew directory based on compiler prefix %s",
-    #             self.compiler_prefix)
-
     if g_linuxbrew_dir:
-        log("Linuxbrew directory: %s", g_linuxbrew_dir)
         new_path_entry = os.path.join(g_linuxbrew_dir, 'bin')
-        log("Adding PATH entry: %s", new_path_entry)
         add_path_entry(new_path_entry)
-    else:
-        log("Not using Linuxbrew")
 
 
 def using_linuxbrew() -> bool:

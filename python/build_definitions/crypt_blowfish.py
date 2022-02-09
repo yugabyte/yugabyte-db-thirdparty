@@ -15,6 +15,8 @@
 import os
 import subprocess
 
+from shutil import copyfile
+
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
 
@@ -23,10 +25,13 @@ class CryptBlowfishDependency(Dependency):
         super(CryptBlowfishDependency, self).__init__(
             name='crypt_blowfish',
             # The original project did not have any versions, so we created our own versions.
-            version='1.0.0',
+            version='1.3.2',
             url_pattern='https://github.com/yugabyte/crypt_blowfish/archive/refs/tags/v{0}.tar.gz',
             build_group=BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = True
+
+    def get_lib_name(self, suffix: str) -> str:
+        return 'lib%s.%s' % (self.name, suffix)
 
     def build(self, builder: BuilderInterface) -> None:
         log_prefix = builder.log_prefix(self)
@@ -36,5 +41,10 @@ class CryptBlowfishDependency(Dependency):
         mkdir_if_missing(crypt_blowfish_include_dir)
         # Copy over all the headers into a generic include/ directory.
         subprocess.check_call('rsync -av *.h {}'.format(crypt_blowfish_include_dir), shell=True)
-        subprocess.check_call('ar r libcrypt_blowfish.a *.o', shell=True)
-        os.rename('libcrypt_blowfish.a', os.path.join(builder.prefix_lib, 'libcrypt_blowfish.a'))
+        for suffix in ('a', builder.shared_lib_suffix):
+            file_name = self.get_lib_name(suffix)
+            src_path = os.path.abspath(file_name)
+            dest_path = os.path.join(builder.prefix_lib, file_name)
+            log("Copying file %s to %s", src_path, dest_path)
+            copyfile(src_path, dest_path)
+        fix_shared_library_references(builder.prefix, 'lib%s' % self.name)

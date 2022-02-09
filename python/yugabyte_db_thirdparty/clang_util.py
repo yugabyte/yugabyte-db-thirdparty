@@ -13,8 +13,10 @@
 
 import subprocess
 import os
-from typing import Optional, List
+from typing import Optional, List, Tuple
 from yugabyte_db_thirdparty.string_util import shlex_join
+from yugabyte_db_thirdparty.util import mkdir_if_missing, create_symlink
+from yugabyte_db_thirdparty.custom_logging import log
 
 LIBRARY_DIRS_PREFIX = 'libraries: ='
 
@@ -58,3 +60,32 @@ def get_clang_include_dir(clang_executable_path: str) -> str:
             return include_dir
     raise ValueError(
         f"Could not find a directory from {library_dirs} that has an 'include' subdirectory.")
+
+
+def create_llvm_tool_dir(clang_path: str, tool_dir_path: str) -> bool:
+    """
+    Create a directory with symlinks named like the standard tools used for compiling UNIX programs
+    (ar, nm, ranlib, ld, et.) but pointing to LLVM counterparts of these tools.
+    """
+    if not os.path.abspath(clang_path).endswith('/bin/clang'):
+        log("Clang compiler path does not end with '/bin/clang', not creating a directory with "
+            "LLVM tools to put on PATH. Clang path: %s" % clang_path)
+        return False
+
+    mkdir_if_missing(tool_dir_path)
+    llvm_bin_dir = os.path.dirname(os.path.abspath(clang_path))
+    # llvm-as does not work properly when substituted for the as command. Don't add it here.
+    src_dst_names: List[Tuple[str, str]] = [
+        ('llvm-%s' % tool_name, tool_name) for tool_name in [
+            'ar',
+            'nm',
+            'ranlib',
+        ]
+    ] + [('lld', 'ld')]
+    for src_name, dst_name in src_dst_names:
+        create_symlink(
+            os.path.join(llvm_bin_dir, src_name),
+            os.path.join(tool_dir_path, dst_name),
+            src_must_exist=True
+        )
+    return True

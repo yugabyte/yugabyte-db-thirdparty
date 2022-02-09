@@ -26,17 +26,28 @@ def fix_shared_library_references(
         return
 
     lib_dir = os.path.realpath(os.path.join(install_prefix, "lib"))
-    lib_paths = glob.glob(os.path.join(lib_dir, lib_name_prefix + "*.dylib"))
+    lib_path_glob = os.path.join(lib_dir, lib_name_prefix + "*.dylib")
+    lib_paths = glob.glob(lib_path_glob)
 
     bin_dir = os.path.realpath(os.path.join(install_prefix, "sbin"))
-    bin_paths = glob.glob(os.path.join(bin_dir, "*"))
+    bin_path_glob = os.path.join(bin_dir, "*")
+    bin_paths = glob.glob(bin_path_glob)
+
+    log("Using these glob patterns to look for libraries and executables to fix RPATHs in: %s",
+        (lib_path_glob, bin_path_glob))
+    if not lib_paths:
+        log("Warning: no library paths found using glob %s", lib_path_glob)
+    if not bin_paths:
+        log("Warning: no executables found using glob %s", bin_path_glob)
 
     for lib in lib_paths + bin_paths:
+        log("Ensuring %s uses @rpath correctly", lib)
         if os.path.islink(lib):
+            log("%s is a link, skipping", lib)
             continue
-        lib_basename = os.path.basename(lib)
 
         otool_output = subprocess.check_output(['otool', '-L', lib]).decode('utf-8')
+        lib_basename = os.path.basename(lib)
 
         for line in otool_output.split('\n'):
             if line.startswith('\t' + lib_name_prefix):

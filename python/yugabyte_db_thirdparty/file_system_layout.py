@@ -96,3 +96,10 @@ class FileSystemLayout:
     def get_build_dir_for_dependency(self, dep: Dependency, build_type: str) -> str:
         validate_build_type(build_type)
         return os.path.join(self.tp_build_dir, build_type, dep.dir_name)
+
+    def get_llvm_tool_dir(self) -> str:
+        """
+        Returns a directory name where we will put various tools with standard names, such as nm,
+        ar, ld, as symlinks to their LLVM counterparts.
+        """
+        return os.path.join(self.tp_build_dir, 'llvm-tools')

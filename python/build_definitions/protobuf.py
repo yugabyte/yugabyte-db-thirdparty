@@ -28,8 +28,9 @@ class ProtobufDependency(Dependency):
 
     def build(self, builder: BuilderInterface) -> None:
         log_prefix = builder.log_prefix(self)
+
         builder.build_with_configure(
             log_prefix=log_prefix,
-            extra_args=['--with-pic', '--enable-shared', '--enable-static'],
+            extra_args=['--with-pic', '--enable-shared', '--enable-static', '--without-js'],
             run_autogen=True
         )

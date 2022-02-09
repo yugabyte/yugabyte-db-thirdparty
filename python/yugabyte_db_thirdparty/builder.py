@@ -67,7 +67,11 @@ from yugabyte_db_thirdparty.util import (
 )
 from yugabyte_db_thirdparty.file_system_layout import FileSystemLayout
 from yugabyte_db_thirdparty.toolchain import Toolchain, ensure_toolchains_installed
-from yugabyte_db_thirdparty.clang_util import get_clang_library_dir, get_clang_include_dir
+from yugabyte_db_thirdparty.clang_util import (
+    get_clang_library_dir,
+    get_clang_include_dir,
+    create_llvm_tool_dir,
+)
 from yugabyte_db_thirdparty.macos import get_min_supported_macos_version
 from yugabyte_db_thirdparty.linuxbrew import get_linuxbrew_dir, using_linuxbrew, set_linuxbrew_dir
 
@@ -127,6 +131,8 @@ class Builder(BuilderInterface):
     toolchain: Optional[Toolchain]
     remote_build: bool
 
+    lto_type: Optional[str]
+
     """
     This class manages the overall process of building third-party dependencies, including the set
     of dependencies to build, build types, and the directories to install dependencies.
@@ -138,6 +144,7 @@ class Builder(BuilderInterface):
 
         self.toolchain = None
         self.fossa_deps = []
+        self.lto_type = None
 
     def _install_toolchains(self) -> None:
         toolchains = ensure_toolchains_installed(
@@ -202,6 +209,8 @@ class Builder(BuilderInterface):
             use_ccache=self.args.use_ccache,
             expected_major_compiler_version=self.args.expected_major_compiler_version
         )
+
+        self.lto_type = self.args.lto
 
     def finish_initialization(self) -> None:
         self.compiler_choice.finish_initialization()
@@ -313,6 +322,10 @@ class Builder(BuilderInterface):
     def _setup_path(self) -> None:
         add_path_entry(os.path.join(self.fs_layout.tp_installed_common_dir, 'bin'))
         add_homebrew_to_path()
+        if self.compiler_choice.is_linux_clang1x():
+            llvm_tool_dir = self.fs_layout.get_llvm_tool_dir()
+            if create_llvm_tool_dir(self.compiler_choice.get_c_compiler(), llvm_tool_dir):
+                add_path_entry(llvm_tool_dir)
 
     def run(self) -> None:
         if is_macos() and get_target_arch() == 'x86_64':
@@ -399,21 +412,20 @@ class Builder(BuilderInterface):
                 self.fs_layout.tp_installed_dir, include_dir_component, 'lib'))
 
         self.compiler_flags += self.preprocessor_flags
-        # -fPIC is there to always generate position-independent code, even for static libraries.
-        self.compiler_flags += ['-fno-omit-frame-pointer', '-fPIC', '-O2', '-Wall']
+        self.compiler_flags += ['-fno-omit-frame-pointer', '-fPIC', '-O3', '-Wall']
         if is_linux():
             # On Linux, ensure we set a long enough rpath so we can change it later with chrpath,
             # patchelf, or a similar tool.
             self.add_rpath(PLACEHOLDER_RPATH)
 
-            self.dylib_suffix = "so"
+            self.shared_lib_suffix = "so"
 
             # Currently linux/aarch64 build is optimized for Graviton2.
             if platform.uname().processor == 'aarch64':
                 self.c_flags += GRAVITON_FLAGS
 
         elif is_macos():
-            self.dylib_suffix = "dylib"
+            self.shared_lib_suffix = "dylib"
 
             # YugaByte builds with C++11, which on OS X requires using libc++ as the standard
             # library implementation. Some of the dependencies do not compile against libc++ by
@@ -781,6 +793,8 @@ class Builder(BuilderInterface):
             self.ld_flags.append('-rtlib=compiler-rt')
 
         self.ld_flags.append('-fuse-ld=lld')
+        if self.lto_type is not None:
+            self.compiler_flags.append('-flto=%s' % self.lto_type)
 
         clang_linuxbrew_isystem_flags = []
 
@@ -993,6 +1007,7 @@ class Builder(BuilderInterface):
         with PushDir(self.create_build_dir_and_prepare(dep)):
             with EnvVarContext(**env_vars):
                 write_env_vars(DEPENDENCY_ENV_FILE_NAME)
+                log("PATH=%s" % os.getenv('PATH'))
                 dep.build(self)
         self.save_build_stamp_for_dependency(dep)
         log("")
@@ -1144,8 +1159,9 @@ class Builder(BuilderInterface):
         """
         openssl_dir = self.get_openssl_dir()
         openssl_options = ['-DOPENSSL_ROOT_DIR=' + openssl_dir]
-        openssl_crypto_library = os.path.join(openssl_dir, 'lib', 'libcrypto.' + self.dylib_suffix)
-        openssl_ssl_library = os.path.join(openssl_dir, 'lib', 'libssl.' + self.dylib_suffix)
+        openssl_crypto_library = os.path.join(
+            openssl_dir, 'lib', 'libcrypto.' + self.shared_lib_suffix)
+        openssl_ssl_library = os.path.join(openssl_dir, 'lib', 'libssl.' + self.shared_lib_suffix)
         openssl_options += [
             '-DOPENSSL_CRYPTO_LIBRARY=' + openssl_crypto_library,
             '-DOPENSSL_SSL_LIBRARY=' + openssl_ssl_library,
