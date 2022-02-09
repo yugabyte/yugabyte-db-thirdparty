@@ -64,7 +64,8 @@ def get_clang_include_dir(clang_executable_path: str) -> str:
 
 def create_llvm_tool_dir(clang_path: str, tool_dir_path: str) -> bool:
     """
-    Create a directory with tools that are named like
+    Create a directory with symlinks named like the standard tools used for compiling UNIX programs
+    (ar, nm, ranlib, ld, et.) but pointing to LLVM counterparts of these tools.
     """
     if not os.path.abspath(clang_path).endswith('/bin/clang'):
         log("Clang compiler path does not end with '/bin/clang', not creating a directory with "
