@@ -92,6 +92,7 @@ class Llvm1xLibCxxAbiDependency(Llvm1xLibCxxDependencyBase):
         llvm_src_path = builder.fs_layout.get_source_path(self)
         return [
             '-DLIBCXXABI_LIBCXX_PATH=%s' % os.path.join(llvm_src_path, 'libcxx'),
+            '-DLIBCXXABI_LIBCXX_INCLUDES=/opt/yb-build/llvm/yb-llvm-v13.0.0-1639114716-d7b669b3-almalinux8-x86_64/include/c++/v1',
             '-DLIBCXXABI_USE_COMPILER_RT=ON',
             '-DLIBCXXABI_USE_LLVM_UNWINDER=ON',
         ]
