@@ -16,6 +16,7 @@ import os
 from build_definitions.llvm1x_part import Llvm1xPartDependencyBase
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 from yugabyte_db_thirdparty.util import replace_string_in_file
+from yugabyte_db_thirdparty.clang_util import get_clang_libcxx_include_dir
 
 
 class Llvm1xLibCxxDependencyBase(Llvm1xPartDependencyBase):
@@ -90,12 +91,16 @@ class Llvm1xLibCxxAbiDependency(Llvm1xLibCxxDependencyBase):
 
     def get_additional_cmake_args(self, builder: BuilderInterface) -> List[str]:
         llvm_src_path = builder.fs_layout.get_source_path(self)
-        return [
+        args = [
             '-DLIBCXXABI_LIBCXX_PATH=%s' % os.path.join(llvm_src_path, 'libcxx'),
-            '-DLIBCXXABI_LIBCXX_INCLUDES=/opt/yb-build/llvm/yb-llvm-v13.0.0-1639114716-d7b669b3-almalinux8-x86_64/include/c++/v1',
             '-DLIBCXXABI_USE_COMPILER_RT=ON',
             '-DLIBCXXABI_USE_LLVM_UNWINDER=ON',
         ]
+        if builder.compiler_choice.get_llvm_major_version() >= 13:
+            libcxx_include_dir = get_clang_libcxx_include_dir(
+                builder.compiler_choice.get_c_compiler())
+            args.append('-DLIBCXXABI_LIBCXX_INCLUDES=%s' % libcxx_include_dir)
+        return args
 
     def build(self, builder: BuilderInterface) -> None:
         super().build(builder)
