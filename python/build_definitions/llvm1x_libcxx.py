@@ -96,10 +96,6 @@ class Llvm1xLibCxxAbiDependency(Llvm1xLibCxxDependencyBase):
             '-DLIBCXXABI_USE_COMPILER_RT=ON',
             '-DLIBCXXABI_USE_LLVM_UNWINDER=ON',
         ]
-        if builder.compiler_choice.get_llvm_major_version() >= 13:
-            libcxx_include_dir = get_clang_libcxx_include_dir(
-                builder.compiler_choice.get_c_compiler())
-            args.append('-DLIBCXXABI_LIBCXX_INCLUDES=%s' % libcxx_include_dir)
         return args
 
     def build(self, builder: BuilderInterface) -> None:
@@ -131,3 +127,38 @@ class Llvm1xLibCxxDependency(Llvm1xLibCxxDependencyBase):
             '-DLIBCXX_CXX_ABI=libcxxabi',
             '-DLIBCXXABI_USE_LLVM_UNWINDER=ON',
         ]
+
+
+class LibCxxWithAbiDependency(Llvm1xLibCxxDependencyBase):
+    """
+    A combined dependency for libc++ and libc++abi.
+
+    Using the approach described at:
+
+    https://libcxx.llvm.org/BuildingLibcxx.html
+
+    Based on the following instructions:
+
+    $ git clone https://github.com/llvm/llvm-project.git
+    $ cd llvm-project
+    $ mkdir build
+    $ cmake -G Ninja -S runtimes -B build -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind"
+    $ ninja -C build cxx cxxabi unwind
+    $ ninja -C build check-cxx check-cxxabi check-unwind
+    $ ninja -C build install-cxx install-cxxabi install-unwind
+
+    Using this with LLVM 13 or later.
+    """
+
+    def __init__(self, version: str) -> None:
+        super(LibCxxWithAbiDependency, self).__init__(
+            name='llvm1x_libcxx_with_abi',
+            version=version)
+
+    def get_source_subdir_name(self) -> str:
+        return 'runtimes'
+
+    def get_additional_cmake_args(self, builder: BuilderInterface) -> List[str]:
+        return [
+            '-DLLVM_ENABLE_RUNTIMES=libcxx;libcxxabi',
+         ]

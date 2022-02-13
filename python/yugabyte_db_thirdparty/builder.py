@@ -258,18 +258,22 @@ class Builder(BuilderInterface):
                     llvm_version_str = self.toolchain.get_llvm_version_str()
                 else:
                     llvm_version_str = self.compiler_choice.get_llvm_version_str()
-                self.dependencies += [
-                    # New LLVM. We will keep supporting new LLVM versions here.
+
+                self.dependencies.append(
                     get_build_def_module('llvm1x_libunwind').Llvm1xLibUnwindDependency(
                         version=llvm_version_str
-                    ),
-                    get_build_def_module('llvm1x_libcxx').Llvm1xLibCxxAbiDependency(
-                        version=llvm_version_str
-                    ),
-                    get_build_def_module('llvm1x_libcxx').Llvm1xLibCxxDependency(
-                        version=llvm_version_str
-                    ),
-                ]
+                    ))
+                libcxx_dep_module = get_build_def_module('llvm1x_libcxx')
+                if llvm_major_version >= 13:
+                    self.dependencies.append(
+                        libcxx_dep_module.LibCxxWithAbiDependency(version=llvm_version_str))
+                else:
+                    self.dependencies += [
+                        libcxx_dep_module.Llvm1xLibCxxDependency(version=llvm_version_str),
+                        libcxx_dep_module.Llvm1xLibCxxAbiDependency(version=llvm_version_str),
+                    ]
+                self.additional_allowed_shared_lib_paths.add(
+                    get_clang_library_dir(self.compiler_choice.cc))
             else:
                 self.dependencies.append(get_build_def_module('libunwind').LibUnwindDependency())
 
@@ -823,6 +827,9 @@ class Builder(BuilderInterface):
         # TODO mbautin: refactor to polymorphism
         is_libcxxabi = dep.name.endswith('_libcxxabi')
         is_libcxx = dep.name.endswith('_libcxx')
+
+        is_libcxx_with_abi = dep.name.endswith('_libcxx_with_abi')
+
         log("Dependency name: %s, is_libcxxabi: %s, is_libcxx: %s",
             dep.name, is_libcxxabi, is_libcxx)
 
@@ -851,7 +858,7 @@ class Builder(BuilderInterface):
         log("libc++ include directory: %s", libcxx_installed_include)
         log("libc++ library directory: %s", libcxx_installed_lib)
 
-        if not is_libcxx and not is_libcxxabi:
+        if not is_libcxx and not is_libcxxabi and not is_libcxx_with_abi:
             log("Adding special compiler/linker flags for Clang 10+ for dependencies other than "
                 "libc++")
             self.ld_flags += ['-lc++', '-lc++abi']
@@ -871,7 +878,7 @@ class Builder(BuilderInterface):
             # libc++ build needs to be able to find libc++abi library installed here.
             self.ld_flags.append('-L%s' % libcxx_installed_lib)
 
-        if is_libcxx or is_libcxxabi:
+        if is_libcxx or is_libcxxabi or is_libcxx_with_abi:
             log("Adding special linker flags for Clang 10 or newer for libc++ or libc++abi")
             # libc++abi needs to be able to find libcxx at runtime, even though it can't always find
             # it at build time because libc++abi is built first.

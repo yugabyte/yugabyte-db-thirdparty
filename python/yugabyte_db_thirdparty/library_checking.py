@@ -49,10 +49,13 @@ class LibTestBase:
     # To make sure that we log each allowed pattern no more than once.
     logged_allowed_patterns: Set[str]
 
+    extra_allowed_shared_lib_paths: Set[str]
+
     def __init__(self) -> None:
         self.tp_installed_dir = os.path.join(YB_THIRDPARTY_DIR, 'installed')
         self.lib_re_list = []
         self.logged_allowed_patterns = set()
+        self.extra_allowed_shared_lib_paths = set()
 
     def init_regex(self) -> None:
         self.allowed_patterns = compile_re_list(self.lib_re_list)
@@ -83,15 +86,20 @@ class LibTestBase:
 
         return status
 
-    # overridden in platform specific classes
     def check_libs_for_file(self, file_path: str) -> bool:
+        """
+        Checks if the given file's shared libraries resolve in a correct way. Overridden in
+        OS-specific classes.
+        """
         raise NotImplementedError()
 
     def run(self) -> None:
         self.init_regex()
         heading("Scanning installed executables and libraries...")
+        for allowed_shared_lib_path in sorted(self.extra_allowed_shared_lib_paths):
+            log("Extra allowed shared lib path: %s", allowed_shared_lib_path)
         test_pass = True
-        # files to examine are much reduced if we look only at bin and lib directories
+        # Files to examine are much reduced if we look only at bin and lib directories.
         dir_pattern = re.compile('^(lib|libcxx|[s]bin)$')
         dirs = [os.path.join(self.tp_installed_dir, type) for type in BUILD_TYPES]
         for installed_dir in dirs:
@@ -115,7 +123,7 @@ class LibTestBase:
             log("No problems found with library dependencies.")
 
     def add_allowed_shared_lib_paths(self, shared_lib_paths: Set[str]) -> None:
-        pass
+        self.extra_allowed_shared_lib_paths |= shared_lib_paths
 
 
 class LibTestMac(LibTestBase):
@@ -133,10 +141,6 @@ class LibTestMac(LibTestBase):
             # installed there and we try to rely on as few of those as possible.
             "^\t/usr/lib/",
         ]
-
-    def add_allowed_shared_lib_paths(self, shared_lib_paths: Set[str]) -> None:
-        # TODO: implement this on macOS for more precise checking of allowed dylib paths.
-        pass
 
     def check_libs_for_file(self, file_path: str) -> bool:
         libout = subprocess.check_output(['otool', '-L', file_path]).decode('utf-8')
@@ -190,6 +194,7 @@ class LibTestLinux(LibTestBase):
         ]
 
     def add_allowed_shared_lib_paths(self, shared_lib_paths: Set[str]) -> None:
+        super().add_allowed_shared_lib_paths(shared_lib_paths)
         for shared_lib_path in sorted(shared_lib_paths):
             self.lib_re_list.append(f".* => {re.escape(shared_lib_path)}/")
 
