@@ -65,20 +65,6 @@ def get_clang_include_dir(clang_executable_path: str) -> str:
         f"Could not find a directory from {library_dirs} that has an 'include' subdirectory.")
 
 
-def get_clang_libcxx_include_dir(clang_executable_path: str) -> str:
-    """
-    Returns a directory such as include/c++/v1 containing libc++ installation headers. This is
-    needed to bootstrap the libc++abi build with Clang 13 and later.
-    """
-    llvm_bin_dir = os.path.dirname(os.path.abspath(clang_executable_path))
-    llvm_installation_dir = os.path.dirname(llvm_bin_dir)
-    include_dir = os.path.join(llvm_installation_dir, 'include', 'c++', 'v1')
-    if not os.path.isdir(include_dir):
-        raise IOError(
-            "libc++ include directory of the LLVM installation not found at %s" % include_dir)
-    return include_dir
-
-
 def create_llvm_tool_dir(clang_path: str, tool_dir_path: str) -> bool:
     """
     Create a directory with symlinks named like the standard tools used for compiling UNIX programs

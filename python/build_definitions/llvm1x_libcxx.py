@@ -16,7 +16,6 @@ import os
 from build_definitions.llvm1x_part import Llvm1xPartDependencyBase
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 from yugabyte_db_thirdparty.util import replace_string_in_file
-from yugabyte_db_thirdparty.clang_util import get_clang_libcxx_include_dir
 
 
 class Llvm1xLibCxxDependencyBase(Llvm1xPartDependencyBase):

@@ -268,9 +268,10 @@ class Builder(BuilderInterface):
                     self.dependencies.append(
                         libcxx_dep_module.LibCxxWithAbiDependency(version=llvm_version_str))
                 else:
+                    # It is important that we build libc++abi first, and only then build libc++.
                     self.dependencies += [
-                        libcxx_dep_module.Llvm1xLibCxxDependency(version=llvm_version_str),
                         libcxx_dep_module.Llvm1xLibCxxAbiDependency(version=llvm_version_str),
+                        libcxx_dep_module.Llvm1xLibCxxDependency(version=llvm_version_str),
                     ]
                 self.additional_allowed_shared_lib_paths.add(
                     get_clang_library_dir(self.compiler_choice.get_c_compiler()))
