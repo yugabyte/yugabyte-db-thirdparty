@@ -791,6 +791,9 @@ class Builder(BuilderInterface):
         Flags for Clang 10 and beyond. We are using LLVM-supplied libunwind and compiler-rt in this
         configuration.
         """
+        llvm_major_version = self.compiler_choice.get_llvm_major_version()
+        assert llvm_major_version is not None
+
         if not using_linuxbrew():
             # We don't build compiler-rt for Linuxbrew yet.
             # TODO: we can build compiler-rt here the same way we build other LLVM components,
@@ -857,13 +860,16 @@ class Builder(BuilderInterface):
                 # parts of the runtime library and C++ standard libraries are present.
 
             assert self.compiler_choice.cc is not None
-            compiler_rt_lib_dir = get_clang_library_dir(self.compiler_choice.cc)
+            compiler_rt_lib_dir = get_clang_library_dir(self.compiler_choice.get_c_compiler())
             self.add_lib_dir_and_rpath(compiler_rt_lib_dir)
             ubsan_lib_name = f'clang_rt.ubsan_minimal-{platform.processor()}'
             ubsan_lib_so_path = os.path.join(compiler_rt_lib_dir, f'lib{ubsan_lib_name}.so')
             if not os.path.exists(ubsan_lib_so_path):
                 raise IOError(f"UBSAN library not found at {ubsan_lib_so_path}")
             self.ld_flags.append(f'-l{ubsan_lib_name}')
+
+        if self.build_type == BUILD_TYPE_TSAN and llvm_major_version >= 13:
+            self.executable_only_ld_flags.extend(['-fsanitize=thread'])
 
         self.ld_flags += ['-lunwind']
 
