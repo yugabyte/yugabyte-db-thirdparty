@@ -273,7 +273,7 @@ class Builder(BuilderInterface):
                         libcxx_dep_module.Llvm1xLibCxxAbiDependency(version=llvm_version_str),
                     ]
                 self.additional_allowed_shared_lib_paths.add(
-                    get_clang_library_dir(self.compiler_choice.cc))
+                    get_clang_library_dir(self.compiler_choice.get_c_compiler()))
             else:
                 self.dependencies.append(get_build_def_module('libunwind').LibUnwindDependency())
 
