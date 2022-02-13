@@ -837,12 +837,24 @@ class Builder(BuilderInterface):
         if self.build_type == BUILD_TYPE_ASAN:
             self.compiler_flags.append('-shared-libasan')
 
-            if is_libcxxabi:
+            if is_libcxxabi or is_libcxx_with_abi:
                 # To avoid an infinite loop in UBSAN.
                 # https://monorail-prod.appspot.com/p/chromium/issues/detail?id=609786
                 # This comment:
                 # https://gist.githubusercontent.com/mbautin/ad9ea4715669da3b3a5fb9495659c4a9/raw
                 self.compiler_flags.append('-fno-sanitize=vptr')
+
+                # Unfortunately, for the combined libc++ and libc++abi build in Clang 13 or later,
+                # we also disable this check in libc++, where in theory it could have been
+                # enabled.
+
+                # The description of this check from
+                # https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html:
+                #
+                # -fsanitize=vptr: Use of an object whose vptr indicates that it is of the wrong
+                # dynamic type, or that its lifetime has not begun or has ended. Incompatible with
+                # -fno-rtti. Link must be performed by clang++, not clang, to make sure C++-specific
+                # parts of the runtime library and C++ standard libraries are present.
 
             assert self.compiler_choice.cc is not None
             compiler_rt_lib_dir = get_clang_library_dir(self.compiler_choice.cc)
