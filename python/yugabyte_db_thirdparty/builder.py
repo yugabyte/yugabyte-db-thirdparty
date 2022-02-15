@@ -239,6 +239,7 @@ class Builder(BuilderInterface):
             get_build_def_module('bison').BisonDependency(),
             get_build_def_module('libedit').LibEditDependency(),
             get_build_def_module('openldap').OpenLDAPDependency(),
+            get_build_def_module('krb5').Krb5Dependency(),
         ]
 
         if is_linux():
