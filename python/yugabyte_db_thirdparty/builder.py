@@ -239,7 +239,6 @@ class Builder(BuilderInterface):
             get_build_def_module('bison').BisonDependency(),
             get_build_def_module('libedit').LibEditDependency(),
             get_build_def_module('openldap').OpenLDAPDependency(),
-            get_build_def_module('krb5').Krb5Dependency(),
         ]
 
         if is_linux():
@@ -292,6 +291,7 @@ class Builder(BuilderInterface):
 
             get_build_def_module('libuv').LibUvDependency(),
             get_build_def_module('cassandra_cpp_driver').CassandraCppDriverDependency(),
+            get_build_def_module('krb5').Krb5Dependency(),
         ]
 
     def select_dependencies_to_build(self) -> None:
