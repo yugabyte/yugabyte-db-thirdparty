@@ -68,9 +68,6 @@ class CompilerWrapper:
             if self.compiler_args[i] == '-o':
                 output_files.append(self.compiler_args[i + 1])
 
-        # if any([os.path.basename(output_file).startswith('libc++abi')]):
-        #     raise RuntimeError(' '.join(self.compiler_args))
-
         is_linking = [
             is_shared_library_name(output_file_name) for output_file_name in output_files
         ]
