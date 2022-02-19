@@ -1035,7 +1035,7 @@ class Builder(BuilderInterface):
                 compiler_wrapper_extra_ld_flags)
 
         for k, v in env_vars.items():
-            log("DEBUG: env var name: %s, value: %s" % (k, v))
+            log("Setting environment variable %s to: %s" % (k, v))
 
         if self.build_type == BUILD_TYPE_ASAN:
             # To avoid errors similar to:
