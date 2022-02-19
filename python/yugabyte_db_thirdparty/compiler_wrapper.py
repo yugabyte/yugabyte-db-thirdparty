@@ -3,13 +3,12 @@
 import sys
 import os
 import subprocess
-import logging
-import json
 import shlex
 
 from typing import List, Dict
 
-from yugabyte_db_thirdparty.util import shlex_join
+from yugabyte_db_thirdparty.util import shlex_join, is_shared_library_name
+from yugabyte_db_thirdparty.constants import COMPILER_WRAPPER_LD_FLAGS_TO_APPEND_ENV_VAR_NAME
 
 
 class CompilerWrapper:
@@ -57,8 +56,7 @@ class CompilerWrapper:
 
         use_ccache = os.getenv('YB_THIRDPARTY_USE_CCACHE') == '1'
 
-        compiler_path_and_args = self._get_compiler_path_and_args()
-
+        cmd_args: List[str]
         if use_ccache:
             os.environ['CCACHE_COMPILER'] = self.real_compiler_path
             cmd_args = ['ccache', 'compiler'] + self.compiler_args
@@ -69,6 +67,17 @@ class CompilerWrapper:
         for i in range(len(self.compiler_args) - 1):
             if self.compiler_args[i] == '-o':
                 output_files.append(self.compiler_args[i + 1])
+
+        # if any([os.path.basename(output_file).startswith('libc++abi')]):
+        #     raise RuntimeError(' '.join(self.compiler_args))
+
+        is_linking = [
+            is_shared_library_name(output_file_name) for output_file_name in output_files
+        ]
+        if is_linking:
+            cmd_args.extend(
+                os.environ.get(
+                    COMPILER_WRAPPER_LD_FLAGS_TO_APPEND_ENV_VAR_NAME, '').strip().split())
 
         if len(output_files) == 1 and output_files[0].endswith('.o'):
             pp_output_path = None

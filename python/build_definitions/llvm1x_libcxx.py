@@ -146,7 +146,7 @@ class LibCxxWithAbiDependency(Llvm1xLibCxxDependencyBase):
     $ ninja -C build check-cxx check-cxxabi check-unwind
     $ ninja -C build install-cxx install-cxxabi install-unwind
 
-    Using this with LLVM 13 or later.
+    Using this with LLVM/Clang 13 or later.
     """
 
     def __init__(self, version: str) -> None:
@@ -160,4 +160,12 @@ class LibCxxWithAbiDependency(Llvm1xLibCxxDependencyBase):
     def get_additional_cmake_args(self, builder: BuilderInterface) -> List[str]:
         return [
             '-DLLVM_ENABLE_RUNTIMES=libcxx;libcxxabi',
-         ]
+        ]
+
+    def get_compiler_wrapper_ld_flags_to_append(self, builder: 'BuilderInterface') -> List[str]:
+        extra_ld_flags = super().get_compiler_wrapper_ld_flags_to_append(builder)
+        if builder.build_type == BUILD_TYPE_TSAN:
+            # It is not clear why in Clang 13 this suddenly becomes necessary in order to avoid
+            # failing with undefined TSAN-related symbols while linking shared libraries.
+            extra_ld_flags.append('-Wl,--unresolved-symbols=ignore-all')
+        return extra_ld_flags

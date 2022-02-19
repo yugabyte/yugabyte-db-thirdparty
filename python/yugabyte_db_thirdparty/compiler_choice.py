@@ -35,7 +35,7 @@ from compiler_identification import (
 )
 from packaging.version import parse as parse_version
 
-LOWEST_GCC_VERSION_STR = '5.5.0'
+LOWEST_GCC_VERSION_STR = '7.0.0'
 
 
 class CompilerChoice:

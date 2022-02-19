@@ -35,7 +35,7 @@ from build_definitions import (
     get_build_def_module,
 )
 from yugabyte_db_thirdparty.builder_helpers import PLACEHOLDER_RPATH, get_make_parallelism, \
-    get_rpath_flag, sanitize_flags_line_for_log, log_and_set_env_var_to_list
+    get_rpath_flag, log_and_set_env_var_to_list, format_cmake_args_for_log
 from yugabyte_db_thirdparty.builder_helpers import is_ninja_available
 from yugabyte_db_thirdparty.builder_interface import BuilderInterface
 from yugabyte_db_thirdparty.cmd_line_args import parse_cmd_line_args
@@ -74,6 +74,8 @@ from yugabyte_db_thirdparty.clang_util import (
 )
 from yugabyte_db_thirdparty.macos import get_min_supported_macos_version
 from yugabyte_db_thirdparty.linuxbrew import get_linuxbrew_dir, using_linuxbrew, set_linuxbrew_dir
+from yugabyte_db_thirdparty.constants import COMPILER_WRAPPER_LD_FLAGS_TO_APPEND_ENV_VAR_NAME
+
 
 ASAN_FLAGS = [
     '-fsanitize=address',
@@ -191,11 +193,6 @@ class Builder(BuilderInterface):
             compiler_prefix = self.toolchain.toolchain_root
             single_compiler_type = self.toolchain.get_compiler_type()
             self.toolchain.write_url_and_path_files()
-            if single_compiler_type == 'clang' and using_linuxbrew():
-                log("Automatically enabling compiler wrapper for a Clang Linuxbrew-targeting build "
-                    "and configuring it to disallow headers from /usr/include.")
-                self.args.use_compiler_wrapper = True
-                os.environ['YB_DISALLOWED_INCLUDE_DIRS'] = '/usr/include'
         else:
             compiler_prefix = self.args.compiler_prefix
             single_compiler_type = self.args.single_compiler_type
@@ -209,6 +206,17 @@ class Builder(BuilderInterface):
             use_ccache=self.args.use_ccache,
             expected_major_compiler_version=self.args.expected_major_compiler_version
         )
+        llvm_major_version: Optional[int] = self.compiler_choice.get_llvm_major_version()
+        if llvm_major_version:
+            if using_linuxbrew():
+                log("Automatically enabling compiler wrapper for a Clang Linuxbrew-targeting build")
+                log("Disallowing the use of headers in /usr/include")
+                os.environ['YB_DISALLOWED_INCLUDE_DIRS'] = '/usr/include'
+                self.args.use_compiler_wrapper = True
+            if llvm_major_version >= 13:
+                log("Automatically enabling compiler wrapper for Clang major version 13 or higher")
+                self.args.use_compiler_wrapper = True
+        self.compiler_choice.use_compiler_wrapper = self.args.use_compiler_wrapper
 
         self.lto_type = self.args.lto
 
@@ -594,8 +602,7 @@ class Builder(BuilderInterface):
         def do_build_with_cmake(additional_cmake_args: List[str] = []) -> None:
             final_cmake_args = args + additional_cmake_args
             log("CMake command line (one argument per line):\n%s" %
-                "\n".join([(" " * 4 + sanitize_flags_line_for_log(line))
-                           for line in final_cmake_args]))
+                format_cmake_args_for_log(final_cmake_args))
             cmake_configure_script_path = os.path.abspath('yb_build_with_cmake.sh')
 
             build_tool_cmd = [
@@ -1016,6 +1023,19 @@ class Builder(BuilderInterface):
         log_and_set_env_var_to_list(env_vars, 'LIBS', self.libs)
         log_and_set_env_var_to_list(
             env_vars, 'CPPFLAGS', self.get_effective_preprocessor_flags(dep))
+
+        compiler_wrapper_extra_ld_flags = dep.get_compiler_wrapper_ld_flags_to_append(self)
+        if compiler_wrapper_extra_ld_flags:
+            if not self.compiler_choice.use_compiler_wrapper:
+                raise RuntimeError(
+                    "Need to add extra linker arguments in the compiler wrapper, but compiler "
+                    "wrapper is not being used: %s" % compiler_wrapper_extra_ld_flags)
+            log_and_set_env_var_to_list(
+                env_vars, COMPILER_WRAPPER_LD_FLAGS_TO_APPEND_ENV_VAR_NAME,
+                compiler_wrapper_extra_ld_flags)
+
+        for k, v in env_vars.items():
+            log("DEBUG: env var name: %s, value: %s" % (k, v))
 
         if self.build_type == BUILD_TYPE_ASAN:
             # To avoid errors similar to:
