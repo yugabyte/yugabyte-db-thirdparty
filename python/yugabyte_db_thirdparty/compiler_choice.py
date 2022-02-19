@@ -82,6 +82,8 @@ class CompilerChoice:
         self.compiler_version_str = None
 
         self.expected_major_compiler_version = expected_major_compiler_version
+        if single_compiler_type is not None:
+            self.set_compiler(self.single_compiler_type)
 
     def detect_clang_version(self) -> None:
         """
