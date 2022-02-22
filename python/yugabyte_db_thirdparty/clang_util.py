@@ -53,6 +53,9 @@ def get_clang_library_dir(clang_executable_path: str) -> str:
 
 
 def get_clang_include_dir(clang_executable_path: str) -> str:
+    """
+    Returns a directory such as lib/clang/13.0.1/include relative to the LLVM installation path.
+    """
     library_dirs = get_clang_library_dirs(clang_executable_path)
     for library_dir in library_dirs:
         include_dir = os.path.join(library_dir, 'include')

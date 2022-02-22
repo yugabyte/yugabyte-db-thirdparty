@@ -17,7 +17,7 @@ import shutil
 import subprocess
 import time
 
-from typing import Optional, List, Dict, cast
+from typing import Optional, List, Dict, cast, TYPE_CHECKING
 from urllib.parse import urlparse
 
 from yugabyte_db_thirdparty.archive_handling import ARCHIVE_TYPES
@@ -37,6 +37,8 @@ from yugabyte_db_thirdparty.util import (
     get_temporal_randomized_file_name_suffix,
     read_file
 )
+from yugabyte_db_thirdparty.constants import ADD_CHECKSUM_ARG
+
 
 MAX_FETCH_ATTEMPTS = 20
 INITIAL_DOWNLOAD_RETRY_SLEEP_TIME_SEC = 1.0
@@ -194,7 +196,8 @@ class DownloadManager:
         if expected_checksum is None:
             fatal(
                 f"No expected checksum provided for file '{file_basename}'. Consider adding the "
-                f"following line to thirdparty_src_checksums.txt (or re-run with --add-checksum):\n"
+                f"following line to thirdparty_src_checksums.txt (or re-run with "
+                f"{ADD_CHECKSUM_ARG}):\n"
                 f"{real_checksum}  {file_basename}\n"
             )
         return real_checksum == expected_checksum

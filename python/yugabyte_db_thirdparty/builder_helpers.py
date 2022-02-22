@@ -14,6 +14,8 @@
 
 import multiprocessing
 import os
+import re
+
 from typing import Dict, Optional, List
 
 from yugabyte_db_thirdparty.custom_logging import log
@@ -23,6 +25,8 @@ from yugabyte_db_thirdparty.util import which_executable
 PLACEHOLDER_RPATH = (
     "/tmp/making_sure_we_have_enough_room_to_set_rpath_later_{}_end_of_rpath".format('_' * 256))
 PLACEHOLDER_RPATH_FOR_LOG = '/tmp/long_placeholder_rpath'
+
+CMAKE_VAR_RE = re.compile(r'^(-D[A-Z_]+)=(.*)$')
 
 
 def get_make_parallelism() -> int:
@@ -62,3 +66,25 @@ def log_and_set_env_var_to_list(
         log('Unsetting env var %s', env_var_name)
         # When used with EnvVarContext, this will cause the environment variable to be unset.
         env_var_map[env_var_name] = None
+
+
+def format_cmake_args_for_log(args: List[str]) -> str:
+    lines = []
+    for arg in args:
+        match = CMAKE_VAR_RE.match(arg)
+        if match:
+            cmake_var_name = match.group(1)
+            cmake_var_value = match.group(2)
+            cmake_var_value_parts = cmake_var_value.split()
+            if len(cmake_var_value_parts) > 1:
+                lines.append('%s="%s' % (cmake_var_name, cmake_var_value_parts[0]))
+                current_indent = ' ' * (len(cmake_var_name) + 2)
+                for cmake_var_value_part in cmake_var_value_parts[1:-1]:
+                    lines.append(current_indent + cmake_var_value_part)
+                lines.append('%s%s"' % (current_indent, cmake_var_value_parts[-1]))
+                continue
+
+        lines.append(arg)
+
+    indent = " " * 4
+    return indent + "\n".join([(indent + sanitize_flags_line_for_log(line)) for line in lines])
