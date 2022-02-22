@@ -31,7 +31,7 @@ using {0} : {1} :
 
 class BoostDependency(Dependency):
     MAJOR_VERSION = 1
-    MINOR_VERSION = 69
+    MINOR_VERSION = 78
     PATCH_VERSION = 0
     VERSION_TUPLE = (MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION)
     VERSION_STR = "%s.%s.%s" % VERSION_TUPLE
@@ -48,10 +48,8 @@ class BoostDependency(Dependency):
             license='Boost Software License 1.0')
         self.dir = '{}_{}'.format(self.name, self.underscored_version)
         self.copy_sources = True
-        self.patches = ['boost-1-69-remove-pending-integer_log2-include.patch',
-                        'boost-1-69-mac-compiler-flags.patch']
-        if is_macos_arm64_build():
-            self.patches.append('boost-1-69-add-arm64-instruction-set.patch')
+        # if is_macos_arm64_build():
+        self.patches = ['boost-1-78-add-arm64-instruction-set.patch']
 
     def build(self, builder: BuilderInterface) -> None:
         libs = ['system', 'thread', 'atomic', 'program_options', 'regex', 'date_time']
