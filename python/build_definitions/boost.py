@@ -48,7 +48,6 @@ class BoostDependency(Dependency):
             license='Boost Software License 1.0')
         self.dir = '{}_{}'.format(self.name, self.underscored_version)
         self.copy_sources = True
-        # if is_macos_arm64_build():
         self.patches = ['boost-1-78-add-arm64-instruction-set.patch']
 
     def build(self, builder: BuilderInterface) -> None:
