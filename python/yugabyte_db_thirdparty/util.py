@@ -26,6 +26,9 @@ from yugabyte_db_thirdparty.string_util import normalize_cmd_args, shlex_join
 from typing import List, Optional, Any, Dict, Set
 
 
+SHARED_LIBRARY_EXTENSIONS = ['so', 'dylib']
+
+
 def _detect_yb_thirdparty_dir() -> str:
     yb_thirdparty_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -305,3 +308,23 @@ def extract_major_version(version_str: str) -> int:
     2
     '''
     return int(version_str.split('.')[0])
+
+
+def is_shared_library_name(name: str) -> bool:
+    '''
+    >>> is_shared_library_name('libfoo.so')
+    True
+    >>> is_shared_library_name('libfoo.dylib')
+    True
+    >>> is_shared_library_name('libfoo.so.1')
+    True
+    >>> is_shared_library_name('libfoo.dylib.1')
+    True
+    >>> is_shared_library_name('soawesome.o')
+    False
+    >>> is_shared_library_name('dylibawesome.o')
+    False
+    '''
+    return any([
+        name.endswith('.' + ext) or '.%s.' % ext in name for ext in SHARED_LIBRARY_EXTENSIONS
+    ])

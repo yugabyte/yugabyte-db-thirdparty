@@ -90,11 +90,12 @@ class Llvm1xLibCxxAbiDependency(Llvm1xLibCxxDependencyBase):
 
     def get_additional_cmake_args(self, builder: BuilderInterface) -> List[str]:
         llvm_src_path = builder.fs_layout.get_source_path(self)
-        return [
+        args = [
             '-DLIBCXXABI_LIBCXX_PATH=%s' % os.path.join(llvm_src_path, 'libcxx'),
             '-DLIBCXXABI_USE_COMPILER_RT=ON',
             '-DLIBCXXABI_USE_LLVM_UNWINDER=ON',
         ]
+        return args
 
     def build(self, builder: BuilderInterface) -> None:
         super().build(builder)
@@ -125,3 +126,46 @@ class Llvm1xLibCxxDependency(Llvm1xLibCxxDependencyBase):
             '-DLIBCXX_CXX_ABI=libcxxabi',
             '-DLIBCXXABI_USE_LLVM_UNWINDER=ON',
         ]
+
+
+class LibCxxWithAbiDependency(Llvm1xLibCxxDependencyBase):
+    """
+    A combined dependency for libc++ and libc++abi.
+
+    Using the approach described at:
+
+    https://libcxx.llvm.org/BuildingLibcxx.html
+
+    Based on the following instructions:
+
+    $ git clone https://github.com/llvm/llvm-project.git
+    $ cd llvm-project
+    $ mkdir build
+    $ cmake -G Ninja -S runtimes -B build -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind"
+    $ ninja -C build cxx cxxabi unwind
+    $ ninja -C build check-cxx check-cxxabi check-unwind
+    $ ninja -C build install-cxx install-cxxabi install-unwind
+
+    Using this with LLVM/Clang 13 or later.
+    """
+
+    def __init__(self, version: str) -> None:
+        super(LibCxxWithAbiDependency, self).__init__(
+            name='llvm1x_libcxx_with_abi',
+            version=version)
+
+    def get_source_subdir_name(self) -> str:
+        return 'runtimes'
+
+    def get_additional_cmake_args(self, builder: BuilderInterface) -> List[str]:
+        return [
+            '-DLLVM_ENABLE_RUNTIMES=libcxx;libcxxabi',
+        ]
+
+    def get_compiler_wrapper_ld_flags_to_append(self, builder: 'BuilderInterface') -> List[str]:
+        extra_ld_flags = super().get_compiler_wrapper_ld_flags_to_append(builder)
+        if builder.build_type == BUILD_TYPE_TSAN:
+            # It is not clear why in Clang 13 this suddenly becomes necessary in order to avoid
+            # failing with undefined TSAN-related symbols while linking shared libraries.
+            extra_ld_flags.append('-Wl,--unresolved-symbols=ignore-all')
+        return extra_ld_flags

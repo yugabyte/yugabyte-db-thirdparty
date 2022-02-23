@@ -87,6 +87,13 @@ class Dependency:
     def get_additional_ld_flags(self, builder: 'BuilderInterface') -> List[str]:
         return []
 
+    def get_compiler_wrapper_ld_flags_to_append(self,  builder: 'BuilderInterface') -> List[str]:
+        """
+        In some cases, we need to use the compiler_wrapper to add ld flags at the very end of the
+        compiler wrapper command line.
+        """
+        return []
+
     def get_additional_assembler_flags(self, builder: 'BuilderInterface') -> List[str]:
         return []
 
