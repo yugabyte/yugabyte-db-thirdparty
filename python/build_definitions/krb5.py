@@ -24,7 +24,7 @@ class Krb5Dependency(Dependency):
             'krb5',
             '1.19.2',
             'https://kerberos.org/dist/krb5/1.19/krb5-{0}.tar.gz',
-            BUILD_GROUP_INSTRUMENTED)
+            BUILD_GROUP_COMMON)
         self.copy_sources = True
 
     def build(self, builder: BuilderInterface) -> None:
