@@ -28,7 +28,7 @@ class Krb5Dependency(Dependency):
         self.copy_sources = True
 
     def build(self, builder: BuilderInterface) -> None:
-        extra_args = []
+        extra_args = ['--enable-nls']
         if builder.build_type in [BUILD_TYPE_ASAN]:
             extra_args.append('--enable-asan')
         builder.build_with_configure(
