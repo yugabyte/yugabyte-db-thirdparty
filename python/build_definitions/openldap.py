@@ -33,9 +33,10 @@ class OpenLDAPDependency(Dependency):
     def build(self, builder: BuilderInterface) -> None:
         # build client only
         disabled_features = (
-            'slapd', 'bdb', 'hdb', 'mdb', 'monitor', 'relay', 'syncprov', 'cyrus-sasl'
+            'slapd', 'bdb', 'hdb', 'mdb', 'monitor', 'relay', 'syncprov'
         )
 
         builder.build_with_configure(
             builder.log_prefix(self),
-            extra_args=['--disable-' + feature for feature in disabled_features])
+            extra_args=['--disable-' + feature for feature in disabled_features] +
+                       ['--with-cyrus-sasl=no'])
