@@ -15,7 +15,7 @@ from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
 
 class Icu4cDependency(Dependency):
-    VERSION_MAJOR = 67
+    VERSION_MAJOR = 70
     VERSION_MINOR = 1
     VERSION_WITH_UNDERSCORE = '%d_%d' % (VERSION_MAJOR, VERSION_MINOR)
     VERSION_WITH_DASH = '%d-%d' % (VERSION_MAJOR, VERSION_MINOR)
