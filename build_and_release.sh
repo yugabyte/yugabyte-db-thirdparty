@@ -142,7 +142,8 @@ fi
 
 original_repo_dir=$PWD
 git_sha1=$( git rev-parse HEAD )
-tag=v$( date +%Y%m%d%H%M%S )-${git_sha1:0:10}
+branch_name=$(<"$YB_THIRDPARTY_DIR/branch.txt")
+tag=v${branch_name}-$( date +%Y%m%d%H%M%S )-${git_sha1:0:10}
 
 archive_dir_name=yugabyte-db-thirdparty-$tag
 if [[ -z ${YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX:-} ]]; then
@@ -219,3 +220,4 @@ for file_to_copy in archive.tar.gz archive.tar.gz.sha256; do
     log "Warning: file $file_to_copy not found. Artifact upload may fail."
   fi
 done
+
