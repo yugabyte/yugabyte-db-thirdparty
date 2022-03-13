@@ -123,9 +123,13 @@ class CompilerWrapper:
                                     included_file,
                                     self._get_compiler_command_str()))
 
-        subprocess.check_call(cmd_args)
         cmd_str = '( cd %s; %s )' % (shlex.quote(os.getcwd()), shlex_join(cmd_args))
-        sys.stderr.write(cmd_str)
+        sys.stderr.write("Running command: %s" % cmd_str)
+        try:
+            subprocess.check_call(cmd_args)
+        except subprocess.CalledProcessError as ex:
+            sys.stderr.write("Command failed with exit code %d: %s\n" % (ex.returncode, cmd_str))
+            raise ex
 
 
 def run_compiler_wrapper(is_cxx: bool) -> None:

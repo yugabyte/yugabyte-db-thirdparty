@@ -33,6 +33,7 @@ from build_definitions import (
     BUILD_TYPE_UNINSTRUMENTED,
     BUILD_TYPES,
     get_build_def_module,
+    get_deps_from_module_names,
 )
 from yugabyte_db_thirdparty.builder_helpers import PLACEHOLDER_RPATH, get_make_parallelism, \
     get_rpath_flag, log_and_set_env_var_to_list, format_cmake_args_for_log
@@ -231,23 +232,23 @@ class Builder(BuilderInterface):
         # We have to use get_build_def_module to access submodules of build_definitions,
         # otherwise MyPy gets confused.
 
-        self.dependencies = [
+        self.dependencies = get_deps_from_module_names([
             # Avoiding a name collision with the standard zlib module, hence "zlib_dependency".
-            get_build_def_module('zlib_dependency').ZLibDependency(),
-            get_build_def_module('lz4').LZ4Dependency(),
-            get_build_def_module('openssl').OpenSSLDependency(),
-            get_build_def_module('libev').LibEvDependency(),
-            get_build_def_module('rapidjson').RapidJsonDependency(),
-            get_build_def_module('squeasel').SqueaselDependency(),
-            get_build_def_module('curl').CurlDependency(),
-            get_build_def_module('hiredis').HiRedisDependency(),
-            get_build_def_module('cqlsh').CQLShDependency(),
-            get_build_def_module('redis_cli').RedisCliDependency(),
-            get_build_def_module('flex').FlexDependency(),
-            get_build_def_module('bison').BisonDependency(),
-            get_build_def_module('libedit').LibEditDependency(),
-            get_build_def_module('openldap').OpenLDAPDependency(),
-        ]
+            'zlib_dependency',
+            'lz4',
+            'openssl',
+            'libev',
+            'rapidjson',
+            'squeasel',
+            'curl',
+            'hiredis',
+            'cqlsh',
+            'redis_cli',
+            'flex',
+            'bison',
+            'libedit',
+            'openldap',
+        ])
 
         if is_linux():
             self.dependencies += [
@@ -288,24 +289,25 @@ class Builder(BuilderInterface):
 
             self.dependencies.append(get_build_def_module('libbacktrace').LibBacktraceDependency())
 
-        self.dependencies += [
-            get_build_def_module('icu4c').Icu4cDependency(),
-            get_build_def_module('protobuf').ProtobufDependency(),
-            get_build_def_module('crypt_blowfish').CryptBlowfishDependency(),
-            get_build_def_module('boost').BoostDependency(),
-
-            get_build_def_module('gflags').GFlagsDependency(),
-            get_build_def_module('glog').GLogDependency(),
-            get_build_def_module('gperftools').GPerfToolsDependency(),
-            get_build_def_module('gmock').GMockDependency(),
-            get_build_def_module('snappy').SnappyDependency(),
-            get_build_def_module('crcutil').CRCUtilDependency(),
-            get_build_def_module('libcds').LibCDSDependency(),
-
-            get_build_def_module('libuv').LibUvDependency(),
-            get_build_def_module('cassandra_cpp_driver').CassandraCppDriverDependency(),
-            get_build_def_module('krb5').Krb5Dependency(),
-        ]
+        self.dependencies += get_deps_from_module_names([
+            'unistring',
+            'gettext',
+            'icu4c',
+            'ncurses',
+            'protobuf',
+            'crypt_blowfish',
+            'boost',
+            'gflags',
+            'glog',
+            'gperftools',
+            'gmock',
+            'snappy',
+            'crcutil',
+            'libcds',
+            'libuv',
+            'cassandra_cpp_driver',
+            'krb5',
+        ])
 
     def select_dependencies_to_build(self) -> None:
         self.selected_dependencies = []

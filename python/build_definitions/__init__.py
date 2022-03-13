@@ -22,7 +22,6 @@ from typing import Any, List, Dict, Union
 from yugabyte_db_thirdparty.custom_logging import log
 from yugabyte_db_thirdparty.archive_handling import make_archive_name
 
-
 # -------------------------------------------------------------------------------------------------
 # Build groups
 # -------------------------------------------------------------------------------------------------
@@ -103,6 +102,34 @@ class ExtraDownload:
 
 def get_build_def_module(submodule_name: str) -> Any:
     return getattr(sys.modules['build_definitions'], submodule_name)
+
+
+def get_dependency_by_submodule_name(module_name: str) -> 'Dependency':
+    build_def_module = get_build_def_module(module_name)
+    candidate_classes: List[Any] = []
+    for field_name in dir(build_def_module):
+        field_value = getattr(build_def_module, field_name)
+        if isinstance(field_value, type):
+            try:
+                class_name = getattr(field_value, '__name__')
+            except AttributeError:
+                continue
+            if class_name != 'Dependency' and class_name.endswith('Dependency'):
+                candidate_classes.append(field_value)
+
+    if not candidate_classes:
+        raise ValueError(
+            "Could not find a ...Dependency class in module %s that starts with submodule name" %
+                module_name)
+    if len(candidate_classes) > 1:
+        raise ValueError("Found too many classes with names ending with Dependency in module "
+                         "%s: %s", module_name, sorted(
+                             [cl.__name__ for cl in candidate_classes]))
+    return candidate_classes[0]()
+
+
+def get_deps_from_module_names(module_names: List[str]) -> List['Dependency']:
+    return [get_dependency_by_submodule_name(module_name) for module_name in module_names]
 
 
 def validate_build_type(build_type: str) -> None:
