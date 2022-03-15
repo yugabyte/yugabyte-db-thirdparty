@@ -28,9 +28,10 @@ class Krb5Dependency(Dependency):
         self.copy_sources = True
 
     def get_additional_ld_flags(self, builder: BuilderInterface) -> List[str]:
-        if builder.compiler_choice.is_linux_clang1x() and builder.build_type == BUILD_TYPE_ASAN:
+        if (builder.compiler_choice.is_linux_clang() and
+                builder.build_type in [BUILD_TYPE_ASAN, BUILD_TYPE_TSAN]):
             # Needed to find dlsym.
-            return ['-ldl']
+            return ['-ldl', '-lpthread']
         return []
 
     def build(self, builder: BuilderInterface) -> None:

@@ -226,7 +226,15 @@ class CompilerChoice:
             not is_macos() and
             self.single_compiler_type == 'clang' and
             llvm_major_version is not None and
-            llvm_major_version >= 7
+            llvm_major_version >= 10
+        )
+
+    def is_linux_clang(self) -> bool:
+        llvm_major_version: Optional[int] = self.get_llvm_major_version()
+        return (
+            not is_macos() and
+            self.single_compiler_type == 'clang' and
+            llvm_major_version is not None
         )
 
     def set_compiler(self, compiler_type: str) -> None:
