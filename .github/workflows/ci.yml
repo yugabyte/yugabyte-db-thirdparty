@@ -41,13 +41,6 @@ jobs:
               --devtoolset=9
               --expected-major-compiler-version=9
 
-          - name: centos7-x86_64-clang7
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_centos7:v2021-08-27T03_10_19
-            build_thirdparty_args: >-
-              --toolchain=llvm7
-              --expected-major-compiler-version=7
-
           - name: centos7-x86_64-clang11
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_centos7:v2021-08-27T03_10_19
