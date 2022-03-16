@@ -206,7 +206,7 @@ class Builder(BuilderInterface):
             compiler_prefix=compiler_prefix,
             compiler_suffix=self.args.compiler_suffix,
             devtoolset=self.args.devtoolset,
-            use_compiler_wrapper=self.args.use_compiler_wrapper,
+            use_compiler_wrapper=False,
             use_ccache=self.args.use_ccache,
             expected_major_compiler_version=self.args.expected_major_compiler_version
         )
@@ -349,8 +349,7 @@ class Builder(BuilderInterface):
     def run(self) -> None:
         if is_macos() and get_target_arch() == 'x86_64':
             os.environ['MACOSX_DEPLOYMENT_TARGET'] = get_min_supported_macos_version()
-        self.compiler_choice.set_compiler(
-            'clang' if self.compiler_choice.use_only_clang() else 'gcc')
+        self.compiler_choice.set_compiler(use_compiler_wrapper=False)
         if self.args.clean or self.args.clean_downloads:
             self.fs_layout.clean(self.selected_dependencies, self.args.clean_downloads)
         self.prepare_out_dirs()
@@ -723,16 +722,15 @@ class Builder(BuilderInterface):
         self.prefix_bin = os.path.join(self.prefix, 'bin')
         self.prefix_lib = os.path.join(self.prefix, 'lib')
         self.prefix_include = os.path.join(self.prefix, 'include')
-        if self.compiler_choice.building_with_clang(build_type):
-            compiler = 'clang'
-        else:
-            compiler = 'gcc'
-        self.compiler_choice.set_compiler(compiler)
-        heading("Building {} dependencies (compiler type: {})".format(
-            build_type, self.compiler_choice.compiler_type))
-        log("Compiler type: %s", self.compiler_choice.compiler_type)
-        log("C compiler: %s", self.compiler_choice.get_c_compiler())
-        log("C++ compiler: %s", self.compiler_choice.get_cxx_compiler())
+        # if self.compiler_choice.building_with_clang(build_type):
+        #     compiler = 'clang'
+        # else:
+        #     compiler = 'gcc'
+        # heading("Building {} dependencies (compiler type: {})".format(
+        #     build_type, self.compiler_choice.compiler_type))
+        # log("Compiler type: %s", self.compiler_choice.compiler_type)
+        # log("C compiler: %s", self.compiler_choice.get_c_compiler())
+        # log("C++ compiler: %s", self.compiler_choice.get_cxx_compiler())
 
     def init_flags(self, dep: Dependency) -> None:
         """
@@ -741,7 +739,7 @@ class Builder(BuilderInterface):
         """
         self.init_compiler_independent_flags(dep)
 
-        if not is_macos() and self.compiler_choice.building_with_clang(self.build_type):
+        if not is_macos() and self.compiler_choice.use_only_clang():
             # Special setup for Clang on Linux.
             compiler_choice = self.compiler_choice
             llvm_major_version: Optional[int] = compiler_choice.get_llvm_major_version()
@@ -750,10 +748,6 @@ class Builder(BuilderInterface):
                 # We are assuming that --single-compiler-type will only be used for Clang 10 and
                 # newer.
                 self.init_linux_clang1x_flags(dep)
-            elif llvm_major_version == 7 or compiler_choice.single_compiler_type is None:
-                # We are either building with LLVM 7 without Linuxbrew, or this is the
-                # Linuxbrew-based build with both GCC and Clang (which will go away).
-                self.init_linux_clang7_flags(dep)
             else:
                 raise ValueError(f"Unsupported LLVM major version: {llvm_major_version}")
 
@@ -764,45 +758,10 @@ class Builder(BuilderInterface):
         libcxx_installed_lib = os.path.join(libcxx_installed_path, 'lib')
         return libcxx_installed_include, libcxx_installed_lib
 
-    def init_linux_clang7_flags(self, dep: Dependency) -> None:
-        """
-        Flags used to build code with Clang 7 that we build here. As we move to newer versions of
-        Clang, this function will go away.
-        """
-        if self.build_type == BUILD_TYPE_TSAN:
-            # Ensure that TSAN runtime is linked statically into every executable. TSAN runtime
-            # uses -fPIE while our shared libraries use -fPIC, and therefore TSAN runtime can only
-            # be linked statically into executables. TSAN runtime can't be built with -fPIC because
-            # that would create significant performance issues.
-            self.executable_only_ld_flags += ['-fsanitize=thread']
-
-        # This is used to build code with libc++ and Clang 7 built as part of thirdparty.
-        stdlib_suffix = self.build_type
-        stdlib_path = os.path.join(self.fs_layout.tp_installed_dir, stdlib_suffix, 'libcxx')
-        stdlib_include = os.path.join(stdlib_path, 'include', 'c++', 'v1')
-        stdlib_lib = os.path.join(stdlib_path, 'lib')
-        self.cxx_flags.insert(0, '-nostdinc++')
-        self.cxx_flags.insert(0, '-isystem')
-        self.cxx_flags.insert(1, stdlib_include)
-        self.cxx_flags.insert(0, '-stdlib=libc++')
-        # Clang complains about argument unused during compilation: '-stdlib=libc++' when both
-        # -stdlib=libc++ and -nostdinc++ are specified.
-        self.cxx_flags.insert(0, '-Wno-error=unused-command-line-argument')
-        self.prepend_lib_dir_and_rpath(stdlib_lib)
-        if using_linuxbrew():
-            self.compiler_flags.append('--gcc-toolchain={}'.format(
-                get_linuxbrew_dir()))
-
-        if self.toolchain and self.toolchain.toolchain_type == 'llvm7':
-            # This is needed when building with Clang 7 but without Linuxbrew.
-            # TODO: this might only be needed due to using an old version of libunwind that is
-            # different from libunwind included in the LLVM 7 repository. Just a hypothesis.
-            self.ld_flags.append('-lgcc_s')
-
     def init_linux_clang1x_flags(self, dep: Dependency) -> None:
         """
-        Flags for Clang 10 and beyond. We are using LLVM-supplied libunwind and compiler-rt in this
-        configuration.
+        Flags for Clang 10 and beyond. We are using LLVM-supplied libunwind, and in most cases,
+        compiler-rt in this configuration.
         """
         llvm_major_version = self.compiler_choice.get_llvm_major_version()
         assert llvm_major_version is not None
@@ -999,6 +958,8 @@ class Builder(BuilderInterface):
             the build.
         """
 
+        self.compiler_choice.set_compiler(
+            use_compiler_wrapper=self.args.use_compiler_wrapper or dep.need_compiler_wrapper(self))
         self.init_flags(dep)
 
         # This is needed at least for glog to be able to find gflags.

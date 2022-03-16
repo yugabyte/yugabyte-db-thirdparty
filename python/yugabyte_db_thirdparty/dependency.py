@@ -131,3 +131,7 @@ class Dependency:
 
     def get_source_dir_basename(self) -> str:
         return self.dir_name
+
+    def need_compiler_wrapper(self, builder: 'BuilderInterface') -> bool:
+        return (bool(self.get_compiler_wrapper_ld_flags_to_append(builder)) or
+                bool(self.get_compiler_wrapper_ld_flags_to_remove(builder)))
