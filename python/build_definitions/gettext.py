@@ -13,7 +13,6 @@
 #
 
 import os
-import sys
 
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
@@ -27,5 +26,14 @@ class GetTextDependency(Dependency):
             BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = True
 
+    def get_compiler_wrapper_ld_flags_to_remove(self, builder: BuilderInterface) -> Set[str]:
+        if is_macos():
+            return {'-lrt'}
+        return set()
+
     def build(self, builder: BuilderInterface) -> None:
-        builder.build_with_configure(log_prefix=builder.log_prefix(self))
+        builder.build_with_configure(
+            log_prefix=builder.log_prefix(self),
+            extra_args=[
+                '--disable-java',
+            ])

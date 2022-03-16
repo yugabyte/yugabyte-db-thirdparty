@@ -34,5 +34,5 @@ from build_definitions import (
     BUILD_TYPE_TSAN,
 )
 
-from typing import List, Dict, Any
+from typing import List, Dict, Set, Any
 from sys_detection import is_macos

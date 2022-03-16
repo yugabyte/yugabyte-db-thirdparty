@@ -15,8 +15,6 @@
 import os
 import sys
 
-from typing import Set
-
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
 
@@ -38,9 +36,7 @@ class Krb5Dependency(Dependency):
         return flags
 
     def get_compiler_wrapper_ld_flags_to_remove(self, builder: BuilderInterface) -> Set[str]:
-        flags_to_remove: Set[str] = super().get_compiler_wrapper_ld_flags_to_remove(builder)
-        flags_to_remove.add('-Wl,--no-undefined')
-        return flags_to_remove
+        return {'-Wl,--no-undefined'}
 
     def build(self, builder: BuilderInterface) -> None:
         extra_args = []

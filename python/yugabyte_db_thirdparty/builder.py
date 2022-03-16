@@ -292,24 +292,25 @@ class Builder(BuilderInterface):
 
             self.dependencies.append(get_build_def_module('libbacktrace').LibBacktraceDependency())
 
-        self.dependencies += get_deps_from_module_names([
-            'unistring',
-            'gettext',
-            'icu4c',
-            'protobuf',
-            'crypt_blowfish',
-            'boost',
-            'gflags',
-            'glog',
-            'gperftools',
-            'gmock',
-            'snappy',
-            'crcutil',
-            'libcds',
-            'libuv',
-            'cassandra_cpp_driver',
-            'krb5',
-        ])
+        self.dependencies += get_deps_from_module_names(
+            # On macOS, krb5 ends up depending on gettext, and we don't want to use gettext from
+            # Homebrew. On Linux, krb5 does not depend on gettext for some reason.
+            (['gettext'] if is_macos() else []) + [
+                'icu4c',
+                'protobuf',
+                'crypt_blowfish',
+                'boost',
+                'gflags',
+                'glog',
+                'gperftools',
+                'gmock',
+                'snappy',
+                'crcutil',
+                'libcds',
+                'libuv',
+                'cassandra_cpp_driver',
+                'krb5',
+            ])
 
     def select_dependencies_to_build(self) -> None:
         self.selected_dependencies = []
