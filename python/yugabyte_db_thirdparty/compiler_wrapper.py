@@ -8,7 +8,10 @@ import shlex
 from typing import List, Dict
 
 from yugabyte_db_thirdparty.util import shlex_join, is_shared_library_name
-from yugabyte_db_thirdparty.constants import COMPILER_WRAPPER_LD_FLAGS_TO_APPEND_ENV_VAR_NAME
+from yugabyte_db_thirdparty.constants import (
+    COMPILER_WRAPPER_ENV_VAR_NAME_LD_FLAGS_TO_APPEND,
+    COMPILER_WRAPPER_ENV_VAR_NAME_LD_FLAGS_TO_REMOVE,
+)
 
 
 class CompilerWrapper:
@@ -71,10 +74,15 @@ class CompilerWrapper:
         is_linking = [
             is_shared_library_name(output_file_name) for output_file_name in output_files
         ]
+
         if is_linking:
             cmd_args.extend(
                 os.environ.get(
-                    COMPILER_WRAPPER_LD_FLAGS_TO_APPEND_ENV_VAR_NAME, '').strip().split())
+                    COMPILER_WRAPPER_ENV_VAR_NAME_LD_FLAGS_TO_APPEND, '').strip().split())
+
+            ld_flags_to_remove: set[str] = set(os.environ.get(
+                    COMPILER_WRAPPER_ENV_VAR_NAME_LD_FLAGS_TO_REMOVE, '').strip().split())
+            cmd_args = [arg for arg in cmd_args if arg not in ld_flags_to_remove]
 
         if len(output_files) == 1 and output_files[0].endswith('.o'):
             pp_output_path = None

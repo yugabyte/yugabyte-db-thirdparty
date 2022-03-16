@@ -15,6 +15,8 @@
 import os
 import sys
 
+from typing import Set
+
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
 
@@ -28,10 +30,17 @@ class Krb5Dependency(Dependency):
         self.copy_sources = True
 
     def get_additional_ld_flags(self, builder: BuilderInterface) -> List[str]:
-        if builder.compiler_choice.is_linux_clang1x() and builder.build_type == BUILD_TYPE_ASAN:
-            # Needed to find dlsym.
-            return ['-ldl']
-        return []
+        flags: List[str] = super().get_additional_ld_flags(builder)
+        if builder.compiler_choice.is_linux_clang1x():
+            if builder.build_type == BUILD_TYPE_ASAN:
+                # Needed to find dlsym.
+                flags.append('-ldl')
+        return flags
+
+    def get_compiler_wrapper_ld_flags_to_remove(self, builder: BuilderInterface) -> Set[str]:
+        flags_to_remove: Set[str] = super().get_compiler_wrapper_ld_flags_to_remove(builder)
+        flags_to_remove.add('-Wl,--no-undefined')
+        return flags_to_remove
 
     def build(self, builder: BuilderInterface) -> None:
         extra_args = []

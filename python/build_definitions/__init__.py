@@ -18,9 +18,13 @@ import sys
 import importlib
 import pkgutil
 
-from typing import Any, List, Dict, Union
+from typing import Any, List, Dict, Union, TYPE_CHECKING
+
 from yugabyte_db_thirdparty.custom_logging import log
 from yugabyte_db_thirdparty.archive_handling import make_archive_name
+
+if TYPE_CHECKING:
+    from yugabyte_db_thirdparty.dependency import Dependency
 
 # -------------------------------------------------------------------------------------------------
 # Build groups
@@ -121,6 +125,7 @@ def get_dependency_by_submodule_name(module_name: str) -> 'Dependency':
         raise ValueError(
             "Could not find a ...Dependency class in module %s that starts with submodule name" %
                 module_name)
+
     if len(candidate_classes) > 1:
         raise ValueError("Found too many classes with names ending with Dependency in module "
                          "%s: %s", module_name, sorted(
