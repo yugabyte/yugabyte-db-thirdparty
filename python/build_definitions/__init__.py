@@ -124,7 +124,7 @@ def get_dependency_by_submodule_name(module_name: str) -> 'Dependency':
     if not candidate_classes:
         raise ValueError(
             "Could not find a ...Dependency class in module %s that starts with submodule name" %
-                module_name)
+            module_name)
 
     if len(candidate_classes) > 1:
         raise ValueError("Found too many classes with names ending with Dependency in module "

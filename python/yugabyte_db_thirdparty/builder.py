@@ -296,7 +296,6 @@ class Builder(BuilderInterface):
             'unistring',
             'gettext',
             'icu4c',
-            'ncurses',
             'protobuf',
             'crypt_blowfish',
             'boost',
@@ -1049,7 +1048,7 @@ class Builder(BuilderInterface):
                     "wrapper is not being used: %s" % sorted(compiler_wrapper_ld_flags_to_remove))
             log_and_set_env_var_to_list(
                 env_vars, COMPILER_WRAPPER_ENV_VAR_NAME_LD_FLAGS_TO_REMOVE,
-                compiler_wrapper_ld_flags_to_remove)
+                sorted(compiler_wrapper_ld_flags_to_remove))
 
         for k, v in env_vars.items():
             log("Setting environment variable %s to: %s" % (k, v))

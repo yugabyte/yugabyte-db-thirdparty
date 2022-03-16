@@ -5,7 +5,7 @@ import os
 import subprocess
 import shlex
 
-from typing import List, Dict
+from typing import List, Set
 
 from yugabyte_db_thirdparty.util import shlex_join, is_shared_library_name
 from yugabyte_db_thirdparty.constants import (
@@ -80,7 +80,7 @@ class CompilerWrapper:
                 os.environ.get(
                     COMPILER_WRAPPER_ENV_VAR_NAME_LD_FLAGS_TO_APPEND, '').strip().split())
 
-            ld_flags_to_remove: set[str] = set(os.environ.get(
+            ld_flags_to_remove: Set[str] = set(os.environ.get(
                     COMPILER_WRAPPER_ENV_VAR_NAME_LD_FLAGS_TO_REMOVE, '').strip().split())
             cmd_args = [arg for arg in cmd_args if arg not in ld_flags_to_remove]
 
