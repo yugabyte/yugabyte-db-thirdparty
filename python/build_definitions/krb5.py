@@ -22,23 +22,19 @@ class Krb5Dependency(Dependency):
     def __init__(self) -> None:
         super(Krb5Dependency, self).__init__(
             'krb5',
-            '1.19.3-yb-1',
-            'https://github.com/yugabyte/krb5/archive/refs/tags/krb5-{0}.tar.gz',
+            '1.19.3',
+            'https://kerberos.org/dist/krb5/1.19/krb5-{0}.tar.gz',
             BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = True
+        self.patches = ['krb5-1.19.3-use-ldflags-for-test.patch']
+        self.patch_strip = 0
 
     def get_additional_ld_flags(self, builder: BuilderInterface) -> List[str]:
         flags: List[str] = super().get_additional_ld_flags(builder)
-        if builder.build_type == BUILD_TYPE_ASAN:
-            # Needed to find dlsym.
-            flags.append('-ldl')
-            # if builder.compiler_choice.get_llvm_major_version() >= 13:
-            #     flags.append('-Wl,--allow-shlib-undefined')
-            # if (builder.build_type == BUILD_TYPE_TSAN and
-            #         builder.compiler_choice.get_llvm_major_version() >= 13):
-
-            #     # https://gist.githubusercontent.com/mbautin/6b096645d7bbc89f25fde2a6942fc71b/raw
-            #     flags.append('-lunwind')
+        if builder.compiler_choice.is_linux_clang1x():
+            if builder.build_type == BUILD_TYPE_ASAN:
+                # Needed to find dlsym.
+                flags.append('-ldl')
         return flags
 
     # def get_compiler_wrapper_ld_flags_to_append(self, builder: BuilderInterface) -> List[str]:
@@ -57,5 +53,4 @@ class Krb5Dependency(Dependency):
             log_prefix=builder.log_prefix(self),
             src_subdir_name='src',
             extra_args=extra_args,
-            autoconf=True,
         )

@@ -467,13 +467,9 @@ class Builder(BuilderInterface):
 
         if self.build_type == BUILD_TYPE_ASAN:
             self.compiler_flags += ASAN_FLAGS
-            # self.ld_flags.append('-fsanitize=address')
-            # self.ld_flags.append('-fsanitize=undefined')
 
         if self.build_type == BUILD_TYPE_TSAN:
             self.compiler_flags += TSAN_FLAGS
-            # self.ld_flags.append('-fsanitize=thread')
-
 
     def add_linuxbrew_flags(self) -> None:
         if using_linuxbrew():
@@ -815,8 +811,6 @@ class Builder(BuilderInterface):
 
         if self.build_type == BUILD_TYPE_ASAN:
             self.compiler_flags.append('-shared-libasan')
-            # TODO mbautin: dedup this with the above.
-            self.ld_flags.append('-shared-libasan')
 
             if is_libcxxabi or is_libcxx_with_abi:
                 # To avoid an infinite loop in UBSAN.

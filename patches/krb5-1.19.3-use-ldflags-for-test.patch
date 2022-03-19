@@ -1,0 +1,13 @@
+diff --git src/tests/asn.1/Makefile.in src/tests/asn.1/Makefile.in
+index eabe0bd..b0a3b74 100644
+--- src/tests/asn.1/Makefile.in
++++ src/tests/asn.1/Makefile.in
+@@ -29,7 +29,7 @@ krb5_decode_leak: $(LEAKOBJS) $(KRB5_BASE_DEPLIBS)
+ 	$(CC_LINK) -o krb5_decode_leak $(LEAKOBJS) $(KRB5_BASE_LIBS)
+ 
+ t_trval: t_trval.o
+-	$(CC) -o t_trval $(ALL_CFLAGS) t_trval.o
++	$(CC) -o t_trval $(ALL_CFLAGS) $(LDFLAGS) t_trval.o
+ 
+ check: check-encode check-encode-trval check-decode check-leak
+ 
