@@ -84,6 +84,14 @@ class CompilerWrapper:
                     COMPILER_WRAPPER_ENV_VAR_NAME_LD_FLAGS_TO_REMOVE, '').strip().split())
             cmd_args = [arg for arg in cmd_args if arg not in ld_flags_to_remove]
 
+            # def handle_arg(s: str) -> str:
+            #     if s.endswith(',--no-undefined'):
+            #         return s[:-len(',--no-undefined')]
+            #     return s
+            # cmd_args = [
+            #     handle_arg(arg) for arg in cmd_args
+            # ]
+
         if len(output_files) == 1 and output_files[0].endswith('.o'):
             pp_output_path = None
             # Perform preprocessing only to ensure we are using the correct include directories.
