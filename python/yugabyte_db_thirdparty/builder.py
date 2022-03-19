@@ -722,15 +722,6 @@ class Builder(BuilderInterface):
         self.prefix_bin = os.path.join(self.prefix, 'bin')
         self.prefix_lib = os.path.join(self.prefix, 'lib')
         self.prefix_include = os.path.join(self.prefix, 'include')
-        # if self.compiler_choice.building_with_clang(build_type):
-        #     compiler = 'clang'
-        # else:
-        #     compiler = 'gcc'
-        # heading("Building {} dependencies (compiler type: {})".format(
-        #     build_type, self.compiler_choice.compiler_type))
-        # log("Compiler type: %s", self.compiler_choice.compiler_type)
-        # log("C compiler: %s", self.compiler_choice.get_c_compiler())
-        # log("C++ compiler: %s", self.compiler_choice.get_cxx_compiler())
 
     def init_flags(self, dep: Dependency) -> None:
         """
@@ -739,17 +730,14 @@ class Builder(BuilderInterface):
         """
         self.init_compiler_independent_flags(dep)
 
-        if not is_macos() and self.compiler_choice.use_only_clang():
+        if not is_macos() and self.compiler_choice.using_clang():
             # Special setup for Clang on Linux.
             compiler_choice = self.compiler_choice
             llvm_major_version: Optional[int] = compiler_choice.get_llvm_major_version()
-            if (compiler_choice.single_compiler_type == 'clang' and
-                    llvm_major_version is not None and llvm_major_version >= 10):
-                # We are assuming that --single-compiler-type will only be used for Clang 10 and
-                # newer.
+            if llvm_major_version is not None and llvm_major_version >= 10:
                 self.init_linux_clang1x_flags(dep)
             else:
-                raise ValueError(f"Unsupported LLVM major version: {llvm_major_version}")
+                raise ValueError(f"Unknown or unsupproted LLVM major version: {llvm_major_version}")
 
     def get_libcxx_dirs(self, libcxx_installed_suffix: str) -> Tuple[str, str]:
         libcxx_installed_path = os.path.join(

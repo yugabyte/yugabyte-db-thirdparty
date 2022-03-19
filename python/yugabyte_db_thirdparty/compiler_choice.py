@@ -309,3 +309,11 @@ class CompilerChoice:
                     self.cc_identification,
                     self.cxx_identification
                 ))
+
+    def using_clang(self) -> bool:
+        assert self.compiler_type is not None
+        return self.compiler_type == 'clang'
+
+    def using_gcc(self) -> bool:
+        assert self.compiler_type is not None
+        return self.compiler_type == 'gcc'
