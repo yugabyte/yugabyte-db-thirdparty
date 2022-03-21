@@ -35,7 +35,7 @@ class Krb5Dependency(Dependency):
         return []
 
     def build(self, builder: BuilderInterface) -> None:
-        extra_args = ['--without-gettext']
+        extra_args = ['--disable-nls']
         if builder.build_type in [BUILD_TYPE_ASAN]:
             extra_args.append('--enable-asan')
         builder.build_with_configure(
