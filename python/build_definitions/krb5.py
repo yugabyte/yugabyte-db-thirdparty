@@ -37,16 +37,13 @@ class Krb5Dependency(Dependency):
                 flags.append('-ldl')
         return flags
 
-    # def get_compiler_wrapper_ld_flags_to_append(self, builder: BuilderInterface) -> List[str]:
-    #     if builder.build_type == BUILD_TYPE_ASAN:
-    #         return ['-fsanitize=address']
-    #     return []
-
     def get_compiler_wrapper_ld_flags_to_remove(self, builder: BuilderInterface) -> Set[str]:
         return {'-Wl,--no-undefined'}
 
     def build(self, builder: BuilderInterface) -> None:
-        extra_args = []
+        extra_args = [
+            '--disable-nls',  # Remove the dependency on gettext.
+        ]
         if builder.build_type in [BUILD_TYPE_ASAN]:
             extra_args.append('--enable-asan')
         builder.build_with_configure(

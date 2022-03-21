@@ -292,10 +292,7 @@ class Builder(BuilderInterface):
 
             self.dependencies.append(get_build_def_module('libbacktrace').LibBacktraceDependency())
 
-        self.dependencies += get_deps_from_module_names(
-            # On macOS, krb5 ends up depending on gettext, and we don't want to use gettext from
-            # Homebrew. On Linux, krb5 does not depend on gettext for some reason.
-            (['gettext'] if is_macos() else []) + [
+        self.dependencies += get_deps_from_module_names([
                 'icu4c',
                 'protobuf',
                 'crypt_blowfish',
