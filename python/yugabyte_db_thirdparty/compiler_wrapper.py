@@ -5,10 +5,13 @@ import os
 import subprocess
 import shlex
 
-from typing import List, Dict
+from typing import List, Set
 
 from yugabyte_db_thirdparty.util import shlex_join, is_shared_library_name
-from yugabyte_db_thirdparty.constants import COMPILER_WRAPPER_LD_FLAGS_TO_APPEND_ENV_VAR_NAME
+from yugabyte_db_thirdparty.constants import (
+    COMPILER_WRAPPER_ENV_VAR_NAME_LD_FLAGS_TO_APPEND,
+    COMPILER_WRAPPER_ENV_VAR_NAME_LD_FLAGS_TO_REMOVE,
+)
 
 
 class CompilerWrapper:
@@ -71,10 +74,15 @@ class CompilerWrapper:
         is_linking = [
             is_shared_library_name(output_file_name) for output_file_name in output_files
         ]
+
         if is_linking:
             cmd_args.extend(
                 os.environ.get(
-                    COMPILER_WRAPPER_LD_FLAGS_TO_APPEND_ENV_VAR_NAME, '').strip().split())
+                    COMPILER_WRAPPER_ENV_VAR_NAME_LD_FLAGS_TO_APPEND, '').strip().split())
+
+            ld_flags_to_remove: Set[str] = set(os.environ.get(
+                    COMPILER_WRAPPER_ENV_VAR_NAME_LD_FLAGS_TO_REMOVE, '').strip().split())
+            cmd_args = [arg for arg in cmd_args if arg not in ld_flags_to_remove]
 
         if len(output_files) == 1 and output_files[0].endswith('.o'):
             pp_output_path = None
@@ -123,9 +131,13 @@ class CompilerWrapper:
                                     included_file,
                                     self._get_compiler_command_str()))
 
-        subprocess.check_call(cmd_args)
         cmd_str = '( cd %s; %s )' % (shlex.quote(os.getcwd()), shlex_join(cmd_args))
-        sys.stderr.write(cmd_str)
+        sys.stderr.write("Running command: %s" % cmd_str)
+        try:
+            subprocess.check_call(cmd_args)
+        except subprocess.CalledProcessError as ex:
+            sys.stderr.write("Command failed with exit code %d: %s\n" % (ex.returncode, cmd_str))
+            raise ex
 
 
 def run_compiler_wrapper(is_cxx: bool) -> None:

@@ -33,6 +33,7 @@ from build_definitions import (
     BUILD_TYPE_UNINSTRUMENTED,
     BUILD_TYPES,
     get_build_def_module,
+    get_deps_from_module_names,
 )
 from yugabyte_db_thirdparty.builder_helpers import PLACEHOLDER_RPATH, get_make_parallelism, \
     get_rpath_flag, log_and_set_env_var_to_list, format_cmake_args_for_log
@@ -74,7 +75,10 @@ from yugabyte_db_thirdparty.clang_util import (
 )
 from yugabyte_db_thirdparty.macos import get_min_supported_macos_version
 from yugabyte_db_thirdparty.linuxbrew import get_linuxbrew_dir, using_linuxbrew, set_linuxbrew_dir
-from yugabyte_db_thirdparty.constants import COMPILER_WRAPPER_LD_FLAGS_TO_APPEND_ENV_VAR_NAME
+from yugabyte_db_thirdparty.constants import (
+    COMPILER_WRAPPER_ENV_VAR_NAME_LD_FLAGS_TO_APPEND,
+    COMPILER_WRAPPER_ENV_VAR_NAME_LD_FLAGS_TO_REMOVE,
+)
 
 
 ASAN_FLAGS = [
@@ -202,7 +206,7 @@ class Builder(BuilderInterface):
             compiler_prefix=compiler_prefix,
             compiler_suffix=self.args.compiler_suffix,
             devtoolset=self.args.devtoolset,
-            use_compiler_wrapper=self.args.use_compiler_wrapper,
+            use_compiler_wrapper=False,
             use_ccache=self.args.use_ccache,
             expected_major_compiler_version=self.args.expected_major_compiler_version
         )
@@ -231,23 +235,23 @@ class Builder(BuilderInterface):
         # We have to use get_build_def_module to access submodules of build_definitions,
         # otherwise MyPy gets confused.
 
-        self.dependencies = [
+        self.dependencies = get_deps_from_module_names([
             # Avoiding a name collision with the standard zlib module, hence "zlib_dependency".
-            get_build_def_module('zlib_dependency').ZLibDependency(),
-            get_build_def_module('lz4').LZ4Dependency(),
-            get_build_def_module('openssl').OpenSSLDependency(),
-            get_build_def_module('libev').LibEvDependency(),
-            get_build_def_module('rapidjson').RapidJsonDependency(),
-            get_build_def_module('squeasel').SqueaselDependency(),
-            get_build_def_module('curl').CurlDependency(),
-            get_build_def_module('hiredis').HiRedisDependency(),
-            get_build_def_module('cqlsh').CQLShDependency(),
-            get_build_def_module('redis_cli').RedisCliDependency(),
-            get_build_def_module('flex').FlexDependency(),
-            get_build_def_module('bison').BisonDependency(),
-            get_build_def_module('libedit').LibEditDependency(),
-            get_build_def_module('openldap').OpenLDAPDependency(),
-        ]
+            'zlib_dependency',
+            'lz4',
+            'openssl',
+            'libev',
+            'rapidjson',
+            'squeasel',
+            'curl',
+            'hiredis',
+            'cqlsh',
+            'redis_cli',
+            'flex',
+            'bison',
+            'libedit',
+            'openldap',
+        ])
 
         if is_linux():
             self.dependencies += [
@@ -288,23 +292,22 @@ class Builder(BuilderInterface):
 
             self.dependencies.append(get_build_def_module('libbacktrace').LibBacktraceDependency())
 
-        self.dependencies += [
-            get_build_def_module('icu4c').Icu4cDependency(),
-            get_build_def_module('protobuf').ProtobufDependency(),
-            get_build_def_module('crypt_blowfish').CryptBlowfishDependency(),
-            get_build_def_module('boost').BoostDependency(),
-
-            get_build_def_module('gflags').GFlagsDependency(),
-            get_build_def_module('glog').GLogDependency(),
-            get_build_def_module('gperftools').GPerfToolsDependency(),
-            get_build_def_module('gmock').GMockDependency(),
-            get_build_def_module('snappy').SnappyDependency(),
-            get_build_def_module('crcutil').CRCUtilDependency(),
-            get_build_def_module('libcds').LibCDSDependency(),
-
-            get_build_def_module('libuv').LibUvDependency(),
-            get_build_def_module('cassandra_cpp_driver').CassandraCppDriverDependency(),
-        ]
+        self.dependencies += get_deps_from_module_names([
+                'icu4c',
+                'protobuf',
+                'crypt_blowfish',
+                'boost',
+                'gflags',
+                'glog',
+                'gperftools',
+                'gmock',
+                'snappy',
+                'crcutil',
+                'libcds',
+                'libuv',
+                'cassandra_cpp_driver',
+                'krb5',
+            ])
 
     def select_dependencies_to_build(self) -> None:
         self.selected_dependencies = []
@@ -343,8 +346,7 @@ class Builder(BuilderInterface):
     def run(self) -> None:
         if is_macos() and get_target_arch() == 'x86_64':
             os.environ['MACOSX_DEPLOYMENT_TARGET'] = get_min_supported_macos_version()
-        self.compiler_choice.set_compiler(
-            'clang' if self.compiler_choice.use_only_clang() else 'gcc')
+        self.compiler_choice.set_compiler(use_compiler_wrapper=False)
         if self.args.clean or self.args.clean_downloads:
             self.fs_layout.clean(self.selected_dependencies, self.args.clean_downloads)
         self.prepare_out_dirs()
@@ -717,16 +719,6 @@ class Builder(BuilderInterface):
         self.prefix_bin = os.path.join(self.prefix, 'bin')
         self.prefix_lib = os.path.join(self.prefix, 'lib')
         self.prefix_include = os.path.join(self.prefix, 'include')
-        if self.compiler_choice.building_with_clang(build_type):
-            compiler = 'clang'
-        else:
-            compiler = 'gcc'
-        self.compiler_choice.set_compiler(compiler)
-        heading("Building {} dependencies (compiler type: {})".format(
-            build_type, self.compiler_choice.compiler_type))
-        log("Compiler type: %s", self.compiler_choice.compiler_type)
-        log("C compiler: %s", self.compiler_choice.get_c_compiler())
-        log("C++ compiler: %s", self.compiler_choice.get_cxx_compiler())
 
     def init_flags(self, dep: Dependency) -> None:
         """
@@ -735,21 +727,14 @@ class Builder(BuilderInterface):
         """
         self.init_compiler_independent_flags(dep)
 
-        if not is_macos() and self.compiler_choice.building_with_clang(self.build_type):
+        if not is_macos() and self.compiler_choice.using_clang():
             # Special setup for Clang on Linux.
             compiler_choice = self.compiler_choice
             llvm_major_version: Optional[int] = compiler_choice.get_llvm_major_version()
-            if (compiler_choice.single_compiler_type == 'clang' and
-                    llvm_major_version is not None and llvm_major_version >= 10):
-                # We are assuming that --single-compiler-type will only be used for Clang 10 and
-                # newer.
+            if llvm_major_version is not None and llvm_major_version >= 10:
                 self.init_linux_clang1x_flags(dep)
-            elif llvm_major_version == 7 or compiler_choice.single_compiler_type is None:
-                # We are either building with LLVM 7 without Linuxbrew, or this is the
-                # Linuxbrew-based build with both GCC and Clang (which will go away).
-                self.init_linux_clang7_flags(dep)
             else:
-                raise ValueError(f"Unsupported LLVM major version: {llvm_major_version}")
+                raise ValueError(f"Unknown or unsupproted LLVM major version: {llvm_major_version}")
 
     def get_libcxx_dirs(self, libcxx_installed_suffix: str) -> Tuple[str, str]:
         libcxx_installed_path = os.path.join(
@@ -758,45 +743,10 @@ class Builder(BuilderInterface):
         libcxx_installed_lib = os.path.join(libcxx_installed_path, 'lib')
         return libcxx_installed_include, libcxx_installed_lib
 
-    def init_linux_clang7_flags(self, dep: Dependency) -> None:
-        """
-        Flags used to build code with Clang 7 that we build here. As we move to newer versions of
-        Clang, this function will go away.
-        """
-        if self.build_type == BUILD_TYPE_TSAN:
-            # Ensure that TSAN runtime is linked statically into every executable. TSAN runtime
-            # uses -fPIE while our shared libraries use -fPIC, and therefore TSAN runtime can only
-            # be linked statically into executables. TSAN runtime can't be built with -fPIC because
-            # that would create significant performance issues.
-            self.executable_only_ld_flags += ['-fsanitize=thread']
-
-        # This is used to build code with libc++ and Clang 7 built as part of thirdparty.
-        stdlib_suffix = self.build_type
-        stdlib_path = os.path.join(self.fs_layout.tp_installed_dir, stdlib_suffix, 'libcxx')
-        stdlib_include = os.path.join(stdlib_path, 'include', 'c++', 'v1')
-        stdlib_lib = os.path.join(stdlib_path, 'lib')
-        self.cxx_flags.insert(0, '-nostdinc++')
-        self.cxx_flags.insert(0, '-isystem')
-        self.cxx_flags.insert(1, stdlib_include)
-        self.cxx_flags.insert(0, '-stdlib=libc++')
-        # Clang complains about argument unused during compilation: '-stdlib=libc++' when both
-        # -stdlib=libc++ and -nostdinc++ are specified.
-        self.cxx_flags.insert(0, '-Wno-error=unused-command-line-argument')
-        self.prepend_lib_dir_and_rpath(stdlib_lib)
-        if using_linuxbrew():
-            self.compiler_flags.append('--gcc-toolchain={}'.format(
-                get_linuxbrew_dir()))
-
-        if self.toolchain and self.toolchain.toolchain_type == 'llvm7':
-            # This is needed when building with Clang 7 but without Linuxbrew.
-            # TODO: this might only be needed due to using an old version of libunwind that is
-            # different from libunwind included in the LLVM 7 repository. Just a hypothesis.
-            self.ld_flags.append('-lgcc_s')
-
     def init_linux_clang1x_flags(self, dep: Dependency) -> None:
         """
-        Flags for Clang 10 and beyond. We are using LLVM-supplied libunwind and compiler-rt in this
-        configuration.
+        Flags for Clang 10 and beyond. We are using LLVM-supplied libunwind, and in most cases,
+        compiler-rt in this configuration.
         """
         llvm_major_version = self.compiler_choice.get_llvm_major_version()
         assert llvm_major_version is not None
@@ -993,6 +943,8 @@ class Builder(BuilderInterface):
             the build.
         """
 
+        self.compiler_choice.set_compiler(
+            use_compiler_wrapper=self.args.use_compiler_wrapper or dep.need_compiler_wrapper(self))
         self.init_flags(dep)
 
         # This is needed at least for glog to be able to find gflags.
@@ -1031,8 +983,19 @@ class Builder(BuilderInterface):
                     "Need to add extra linker arguments in the compiler wrapper, but compiler "
                     "wrapper is not being used: %s" % compiler_wrapper_extra_ld_flags)
             log_and_set_env_var_to_list(
-                env_vars, COMPILER_WRAPPER_LD_FLAGS_TO_APPEND_ENV_VAR_NAME,
+                env_vars, COMPILER_WRAPPER_ENV_VAR_NAME_LD_FLAGS_TO_APPEND,
                 compiler_wrapper_extra_ld_flags)
+
+        compiler_wrapper_ld_flags_to_remove: Set[str] = dep.get_compiler_wrapper_ld_flags_to_remove(
+            self)
+        if compiler_wrapper_ld_flags_to_remove:
+            if not self.compiler_choice.use_compiler_wrapper:
+                raise RuntimeError(
+                    "Need to remove some linker arguments in the compiler wrapper, but compiler "
+                    "wrapper is not being used: %s" % sorted(compiler_wrapper_ld_flags_to_remove))
+            log_and_set_env_var_to_list(
+                env_vars, COMPILER_WRAPPER_ENV_VAR_NAME_LD_FLAGS_TO_REMOVE,
+                sorted(compiler_wrapper_ld_flags_to_remove))
 
         for k, v in env_vars.items():
             log("Setting environment variable %s to: %s" % (k, v))

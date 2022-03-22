@@ -85,7 +85,7 @@ class CompilerChoice:
         if self.single_compiler_type == 'clang':
             # This is necessary because we might want to know Clang version before set_compiler
             # is called externally.
-            self.set_compiler(self.single_compiler_type)
+            self.set_compiler(use_compiler_wrapper=False)
 
     def detect_clang_version(self) -> None:
         """
@@ -191,29 +191,6 @@ class CompilerChoice:
         return (os.path.join(clang_bin_dir, 'clang') + self.compiler_suffix,
                 os.path.join(clang_bin_dir, 'clang++') + self.compiler_suffix)
 
-    def building_with_clang(self, build_type: str) -> bool:
-        """
-        Returns true if we are using clang to build current build_type.
-        """
-        if self.use_only_clang():
-            return True
-        if self.use_only_gcc():
-            return False
-
-        return build_type in [
-            BUILD_TYPE_ASAN,
-            BUILD_TYPE_TSAN,
-        ]
-
-    def will_need_clang(self, build_type: str) -> bool:
-        """
-        Returns true if we will need Clang to complete the full thirdparty build type requested by
-        the user.
-        """
-        if self.use_only_gcc():
-            return False
-        return build_type != BUILD_TYPE_UNINSTRUMENTED
-
     def use_only_clang(self) -> bool:
         return is_macos() or self.single_compiler_type == 'clang'
 
@@ -229,7 +206,10 @@ class CompilerChoice:
             llvm_major_version >= 10
         )
 
-    def set_compiler(self, compiler_type: str) -> None:
+    def set_compiler(self, use_compiler_wrapper: bool) -> None:
+        self.use_compiler_wrapper = use_compiler_wrapper
+        compiler_type = 'clang' if self.use_only_clang() else 'gcc'
+
         if is_macos():
             if compiler_type != 'clang':
                 raise ValueError(
@@ -264,6 +244,7 @@ class CompilerChoice:
 
         log(f"C compiler: {self.cc_identification}")
         log(f"C++ compiler: {self.cxx_identification}")
+        log(f"{'Using' if self.use_compiler_wrapper else 'Not using'} compiler wrapper")
 
         if self.expected_major_compiler_version:
             self.check_compiler_major_version()
@@ -328,3 +309,11 @@ class CompilerChoice:
                     self.cc_identification,
                     self.cxx_identification
                 ))
+
+    def using_clang(self) -> bool:
+        assert self.compiler_type is not None
+        return self.compiler_type == 'clang'
+
+    def using_gcc(self) -> bool:
+        assert self.compiler_type is not None
+        return self.compiler_type == 'gcc'

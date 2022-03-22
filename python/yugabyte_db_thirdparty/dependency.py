@@ -14,7 +14,7 @@ import os
 from build_definitions import ExtraDownload, VALID_BUILD_GROUPS
 from yugabyte_db_thirdparty.archive_handling import make_archive_name
 
-from typing import Optional, List, TYPE_CHECKING
+from typing import Optional, List, Set, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .builder_interface import BuilderInterface
@@ -94,6 +94,12 @@ class Dependency:
         """
         return []
 
+    def get_compiler_wrapper_ld_flags_to_remove(self, builder: 'BuilderInterface') -> Set[str]:
+        """
+        In some cases, we need to use the compiler_wrapper to remove linker flags.
+        """
+        return set()
+
     def get_additional_assembler_flags(self, builder: 'BuilderInterface') -> List[str]:
         return []
 
@@ -125,3 +131,7 @@ class Dependency:
 
     def get_source_dir_basename(self) -> str:
         return self.dir_name
+
+    def need_compiler_wrapper(self, builder: 'BuilderInterface') -> bool:
+        return (bool(self.get_compiler_wrapper_ld_flags_to_append(builder)) or
+                bool(self.get_compiler_wrapper_ld_flags_to_remove(builder)))
