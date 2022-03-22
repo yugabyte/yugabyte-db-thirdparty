@@ -53,3 +53,50 @@ We don't currently use separate directories for different "build types" in yugab
 ```
 rm -rf build installed
 ```
+
+## Building and publishing a tarball manually
+
+Most types of our YugabyteDB third-party dependencies tarballs are automatically built by GitHub Actions jobs in this repo and uploaded as GitHub releases. However, there are a couple of build types that still need to be built and published manually.
+
+### Installing the `hub` tool
+
+Download the latest release package of the `hub` tool for the appropriate platform from https://github.com/github/hub/releases/ and install it so that it is accessible on PATH.
+
+### GitHub token
+
+Set the GITHUB_TOKEN environment variable before running the commands below.
+
+### Apple macOS arm64 (M1)
+
+```
+export YB_TARGET_ARCH=arm64 
+export PATH=/opt/homebrew/bin:$PATH
+export YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX=macos-arm64
+rm -rf venv
+./clean_thirdparty.sh --all
+mkdir -p ~/logs
+./build_and_release.sh 2>&1 | tee ~/logs/build_thirdparty_$( date +Y-%m-%dT%H_%M_%S ).log
+```
+
+### Linux aarch64
+
+```
+export YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX=almalinux8-aarch64-clang12
+export YB_BUILD_THIRDPARTY_EXTRA_ARGS="--toolchain=llvm12 --expected-major-compiler-version=12"
+rm -rf venv
+./clean_thirdparty.sh --all
+mkdir -p ~/logs
+./build_and_release.sh 2>&1 | tee ~/logs/build_thirdparty_$( date +Y-%m-%dT%H_%M_%S ).log
+```
+
+### Checking if the release has been created
+
+Check if your new releases appeared here:
+
+https://github.com/yugabyte/yugabyte-db-thirdparty/releases
+
+Use the search box with terms such as "aarch64" or "arm64":
+
+https://github.com/yugabyte/yugabyte-db-thirdparty/releases?q=aarch64&expanded=true
+https://github.com/yugabyte/yugabyte-db-thirdparty/releases?q=arm64&expanded=true
+                                
