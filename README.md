@@ -97,6 +97,6 @@ https://github.com/yugabyte/yugabyte-db-thirdparty/releases
 
 Use the search box with terms such as "aarch64" or "arm64":
 
-https://github.com/yugabyte/yugabyte-db-thirdparty/releases?q=aarch64&expanded=true
-https://github.com/yugabyte/yugabyte-db-thirdparty/releases?q=arm64&expanded=true
-                                
+* https://github.com/yugabyte/yugabyte-db-thirdparty/releases?q=aarch64&expanded=true
+* https://github.com/yugabyte/yugabyte-db-thirdparty/releases?q=arm64&expanded=true
+                              
