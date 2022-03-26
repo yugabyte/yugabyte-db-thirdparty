@@ -59,7 +59,7 @@ ensure_correct_mac_architecture "$@"
 # -------------------------------------------------------------------------------------------------
 
 echo "OSTYPE: $OSTYPE"
-if [[ $is_mac == "true" ]]; then
+if [[ $OSTYPE == darwin* ]]; then
   # On macOS, add the Homebrew bin directory corresponding to the target architecture to the PATH.
   if [[ $YB_TARGET_ARCH == "x86_64" ]]; then
     export PATH=/usr/local/bin:$PATH
@@ -107,9 +107,9 @@ tools_to_show_versions=(
   python3
 )
 
-if "$is_mac"; then
+if [[ $OSTYPE == darwin* ]]; then
   tools_to_show_versions+=( shasum )
-elif "$is_centos"; then
+elif [[ $OSTYPE == linux* && -f /etc/redhat-release ]]; then
   tools_to_show_versions+=( sha256sum libtool )
 else
   tools_to_show_versions+=( sha256sum )
@@ -123,7 +123,7 @@ done
 
 detect_cmake_version
 unsupported_cmake_version=3.19.1
-if [[ $is_mac == "true" && $cmake_version == "$unsupported_cmake_version" ]]; then
+if [[ $OSTYPE == darwin* && $cmake_version == "$unsupported_cmake_version" ]]; then
   install_cmake_on_macos
   detect_cmake_version
   if [[ $cmake_version == "$unsupported_cmake_version" ]]; then
