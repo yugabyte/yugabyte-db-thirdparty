@@ -22,10 +22,13 @@ class ZLibDependency(Dependency):
     def __init__(self) -> None:
         super(ZLibDependency, self).__init__(
             name='zlib',
-            version='1.2.11',
+            version='1.2.12',
             url_pattern='https://zlib.net/zlib-{0}.tar.gz',
             build_group=BUILD_GROUP_COMMON)
         self.copy_sources = True
+        self.patch_version = 1
+        self.patch_strip = 0
+        self.patches = ['zlib-configure.patch']
 
     def build(self, builder: BuilderInterface) -> None:
         builder.build_with_configure(
