@@ -41,57 +41,6 @@ compute_sha256sum() {
   fi
 }
 
-detect_os() {
-  os_name=""
-
-  # shellcheck disable=SC2034
-  is_ubuntu=false
-  # shellcheck disable=SC2034
-  is_centos=false
-  # shellcheck disable=SC2034
-  is_mac=false
-  # shellcheck disable=SC2034
-  is_almalinux=false
-  # shellcheck disable=SC2034
-  is_redhat_family=false
-  # shellcheck disable=SC2034
-  is_debian_family=false
-
-  if [[ $OSTYPE == linux* ]]; then
-    if grep -q Ubuntu /etc/issue; then
-      # shellcheck disable=SC2034
-      is_ubuntu=true
-      # shellcheck disable=SC2034
-      is_debian_family=true
-      os_name="ubuntu"
-    fi
-
-    if [[ -f /etc/os-release ]]; then
-      if grep -q CentOS /etc/os-release; then
-        # shellcheck disable=SC2034
-        is_centos=true
-        # shellcheck disable=SC2034
-        is_redhat_family=true
-        os_name="centos"
-      elif grep -q AlmaLinux /etc/os-release; then
-        # shellcheck disable=SC2034
-        is_almalinux=true
-        # shellcheck disable=SC2034
-        is_redhat_family=true
-        os_name="almalinux"
-      fi
-    fi
-  elif [[ $OSTYPE == darwin* ]]; then
-    # shellcheck disable=SC2034
-    is_mac=true
-    os_name="macos"
-  fi
-
-  if [[ -z $os_name ]]; then
-    fatal "Failed to determine OS name. OSTYPE: $OSTYPE" >&2
-  fi
-}
-
 activate_virtualenv() {
   if [[ ! -d $YB_THIRDPARTY_DIR/venv ]]; then
     python3 -m venv "$YB_THIRDPARTY_DIR/venv"
@@ -142,8 +91,6 @@ ensure_correct_mac_architecture() {
     exec arch "-$YB_TARGET_ARCH" "$0" "$@"
   fi
 }
-
-detect_os
 
 # We ignore the previously set YB_THIRDPARTY_DIR value, because if we are executing Bash scripts
 # within this third-party directory, we most likely want to work in this exact directory.
