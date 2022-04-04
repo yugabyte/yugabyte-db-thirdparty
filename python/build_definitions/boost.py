@@ -77,7 +77,7 @@ class BoostDependency(Dependency):
             ])
         finally:
             if prefer_system_bin:
-                os.envron['PATH'] = save_path
+                os.environ['PATH'] = save_path
 
         project_config = 'project-config.jam'
         with open(project_config, 'rt') as inp:
