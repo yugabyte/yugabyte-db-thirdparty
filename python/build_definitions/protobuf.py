@@ -21,8 +21,9 @@ from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 class ProtobufDependency(Dependency):
     def __init__(self) -> None:
         super(ProtobufDependency, self).__init__(
-            'protobuf', '3.5.1',
-            'https://github.com/google/protobuf/releases/download/v{0}/protobuf-cpp-{0}.tar.gz',
+            'protobuf',
+            '3.5.1-yb-1',
+            'https://github.com/yugabyte/protobuf/archive/refs/tags/v{0}.tar.gz',
             BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = True
 

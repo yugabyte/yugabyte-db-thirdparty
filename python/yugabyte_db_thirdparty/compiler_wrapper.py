@@ -1,9 +1,21 @@
 #!/usr/bin/env python3
 
+# Copyright (c) Yugabyte, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+# in compliance with the License. You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software distributed under the License
+# is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+# or implied. See the License for the specific language governing permissions and limitations
+# under the License.
+
 import sys
 import os
-import subprocess
 import shlex
+import subprocess
 
 from typing import List, Set
 
@@ -84,6 +96,10 @@ class CompilerWrapper:
                     COMPILER_WRAPPER_ENV_VAR_NAME_LD_FLAGS_TO_REMOVE, '').strip().split())
             cmd_args = [arg for arg in cmd_args if arg not in ld_flags_to_remove]
 
+            if '--no-add-needed' in cmd_args:
+                # TODO: remove
+                raise RuntimeError(f"cmd_args: {shlex_join(cmd_args)}")
+
         if len(output_files) == 1 and output_files[0].endswith('.o'):
             pp_output_path = None
             # Perform preprocessing only to ensure we are using the correct include directories.
@@ -102,7 +118,6 @@ class CompilerWrapper:
                 out_file_arg_follows = arg == '-o'
             if not assembly_input:
                 pp_args.append('-E')
-                sys.stderr.write("Preprocessor args: %s" % shlex_join(pp_args))
                 subprocess.check_call(pp_args)
                 assert pp_output_path is not None
                 assert os.path.isfile(pp_output_path)
