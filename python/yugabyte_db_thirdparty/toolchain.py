@@ -65,7 +65,7 @@ TOOLCHAIN_TO_OS_AND_ARCH_TO_URL = {
 
 TOOLCHAIN_TYPES = sorted(TOOLCHAIN_TO_OS_AND_ARCH_TO_URL.keys()) + [
     'linuxbrew'
-] + ['llvm%d_linuxbrew' % v for v in [11, 12, 13]]
+] + ['llvm%d_linuxbrew' % v for v in [11, 12, 13, 14]]
 
 
 class Toolchain:
