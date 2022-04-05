@@ -24,6 +24,7 @@ class OpenLDAPDependency(Dependency):
               'https://github.com/yugabyte/openldap/archive/OPENLDAP_REL_ENG_{}.tar.gz',
               BUILD_GROUP_COMMON)
         self.copy_sources = True
+        self.enforce_lld_in_compiler_wrapper = True
 
     def get_additional_compiler_flags(self, builder: BuilderInterface) -> List[str]:
         if is_macos():
