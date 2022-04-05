@@ -23,6 +23,7 @@ class LibEditDependency(Dependency):
               url_pattern='https://github.com/yugabyte/libedit/archive/libedit-{}.tar.gz',
               build_group=BUILD_GROUP_COMMON)
         self.copy_sources = True
+        self.enforce_lld_in_compiler_wrapper = True
 
     def build(self, builder: BuilderInterface) -> None:
         log_prefix = builder.log_prefix(self)

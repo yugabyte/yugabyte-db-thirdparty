@@ -68,6 +68,7 @@ class CompilerWrapper:
         return shlex_join(self._get_compiler_path_and_args())
 
     def run(self) -> None:
+        verbose: bool = os.environ.get('YB_THIRDPARTY_VERBOSE') == '1'
 
         use_ccache = os.getenv('YB_THIRDPARTY_USE_CCACHE') == '1'
 
@@ -95,10 +96,6 @@ class CompilerWrapper:
             ld_flags_to_remove: Set[str] = set(os.environ.get(
                     COMPILER_WRAPPER_ENV_VAR_NAME_LD_FLAGS_TO_REMOVE, '').strip().split())
             cmd_args = [arg for arg in cmd_args if arg not in ld_flags_to_remove]
-
-            if '--no-add-needed' in cmd_args:
-                # TODO: remove
-                raise RuntimeError(f"cmd_args: {shlex_join(cmd_args)}")
 
         if len(output_files) == 1 and output_files[0].endswith('.o'):
             pp_output_path = None
@@ -147,7 +144,10 @@ class CompilerWrapper:
                                     self._get_compiler_command_str()))
 
         cmd_str = '( cd %s; %s )' % (shlex.quote(os.getcwd()), shlex_join(cmd_args))
-        sys.stderr.write("Running command: %s" % cmd_str)
+
+        if verbose:
+            sys.stderr.write("Running command: %s" % cmd_str)
+
         try:
             subprocess.check_call(cmd_args)
         except subprocess.CalledProcessError as ex:

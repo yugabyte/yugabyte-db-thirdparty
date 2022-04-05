@@ -35,4 +35,4 @@ from build_definitions import (
 )
 
 from typing import List, Dict, Set, Any
-from sys_detection import is_macos
+from sys_detection import is_linux, is_macos
