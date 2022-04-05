@@ -23,6 +23,7 @@ class LibUuidDependency(Dependency):
             url_pattern='https://github.com/yugabyte/libuuid/archive/libuuid-{0}.tar.gz',
             build_group=BUILD_GROUP_COMMON)
         self.copy_sources = True
+        self.enforce_lld_in_compiler_wrapper = True
 
     def build(self, builder: BuilderInterface) -> None:
         builder.build_with_configure(
