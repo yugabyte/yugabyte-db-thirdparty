@@ -79,8 +79,6 @@ class Dependency:
             raise ValueError("Invalid build group: %s, should be one of: %s" % (
                 build_group, VALID_BUILD_GROUPS))
 
-        self.enforce_lld_in_compiler_wrapper = False
-
     def get_additional_compiler_flags(
             self,
             builder: 'BuilderInterface') -> List[str]:
@@ -100,14 +98,14 @@ class Dependency:
         In some cases, we need to use the compiler_wrapper to add ld flags at the very end of the
         compiler wrapper command line.
         """
-        if self.enforce_lld_in_compiler_wrapper:
-            llvm_major_version: Optional[int] = builder.compiler_choice.get_llvm_major_version()
-            use_lld_flag = '-fuse-ld=lld'
-            if (is_linux and
-                    llvm_major_version is not None and
-                    llvm_major_version >= 14 and
-                    use_lld_flag in builder.ld_flags):
-                return [use_lld_flag]
+        llvm_major_version: Optional[int] = builder.compiler_choice.get_llvm_major_version()
+        use_lld_flag = '-fuse-ld=lld'
+        if (is_linux and
+                llvm_major_version is not None and
+                llvm_major_version >= 14 and
+                use_lld_flag in builder.ld_flags):
+            return [use_lld_flag]
+
         return []
 
     def get_compiler_wrapper_ld_flags_to_remove(self, builder: 'BuilderInterface') -> Set[str]:
