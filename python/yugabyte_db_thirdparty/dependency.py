@@ -99,13 +99,11 @@ class Dependency:
         compiler wrapper command line.
         """
         llvm_major_version: Optional[int] = builder.compiler_choice.get_llvm_major_version()
-        use_lld_flag = '-fuse-ld=lld'
         if (is_linux and
                 llvm_major_version is not None and
                 llvm_major_version >= 12 and
-                builder.lto_type is not None and
-                use_lld_flag in builder.ld_flags):
-            return [use_lld_flag]
+                builder.lto_type is not None):
+            return ['-fuse-ld=lld']
 
         return []
 
