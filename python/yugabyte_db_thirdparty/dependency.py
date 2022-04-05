@@ -102,7 +102,8 @@ class Dependency:
         use_lld_flag = '-fuse-ld=lld'
         if (is_linux and
                 llvm_major_version is not None and
-                llvm_major_version >= 14 and
+                llvm_major_version >= 12 and
+                builder.lto_type is not None and
                 use_lld_flag in builder.ld_flags):
             return [use_lld_flag]
 
