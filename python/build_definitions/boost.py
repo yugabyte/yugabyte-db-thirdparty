@@ -19,6 +19,7 @@ import platform
 from typing import Optional
 
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
+from yugabyte_db_thirdparty.util import EnvVarContext
 
 
 PROJECT_CONFIG = """
@@ -64,20 +65,15 @@ class BoostDependency(Dependency):
         # this causes Boost to fail to boostrap its build system, b2. As a workaround, we
         # temporarily add /bin as the first element on PATH in that case.
         llvm_major_version: Optional[int] = builder.compiler_choice.get_llvm_major_version()
-        prefer_system_bin = llvm_major_version is not None and llvm_major_version >= 14
+        env_var_overrides: Dict[str, Optional[str]] = {}
+        if llvm_major_version is not None and llvm_major_version >= 14:
+            env_var_overrides['PATH'] = '%s:%s' % ('/bin', os.environ['PATH'])
 
-        if prefer_system_bin:
-            save_path = os.environ['PATH']
-            os.environ['PATH'] = '%s:%s' % ('/bin', os.environ['PATH'])
-
-        try:
+        with EnvVarContext(**env_var_overrides):
             log_output(log_prefix, [
                 './bootstrap.sh',
                 '--prefix={}'.format(prefix),
             ])
-        finally:
-            if prefer_system_bin:
-                os.environ['PATH'] = save_path
 
         project_config = 'project-config.jam'
         with open(project_config, 'rt') as inp:

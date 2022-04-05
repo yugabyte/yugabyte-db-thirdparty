@@ -509,7 +509,6 @@ class Builder(BuilderInterface):
             autoconf: bool = False,
             src_subdir_name: Optional[str] = None,
             post_configure_action: Optional[Callable] = None) -> None:
-        os.environ["YB_REMOTE_COMPILATION"] = "0"
         dir_for_build = os.getcwd()
         if src_subdir_name:
             dir_for_build = os.path.join(dir_for_build, src_subdir_name)
@@ -575,7 +574,6 @@ class Builder(BuilderInterface):
 
         log("Building dependency %s using CMake. Build tool: %s", dep, build_tool)
         log_prefix = self.log_prefix(dep)
-        os.environ["YB_REMOTE_COMPILATION"] = "0"
 
         remove_path('CMakeCache.txt')
         remove_path('CMakeFiles')
