@@ -48,6 +48,7 @@ jobs:
               --toolchain=llvm11
               --expected-major-compiler-version=11
 
+          # Clang 12
           - name: centos7-x86_64-clang12
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_centos7:v2021-08-27T03_10_19
@@ -55,12 +56,69 @@ jobs:
               --toolchain=llvm12
               --expected-major-compiler-version=12
 
+          - name: centos7-x86_64-clang12-thin-lto
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_centos7:v2021-08-27T03_10_19
+            build_thirdparty_args: >-
+              --toolchain=llvm12
+              --expected-major-compiler-version=12
+              --lto=thin
+
+          - name: centos7-x86_64-clang12-full-lto
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_centos7:v2021-08-27T03_10_19
+            build_thirdparty_args: >-
+              --toolchain=llvm12
+              --expected-major-compiler-version=12
+              --lto=full
+
+          # Clang 13
           - name: centos7-x86_64-clang13
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_centos7:v2021-08-27T03_10_19
             build_thirdparty_args: >-
               --toolchain=llvm13
               --expected-major-compiler-version=13
+
+          - name: centos7-x86_64-clang13-thin-lto
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_centos7:v2021-08-27T03_10_19
+            build_thirdparty_args: >-
+              --toolchain=llvm13
+              --expected-major-compiler-version=13
+              --lto=thin
+
+          - name: centos7-x86_64-clang13-full-lto
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_centos7:v2021-08-27T03_10_19
+            build_thirdparty_args: >-
+              --toolchain=llvm13
+              --expected-major-compiler-version=13
+              --lto=full
+
+          # Clang 14
+          - name: centos7-x86_64-clang14
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_centos7:v2021-08-27T03_10_19
+            build_thirdparty_args: >-
+              --toolchain=llvm14
+              --expected-major-compiler-version=14
+
+          - name: centos7-x86_64-clang14-thin-lto
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_centos7:v2021-08-27T03_10_19
+            build_thirdparty_args: >-
+              --toolchain=llvm14
+              --expected-major-compiler-version=14
+              --lto=thin
+
+          - name: centos7-x86_64-clang14-full-lto
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_centos7:v2021-08-27T03_10_19
+            build_thirdparty_args: >-
+              --toolchain=llvm14
+              --expected-major-compiler-version=14
+              --lto=full
 
           # ---------------------------------------------------------------------------------------
           # Ubuntu 18.04
