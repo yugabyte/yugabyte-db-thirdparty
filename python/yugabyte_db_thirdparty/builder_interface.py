@@ -39,6 +39,7 @@ class BuilderInterface:
     build_type: str
     compiler_choice: 'CompilerChoice'
     fs_layout: FileSystemLayout
+    lto_type: Optional[str]
 
     def build_with_configure(
             self,
