@@ -238,4 +238,8 @@ def parse_cmd_line_args() -> argparse.Namespace:
         raise ValueError("Machine architecture is %s but we expect %s" % (
             platform.machine(), args.enforce_arch))
 
+    if args.verbose:
+        # This is used e.g. in compiler_wrapper.py.
+        os.environ['YB_THIRDPARTY_VERBOSE'] = '1'
+
     return args

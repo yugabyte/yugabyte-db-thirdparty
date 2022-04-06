@@ -1,9 +1,21 @@
 #!/usr/bin/env python3
 
+# Copyright (c) Yugabyte, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+# in compliance with the License. You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software distributed under the License
+# is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+# or implied. See the License for the specific language governing permissions and limitations
+# under the License.
+
 import sys
 import os
-import subprocess
 import shlex
+import subprocess
 
 from typing import List, Set
 
@@ -56,6 +68,7 @@ class CompilerWrapper:
         return shlex_join(self._get_compiler_path_and_args())
 
     def run(self) -> None:
+        verbose: bool = os.environ.get('YB_THIRDPARTY_VERBOSE') == '1'
 
         use_ccache = os.getenv('YB_THIRDPARTY_USE_CCACHE') == '1'
 
@@ -102,7 +115,6 @@ class CompilerWrapper:
                 out_file_arg_follows = arg == '-o'
             if not assembly_input:
                 pp_args.append('-E')
-                sys.stderr.write("Preprocessor args: %s" % shlex_join(pp_args))
                 subprocess.check_call(pp_args)
                 assert pp_output_path is not None
                 assert os.path.isfile(pp_output_path)
@@ -132,7 +144,10 @@ class CompilerWrapper:
                                     self._get_compiler_command_str()))
 
         cmd_str = '( cd %s; %s )' % (shlex.quote(os.getcwd()), shlex_join(cmd_args))
-        sys.stderr.write("Running command: %s" % cmd_str)
+
+        if verbose:
+            sys.stderr.write("Running command: %s" % cmd_str)
+
         try:
             subprocess.check_call(cmd_args)
         except subprocess.CalledProcessError as ex:

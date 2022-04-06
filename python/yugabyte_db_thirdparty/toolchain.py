@@ -38,28 +38,34 @@ def get_llvm_url(tag: str) -> str:
 
 
 TOOLCHAIN_TO_OS_AND_ARCH_TO_URL = {
-    'llvm7': {
-        'centos7-x86_64': get_llvm_url('v7.1.0-1617644423-4856a933'),
-    },
     'llvm11': {
-        'centos7-x86_64': get_llvm_url('v11.1.0-yb-1-1633099975-130bd22e-centos7-x86_64'),
-        'almalinux8-x86_64': get_llvm_url('v11.1.0-yb-1-1633143292-130bd22e-almalinux8-x86_64'),
-        'centos8-aarch64': get_llvm_url('v11.1.0-yb-1-1633544021-130bd22e-centos8-aarch64'),
+        'centos7-x86_64':     get_llvm_url('v11.1.0-yb-1-1633099975-130bd22e-centos7-x86_64'),
+        'centos8-aarch64':    get_llvm_url('v11.1.0-yb-1-1633544021-130bd22e-centos8-aarch64'),
+        'almalinux8-x86_64':  get_llvm_url('v11.1.0-yb-1-1633143292-130bd22e-almalinux8-x86_64'),
+        'amzn2-aarch64':      get_llvm_url('v11.1.0-yb-1-1647671171-130bd22e-amzn2-aarch64'),
     },
     'llvm12': {
-        'centos7-x86_64': get_llvm_url('v12.0.1-yb-1-1633099823-bdb147e6-centos7-x86_64'),
-        'almalinux8-x86_64': get_llvm_url('v12.0.1-yb-1-1633143152-bdb147e6-almalinux8-x86_64'),
+        'centos7-x86_64':     get_llvm_url('v12.0.1-yb-1-1633099823-bdb147e6-centos7-x86_64'),
+        'almalinux8-x86_64':  get_llvm_url('v12.0.1-yb-1-1633143152-bdb147e6-almalinux8-x86_64'),
+        'amzn2-aarch64':      get_llvm_url('v12.0.1-yb-1-1647674838-bdb147e6-amzn2-aarch64'),
     },
     'llvm13': {
-        'centos7-x86_64': get_llvm_url('v13.0.1-yb-1-1644383736-191e3a05-centos7-x86_64'),
-        'almalinux8-x86_64': get_llvm_url('v13.0.1-yb-1-1644390288-191e3a05-almalinux8-x86_64'),
-        'centos8-aarch64': get_llvm_url('v13.0.0-yb-1-1639976983-4b60e646-centos8-aarch64'),
-    }
+        'centos7-x86_64':     get_llvm_url('v13.0.1-yb-1-1644383736-191e3a05-centos7-x86_64'),
+        'centos8-aarch64':    get_llvm_url('v13.0.0-yb-1-1639976983-4b60e646-centos8-aarch64'),
+        'almalinux8-x86_64':  get_llvm_url('v13.0.1-yb-1-1644390288-191e3a05-almalinux8-x86_64'),
+        'amzn2-aarch64':      get_llvm_url('v13.0.1-yb-1-1647678956-191e3a05-amzn2-aarch64'),
+    },
+    'llvm14': {
+        'centos7-x86_64':     get_llvm_url('v14.0.0-1648392050-329fda39-centos7-x86_64'),
+        'almalinux8-aarch64': get_llvm_url('v14.0.0-1648380033-329fda39-almalinux8-aarch64'),
+        'amzn2-aarch64':      get_llvm_url('v14.0.0-1648379878-329fda39-amzn2-aarch64'),
+        'almalinux8-x86_64':  get_llvm_url('v14.0.0-1648363631-329fda39-almalinux8-x86_64'),
+    },
 }
 
 TOOLCHAIN_TYPES = sorted(TOOLCHAIN_TO_OS_AND_ARCH_TO_URL.keys()) + [
     'linuxbrew'
-] + ['llvm%d_linuxbrew' % v for v in [11, 12, 13]]
+] + ['llvm%d_linuxbrew' % v for v in [11, 12, 13, 14]]
 
 
 class Toolchain:

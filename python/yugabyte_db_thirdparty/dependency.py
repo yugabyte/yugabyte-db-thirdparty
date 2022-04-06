@@ -11,6 +11,8 @@
 # under the License.
 
 import os
+from sys_detection import is_linux
+
 from build_definitions import ExtraDownload, VALID_BUILD_GROUPS
 from yugabyte_db_thirdparty.archive_handling import make_archive_name
 
@@ -30,6 +32,10 @@ class Dependency:
     license: Optional[str]
     mkdir_only: bool
     archive_name: Optional[str]
+
+    # Enforce the use of lld linker on Clang 14 and later by appending it to the linker flags in
+    # the compiler wrapper.
+    enforce_lld_in_compiler_wrapper: bool
 
     def __init__(
             self,
@@ -92,6 +98,13 @@ class Dependency:
         In some cases, we need to use the compiler_wrapper to add ld flags at the very end of the
         compiler wrapper command line.
         """
+        llvm_major_version: Optional[int] = builder.compiler_choice.get_llvm_major_version()
+        if (is_linux and
+                llvm_major_version is not None and
+                llvm_major_version >= 12 and
+                builder.lto_type is not None):
+            return ['-fuse-ld=lld']
+
         return []
 
     def get_compiler_wrapper_ld_flags_to_remove(self, builder: 'BuilderInterface') -> Set[str]:

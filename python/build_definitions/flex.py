@@ -14,6 +14,8 @@
 
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
+from typing import Optional
+
 
 class FlexDependency(Dependency):
     def __init__(self) -> None:

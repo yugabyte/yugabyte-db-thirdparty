@@ -16,7 +16,10 @@ import os
 import sys
 import platform
 
+from typing import Optional
+
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
+from yugabyte_db_thirdparty.util import EnvVarContext
 
 
 PROJECT_CONFIG = """
@@ -55,7 +58,23 @@ class BoostDependency(Dependency):
 
         log_prefix = builder.log_prefix(self)
         prefix = self.get_install_prefix(builder)
-        log_output(log_prefix, ['./bootstrap.sh', '--prefix={}'.format(builder.prefix)])
+
+        # When building with Clang, we add a directory to PATH which has an ld -> lld symlink,
+        # among other symlinks. See create_llvm_tool_dir in clang_util.py for details.
+        # For LLVM 14 and later, lld does not support the deprecated --no-add-needed ld flag, and
+        # this causes Boost to fail to boostrap its build system, b2. As a workaround, we
+        # temporarily add /bin as the first element on PATH in that case.
+        llvm_major_version: Optional[int] = builder.compiler_choice.get_llvm_major_version()
+        env_var_overrides: Dict[str, Optional[str]] = {}
+        if llvm_major_version is not None and llvm_major_version >= 14:
+            env_var_overrides['PATH'] = '%s:%s' % ('/bin', os.environ['PATH'])
+
+        with EnvVarContext(**env_var_overrides):
+            log_output(log_prefix, [
+                './bootstrap.sh',
+                '--prefix={}'.format(prefix),
+            ])
+
         project_config = 'project-config.jam'
         with open(project_config, 'rt') as inp:
             original_lines = inp.readlines()

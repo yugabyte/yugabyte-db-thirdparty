@@ -42,9 +42,17 @@ class Llvm1xLibUnwindDependency(Llvm1xPartDependencyBase):
                 f'-DLLVM_PATH={llvm_path}',
             ],
             src_subdir_name=src_subdir_name)
+
+        # TODO: do not use this "standalone" build of libunwind -- it is deprecated.
+        # https://github.com/yugabyte/yugabyte-db/issues/11962
+        # Maybe we won't need to do this manual copying of headers if we use a supported approach.
         src_include_path = os.path.join(source_path, src_subdir_name, 'include')
         dest_include_path = os.path.join(builder.prefix, 'include')
-        for header_name in ['libunwind.h', 'unwind.h', '__libunwind_config.h']:
-            copy_file_and_log(
-                os.path.join(src_include_path, header_name),
-                os.path.join(dest_include_path, header_name))
+        for root, dirs, files in os.walk(src_include_path):
+            for file_name in files:
+                if file_name.endswith('.h'):
+                    file_path = os.path.abspath(os.path.join(root, file_name))
+                    rel_path = os.path.relpath(file_path, src_include_path)
+                    dest_path = os.path.join(dest_include_path, rel_path)
+                    mkdir_if_missing(os.path.dirname(dest_path))
+                    copy_file_and_log(file_path, dest_path)
