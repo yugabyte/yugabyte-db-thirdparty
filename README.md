@@ -89,6 +89,17 @@ mkdir -p ~/logs
 ./build_and_release.sh 2>&1 | tee ~/logs/build_thirdparty_$( date +Y-%m-%dT%H_%M_%S ).log
 ```
 
+### Amazon Linux 2 aarch64
+
+```
+export YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX=amzn2-aarch64-clang12
+export YB_BUILD_THIRDPARTY_EXTRA_ARGS="--toolchain=llvm12 --expected-major-compiler-version=12"
+rm -rf venv
+./clean_thirdparty.sh --all
+mkdir -p ~/logs
+./build_and_release.sh 2>&1 | tee ~/logs/build_thirdparty_$( date +Y-%m-%dT%H_%M_%S ).log
+```
+
 ### Checking if the release has been created
 
 Check if your new releases appeared here:
