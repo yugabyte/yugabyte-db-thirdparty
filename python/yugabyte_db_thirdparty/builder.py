@@ -249,7 +249,13 @@ class Builder(BuilderInterface):
             'flex',
             'bison',
             'openldap',
+            'redis_cli',
         ])
+        for dep in self.dependencies:
+            if dep.build_group != BUILD_GROUP_COMMON:
+                raise ValueError(
+                    "Expected the initial group of dependencies to all be in the common build "
+                    f"group, found: {dep.build_group} for dependency {dep.name}")
 
         if is_linux():
             self.dependencies += [
@@ -296,7 +302,6 @@ class Builder(BuilderInterface):
             # libunistring is required by gettext.
             (['libunistring', 'gettext'] if is_macos() else []) + [
                 'ncurses',
-                'redis_cli',
                 'libedit',
                 'icu4c',
                 'protobuf',
