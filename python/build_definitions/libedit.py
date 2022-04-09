@@ -21,7 +21,7 @@ class LibEditDependency(Dependency):
               name='libedit',
               version='20191231-3.1',
               url_pattern='https://github.com/yugabyte/libedit/archive/libedit-{}.tar.gz',
-              build_group=BUILD_GROUP_COMMON)
+              build_group=BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = True
 
     def build(self, builder: BuilderInterface) -> None:
