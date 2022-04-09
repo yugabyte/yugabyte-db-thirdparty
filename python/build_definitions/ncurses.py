@@ -27,18 +27,5 @@ class NCursesDependency(Dependency):
             BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = True
 
-    # def get_additional_ld_flags(self, builder: BuilderInterface) -> List[str]:
-    #     if builder.compiler_choice.is_linux_clang1x() and builder.build_type == BUILD_TYPE_ASAN:
-    #         # Needed to find dlsym.
-    #         return ['-ldl']
-    #     return []
-
     def build(self, builder: BuilderInterface) -> None:
-        extra_args = []
-        # if builder.build_type in [BUILD_TYPE_ASAN]:
-        #     extra_args.append('--enable-asan')
-        builder.build_with_configure(
-            log_prefix=builder.log_prefix(self),
-            # src_subdir_name='src',
-            extra_args=extra_args,
-        )
+        builder.build_with_configure(log_prefix=builder.log_prefix(self))
