@@ -48,6 +48,7 @@ TOOLCHAIN_TO_OS_AND_ARCH_TO_URL = {
         'centos7-x86_64':     get_llvm_url('v12.0.1-yb-1-1633099823-bdb147e6-centos7-x86_64'),
         'almalinux8-x86_64':  get_llvm_url('v12.0.1-yb-1-1633143152-bdb147e6-almalinux8-x86_64'),
         'amzn2-aarch64':      get_llvm_url('v12.0.1-yb-1-1647674838-bdb147e6-amzn2-aarch64'),
+        'almalinux8-aarch64': get_llvm_url('v12.0.1-yb-1-1648458260-bdb147e6-almalinux8-aarch64'),
     },
     'llvm13': {
         'centos7-x86_64':     get_llvm_url('v13.0.1-yb-1-1644383736-191e3a05-centos7-x86_64'),
