@@ -246,6 +246,7 @@ class Builder(BuilderInterface):
             'curl',
             'hiredis',
             'cqlsh',
+            'ncurses',
             'redis_cli',
             'flex',
             'bison',
