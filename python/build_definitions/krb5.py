@@ -26,7 +26,8 @@ class Krb5Dependency(Dependency):
             'https://kerberos.org/dist/krb5/1.19/krb5-{0}.tar.gz',
             BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = True
-        self.patches = ['krb5-1.19.3-use-ldflags-for-test.patch']
+        self.patches = ['krb5-1.19.3-use-ldflags-for-test.patch',
+                        'krb5-1.19.3-use-am-gnu-gettext.patch']
         self.patch_strip = 0
 
     def get_additional_ld_flags(self, builder: BuilderInterface) -> List[str]:

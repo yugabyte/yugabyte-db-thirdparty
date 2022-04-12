@@ -1,6 +1,6 @@
 diff --git a/src/config/gettext.m4 b/src/config/gettext.m4
 new file mode 100644
-index 000000000..14eac7b41
+index 000000000..fed4f8254
 --- /dev/null
 +++ b/src/config/gettext.m4
 @@ -0,0 +1,359 @@
@@ -363,7 +363,6 @@ index 000000000..14eac7b41
 +
 +dnl Usage: AM_GNU_GETTEXT_REQUIRE_VERSION([gettext-version])
 +AC_DEFUN([AM_GNU_GETTEXT_REQUIRE_VERSION], [])
-\ No newline at end of file
 diff --git a/src/configure.ac b/src/configure.ac
 index 4eb080784..16d4ab3fd 100644
 --- a/src/configure.ac
