@@ -42,3 +42,6 @@ class CurlDependency(Dependency):
             log_prefix=builder.log_prefix(self),
             extra_args=extra_args
         )
+
+    def use_cppflags_env_var(self) -> bool:
+        return True

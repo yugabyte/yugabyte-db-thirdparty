@@ -90,6 +90,12 @@ class Dependency:
     def get_additional_cxx_flags(self, builder: 'BuilderInterface') -> List[str]:
         return []
 
+    def get_additional_leading_ld_flags(self, builder: 'BuilderInterface') -> List[str]:
+        """
+        These flags are added in front of the linker command line.
+        """
+        return []
+
     def get_additional_ld_flags(self, builder: 'BuilderInterface') -> List[str]:
         return []
 
@@ -148,3 +154,13 @@ class Dependency:
     def need_compiler_wrapper(self, builder: 'BuilderInterface') -> bool:
         return (bool(self.get_compiler_wrapper_ld_flags_to_append(builder)) or
                 bool(self.get_compiler_wrapper_ld_flags_to_remove(builder)))
+
+    def use_cppflags_env_var(self) -> bool:
+        '''
+        Some dependencies expect us to specify include directories in the CPPFLAGS (C preprocessor
+        flags) environment variable. Others do not use this variable and we need to put include
+        directories in CFLAGS and CXXFLAGS.
+
+        This function only affects dependencies built with configure (autotools), not with CMake.
+        '''
+        return False

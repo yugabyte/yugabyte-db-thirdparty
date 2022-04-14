@@ -55,3 +55,6 @@ class OpenSSLDependency(Dependency):
             # https://bit.ly/openssl_install_without_manpages
             install=['install_sw']
         )
+
+    def use_cppflags_env_var(self) -> bool:
+        return True
