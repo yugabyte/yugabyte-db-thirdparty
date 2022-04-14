@@ -240,21 +240,21 @@ class Builder(BuilderInterface):
             # from Homebrew.
             (['gettext'] if is_macos() else []) + [
             # Avoiding a name collision with the standard zlib module, hence "zlib_dependency".
-            'zlib_dependency',
-            'lz4',
-            'openssl',
-            'libev',
-            'rapidjson',
-            'squeasel',
-            'curl',
-            'hiredis',
-            'cqlsh',
-            'redis_cli',
-            'flex',
-            'bison',
-            'libedit',
-            'openldap',
-        ])
+                'zlib_dependency',
+                'lz4',
+                'openssl',
+                'libev',
+                'rapidjson',
+                'squeasel',
+                'curl',
+                'hiredis',
+                'cqlsh',
+                'redis_cli',
+                'flex',
+                'bison',
+                'libedit',
+                'openldap',
+            ])
 
         if is_linux():
             self.dependencies += [
