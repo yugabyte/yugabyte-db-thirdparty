@@ -239,7 +239,7 @@ class Builder(BuilderInterface):
             # On macOS, flex, bison, and krb5 depend on gettext, and we don't want to use gettext
             # from Homebrew.
             (['gettext'] if is_macos() else []) + [
-            # Avoiding a name collision with the standard zlib module, hence "zlib_dependency".
+                # Avoiding a name collision with the standard zlib module, hence "zlib_dependency".
                 'zlib_dependency',
                 'lz4',
                 'openssl',
