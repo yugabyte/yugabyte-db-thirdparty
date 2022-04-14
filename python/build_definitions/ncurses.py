@@ -28,4 +28,6 @@ class NCursesDependency(Dependency):
         self.copy_sources = True
 
     def build(self, builder: BuilderInterface) -> None:
-        builder.build_with_configure(log_prefix=builder.log_prefix(self))
+        builder.build_with_configure(
+            log_prefix=builder.log_prefix(self),
+            extra_args=['--with-shared'])

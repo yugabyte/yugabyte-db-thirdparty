@@ -13,10 +13,6 @@
 #
 
 import multiprocessing
-import os
-import sys
-import glob
-import subprocess
 
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
