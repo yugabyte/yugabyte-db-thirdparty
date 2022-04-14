@@ -23,7 +23,7 @@ class LibUnistringDependency(Dependency):
             'libunistring',
             '1.0',
             'https://ftp.gnu.org/gnu/libunistring/libunistring-{0}.tar.gz',
-            BUILD_GROUP_COMMON)
+            BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = True
 
     def get_compiler_wrapper_ld_flags_to_remove(self, builder: BuilderInterface) -> Set[str]:

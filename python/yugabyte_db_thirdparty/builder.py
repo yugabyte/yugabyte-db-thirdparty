@@ -235,27 +235,23 @@ class Builder(BuilderInterface):
         # We have to use get_build_def_module to access submodules of build_definitions,
         # otherwise MyPy gets confused.
 
-        self.dependencies = get_deps_from_module_names(
-            # On macOS, flex, bison, and krb5 depend on gettext, and we don't want to use gettext
-            # from Homebrew.
-            # libunistring is required by gettext.
-            (['libunistring', 'gettext'] if is_macos() else []) + [
-                # Avoiding a name collision with the standard zlib module, hence "zlib_dependency".
-                'zlib_dependency',
-                'lz4',
-                'openssl',
-                'libev',
-                'rapidjson',
-                'squeasel',
-                'curl',
-                'hiredis',
-                'cqlsh',
-                'redis_cli',
-                'flex',
-                'bison',
-                'libedit',
-                'openldap',
-            ])
+        self.dependencies = get_deps_from_module_names([
+            # Avoiding a name collision with the standard zlib module, hence "zlib_dependency".
+            'zlib_dependency',
+            'lz4',
+            'openssl',
+            'libev',
+            'rapidjson',
+            'squeasel',
+            'curl',
+            'hiredis',
+            'cqlsh',
+            'redis_cli',
+            'flex',
+            'bison',
+            'libedit',
+            'openldap',
+        ])
 
         if is_linux():
             self.dependencies += [
@@ -296,7 +292,11 @@ class Builder(BuilderInterface):
 
             self.dependencies.append(get_build_def_module('libbacktrace').LibBacktraceDependency())
 
-        self.dependencies += get_deps_from_module_names([
+        self.dependencies += get_deps_from_module_names(
+            # On macOS, flex, bison, and krb5 depend on gettext, and we don't want to use gettext
+            # from Homebrew.
+            # libunistring is required by gettext.
+            (['libunistring', 'gettext'] if is_macos() else []) + [
                 'icu4c',
                 'protobuf',
                 'crypt_blowfish',
