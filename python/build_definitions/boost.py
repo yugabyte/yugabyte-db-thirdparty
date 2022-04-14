@@ -85,7 +85,7 @@ class BoostDependency(Dependency):
                         not lstripped.startswith('using gcc ;') and
                         not lstripped.startswith('project : default-build <toolset>gcc ;')):
                     out.write(line)
-            cxx_flags = builder.compiler_flags + builder.cxx_flags
+            cxx_flags = builder.preprocessor_flags + builder.compiler_flags + builder.cxx_flags
             log("C++ flags to use when building Boost: %s", cxx_flags)
             compiler_type = builder.compiler_choice.compiler_type
             # To make sure Boost's b2 does not select one of its default "toolsets" and ignores all
