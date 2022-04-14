@@ -125,37 +125,6 @@ class CompilerWrapper:
                             included_file,
                             self.get_compiler_command_str()))
 
-    def check_duplicate_isystem_paths(self) -> None:
-        """
-        Checks if any directories specified with -isystem are duplicated. This is not allowed
-        because it can cause subtle errors due to usage of include_next in some standard headers.
-        E.g. the compilation error can say that some standard C library headers are not found.
-        """
-
-        prev_is_isystem = False
-        isystem_paths: Set[str] = set()
-        duplicate_isystem_paths: Set[str] = set()
-        for arg in self.compiler_args:
-            if prev_is_isystem:
-                if arg in isystem_paths:
-                    duplicate_isystem_paths.add(arg)
-                else:
-                    isystem_paths.add(arg)
-            prev_is_isystem = arg == '-isystem'
-        if duplicate_isystem_paths:
-            filtered_isystem_paths = [
-                p for p in duplicate_isystem_paths
-                # These paths get duplicated on the command line but interestingly it does not cause
-                # the build to fail.
-                if not p.endswith('/installed/common/include')
-            ]
-            if filtered_isystem_paths:
-                err_msg = 'Disallowed duplicate isystem paths: %s. Command: %s' % (
-                    ', '.join(sorted(filtered_isystem_paths)),
-                    self.get_copy_paste_friendly_cmd_str())
-                self.log(err_msg)
-                raise ValueError(err_msg)
-
     def run(self) -> None:
         verbose: bool = os.environ.get('YB_THIRDPARTY_VERBOSE') == '1'
 
@@ -167,8 +136,6 @@ class CompilerWrapper:
             cmd_args = ['ccache', 'compiler'] + self.compiler_args
         else:
             cmd_args = self.get_compiler_path_and_args()
-
-        self.check_duplicate_isystem_paths()
 
         output_files = []
         for i in range(len(self.compiler_args) - 1):
