@@ -13,39 +13,32 @@
 #
 
 import os
-import sys
 
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
 
-class Krb5Dependency(Dependency):
+class GetTextDependency(Dependency):
     def __init__(self) -> None:
-        super(Krb5Dependency, self).__init__(
-            'krb5',
-            '1.19.3',
-            'https://kerberos.org/dist/krb5/1.19/krb5-{0}.tar.gz',
+        super(GetTextDependency, self).__init__(
+            'gettext',
+            '0.21',
+            'https://ftp.gnu.org/pub/gnu/gettext/gettext-{0}.tar.gz',
             BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = True
-        self.patches = ['krb5-1.19.3-use-ldflags-for-test.patch']
-        self.patch_strip = 0
-
-    def get_additional_ld_flags(self, builder: BuilderInterface) -> List[str]:
-        flags: List[str] = super().get_additional_ld_flags(builder)
-        if builder.compiler_choice.is_linux_clang1x():
-            if builder.build_type == BUILD_TYPE_ASAN:
-                # Needed to find dlsym.
-                flags.append('-ldl')
-        return flags
 
     def get_compiler_wrapper_ld_flags_to_remove(self, builder: BuilderInterface) -> Set[str]:
-        return {'-Wl,--no-undefined'}
+        if is_macos():
+            return {'-lrt'}
+        return set()
 
     def build(self, builder: BuilderInterface) -> None:
-        extra_args = []
-        if builder.build_type in [BUILD_TYPE_ASAN]:
-            extra_args.append('--enable-asan')
         builder.build_with_configure(
             log_prefix=builder.log_prefix(self),
-            src_subdir_name='src',
-            extra_args=extra_args,
-        )
+            extra_args=[
+                '--with-included-gettext',
+                '--disable-java',
+                '--disable-csharp',
+                '--without-git',
+                '--without-cvs',
+                '--without-xz',
+            ])

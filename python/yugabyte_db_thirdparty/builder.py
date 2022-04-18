@@ -292,7 +292,11 @@ class Builder(BuilderInterface):
 
             self.dependencies.append(get_build_def_module('libbacktrace').LibBacktraceDependency())
 
-        self.dependencies += get_deps_from_module_names([
+        self.dependencies += get_deps_from_module_names(
+            # On macOS, flex, bison, and krb5 depend on gettext, and we don't want to use gettext
+            # from Homebrew.
+            # libunistring is required by gettext.
+            (['libunistring', 'gettext'] if is_macos() else []) + [
                 'icu4c',
                 'protobuf',
                 'crypt_blowfish',
