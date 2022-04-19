@@ -144,6 +144,7 @@ class Builder(BuilderInterface):
     remote_build: bool
 
     lto_type: Optional[str]
+    selected_dependencies: List[Dependency]
 
     """
     This class manages the overall process of building third-party dependencies, including the set

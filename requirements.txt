@@ -7,3 +7,4 @@ ruamel.yaml
 yugabyte_pycommon
 compiler-identification
 sys-detection
+pyright

@@ -250,7 +250,10 @@ def log_and_run_cmd_ignore_errors(args: List[Any], **kwargs: Any) -> None:
 def log_and_get_cmd_output(args: List[Any], **kwargs: Any) -> str:
     args = normalize_cmd_args(args)
     _log_cmd_to_run(args, cwd=kwargs.get('cwd'))
-    return subprocess.check_output(args, **kwargs).decode('utf-8')
+    cmd_result = subprocess.check_output(args, **kwargs)
+    # The pyright type checker erroneously thinks that the type of cmd_result is str.
+    assert isinstance(cmd_result, bytes)
+    return cmd_result.decode('utf-8')
 
 
 def get_seconds_timestamp_for_file_name() -> str:

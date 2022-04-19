@@ -30,7 +30,7 @@ HOMEBREW_BIN_DIR_BY_ARCH = {
 
 
 def get_target_arch() -> str:
-    global g_target_arch
+    global g_target_arch, g_target_arch_initialized
 
     if g_target_arch is not None:
         return g_target_arch
@@ -40,6 +40,9 @@ def get_target_arch() -> str:
         return g_target_arch
 
     g_target_arch = os.getenv('YB_TARGET_ARCH')
+    if g_target_arch is None:
+        g_target_arch = platform.machine()
+
     if g_target_arch not in MACOS_CPU_ARCHITECTURES:
         raise ValueError("Unsupported value of YB_TARGET_ARCH on maOS: %s" % g_target_arch)
 
