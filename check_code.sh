@@ -11,4 +11,7 @@ set -x
 rm -rf .mypy_cache
 codecheck --verbose "$@"
 
-pyright
+if [[ $OSTYPE == darwin* ]]; then
+  pip install pyright
+  pyright
+fi
