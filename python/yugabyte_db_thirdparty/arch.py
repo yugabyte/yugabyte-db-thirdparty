@@ -44,7 +44,7 @@ def get_target_arch() -> str:
         g_target_arch = platform.machine()
 
     if g_target_arch not in MACOS_CPU_ARCHITECTURES:
-        raise ValueError("Unsupported value of YB_TARGET_ARCH on maOS: %s" % g_target_arch)
+        raise ValueError("Unsupported value of YB_TARGET_ARCH on macOS: %s" % g_target_arch)
 
     return g_target_arch
 

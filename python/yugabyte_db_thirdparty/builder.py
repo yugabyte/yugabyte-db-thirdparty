@@ -125,9 +125,12 @@ class Builder(BuilderInterface):
 
     executable_only_ld_flags: List[str]
 
-    # These flags apply to both C and C++ compilers.
+    # These flags apply to both C and C++ compilers. Do not add preprocessor flags (e.g. include
+    # directories, system include directories, etc.) here.
     compiler_flags: List[str]
 
+    # Based on the dependency, we either set CPPFLAGS based on this, or add them to CFLAGS/CXXFLAGS.
+    # For CMake dependencies, we always add them to compiler flags.
     preprocessor_flags: List[str]
 
     # Flags specific for C and C++ compilers.
@@ -419,7 +422,8 @@ class Builder(BuilderInterface):
             log("Adding an include path: %s", include_path)
         cmd_line_arg = f'-I{include_path}'
         self.preprocessor_flags.append(cmd_line_arg)
-        # self.compiler_flags.append(cmd_line_arg)
+        # Not adding to compiler_flags. We can add preprocessor flags to compiler flags when
+        # building the dependency instead.
 
     def init_compiler_independent_flags(self, dep: Dependency) -> None:
         """
@@ -443,7 +447,6 @@ class Builder(BuilderInterface):
             self.add_lib_dir_and_rpath(os.path.join(
                 self.fs_layout.tp_installed_dir, include_dir_component, 'lib'))
 
-        # self.compiler_flags += self.preprocessor_flags
         self.compiler_flags += ['-fno-omit-frame-pointer', '-fPIC', '-O3', '-Wall']
         if is_linux():
             # On Linux, ensure we set a long enough rpath so we can change it later with chrpath,
@@ -800,7 +803,6 @@ class Builder(BuilderInterface):
             ]
 
         if self.build_type == BUILD_TYPE_COMMON:
-            # self.compiler_flags.extend(clang_linuxbrew_isystem_flags)
             self.preprocessor_flags.extend(clang_linuxbrew_isystem_flags)
             return
 
@@ -879,7 +881,6 @@ class Builder(BuilderInterface):
             # it at build time because libc++abi is built first.
             self.add_rpath(libcxx_installed_lib)
 
-        # self.compiler_flags.extend(clang_linuxbrew_isystem_flags)
         self.preprocessor_flags.extend(clang_linuxbrew_isystem_flags)
 
         # TODO: make this conditional only for the Linuxbrew + Clang combination.

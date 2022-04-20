@@ -48,17 +48,9 @@ class CompilerWrapper:
         self.disallowed_include_dirs = []
         if disallowed_include_dirs_colon_separated:
             self.disallowed_include_dirs = disallowed_include_dirs_colon_separated.split(':')
-        self.compiler_args = self.filter_args(sys.argv[1:])
+        self.compiler_args = self._filter_args(sys.argv[1:])
 
-    def get_copy_paste_friendly_cmd_str(self, cmd_args: List[str] = []) -> str:
-        if not cmd_args:
-            cmd_args = self.get_compiler_path_and_args()
-        return '( cd %s; %s )' % (shlex.quote(os.getcwd()), shlex_join(cmd_args))
-
-    def log(self, err_msg: str) -> None:
-        sys.stderr.write(err_msg + '\n')
-
-    def is_permitted_arg(self, arg: str) -> bool:
+    def _is_permitted_arg(self, arg: str) -> bool:
         if not arg.startswith('-I'):
             return True
         include_path = arg[1:]
@@ -66,64 +58,14 @@ class CompilerWrapper:
             include_path = include_path[1:-1]
         return include_path not in self.disallowed_include_dirs
 
-    def filter_args(self, compiler_args: List[str]) -> List[str]:
-        return [arg for arg in compiler_args if self.is_permitted_arg(arg)]
+    def _filter_args(self, compiler_args: List[str]) -> List[str]:
+        return [arg for arg in compiler_args if self._is_permitted_arg(arg)]
 
-    def get_compiler_path_and_args(self) -> List[str]:
+    def _get_compiler_path_and_args(self) -> List[str]:
         return [self.real_compiler_path] + self.compiler_args
 
-    def get_compiler_command_str(self) -> str:
-        return shlex_join(self.get_compiler_path_and_args())
-
-    def check_actual_included_files(self) -> None:
-        """
-        Modify the compiler command line to only run the preprocessor. Look at files that got
-        included and verify that no files from disallowed directories are present.
-        """
-        pp_output_path = None
-        pp_args = [self.real_compiler_path]
-        out_file_arg_follows = False
-        assembly_input = False
-        for arg in self.compiler_args:
-            if arg.endswith('.s'):
-                assembly_input = True
-            if out_file_arg_follows:
-                assert pp_output_path is None
-                pp_output_path = arg + '.pp'
-                pp_args.append(pp_output_path)
-            else:
-                pp_args.append(arg)
-            out_file_arg_follows = arg == '-o'
-        if assembly_input:
-            return
-        pp_args.append('-E')
-        subprocess.check_call(pp_args)
-        assert pp_output_path is not None
-        assert os.path.isfile(pp_output_path)
-
-        # Collect included files from preprocessor output.
-        # https://gcc.gnu.org/onlinedocs/cpp/Preprocessor-Output.html
-        included_files: Set[str] = set()
-        with open(pp_output_path) as pp_output_file:
-            for line in pp_output_file:
-                if line.startswith('# 1 "'):
-                    line = line[5:].rstrip()
-                    if line.startswith('<'):
-                        continue
-                    quote_pos = line.find('"')
-                    if quote_pos < 0:
-                        continue
-                    included_files.add(line[:quote_pos])
-        real_included_files = set(os.path.realpath(p) for p in included_files)
-
-        for disallowed_dir in self.disallowed_include_dirs:
-            for included_file in real_included_files:
-                if included_file.startswith(disallowed_dir + '/'):
-                    raise ValueError(
-                        "File from a disallowed directory included: %s. "
-                        "Compiler invocation: %s" % (
-                            included_file,
-                            self.get_compiler_command_str()))
+    def _get_compiler_command_str(self) -> str:
+        return shlex_join(self._get_compiler_path_and_args())
 
     def run(self) -> None:
         verbose: bool = os.environ.get('YB_THIRDPARTY_VERBOSE') == '1'
@@ -135,7 +77,7 @@ class CompilerWrapper:
             os.environ['CCACHE_COMPILER'] = self.real_compiler_path
             cmd_args = ['ccache', 'compiler'] + self.compiler_args
         else:
-            cmd_args = self.get_compiler_path_and_args()
+            cmd_args = self._get_compiler_path_and_args()
 
         output_files = []
         for i in range(len(self.compiler_args) - 1):
@@ -156,12 +98,55 @@ class CompilerWrapper:
             cmd_args = [arg for arg in cmd_args if arg not in ld_flags_to_remove]
 
         if len(output_files) == 1 and output_files[0].endswith('.o'):
-            self.check_actual_included_files()
+            pp_output_path = None
+            # Perform preprocessing only to ensure we are using the correct include directories.
+            pp_args = [self.real_compiler_path]
+            out_file_arg_follows = False
+            assembly_input = False
+            for arg in self.compiler_args:
+                if arg.endswith('.s'):
+                    assembly_input = True
+                if out_file_arg_follows:
+                    assert pp_output_path is None
+                    pp_output_path = arg + '.pp'
+                    pp_args.append(pp_output_path)
+                else:
+                    pp_args.append(arg)
+                out_file_arg_follows = arg == '-o'
+            if not assembly_input:
+                pp_args.append('-E')
+                subprocess.check_call(pp_args)
+                assert pp_output_path is not None
+                assert os.path.isfile(pp_output_path)
 
-        cmd_str = self.get_copy_paste_friendly_cmd_str(cmd_args)
+                # Collect included files from preprocessor output.
+                # https://gcc.gnu.org/onlinedocs/cpp/Preprocessor-Output.html
+                included_files = set()
+                with open(pp_output_path) as pp_output_file:
+                    for line in pp_output_file:
+                        if line.startswith('# 1 "'):
+                            line = line[5:].rstrip()
+                            if line.startswith('<'):
+                                continue
+                            quote_pos = line.find('"')
+                            if quote_pos < 0:
+                                continue
+                            included_files.add(line[:quote_pos])
+                real_included_files = set(os.path.realpath(p) for p in included_files)
+
+                for disallowed_dir in self.disallowed_include_dirs:
+                    for included_file in real_included_files:
+                        if included_file.startswith(disallowed_dir + '/'):
+                            raise ValueError(
+                                "File from a disallowed directory included: %s. "
+                                "Compiler invocation: %s" % (
+                                    included_file,
+                                    self._get_compiler_command_str()))
+
+        cmd_str = '( cd %s; %s )' % (shlex.quote(os.getcwd()), shlex_join(cmd_args))
 
         if verbose:
-            self.log("Running command: %s" % cmd_str)
+            sys.stderr.write("Running command: %s" % cmd_str)
 
         try:
             subprocess.check_call(cmd_args)
