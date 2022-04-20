@@ -25,13 +25,17 @@ class BuilderInterface:
     """
 
     prefix: str
+
+    # Flags
     compiler_flags: List[str]
     c_flags: List[str]
     cxx_flags: List[str]
+    preprocessor_flags: List[str]
+    ld_flags: List[str]
+
     compiler_type: str
     prefix_lib: str
     prefix_bin: str
-    ld_flags: List[str]
     shared_lib_suffix: str
     tp_installed_common_dir: str
     prefix_include: str

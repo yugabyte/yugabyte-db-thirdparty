@@ -19,6 +19,8 @@ import platform
 import subprocess
 import stat
 import time
+import re
+
 from typing import Optional, List, Set, Tuple, Dict, Any, Callable
 
 from sys_detection import is_macos, is_linux
@@ -101,6 +103,10 @@ GRAVITON_FLAGS = [
 # environment variables that we set.
 DEPENDENCY_ENV_FILE_NAME = 'yb_dependency_env.sh'
 
+# If this pattern appears, we should use the CPPFLAGS environment variable for this dependency
+DISALLOWED_CONFIGURE_OUTPUT_RE = re.compile(
+    '(C|CXX)FLAGS should only be used to specify C compiler flags, not include directories[.]')
+
 
 def extend_lists(lists: List[List[str]], to_add: List[str]) -> None:
     for list_to_extend in lists:
@@ -119,9 +125,12 @@ class Builder(BuilderInterface):
 
     executable_only_ld_flags: List[str]
 
-    # These flags apply to both C and C++ compilers.
+    # These flags apply to both C and C++ compilers. Do not add preprocessor flags (e.g. include
+    # directories, system include directories, etc.) here.
     compiler_flags: List[str]
 
+    # Based on the dependency, we either set CPPFLAGS based on this, or add them to CFLAGS/CXXFLAGS.
+    # For CMake dependencies, we always add them to compiler flags.
     preprocessor_flags: List[str]
 
     # Flags specific for C and C++ compilers.
@@ -138,6 +147,7 @@ class Builder(BuilderInterface):
     remote_build: bool
 
     lto_type: Optional[str]
+    selected_dependencies: List[Dependency]
 
     """
     This class manages the overall process of building third-party dependencies, including the set
@@ -246,12 +256,16 @@ class Builder(BuilderInterface):
             'curl',
             'hiredis',
             'cqlsh',
-            'redis_cli',
             'flex',
             'bison',
-            'libedit',
             'openldap',
+            'redis_cli',
         ])
+        for dep in self.dependencies:
+            if dep.build_group != BUILD_GROUP_COMMON:
+                raise ValueError(
+                    "Expected the initial group of dependencies to all be in the common build "
+                    f"group, found: {dep.build_group} for dependency {dep.name}")
 
         if is_linux():
             self.dependencies += [
@@ -272,18 +286,18 @@ class Builder(BuilderInterface):
                     llvm_version_str = self.compiler_choice.get_llvm_version_str()
 
                 self.dependencies.append(
-                    get_build_def_module('llvm1x_libunwind').Llvm1xLibUnwindDependency(
+                    get_build_def_module('llvm_libunwind').LlvmLibUnwindDependency(
                         version=llvm_version_str
                     ))
-                libcxx_dep_module = get_build_def_module('llvm1x_libcxx')
+                libcxx_dep_module = get_build_def_module('llvm_libcxx')
                 if llvm_major_version >= 13:
                     self.dependencies.append(
                         libcxx_dep_module.LibCxxWithAbiDependency(version=llvm_version_str))
                 else:
                     # It is important that we build libc++abi first, and only then build libc++.
                     self.dependencies += [
-                        libcxx_dep_module.Llvm1xLibCxxAbiDependency(version=llvm_version_str),
-                        libcxx_dep_module.Llvm1xLibCxxDependency(version=llvm_version_str),
+                        libcxx_dep_module.LlvmLibCxxAbiDependency(version=llvm_version_str),
+                        libcxx_dep_module.LlvmLibCxxDependency(version=llvm_version_str),
                     ]
                 self.additional_allowed_shared_lib_paths.add(
                     get_clang_library_dir(self.compiler_choice.get_c_compiler()))
@@ -297,6 +311,8 @@ class Builder(BuilderInterface):
             # from Homebrew.
             # libunistring is required by gettext.
             (['libunistring', 'gettext'] if is_macos() else []) + [
+                'ncurses',
+                'libedit',
                 'icu4c',
                 'protobuf',
                 'crypt_blowfish',
@@ -406,7 +422,8 @@ class Builder(BuilderInterface):
             log("Adding an include path: %s", include_path)
         cmd_line_arg = f'-I{include_path}'
         self.preprocessor_flags.append(cmd_line_arg)
-        self.compiler_flags.append(cmd_line_arg)
+        # Not adding to compiler_flags. We can add preprocessor flags to compiler flags when
+        # building the dependency instead.
 
     def init_compiler_independent_flags(self, dep: Dependency) -> None:
         """
@@ -430,7 +447,6 @@ class Builder(BuilderInterface):
             self.add_lib_dir_and_rpath(os.path.join(
                 self.fs_layout.tp_installed_dir, include_dir_component, 'lib'))
 
-        self.compiler_flags += self.preprocessor_flags
         self.compiler_flags += ['-fno-omit-frame-pointer', '-fPIC', '-O3', '-Wall']
         if is_linux():
             # On Linux, ensure we set a long enough rpath so we can change it later with chrpath,
@@ -529,7 +545,10 @@ class Builder(BuilderInterface):
                     configure_cmd.copy() + ['--prefix={}'.format(self.prefix)] + extra_args
                 )
                 configure_args = get_arch_switch_cmd_prefix() + configure_args
-                log_output(log_prefix, configure_args)
+                log_output(
+                    log_prefix,
+                    configure_args,
+                    disallowed_pattern=DISALLOWED_CONFIGURE_OUTPUT_RE)
             except Exception as ex:
                 log(f"The configure step failed. Looking for relevant files in {dir_for_build} "
                     f"to show.")
@@ -734,7 +753,7 @@ class Builder(BuilderInterface):
             compiler_choice = self.compiler_choice
             llvm_major_version: Optional[int] = compiler_choice.get_llvm_major_version()
             if llvm_major_version is not None and llvm_major_version >= 10:
-                self.init_linux_clang1x_flags(dep)
+                self.init_linux_clang_flags(dep)
             else:
                 raise ValueError(f"Unknown or unsupproted LLVM major version: {llvm_major_version}")
 
@@ -745,7 +764,7 @@ class Builder(BuilderInterface):
         libcxx_installed_lib = os.path.join(libcxx_installed_path, 'lib')
         return libcxx_installed_include, libcxx_installed_lib
 
-    def init_linux_clang1x_flags(self, dep: Dependency) -> None:
+    def init_linux_clang_flags(self, dep: Dependency) -> None:
         """
         Flags for Clang 10 and beyond. We are using LLVM-supplied libunwind, and in most cases,
         compiler-rt in this configuration.
@@ -784,7 +803,7 @@ class Builder(BuilderInterface):
             ]
 
         if self.build_type == BUILD_TYPE_COMMON:
-            self.compiler_flags.extend(clang_linuxbrew_isystem_flags)
+            self.preprocessor_flags.extend(clang_linuxbrew_isystem_flags)
             return
 
         # TODO mbautin: refactor to polymorphism
@@ -845,14 +864,14 @@ class Builder(BuilderInterface):
                 '-stdlib=libc++',
                 '-nostdinc++'
             ] + self.cxx_flags
-            self.compiler_flags = ['-isystem', libcxx_installed_include] + self.compiler_flags
+            self.preprocessor_flags.extend(['-isystem', libcxx_installed_include])
             self.prepend_lib_dir_and_rpath(libcxx_installed_lib)
 
         if is_libcxx:
             log("Adding special compiler/linker flags for Clang 10 or newer for libc++")
             # This is needed for libc++ to find libc++abi headers.
             assert_dir_exists(libcxx_installed_include)
-            self.cxx_flags.append('-I%s' % libcxx_installed_include)
+            self.preprocessor_flags.append('-I%s' % libcxx_installed_include)
             # libc++ build needs to be able to find libc++abi library installed here.
             self.ld_flags.append('-L%s' % libcxx_installed_lib)
 
@@ -862,16 +881,17 @@ class Builder(BuilderInterface):
             # it at build time because libc++abi is built first.
             self.add_rpath(libcxx_installed_lib)
 
-        self.compiler_flags.extend(clang_linuxbrew_isystem_flags)
+        self.preprocessor_flags.extend(clang_linuxbrew_isystem_flags)
 
         # TODO: make this conditional only for the Linuxbrew + Clang combination.
         self.cxx_flags.append('-Wno-error=unused-command-line-argument')
 
         log("Flags after the end of setup for Clang 10 or newer:")
-        log("compiler_flags : %s", self.compiler_flags)
-        log("cxx_flags      : %s", self.cxx_flags)
-        log("c_flags        : %s", self.c_flags)
-        log("ld_flags       : %s", self.ld_flags)
+        log("compiler_flags     : %s", self.compiler_flags)
+        log("cxx_flags          : %s", self.cxx_flags)
+        log("c_flags            : %s", self.c_flags)
+        log("ld_flags           : %s", self.ld_flags)
+        log("preprocessor_flags : %s", self.preprocessor_flags)
 
     def get_effective_compiler_flags(self, dep: Dependency) -> List[str]:
         return self.compiler_flags + dep.get_additional_compiler_flags(self)
@@ -887,7 +907,9 @@ class Builder(BuilderInterface):
                 dep.get_additional_c_flags(self))
 
     def get_effective_ld_flags(self, dep: Dependency) -> List[str]:
-        return self.ld_flags + dep.get_additional_ld_flags(self)
+        return (dep.get_additional_leading_ld_flags(self) +
+                self.ld_flags +
+                dep.get_additional_ld_flags(self))
 
     def get_effective_assembler_flags(self, dep: Dependency) -> List[str]:
         return self.assembler_flags + dep.get_additional_assembler_flags(self)
@@ -899,11 +921,13 @@ class Builder(BuilderInterface):
         return list(self.preprocessor_flags)
 
     def get_common_cmake_flag_args(self, dep: Dependency) -> List[str]:
-        c_flags_str = ' '.join(self.get_effective_c_flags(dep))
-        cxx_flags_str = ' '.join(self.get_effective_cxx_flags(dep))
+        assert not dep.use_cppflags_env_var(), \
+            f'Dependency {dep.name} is being built with CMake but its use_cppflags_env_var ' \
+            'function returns True. CPPFLAGS only applies to configure-based builds.'
 
-        # TODO: we are not using this. What is the best way to plug this into CMake?
-        preprocessor_flags_str = ' '.join(self.get_effective_preprocessor_flags(dep))
+        preprocessor_flags = self.get_effective_preprocessor_flags(dep)
+        c_flags_str = ' '.join(preprocessor_flags + self.get_effective_c_flags(dep))
+        cxx_flags_str = ' '.join(preprocessor_flags + self.get_effective_cxx_flags(dep))
 
         ld_flags_str = ' '.join(self.get_effective_ld_flags(dep))
         exe_ld_flags_str = ' '.join(self.get_effective_executable_ld_flags(dep))
@@ -969,14 +993,33 @@ class Builder(BuilderInterface):
             "CPPFLAGS": " ".join(self.preprocessor_flags)
         }
 
-        log_and_set_env_var_to_list(env_vars, 'CXXFLAGS', self.get_effective_cxx_flags(dep))
-        log_and_set_env_var_to_list(env_vars, 'CFLAGS', self.get_effective_c_flags(dep))
+        use_cppflags_env_var = dep.use_cppflags_env_var()
+        preprocessor_flags = self.get_effective_preprocessor_flags(dep)
+
+        cppflags_list: List[str] = []
+        if use_cppflags_env_var:
+            # Preprocessor flags are specified as CPPFLAGS.
+            preprocessor_flags_in_compiler_flags = []
+            cppflags_list = preprocessor_flags
+        else:
+            # Preprocessor flags are specified in CXXFLAGS and CFLAGS directly.
+            preprocessor_flags_in_compiler_flags = preprocessor_flags
+            cppflags_list = []
+
+        log_and_set_env_var_to_list(env_vars, 'CPPFLAGS', cppflags_list)
+
+        log_and_set_env_var_to_list(
+            env_vars,
+            'CXXFLAGS',
+            preprocessor_flags_in_compiler_flags + self.get_effective_cxx_flags(dep))
+        log_and_set_env_var_to_list(
+            env_vars,
+            'CFLAGS',
+            preprocessor_flags_in_compiler_flags + self.get_effective_c_flags(dep))
         log_and_set_env_var_to_list(env_vars, 'LDFLAGS', self.get_effective_ld_flags(dep))
         log_and_set_env_var_to_list(
             env_vars, 'ASFLAGS', self.get_effective_assembler_flags(dep))
         log_and_set_env_var_to_list(env_vars, 'LIBS', self.libs)
-        log_and_set_env_var_to_list(
-            env_vars, 'CPPFLAGS', self.get_effective_preprocessor_flags(dep))
 
         compiler_wrapper_extra_ld_flags = dep.get_compiler_wrapper_ld_flags_to_append(self)
         if compiler_wrapper_extra_ld_flags:

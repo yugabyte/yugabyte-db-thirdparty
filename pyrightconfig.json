@@ -1,0 +1,19 @@
+{
+  "include": [
+    "python"
+  ],
+
+  "exclude": [
+    "**/node_modules",
+    "**/__pycache__",
+    "src/experimental",
+    "src/typestubs"
+  ],
+
+  "stubPath": "python/stubs",
+  "venv": "venv",
+
+  "reportMissingImports": true,
+  "reportMissingTypeStubs": false,
+  "reportWildcardImportFromLibrary": false,
+}

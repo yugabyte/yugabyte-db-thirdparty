@@ -98,7 +98,7 @@ def log_output(
         process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         assert process.stdout is not None
         for line in process.stdout:
-            if disallowed_pattern and disallowed_pattern.search(line):
+            if disallowed_pattern and disallowed_pattern.search(line.decode('utf-8')):
                 raise RuntimeError(
                     "Output line from command [[ {} ]] contains a disallowed pattern: {}".format(
                         cmd_str, disallowed_pattern))

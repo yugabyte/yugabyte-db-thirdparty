@@ -10,3 +10,8 @@ activate_virtualenv
 set -x
 rm -rf .mypy_cache
 codecheck --verbose "$@"
+
+if [[ $OSTYPE == darwin* ]]; then
+  pip install pyright
+  pyright
+fi

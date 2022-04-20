@@ -13,33 +13,34 @@
 #
 
 import os
+import sys
+
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
+from yugabyte_db_thirdparty.linuxbrew import using_linuxbrew
 
 
-class OpenLDAPDependency(Dependency):
+class NCursesDependency(Dependency):
     def __init__(self) -> None:
-        super(OpenLDAPDependency, self).__init__(
-              'openldap',
-              '2_4_54',
-              'https://github.com/yugabyte/openldap/archive/OPENLDAP_REL_ENG_{}.tar.gz',
-              BUILD_GROUP_COMMON)
+        super(NCursesDependency, self).__init__(
+            'ncurses',
+            '6.3',
+            'https://ftp.gnu.org/pub/gnu/ncurses/ncurses-{0}.tar.gz',
+            BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = True
 
-    def get_additional_compiler_flags(self, builder: BuilderInterface) -> List[str]:
-        if is_macos():
-            return ['-Wno-error=implicit-function-declaration']
-        return []
-
     def build(self, builder: BuilderInterface) -> None:
-        # build client only
-        disabled_features = (
-            'slapd', 'bdb', 'hdb', 'mdb', 'monitor', 'relay', 'syncprov'
-        )
-
         builder.build_with_configure(
-            builder.log_prefix(self),
-            extra_args=['--disable-' + feature for feature in disabled_features] +
-                       ['--with-cyrus-sasl=no'])
+            log_prefix=builder.log_prefix(self),
+            extra_args=['--with-shared'])
+
+    def get_additional_leading_ld_flags(self, builder: 'BuilderInterface') -> List[str]:
+        flags = super().get_additional_leading_ld_flags(builder)
+
+        # We need to put the ../lib directory in front of the linker flags so that
+        # Linuxbrew-provided ncurses does not take over.
+        if using_linuxbrew():
+            flags.append('-L../lib')
+        return flags
 
     def use_cppflags_env_var(self) -> bool:
         return True

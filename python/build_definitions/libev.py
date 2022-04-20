@@ -30,3 +30,6 @@ class LibEvDependency(Dependency):
             log_prefix=log_prefix,
             extra_args=['--with-pic']
         )
+
+    def use_cppflags_env_var(self) -> bool:
+        return True
