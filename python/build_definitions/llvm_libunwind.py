@@ -13,14 +13,14 @@
 
 import os
 
-from build_definitions.llvm1x_part import Llvm1xPartDependencyBase
+from build_definitions.llvm_part import LlvmPartDependencyBase
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
 
-class Llvm1xLibUnwindDependency(Llvm1xPartDependencyBase):
+class LlvmLibUnwindDependency(LlvmPartDependencyBase):
     def __init__(self, version: str) -> None:
-        super(Llvm1xLibUnwindDependency, self).__init__(
-            name='llvm1x_libunwind',
+        super(LlvmLibUnwindDependency, self).__init__(
+            name='llvm_libunwind',
             version=version,
             build_group=BUILD_GROUP_COMMON)
 

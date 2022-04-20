@@ -283,18 +283,18 @@ class Builder(BuilderInterface):
                     llvm_version_str = self.compiler_choice.get_llvm_version_str()
 
                 self.dependencies.append(
-                    get_build_def_module('llvm1x_libunwind').Llvm1xLibUnwindDependency(
+                    get_build_def_module('llvm_libunwind').LlvmLibUnwindDependency(
                         version=llvm_version_str
                     ))
-                libcxx_dep_module = get_build_def_module('llvm1x_libcxx')
+                libcxx_dep_module = get_build_def_module('llvm_libcxx')
                 if llvm_major_version >= 13:
                     self.dependencies.append(
                         libcxx_dep_module.LibCxxWithAbiDependency(version=llvm_version_str))
                 else:
                     # It is important that we build libc++abi first, and only then build libc++.
                     self.dependencies += [
-                        libcxx_dep_module.Llvm1xLibCxxAbiDependency(version=llvm_version_str),
-                        libcxx_dep_module.Llvm1xLibCxxDependency(version=llvm_version_str),
+                        libcxx_dep_module.LlvmLibCxxAbiDependency(version=llvm_version_str),
+                        libcxx_dep_module.LlvmLibCxxDependency(version=llvm_version_str),
                     ]
                 self.additional_allowed_shared_lib_paths.add(
                     get_clang_library_dir(self.compiler_choice.get_c_compiler()))

@@ -13,14 +13,14 @@
 
 import os
 
-from build_definitions.llvm1x_part import Llvm1xPartDependencyBase
+from build_definitions.llvm_part import LlvmPartDependencyBase
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 from yugabyte_db_thirdparty.util import replace_string_in_file
 
 
-class Llvm1xLibCxxDependencyBase(Llvm1xPartDependencyBase):
+class LlvmLibCxxDependencyBase(LlvmPartDependencyBase):
     def __init__(self, name: str, version: str) -> None:
-        super(Llvm1xLibCxxDependencyBase, self).__init__(
+        super(LlvmLibCxxDependencyBase, self).__init__(
             name=name,
             version=version,
             build_group=BUILD_GROUP_INSTRUMENTED)
@@ -79,10 +79,10 @@ class Llvm1xLibCxxDependencyBase(Llvm1xPartDependencyBase):
         raise NotImplementedError()
 
 
-class Llvm1xLibCxxAbiDependency(Llvm1xLibCxxDependencyBase):
+class LlvmLibCxxAbiDependency(LlvmLibCxxDependencyBase):
     def __init__(self, version: str) -> None:
-        super(Llvm1xLibCxxAbiDependency, self).__init__(
-            name='llvm1x_libcxxabi',
+        super(LlvmLibCxxAbiDependency, self).__init__(
+            name='llvm_libcxxabi',
             version=version)
 
     def get_source_subdir_name(self) -> str:
@@ -110,10 +110,10 @@ class Llvm1xLibCxxAbiDependency(Llvm1xLibCxxDependencyBase):
                 os.path.join(dest_include_path, header_name))
 
 
-class Llvm1xLibCxxDependency(Llvm1xLibCxxDependencyBase):
+class LlvmLibCxxDependency(LlvmLibCxxDependencyBase):
     def __init__(self, version: str) -> None:
-        super(Llvm1xLibCxxDependency, self).__init__(
-            name='llvm1x_libcxx',
+        super(LlvmLibCxxDependency, self).__init__(
+            name='llvm_libcxx',
             version=version)
 
     def get_source_subdir_name(self) -> str:
@@ -128,7 +128,7 @@ class Llvm1xLibCxxDependency(Llvm1xLibCxxDependencyBase):
         ]
 
 
-class LibCxxWithAbiDependency(Llvm1xLibCxxDependencyBase):
+class LibCxxWithAbiDependency(LlvmLibCxxDependencyBase):
     """
     A combined dependency for libc++ and libc++abi.
 
@@ -151,7 +151,7 @@ class LibCxxWithAbiDependency(Llvm1xLibCxxDependencyBase):
 
     def __init__(self, version: str) -> None:
         super(LibCxxWithAbiDependency, self).__init__(
-            name='llvm1x_libcxx_with_abi',
+            name='llvm_libcxx_with_abi',
             version=version)
 
     def get_source_subdir_name(self) -> str:
