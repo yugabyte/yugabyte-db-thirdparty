@@ -13,6 +13,7 @@
 
 import os
 import re
+from llvm_installer import LlvmInstaller
 
 from yugabyte_db_thirdparty.download_manager import DownloadManager
 from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR, write_file
@@ -37,36 +38,13 @@ def get_llvm_url(tag: str) -> str:
             tag, tag)
 
 
-TOOLCHAIN_TO_OS_AND_ARCH_TO_URL = {
-    'llvm11': {
-        'centos7-x86_64':     get_llvm_url('v11.1.0-yb-1-1633099975-130bd22e-centos7-x86_64'),
-        'centos8-aarch64':    get_llvm_url('v11.1.0-yb-1-1633544021-130bd22e-centos8-aarch64'),
-        'almalinux8-x86_64':  get_llvm_url('v11.1.0-yb-1-1633143292-130bd22e-almalinux8-x86_64'),
-        'amzn2-aarch64':      get_llvm_url('v11.1.0-yb-1-1647671171-130bd22e-amzn2-aarch64'),
-    },
-    'llvm12': {
-        'centos7-x86_64':     get_llvm_url('v12.0.1-yb-1-1633099823-bdb147e6-centos7-x86_64'),
-        'almalinux8-x86_64':  get_llvm_url('v12.0.1-yb-1-1633143152-bdb147e6-almalinux8-x86_64'),
-        'amzn2-aarch64':      get_llvm_url('v12.0.1-yb-1-1647674838-bdb147e6-amzn2-aarch64'),
-        'almalinux8-aarch64': get_llvm_url('v12.0.1-yb-1-1648458260-bdb147e6-almalinux8-aarch64'),
-    },
-    'llvm13': {
-        'centos7-x86_64':     get_llvm_url('v13.0.1-yb-1-1644383736-191e3a05-centos7-x86_64'),
-        'centos8-aarch64':    get_llvm_url('v13.0.0-yb-1-1639976983-4b60e646-centos8-aarch64'),
-        'almalinux8-x86_64':  get_llvm_url('v13.0.1-yb-1-1644390288-191e3a05-almalinux8-x86_64'),
-        'amzn2-aarch64':      get_llvm_url('v13.0.1-yb-1-1647678956-191e3a05-amzn2-aarch64'),
-    },
-    'llvm14': {
-        'centos7-x86_64':     get_llvm_url('v14.0.0-1648392050-329fda39-centos7-x86_64'),
-        'almalinux8-aarch64': get_llvm_url('v14.0.0-1648380033-329fda39-almalinux8-aarch64'),
-        'amzn2-aarch64':      get_llvm_url('v14.0.0-1648379878-329fda39-amzn2-aarch64'),
-        'almalinux8-x86_64':  get_llvm_url('v14.0.0-1648363631-329fda39-almalinux8-x86_64'),
-    },
-}
+LLVM_VERSIONS = [11, 12, 13, 14]
 
-TOOLCHAIN_TYPES = sorted(TOOLCHAIN_TO_OS_AND_ARCH_TO_URL.keys()) + [
-    'linuxbrew'
-] + ['llvm%d_linuxbrew' % v for v in [11, 12, 13, 14]]
+TOOLCHAIN_TYPES = (
+    ['llvm%d' % v for v in LLVM_VERSIONS] +
+    ['linuxbrew'] +
+    ['llvm%d_linuxbrew' % v for v in LLVM_VERSIONS]
+)
 
 
 class Toolchain:
@@ -142,28 +120,14 @@ def get_toolchain_url(toolchain_type: str) -> str:
         # Does not depend on the OS.
         return LINUXBREW_URL
 
-    os_and_arch_to_url = TOOLCHAIN_TO_OS_AND_ARCH_TO_URL[toolchain_type]
+    assert toolchain_type.startswith('llvm')
     local_sys_conf = sys_detection.local_sys_conf()
-    os_and_arch = local_sys_conf.id_for_packaging()
-    if os_and_arch in os_and_arch_to_url:
-        toolchain_url = os_and_arch_to_url[os_and_arch]
-    else:
-        os_and_arch_candidates = []
-        for os_and_arch_candidate in os_and_arch_to_url.keys():
-            if is_compatible_os_arch_combination(os_and_arch_candidate, os_and_arch):
-                os_and_arch_candidates.append(os_and_arch_candidate)
-        err_msg_prefix = (
-            f"Toolchain {toolchain_type} not found for OS/architecture combination {os_and_arch}")
-        if not os_and_arch_candidates:
-            raise ValueError(
-                    f"{err_msg_prefix}, and no compatible OS/architecture combinations found.")
-        if len(os_and_arch_candidates) > 1:
-            raise ValueError(
-                    f"{err_msg_prefix}, and too many compatible OS/architecture combinations "
-                    "found, cannot choose automatically: {os_and_arch_candidates}")
-        effective_os_and_arch = os_and_arch_candidates[0]
-        toolchain_url = os_and_arch_to_url[effective_os_and_arch]
-    return toolchain_url
+    major_llvm_version = int(toolchain_type[4:])
+    llvm_installer = LlvmInstaller(
+        major_llvm_version=major_llvm_version,
+        short_os_name_and_version=local_sys_conf.short_os_name_and_version(),
+        architecture=local_sys_conf.architecture)
+    return llvm_installer.get_llvm_url()
 
 
 def ensure_toolchain_installed(

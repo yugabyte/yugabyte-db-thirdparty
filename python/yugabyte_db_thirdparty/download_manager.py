@@ -41,6 +41,7 @@ from yugabyte_db_thirdparty.constants import ADD_CHECKSUM_ARG
 
 
 MAX_FETCH_ATTEMPTS = 20
+MAX_REDOWNLOAD_ATTEMPTS_AFTER_WRONG_CHECKSUM = 3
 INITIAL_DOWNLOAD_RETRY_SLEEP_TIME_SEC = 1.0
 DOWNLOAD_RETRY_SLEEP_INCREASE_SEC = 0.5
 ALTERNATIVE_URL_PREFIX = 'https://downloads.yugabyte.com/yugabyte-db-thirdparty/'
@@ -256,6 +257,27 @@ class DownloadManager:
                         effective_url]
                     log("Running command: %s", shlex_join(curl_cmd_line))
                     subprocess.check_call(curl_cmd_line)
+
+                    if verify_checksum:
+                        if expected_checksum is None:
+                            expected_checksum = self.get_expected_checksum_and_maybe_add_to_file(
+                                file_name, downloaded_path=file_path)
+                        if not self.verify_checksum(file_path, expected_checksum):
+                            error_msg = (
+                                "File '%s' has wrong checksum after downloading from '%s'. "
+                                "Has %s, but expected: %s." % (
+                                    file_path,
+                                    url,
+                                    compute_file_sha256(file_path),
+                                    expected_checksum))
+                            if attempt_index <= MAX_REDOWNLOAD_ATTEMPTS_AFTER_WRONG_CHECKSUM:
+                                error_msg += "Will delete and re-download."
+                                remove_path(file_path)
+                                log(error_msg)
+                                continue
+                            else:
+                                raise IOError(error_msg + ("Attempt: %d" % attempt_index))
+
                     download_successful = True
                     break
                 except subprocess.CalledProcessError as ex:
@@ -271,19 +293,10 @@ class DownloadManager:
             if download_successful:
                 break
 
+        if not download_successful:
+            fatal("Failed to download URL %s", url)
         if not os.path.exists(file_path):
             fatal("Downloaded '%s' but but unable to find '%s'", url, file_path)
-        if verify_checksum:
-            if expected_checksum is None:
-                expected_checksum = self.get_expected_checksum_and_maybe_add_to_file(
-                    file_name, downloaded_path=file_path)
-            if not self.verify_checksum(file_path, expected_checksum):
-                fatal("File '%s' has wrong checksum after downloading from '%s'. "
-                      "Has %s, but expected: %s",
-                      file_path,
-                      url,
-                      compute_file_sha256(file_path),
-                      expected_checksum)
 
     def download_dependency(
             self,
