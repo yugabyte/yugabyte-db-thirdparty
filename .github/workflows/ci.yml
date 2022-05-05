@@ -34,20 +34,6 @@ jobs:
           # ---------------------------------------------------------------------------------------
           # CentOS 7
           # ---------------------------------------------------------------------------------------
-          - name: centos7-x86_64-gcc9
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_centos7:v2022-05-02T07_00_11
-            build_thirdparty_args: >-
-              --devtoolset=9
-              --expected-major-compiler-version=9
-
-          - name: centos7-x86_64-gcc10
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_centos7:v2022-05-02T07_00_11
-            build_thirdparty_args: >-
-              --devtoolset=10
-              --expected-major-compiler-version=10
-
           - name: centos7-x86_64-gcc11
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_centos7:v2022-05-02T07_00_11
@@ -130,18 +116,6 @@ jobs:
           # ---------------------------------------------------------------------------------------
           # Ubuntu 20.04
           # ---------------------------------------------------------------------------------------
-
-          - name: ubuntu2004-x86_64-gcc9
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_ubuntu2004:v2022-05-02T07_00_13
-            build_thirdparty_args: >-
-              --compiler-prefix=/usr
-              --single-compiler-type=gcc
-              --compiler-suffix=-9
-              --expected-major-compiler-version=9
-
-          # g++-10 does not seem to be available on Ubuntu 20.04.
-
           - name: ubuntu2004-x86_64-clang12
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_ubuntu2004:v2022-05-02T07_00_13
@@ -200,17 +174,6 @@ jobs:
           # ---------------------------------------------------------------------------------------
           # AlmaLinux 8
           # ---------------------------------------------------------------------------------------
-
-          - name: almalinux8-x86_64-gcc9
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_almalinux8:v2022-05-02T07_00_12
-            build_thirdparty_args: >-
-              --single-compiler-type=gcc
-              --devtoolset=9
-              --expected-major-compiler-version=9
-
-          # Clang/LLVM 12
-
           - name: almalinux8-x86_64-clang12
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_almalinux8:v2022-05-02T07_00_12
