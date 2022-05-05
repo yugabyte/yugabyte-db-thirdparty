@@ -314,6 +314,7 @@ class Builder(BuilderInterface):
             # libunistring is required by gettext.
             (['libunistring', 'gettext'] if is_macos() else []) + [
                 'ncurses',
+                'libkeyutils',
                 'libedit',
                 'icu4c',
                 'protobuf',
