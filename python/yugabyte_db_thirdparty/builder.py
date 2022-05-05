@@ -96,7 +96,9 @@ TSAN_FLAGS = [
 
 # https://github.com/aws/aws-graviton-getting-started/blob/main/c-c++.md
 GRAVITON_FLAGS = [
-    '-march=armv8.2-a+fp16+rcpc+dotprod+crypto'
+    '-march=armv8.2-a+fp16+rcpc+dotprod+crypto',
+    '-mtune=neoverse-n1',
+    '-mno-outline-atomics',
 ]
 
 # We create a file named like this in each dependency's build directory, with all the relevant
