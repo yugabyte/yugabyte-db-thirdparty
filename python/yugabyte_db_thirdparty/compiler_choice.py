@@ -294,6 +294,11 @@ class CompilerChoice:
             return None
         return extract_major_version(self.get_llvm_version_str())
 
+    def get_gcc_major_version(self) -> Optional[int]:
+        if self.compiler_type != 'gcc':
+            return None
+        return extract_major_version(self.compiler_version_str)
+
     def check_compiler_major_version(self) -> None:
         assert self.expected_major_compiler_version is not None
         actual_major_version = self.get_compiler_major_version()
