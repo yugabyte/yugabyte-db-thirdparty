@@ -41,6 +41,20 @@ jobs:
               --devtoolset=9
               --expected-major-compiler-version=9
 
+          - name: centos7-x86_64-gcc10
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_centos7:v2022-05-02T07_00_11
+            build_thirdparty_args: >-
+              --devtoolset=10
+              --expected-major-compiler-version=10
+
+          - name: centos7-x86_64-gcc11
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_centos7:v2022-05-02T07_00_11
+            build_thirdparty_args: >-
+              --devtoolset=11
+              --expected-major-compiler-version=11
+
           # Clang 12
           - name: centos7-x86_64-clang12
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
@@ -114,19 +128,6 @@ jobs:
               --lto=full
 
           # ---------------------------------------------------------------------------------------
-          # Ubuntu 18.04
-          # ---------------------------------------------------------------------------------------
-
-          - name: ubuntu1804-x86_64-gcc8
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_ubuntu1804:v2021-08-27T03_10_20
-            build_thirdparty_args: >-
-              --compiler-prefix=/usr
-              --single-compiler-type=gcc
-              --compiler-suffix=-8
-              --expected-major-compiler-version=8
-
-          # ---------------------------------------------------------------------------------------
           # Ubuntu 20.04
           # ---------------------------------------------------------------------------------------
 
@@ -139,23 +140,7 @@ jobs:
               --compiler-suffix=-9
               --expected-major-compiler-version=9
 
-          - name: ubuntu2004-x86_64-gcc10
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_ubuntu2004:v2022-05-02T07_00_13
-            build_thirdparty_args: >-
-              --compiler-prefix=/usr
-              --single-compiler-type=gcc
-              --compiler-suffix=-10
-              --expected-major-compiler-version=10
-
-          - name: ubuntu2004-x86_64-gcc11
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_ubuntu2004:v2022-05-02T07_00_13
-            build_thirdparty_args: >-
-              --compiler-prefix=/usr
-              --single-compiler-type=gcc
-              --compiler-suffix=-11
-              --expected-major-compiler-version=11
+          # g++-10 does not seem to be available on Ubuntu 20.04.
 
           - name: ubuntu2004-x86_64-clang12
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
@@ -177,6 +162,21 @@ jobs:
             build_thirdparty_args: >-
               --toolchain=llvm14
               --expected-major-compiler-version=14
+
+          # ---------------------------------------------------------------------------------------
+          # Ubuntu 22.04
+          # ---------------------------------------------------------------------------------------
+
+          - name: ubuntu2204-x86_64-gcc11
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_ubuntu2204:v2022-05-05T04_49_21
+            build_thirdparty_args: >-
+              --compiler-prefix=/usr
+              --single-compiler-type=gcc11
+              --compiler-suffix=-11
+              --expected-major-compiler-version=11
+
+          # TODO: add Clang build types here once LLVM packages for Ubuntu 22.04 are available.
 
           # ---------------------------------------------------------------------------------------
           # AlmaLinux 8
