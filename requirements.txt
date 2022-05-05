@@ -1,10 +1,10 @@
 codecheck
+compiler-identification
 docker
+llvm-installer
 mypy
 packaging
 pycodestyle
 ruamel.yaml
-yugabyte_pycommon
-compiler-identification
 sys-detection
-llvm-installer
+yugabyte_pycommon
