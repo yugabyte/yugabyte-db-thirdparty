@@ -297,6 +297,7 @@ class CompilerChoice:
     def get_gcc_major_version(self) -> Optional[int]:
         if self.compiler_type != 'gcc':
             return None
+        assert self.compiler_version_str is not None
         return extract_major_version(self.compiler_version_str)
 
     def check_compiler_major_version(self) -> None:
