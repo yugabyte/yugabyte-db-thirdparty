@@ -49,4 +49,5 @@ if [[ $* == *--snyk* ]]; then
   chmod +x ./snyk
   homedir="${BASH_SOURCE[0]%/*}"
   ./snyk test "$homedir/src" --unmanaged
+  rm -f ./snyk
 fi
