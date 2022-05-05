@@ -186,7 +186,8 @@ def parse_cmd_line_args() -> argparse.Namespace:
     )
     parser.add_argument(
         '--snyk',
-        help='Run Snyk Vunerability scan on the downloaded and extracted dependencies. Sets download-extract-only = True as well.',
+        help="Run Snyk Vunerability scan on the downloaded and extracted dependencies. "
+             "Sets download-extract-only = True as well.",
         action='store_true'
     )
     args = parser.parse_args()
@@ -249,5 +250,5 @@ def parse_cmd_line_args() -> argparse.Namespace:
 
     if args.snyk:
         args.download_extract_only = True
-    
+
     return args
