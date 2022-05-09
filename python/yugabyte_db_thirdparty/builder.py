@@ -378,8 +378,7 @@ class Builder(BuilderInterface):
         if (is_linux() and
                 self.compiler_choice.use_only_clang() and
                 not self.args.skip_sanitizers and
-                not using_linuxbrew() and
-                not self.args.snyk):
+                not using_linuxbrew()):
             # We only support ASAN/TSAN builds on Clang, when not using Linuxbrew.
             build_types.append(BUILD_TYPE_ASAN)
             build_types.append(BUILD_TYPE_TSAN)
