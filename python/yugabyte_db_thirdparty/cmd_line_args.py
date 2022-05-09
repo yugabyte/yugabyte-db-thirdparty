@@ -248,7 +248,4 @@ def parse_cmd_line_args() -> argparse.Namespace:
         # This is used e.g. in compiler_wrapper.py.
         os.environ['YB_THIRDPARTY_VERBOSE'] = '1'
 
-    if args.snyk:
-        args.download_extract_only = True
-
     return args
