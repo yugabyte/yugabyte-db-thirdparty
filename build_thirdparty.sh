@@ -62,7 +62,7 @@ if [[ $* == *--snyk* ]]; then
     exit $rc
   fi
 
-  ./snyk test "$homedir/src" --unmanaged
+  ./snyk monitor "$homedir/src" --unmanaged
   rc=$?
   rm -f ./snyk
 fi
