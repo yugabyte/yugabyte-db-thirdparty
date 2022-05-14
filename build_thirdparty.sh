@@ -67,4 +67,6 @@ if [[ $* == *--snyk* ]]; then
   rm -f ./snyk
 fi
 
+set -xue
+
 return $rc
