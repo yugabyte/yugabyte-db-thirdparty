@@ -39,3 +39,32 @@ set -x
 
 # shellcheck disable=SC2086
 python3 "$YB_THIRDPARTY_DIR/python/yugabyte_db_thirdparty/yb_build_thirdparty_main.py" "$@"
+
+rc=$?
+set +xue
+
+echo "Running Snyk Vulnerability scan"
+if [[ $OSTYPE == linux* ]]; then
+  curl https://static.snyk.io/cli/latest/snyk-linux -o snyk
+else
+  curl https://static.snyk.io/cli/latest/snyk-macos -o snyk
+fi
+chmod +x ./snyk
+homedir="${BASH_SOURCE[0]%/*}"
+
+rc2=1
+if [[ -n "$SNYK_TOKEN" ]]; then
+  ./snyk auth "${SNYK_TOKEN}"
+  rc2=$?
+fi
+if [[ $rc2 -ne 0 ]]; then
+  exit $rc
+fi
+
+./snyk monitor "$homedir/src" --unmanaged
+rc=$?
+rm -f ./snyk
+
+set -xue
+
+exit $rc
