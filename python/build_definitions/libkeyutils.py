@@ -15,18 +15,23 @@
 import glob
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
-
-class LibVertoDependency(Dependency):
-    """
-    libverto is one of the dependencies of libkrad, which is part of Kerberos.
-    """
+class LibKeyUtilsDependency(Dependency):
     def __init__(self) -> None:
-        super(LibVertoDependency, self).__init__(
+        super(LibKeyUtilsDependency, self).__init__(
             'libkeyutils',
-            '0.3.2',
-            'https://github.com/latchset/libverto/releases/download/{0}/libverto-{0}.tar.gz',
+            '1.6.1',
+            'https://people.redhat.com/~dhowells/keyutils/keyutils-{0}.tar.bz2',
             BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = True
 
     def build(self, builder: BuilderInterface) -> None:
-        builder.build_with_configure(dep=self)
+        log_prefix = builder.log_prefix(self)
+        log_output(log_prefix, ['make'])
+        log_output(log_prefix, ['cp'] + glob.glob('*.h') + [builder.prefix_include])
+        log_output(
+            log_prefix,
+            ['cp'] +
+            glob.glob('*.a') +
+            glob.glob('*.so') +
+            glob.glob('*.so.*') +
+            [builder.prefix_lib])
