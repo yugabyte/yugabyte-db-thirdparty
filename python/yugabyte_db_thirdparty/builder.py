@@ -329,6 +329,7 @@ class Builder(BuilderInterface):
                 'libcds',
                 'libuv',
                 'cassandra_cpp_driver',
+                'libverto',
                 'krb5',
             ])
 
@@ -524,7 +525,7 @@ class Builder(BuilderInterface):
 
     def build_with_configure(
             self,
-            log_prefix: str,
+            dep: Dependency,
             extra_args: List[str] = [],
             configure_cmd: List[str] = ['./configure'],
             install: List[str] = ['install'],
@@ -532,6 +533,7 @@ class Builder(BuilderInterface):
             autoconf: bool = False,
             src_subdir_name: Optional[str] = None,
             post_configure_action: Optional[Callable] = None) -> None:
+        log_prefix = self.log_prefix(dep)
         dir_for_build = os.getcwd()
         if src_subdir_name:
             dir_for_build = os.path.join(dir_for_build, src_subdir_name)
@@ -886,8 +888,7 @@ class Builder(BuilderInterface):
 
         self.preprocessor_flags.extend(clang_linuxbrew_isystem_flags)
 
-        # TODO: make this conditional only for the Linuxbrew + Clang combination.
-        self.cxx_flags.append('-Wno-error=unused-command-line-argument')
+        self.compiler_flags.append('-Wno-error=unused-command-line-argument')
 
         log("Flags after the end of setup for Clang 10 or newer:")
         log("compiler_flags     : %s", self.compiler_flags)

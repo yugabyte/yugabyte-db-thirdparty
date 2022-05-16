@@ -45,7 +45,7 @@ class Krb5Dependency(Dependency):
         if builder.build_type in [BUILD_TYPE_ASAN]:
             extra_args.append('--enable-asan')
         builder.build_with_configure(
-            log_prefix=builder.log_prefix(self),
+            dep=self,
             src_subdir_name='src',
             extra_args=extra_args,
         )

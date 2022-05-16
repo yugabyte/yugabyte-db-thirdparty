@@ -47,7 +47,7 @@ class BuilderInterface:
 
     def build_with_configure(
             self,
-            log_prefix: str,
+            dep: 'Dependency',
             extra_args: List[str] = [],
             configure_cmd: List[str] = ['./configure'],
             install: List[str] = ['install'],

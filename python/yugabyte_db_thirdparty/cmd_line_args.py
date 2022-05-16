@@ -171,7 +171,7 @@ def parse_cmd_line_args() -> argparse.Namespace:
         action='store_true')
 
     parser.add_argument(
-        '--delete-build-dir',
+        '--delete-build-dir', '--remove-build-dir',
         help="Delete each dependency's build directory to start each build from scratch. "
              "Note that this does not affect the corresponding source directory.",
         action='store_true')

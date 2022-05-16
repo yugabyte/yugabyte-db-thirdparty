@@ -50,7 +50,7 @@ class OpenSSLDependency(Dependency):
             configure_cmd += ['-Wl,-rpath=' + install_path]
 
         builder.build_with_configure(
-            log_prefix=builder.log_prefix(self),
+            dep=self,
             configure_cmd=configure_cmd,
             # https://bit.ly/openssl_install_without_manpages
             install=['install_sw']

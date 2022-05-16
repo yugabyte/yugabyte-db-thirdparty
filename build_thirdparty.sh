@@ -25,15 +25,12 @@ echo "YB_THIRDPARTY_DIR=$YB_THIRDPARTY_DIR"
 
 activate_virtualenv
 
-echo "YB_LINUXBREW_DIR=${YB_LINUXBREW_DIR:-undefined}"
 if [[ $OSTYPE == linux* && -n ${YB_LINUXBREW_DIR:-} ]]; then
   if [[ ! -d $YB_LINUXBREW_DIR ]]; then
     fatal "Directory specified by YB_LINUXBREW_DIR ('$YB_LINUXBREW_DIR') does not exist"
   fi
   export PATH=$YB_LINUXBREW_DIR/bin:$PATH
 fi
-
-echo "YB_CUSTOM_HOMEBREW_DIR=${YB_CUSTOM_HOMEBREW_DIR:-undefined}"
 
 set -x
 

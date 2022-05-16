@@ -113,7 +113,7 @@ class Icu4cDependency(Dependency):
             post_configure_action = self._copy_res_files_from_uninstrumented
 
         builder.build_with_configure(
-            log_prefix=builder.log_prefix(self),
+            dep=self,
             src_subdir_name='source',
             extra_args=configure_extra_args,
             post_configure_action=post_configure_action
