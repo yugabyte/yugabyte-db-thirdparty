@@ -341,14 +341,15 @@ class UnexpectedExitCodeError(Exception):
 def capture_all_output(
         args: List[str],
         allowed_exit_codes: Set[int],
-        env: Dict[str, str]) -> List[str]:
+        env: Dict[str, str] = {},
+        extra_msg_on_nonzero_exit_code: Optional[str] = None) -> List[str]:
     '''
     Runs the given command represented by a list of arguments, and captures all output (stdout
     and stderr) as a list of lines.
 
     :param args: Command line to run..
     :param allowed_exit_codes: The list of allowed exit codes for which there would be no error.
-                               Also, 0 is always implicitly included
+                               Also, 0 is always implicitly allowed.
     :param env: Additional environment variables for the child process.
     :raises: UnexpectedExitCodeError in case the exit code is not 0 or one of the allowed exit
              codes.
@@ -356,10 +357,16 @@ def capture_all_output(
     try:
         out_bytes = subprocess.check_output(args, stderr=subprocess.STDOUT, env=env)
     except subprocess.CalledProcessError as ex:
+        cmd_line_str = shlex_join(args)
         if ex.returncode not in allowed_exit_codes:
-            error_msg = f"Unexpected exit code {ex.returncode} from: {shlex_join(args)} " \
+            error_msg = f"Unexpected exit code {ex.returncode} from: {cmd_line_str} " \
                         f"(expected one of { set(sorted(allowed_exit_codes | {0})) })"
             log(error_msg)
+            log("Output from %s (stdout/stderr combined):", cmd_line_str)
+            log(ex.stdout.decode('utf-8'))
             raise UnexpectedExitCodeError(error_msg)
+        if extra_msg_on_nonzero_exit_code:
+            log(f"{extra_msg_on_nonzero_exit_code}. "
+                f"Command {cmd_line_str} returned exit code {ex.returncode}.")
         out_bytes = ex.stdout
     return out_bytes.decode('utf-8').splitlines()

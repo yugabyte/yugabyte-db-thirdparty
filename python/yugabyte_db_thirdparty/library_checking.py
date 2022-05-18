@@ -27,7 +27,7 @@ from sys_detection import is_macos, is_linux
 
 from typing import List, Any, Set, Optional, Pattern
 from yugabyte_db_thirdparty.custom_logging import log, fatal, heading
-from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR
+from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR, capture_all_output
 from yugabyte_db_thirdparty.macos import get_min_supported_macos_version
 from build_definitions import BUILD_TYPES
 
@@ -102,11 +102,11 @@ class LibTestBase:
     def check_lib_deps(
             self,
             file_path: str,
-            cmd_output: str,
+            cmd_output: List[str],
             additional_allowed_pattern: Optional[Pattern] = None) -> bool:
 
         status = True
-        for line in cmd_output.splitlines():
+        for line in cmd_output:
             if (not self.allowed_patterns.match(line) and
                     not (additional_allowed_pattern is not None and
                          additional_allowed_pattern.match(line))):
@@ -191,11 +191,11 @@ class LibTestMac(LibTestBase):
         ]
 
     def check_libs_for_file(self, file_path: str) -> bool:
-        libout = subprocess.check_output(['otool', '-L', file_path]).decode('utf-8')
-        if 'is not an object file' in libout:
+        otool_output = subprocess.check_output(['otool', '-L', file_path]).decode('utf-8')
+        if 'is not an object file' in otool_output:
             return True
 
-        if not self.check_lib_deps(file_path, libout):
+        if not self.check_lib_deps(file_path, otool_output.splitlines()):
             return False
 
         min_supported_macos_version = get_min_supported_macos_version()
@@ -248,17 +248,10 @@ class LibTestLinux(LibTestBase):
             self.lib_re_list.append(f".* => {re.escape(shared_lib_path)}/")
 
     def check_libs_for_file(self, file_path: str) -> bool:
-        try:
-            ldd_output = subprocess.check_output(
-                ['ldd', file_path],
-                stderr=subprocess.STDOUT, env=LDD_ENV).decode('utf-8')
-        except subprocess.CalledProcessError as ex:
-            if ex.returncode > 1:
-                log("Unexpected exit code %d from ldd, file %s", ex.returncode, file_path)
-                log(ex.stdout.decode('utf-8'))
-                return False
-
-            ldd_output = ex.stdout.decode('utf-8')
+        ldd_output_lines: List[str] = capture_all_output(
+            ['ldd', file_path],
+            env=LDD_ENV,
+            allowed_exit_codes={1})
 
         file_basename = os.path.basename(file_path)
         additional_allowed_pattern = None
@@ -301,44 +294,34 @@ class LibTestLinux(LibTestBase):
         log("Running patchelf on %s", file_path)
 
         success = True
-        needed_libs: List[str]
-        try:
-            needed_libs = subprocess.check_output([
-                'patchelf', '--print-needed', file_path
-            ], stderr=subprocess.STDOUT).decode('utf-8').splitlines()
-        except subprocess.CalledProcessError as ex:
-            if ex.returncode != 1:
-                log("Unexpected exit code %d from: patchelf --print-needed %s",
-                    ex.returncode, file_path)
-                log(ex.stdout.decode('utf-8'))
-                success = False
-            log("Warning: could not determine libraries directly needed by %s", file_path)
-            needed_libs = []
-
+        needed_libs: List[str] = capture_all_output(
+            ['patchelf', '--print-needed', file_path],
+            allowed_exit_codes={1},
+            extra_msg_on_nonzero_exit_code=f"Warning: could not determine libraries directly "
+                                           f"needed by {file_path}"
+        )
         # print("Needed libs: %s" % needed_libs)
         # for needed_lib in needed_libs:
         #     if needed_lib.startswith('libatomic'):
         #         raise ValueError("%s needs libatomic" % file_path)
+
         if needed_libs:
-            try:
-                ldd_u_output = subprocess.check_output([
-                    'ldd', '-u', file_path
-                ], stderr=subprocess.STDOUT).decode('utf-8').splitlines()
-            except subprocess.CalledProcessError as ex:
-                if ex.returncode != 1:
-                    raise ValueError()
-                ldd_u_output = ex.stdout.decode('utf-8').splitlines()
-            for ldd_u_output_line in ldd_u_output:
+            ldd_u_output_lines: List[str] = capture_all_output(
+                ['ldd', '-u', file_path],
+                allowed_exit_codes={1})
+            for ldd_u_output_line in ldd_u_output_lines:
                 ldd_u_output_line = ldd_u_output_line.strip()
                 if ldd_u_output_line.startswith(('Unused ', 'ldd: warning: ')):
                     continue
-                if not os.path.exists(ldd_u_output_line):
-                    raise IOError("File does not exist: %s" % ldd_u_output_line)
-                unused_lib_name = os.path.basename(ldd_u_output_line)
+                unused_lib_path = ldd_u_output_line
+
+                if not os.path.exists(unused_lib_path):
+                    raise IOError("File does not exist: %s" % unused_lib_path)
+                unused_lib_name = os.path.basename(unused_lib_path)
                 if unused_lib_name not in needed_libs:
                     raise ValueError(
                         "Unused library %s does not match the list of needed libs: %s" % (
-                            ldd_u_output_line, needed_libs))
+                            unused_lib_path, needed_libs))
                 if unused_lib_name.startswith(('libatomic', 'libgcc_s')):
                     subprocess.check_call([
                         'patchelf',
@@ -348,7 +331,7 @@ class LibTestLinux(LibTestBase):
                     ])
                     log("Removed needed lib %s from %s", unused_lib_name, file_path)
 
-        for line in ldd_output.splitlines():
+        for line in ldd_output_lines:
             match = LibTestLinux.SYSTEM_LIBRARY_RE.search(line.strip())
             if match:
                 system_lib_name = match.group(1)
@@ -358,7 +341,8 @@ class LibTestLinux(LibTestBase):
                         system_lib_name, ALLOWED_SYSTEM_LIBRARIES, file_path)
                     success = False
 
-        return self.check_lib_deps(file_path, ldd_output, additional_allowed_pattern) and success
+        return self.check_lib_deps(
+            file_path, ldd_output_lines, additional_allowed_pattern) and success
 
 
 def get_lib_tester() -> LibTestBase:
