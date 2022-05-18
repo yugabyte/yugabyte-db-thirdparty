@@ -242,6 +242,7 @@ class Builder(BuilderInterface):
         self.select_dependencies_to_build()
         if self.compiler_choice.devtoolset is not None:
             activate_devtoolset(self.compiler_choice.devtoolset)
+        self.compiler_choice.set_compiler(use_compiler_wrapper=False)
 
     def populate_dependencies(self) -> None:
         # We have to use get_build_def_module to access submodules of build_definitions,
@@ -301,8 +302,6 @@ class Builder(BuilderInterface):
                         libcxx_dep_module.LlvmLibCxxAbiDependency(version=llvm_version_str),
                         libcxx_dep_module.LlvmLibCxxDependency(version=llvm_version_str),
                     ]
-                self.additional_allowed_shared_lib_paths.add(
-                    get_clang_library_dir(self.compiler_choice.get_c_compiler()))
             else:
                 self.dependencies.append(get_build_def_module('libunwind').LibUnwindDependency())
 
@@ -362,7 +361,7 @@ class Builder(BuilderInterface):
     def _setup_path(self) -> None:
         add_path_entry(os.path.join(self.fs_layout.tp_installed_common_dir, 'bin'))
         add_homebrew_to_path()
-        if self.compiler_choice.is_linux_clang1x():
+        if self.compiler_choice.is_linux_clang():
             llvm_tool_dir = self.fs_layout.get_llvm_tool_dir()
             if create_llvm_tool_dir(self.compiler_choice.get_c_compiler(), llvm_tool_dir):
                 add_path_entry(llvm_tool_dir)
@@ -370,7 +369,6 @@ class Builder(BuilderInterface):
     def run(self) -> None:
         if is_macos() and get_target_arch() == 'x86_64':
             os.environ['MACOSX_DEPLOYMENT_TARGET'] = get_min_supported_macos_version()
-        self.compiler_choice.set_compiler(use_compiler_wrapper=False)
         if self.args.clean or self.args.clean_downloads:
             self.fs_layout.clean(self.selected_dependencies, self.args.clean_downloads)
         self.prepare_out_dirs()
@@ -771,8 +769,8 @@ class Builder(BuilderInterface):
 
     def init_linux_clang_flags(self, dep: Dependency) -> None:
         """
-        Flags for Clang 10 and beyond. We are using LLVM-supplied libunwind, and in most cases,
-        compiler-rt in this configuration.
+        Flags for Clang. We are using LLVM-supplied libunwind, and in most cases, compiler-rt in
+        this configuration.
         """
         llvm_major_version = self.compiler_choice.get_llvm_major_version()
         assert llvm_major_version is not None
@@ -873,7 +871,7 @@ class Builder(BuilderInterface):
             self.prepend_lib_dir_and_rpath(libcxx_installed_lib)
 
         if is_libcxx:
-            log("Adding special compiler/linker flags for Clang 10 or newer for libc++")
+            log("Adding special compiler/linker flags for Clang for libc++")
             # This is needed for libc++ to find libc++abi headers.
             assert_dir_exists(libcxx_installed_include)
             self.preprocessor_flags.append('-I%s' % libcxx_installed_include)
@@ -881,7 +879,7 @@ class Builder(BuilderInterface):
             self.ld_flags.append('-L%s' % libcxx_installed_lib)
 
         if is_libcxx or is_libcxxabi or is_libcxx_with_abi:
-            log("Adding special linker flags for Clang 10 or newer for libc++ or libc++abi")
+            log("Adding special linker flags for Clang for libc++ or libc++abi")
             # libc++abi needs to be able to find libcxx at runtime, even though it can't always find
             # it at build time because libc++abi is built first.
             self.add_rpath(libcxx_installed_lib)
@@ -890,7 +888,7 @@ class Builder(BuilderInterface):
 
         self.compiler_flags.append('-Wno-error=unused-command-line-argument')
 
-        log("Flags after the end of setup for Clang 10 or newer:")
+        log("Flags after the end of setup for Clang:")
         log("compiler_flags     : %s", self.compiler_flags)
         log("cxx_flags          : %s", self.cxx_flags)
         log("c_flags            : %s", self.c_flags)

@@ -15,6 +15,7 @@
 import glob
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
+
 class LibKeyUtilsDependency(Dependency):
     def __init__(self) -> None:
         super(LibKeyUtilsDependency, self).__init__(

@@ -31,7 +31,7 @@ class Krb5Dependency(Dependency):
 
     def get_additional_ld_flags(self, builder: BuilderInterface) -> List[str]:
         flags: List[str] = super().get_additional_ld_flags(builder)
-        if builder.compiler_choice.is_linux_clang1x():
+        if builder.compiler_choice.is_linux_clang():
             if builder.build_type == BUILD_TYPE_ASAN:
                 # Needed to find dlsym.
                 flags.append('-ldl')

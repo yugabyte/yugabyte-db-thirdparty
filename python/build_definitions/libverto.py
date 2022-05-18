@@ -14,6 +14,7 @@
 
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
+
 class LibVertoDependency(Dependency):
     """
     libverto is one of the dependencies of libkrad, which is part of Kerberos.
@@ -27,4 +28,6 @@ class LibVertoDependency(Dependency):
         self.copy_sources = True
 
     def build(self, builder: BuilderInterface) -> None:
-        builder.build_with_configure(dep=self)
+        builder.build_with_configure(
+            dep=self,
+            extra_args=['--without-glib', '--without-libevent', '--with-libev'])

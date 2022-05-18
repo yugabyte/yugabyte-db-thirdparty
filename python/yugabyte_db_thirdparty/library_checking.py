@@ -11,6 +11,11 @@
 # under the License.
 #
 
+"""
+Checking that the executables and shared libraries we have built don't depend on any unexpected
+shared libraries installed on this system.
+"""
+
 import os
 import sys
 import re
@@ -25,6 +30,40 @@ from yugabyte_db_thirdparty.custom_logging import log, fatal, heading
 from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR
 from yugabyte_db_thirdparty.macos import get_min_supported_macos_version
 from build_definitions import BUILD_TYPES
+
+
+IGNORED_EXTENSIONS = (
+    '.a',
+    '.la',
+    '.pc',
+    '.inc',
+    '.h',
+    '.cmake',
+)
+
+IGNORED_FILE_NAMES = set([
+    'LICENSE',
+    'krb5-send-pr',
+])
+
+IGNORED_DIR_SUFFIXES = (
+    '/include/c++/v1',
+    '/include/c++/v1/experimental',
+    '/include/c++/v1/ext',
+)
+
+# We pass some environment variables to ldd.
+LDD_ENV = {'LC_ALL': 'en_US.UTF-8'}
+
+ALLOWED_SYSTEM_LIBRARIES = (
+    'libc',
+    'libdl',
+    'libm',
+    'libpthread',
+    'libresolv',
+    'librt',
+    'libutil',
+)
 
 
 def compile_re_list(re_list: List[str]) -> Any:
@@ -63,11 +102,11 @@ class LibTestBase:
     def check_lib_deps(
             self,
             file_path: str,
-            cmdout: str,
+            cmd_output: str,
             additional_allowed_pattern: Optional[Pattern] = None) -> bool:
 
         status = True
-        for line in cmdout.splitlines():
+        for line in cmd_output.splitlines():
             if (not self.allowed_patterns.match(line) and
                     not (additional_allowed_pattern is not None and
                          additional_allowed_pattern.match(line))):
@@ -93,6 +132,13 @@ class LibTestBase:
         """
         raise NotImplementedError()
 
+    def should_check_file(self, file_path: str) -> bool:
+        if (file_path.endswith(IGNORED_EXTENSIONS) or
+                os.path.basename(file_path) in IGNORED_FILE_NAMES):
+            return False
+        file_dir = os.path.dirname(file_path)
+        return not any(file_dir.endswith(suffix) for suffix in IGNORED_DIR_SUFFIXES)
+
     def run(self) -> None:
         self.init_regex()
         heading("Scanning installed executables and libraries...")
@@ -110,10 +156,12 @@ class LibTestBase:
                 for candidate in candidate_dirs:
                     if dir_pattern.match(candidate.name):
                         examine_path = os.path.join(installed_dir, candidate.name)
-                        for dirpath, dirnames, files in os.walk(examine_path):
+                        for dirpath, dir_names, files in os.walk(examine_path):
                             for file_name in files:
                                 full_path = os.path.join(dirpath, file_name)
                                 if os.path.islink(full_path):
+                                    continue
+                                if not self.should_check_file(full_path):
                                     continue
                                 if not self.check_libs_for_file(full_path):
                                     test_pass = False
@@ -174,6 +222,7 @@ class LibTestMac(LibTestBase):
 
 class LibTestLinux(LibTestBase):
     LIBCXX_NOT_FOUND = re.compile('^\tlibc[+][+][.]so[.][0-9]+ => not found')
+    SYSTEM_LIBRARY_RE = re.compile('^.* => /lib(?:64)?/(.*)$')
 
     def __init__(self) -> None:
         super().__init__()
@@ -200,16 +249,16 @@ class LibTestLinux(LibTestBase):
 
     def check_libs_for_file(self, file_path: str) -> bool:
         try:
-            libout = subprocess.check_output(
+            ldd_output = subprocess.check_output(
                 ['ldd', file_path],
-                stderr=subprocess.STDOUT, env={'LC_ALL': 'en_US.UTF-8'}).decode('utf-8')
+                stderr=subprocess.STDOUT, env=LDD_ENV).decode('utf-8')
         except subprocess.CalledProcessError as ex:
             if ex.returncode > 1:
                 log("Unexpected exit code %d from ldd, file %s", ex.returncode, file_path)
                 log(ex.stdout.decode('utf-8'))
                 return False
 
-            libout = ex.stdout.decode('utf-8')
+            ldd_output = ex.stdout.decode('utf-8')
 
         file_basename = os.path.basename(file_path)
         additional_allowed_pattern = None
@@ -247,9 +296,69 @@ class LibTestLinux(LibTestBase):
             #   ldd $LLVM_DIR/lib/clang/11.0.0/lib/linux/libclang_rt.asan-x86_64.so
             #
             # reports "libc++.so.1 => not found".
-            additional_allowed_pattern = self.LIBCXX_NOT_FOUND
+            additional_allowed_pattern = LibTestLinux.LIBCXX_NOT_FOUND
 
-        return self.check_lib_deps(file_path, libout, additional_allowed_pattern)
+        log("Running patchelf on %s", file_path)
+
+        success = True
+        needed_libs: List[str]
+        try:
+            needed_libs = subprocess.check_output([
+                'patchelf', '--print-needed', file_path
+            ], stderr=subprocess.STDOUT).decode('utf-8').splitlines()
+        except subprocess.CalledProcessError as ex:
+            if ex.returncode != 1:
+                log("Unexpected exit code %d from: patchelf --print-needed %s",
+                    ex.returncode, file_path)
+                log(ex.stdout.decode('utf-8'))
+                success = False
+            log("Warning: could not determine libraries directly needed by %s", file_path)
+            needed_libs = []
+
+        # print("Needed libs: %s" % needed_libs)
+        # for needed_lib in needed_libs:
+        #     if needed_lib.startswith('libatomic'):
+        #         raise ValueError("%s needs libatomic" % file_path)
+        if needed_libs:
+            try:
+                ldd_u_output = subprocess.check_output([
+                    'ldd', '-u', file_path
+                ], stderr=subprocess.STDOUT).decode('utf-8').splitlines()
+            except subprocess.CalledProcessError as ex:
+                if ex.returncode != 1:
+                    raise ValueError()
+                ldd_u_output = ex.stdout.decode('utf-8').splitlines()
+            for ldd_u_output_line in ldd_u_output:
+                ldd_u_output_line = ldd_u_output_line.strip()
+                if ldd_u_output_line.startswith(('Unused ', 'ldd: warning: ')):
+                    continue
+                if not os.path.exists(ldd_u_output_line):
+                    raise IOError("File does not exist: %s" % ldd_u_output_line)
+                unused_lib_name = os.path.basename(ldd_u_output_line)
+                if unused_lib_name not in needed_libs:
+                    raise ValueError(
+                        "Unused library %s does not match the list of needed libs: %s" % (
+                            ldd_u_output_line, needed_libs))
+                if unused_lib_name.startswith(('libatomic', 'libgcc_s')):
+                    subprocess.check_call([
+                        'patchelf',
+                        '--remove-needed',
+                        unused_lib_name,
+                        file_path
+                    ])
+                    log("Removed needed lib %s from %s", unused_lib_name, file_path)
+
+        for line in ldd_output.splitlines():
+            match = LibTestLinux.SYSTEM_LIBRARY_RE.search(line.strip())
+            if match:
+                system_lib_name = match.group(1)
+                if not any(system_lib_name.startswith(allowed_lib_name + '.')
+                           for allowed_lib_name in ALLOWED_SYSTEM_LIBRARIES):
+                    log("Disallowed system library: %s (allowed: %s). File: %s",
+                        system_lib_name, ALLOWED_SYSTEM_LIBRARIES, file_path)
+                    success = False
+
+        return self.check_lib_deps(file_path, ldd_output, additional_allowed_pattern) and success
 
 
 def get_lib_tester() -> LibTestBase:

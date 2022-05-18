@@ -14,7 +14,6 @@
 #
 
 import build_definitions
-import logging
 import time
 
 from build_definitions import *  # noqa
@@ -28,6 +27,7 @@ from yugabyte_db_thirdparty.custom_logging import (
 from yugabyte_db_thirdparty.packager import Packager
 from yugabyte_db_thirdparty.remote_build import build_remotely
 from yugabyte_db_thirdparty.library_checking import get_lib_tester
+from yugabyte_db_thirdparty.clang_util import get_clang_library_dir
 
 import_submodules(build_definitions)
 
@@ -56,8 +56,11 @@ def main() -> None:
     builder.finish_initialization()
 
     start_time_sec = time.time()
-    builder.run()
-    logging.info("Build finished in %.1f sec", time.time() - start_time_sec)
+    if builder.args.check_libs_only:
+        log("Skipping build, --check-libs-only is specified")
+    else:
+        builder.run()
+        log("Build finished in %.1f sec", time.time() - start_time_sec)
 
     if not builder.args.download_extract_only:
         lib_checking_start_time_sec = time.time()
@@ -66,9 +69,14 @@ def main() -> None:
         # dynamic libraries installed on this system.
         lib_tester = get_lib_tester()
         lib_tester.add_allowed_shared_lib_paths(builder.additional_allowed_shared_lib_paths)
+        if builder.compiler_choice.is_linux_clang():
+            lib_tester.add_allowed_shared_lib_paths({
+                get_clang_library_dir(builder.compiler_choice.get_c_compiler())
+            })
+
         lib_tester.run()
 
-        logging.info("Libraries checked in %.1f sec", time.time() - lib_checking_start_time_sec)
+        log("Libraries checked in %.1f sec", time.time() - lib_checking_start_time_sec)
 
     if builder.args.create_package or builder.args.upload_as_tag:
         packaging_and_upload_start_time_sec = time.time()
@@ -81,10 +89,9 @@ def main() -> None:
             if github_token is not None and github_token.strip():
                 packager.upload_package(builder.args.upload_as_tag)
             else:
-                logging.info("GITHUB_TOKEN is not set, not uploading the release package")
+                log("GITHUB_TOKEN is not set, not uploading the release package")
 
-        logging.info(
-            "Time taken for packaging/upload %.1f sec",
+        log("Time taken for packaging/upload %.1f sec",
             time.time() - packaging_and_upload_start_time_sec)
 
 
