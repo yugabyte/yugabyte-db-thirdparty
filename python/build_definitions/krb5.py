@@ -41,11 +41,16 @@ class Krb5Dependency(Dependency):
         return {'-Wl,--no-undefined'}
 
     def build(self, builder: BuilderInterface) -> None:
-        extra_args = []
-        if builder.build_type in [BUILD_TYPE_ASAN]:
-            extra_args.append('--enable-asan')
-        builder.build_with_configure(
-            dep=self,
-            src_subdir_name='src',
-            extra_args=extra_args,
-        )
+        # krb5 does not support building shared and static libraries at the same time.
+        for is_shared in [False, True]:
+            if is_shared:
+                extra_args = ['--enable-shared', '--disable-static']
+            else:
+                extra_args = ['--disable-shared', '--enable-static']
+            if builder.build_type in [BUILD_TYPE_ASAN]:
+                extra_args.append('--enable-asan')
+            builder.build_with_configure(
+                dep=self,
+                src_subdir_name='src',
+                extra_args=extra_args,
+            )

@@ -38,6 +38,7 @@ IGNORED_EXTENSIONS = (
     '.pc',
     '.inc',
     '.h',
+    '.hpp',
     '.cmake',
 )
 
@@ -68,6 +69,14 @@ ALLOWED_SYSTEM_LIBRARIES = (
 
 def compile_re_list(re_list: List[str]) -> Any:
     return re.compile("|".join(re_list))
+
+
+def get_needed_libs(file_path: str) -> List[str]:
+    return capture_all_output(
+        ['patchelf', '--print-needed', file_path],
+        allowed_exit_codes={1},
+        extra_msg_on_nonzero_exit_code=f"Warning: could not determine libraries directly "
+                                       f"needed by {file_path}")
 
 
 class LibTestBase:
@@ -221,8 +230,8 @@ class LibTestMac(LibTestBase):
 
 
 class LibTestLinux(LibTestBase):
-    LIBCXX_NOT_FOUND = re.compile('^\tlibc[+][+][.]so[.][0-9]+ => not found')
-    SYSTEM_LIBRARY_RE = re.compile('^.* => /lib(?:64)?/(.*)$')
+    LIBCXX_NOT_FOUND = re.compile(r'^\tlibc[+][+][.]so[.][0-9]+ => not found')
+    SYSTEM_LIBRARY_RE = re.compile(r'^.* => /lib(?:64)?/([^ ]+) .*$')
 
     def __init__(self) -> None:
         super().__init__()
@@ -252,6 +261,9 @@ class LibTestLinux(LibTestBase):
             ['ldd', file_path],
             env=LDD_ENV,
             allowed_exit_codes={1})
+
+        if any(['not a dynamic executable' in line for line in ldd_output_lines]):
+            return True
 
         file_basename = os.path.basename(file_path)
         additional_allowed_pattern = None
@@ -291,24 +303,13 @@ class LibTestLinux(LibTestBase):
             # reports "libc++.so.1 => not found".
             additional_allowed_pattern = LibTestLinux.LIBCXX_NOT_FOUND
 
-        log("Running patchelf on %s", file_path)
-
-        success = True
-        needed_libs: List[str] = capture_all_output(
-            ['patchelf', '--print-needed', file_path],
-            allowed_exit_codes={1},
-            extra_msg_on_nonzero_exit_code=f"Warning: could not determine libraries directly "
-                                           f"needed by {file_path}"
-        )
-        # print("Needed libs: %s" % needed_libs)
-        # for needed_lib in needed_libs:
-        #     if needed_lib.startswith('libatomic'):
-        #         raise ValueError("%s needs libatomic" % file_path)
+        needed_libs: List[str] = get_needed_libs(file_path)
 
         if needed_libs:
             ldd_u_output_lines: List[str] = capture_all_output(
                 ['ldd', '-u', file_path],
                 allowed_exit_codes={1})
+            removed_libs: List[str] = []
             for ldd_u_output_line in ldd_u_output_lines:
                 ldd_u_output_line = ldd_u_output_line.strip()
                 if ldd_u_output_line.startswith(('Unused ', 'ldd: warning: ')):
@@ -330,14 +331,21 @@ class LibTestLinux(LibTestBase):
                         file_path
                     ])
                     log("Removed needed lib %s from %s", unused_lib_name, file_path)
+                    removed_libs.append(unused_lib_name)
+            new_needed_libs = get_needed_libs(file_path)
+            for removed_lib in removed_libs:
+                if removed_lib in new_needed_libs:
+                    raise ValueError(f"Failed to remove needed library {removed_lib} from "
+                                     f"{file_path}. File's current needed libs: {new_needed_libs}")
 
+        success = True
         for line in ldd_output_lines:
             match = LibTestLinux.SYSTEM_LIBRARY_RE.search(line.strip())
             if match:
                 system_lib_name = match.group(1)
                 if not any(system_lib_name.startswith(allowed_lib_name + '.')
                            for allowed_lib_name in ALLOWED_SYSTEM_LIBRARIES):
-                    log("Disallowed system library: %s (allowed: %s). File: %s",
+                    log("Disallowed system library: %s. Allowed: %s. File: %s",
                         system_lib_name, ALLOWED_SYSTEM_LIBRARIES, file_path)
                     success = False
 
