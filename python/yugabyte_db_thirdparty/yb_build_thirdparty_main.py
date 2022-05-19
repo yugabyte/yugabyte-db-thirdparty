@@ -71,6 +71,8 @@ def main() -> None:
             lib_tester.add_allowed_shared_lib_paths({
                 get_clang_library_dir(builder.compiler_choice.get_c_compiler())
             })
+        if builder.compiler_choice.compiler_type == 'gcc':
+            lib_tester.allow_system_libstdcxx()
 
         lib_tester.run()
 

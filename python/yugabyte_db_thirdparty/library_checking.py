@@ -75,6 +75,10 @@ SKIPPED_LDD_OUTPUT_PREFIXES = (
     'not a dynamic'
 )
 
+NEEDED_LIBS_TO_REMOVE = (
+    'libatomic',
+)
+
 
 def compile_re_list(re_list: List[str]) -> Any:
     return re.compile("|".join(re_list))
@@ -111,11 +115,17 @@ class LibTestBase:
     # We collect all files to check in this list.
     files_to_check: List[str]
 
+    allowed_system_libraries: Set[str]
+
     def __init__(self) -> None:
         self.tp_installed_dir = os.path.join(YB_THIRDPARTY_DIR, 'installed')
         self.lib_re_list = []
         self.logged_allowed_patterns = set()
         self.extra_allowed_shared_lib_paths = set()
+        self.allowed_system_libraries = set(ALLOWED_SYSTEM_LIBRARIES)
+
+    def allow_system_libstdcxx(self) -> None:
+        self.allowed_system_libraries.add('libstdc++')
 
     def init_regex(self) -> None:
         self.allowed_patterns = compile_re_list(self.lib_re_list)
@@ -298,6 +308,8 @@ class LibTestLinux(LibTestBase):
             removed_libs: List[str] = []
             for ldd_u_output_line in ldd_u_output_lines:
                 ldd_u_output_line = ldd_u_output_line.strip()
+                if ldd_u_output_line.startswith('Inconsistency'):
+                    raise IOError(f'ldd -u failed on file {file_path}: {ldd_u_output_line}')
                 if ldd_u_output_line.startswith(SKIPPED_LDD_OUTPUT_PREFIXES):
                     continue
                 unused_lib_path = ldd_u_output_line
@@ -309,7 +321,8 @@ class LibTestLinux(LibTestBase):
                     raise ValueError(
                         "Unused library %s does not match the list of needed libs: %s" % (
                             unused_lib_path, needed_libs))
-                if unused_lib_name.startswith(('libatomic', 'libgcc_s')):
+                if any([unused_lib_name.startswith(lib_name + '.')
+                        for lib_name in NEEDED_LIBS_TO_REMOVE]):
                     subprocess.check_call([
                         'patchelf',
                         '--remove-needed',
@@ -323,6 +336,11 @@ class LibTestLinux(LibTestBase):
                 if removed_lib in new_needed_libs:
                     raise ValueError(f"Failed to remove needed library {removed_lib} from "
                                      f"{file_path}. File's current needed libs: {new_needed_libs}")
+
+    def is_allowed_system_lib(self, lib_name: str) -> bool:
+        return any(lib_name.startswith(
+            (allowed_lib_name + '.', allowed_lib_name + '-'))
+            for allowed_lib_name in self.allowed_system_libraries)
 
     def check_libs_for_file(self, file_path: str) -> bool:
         file_basename = os.path.basename(file_path)
@@ -377,10 +395,9 @@ class LibTestLinux(LibTestBase):
             match = LibTestLinux.SYSTEM_LIBRARY_RE.search(line.strip())
             if match:
                 system_lib_name = match.group(1)
-                if not any(system_lib_name.startswith(allowed_lib_name + '.')
-                           for allowed_lib_name in ALLOWED_SYSTEM_LIBRARIES):
+                if not self.is_allowed_system_lib(system_lib_name):
                     log("Disallowed system library: %s. Allowed: %s. File: %s",
-                        system_lib_name, ALLOWED_SYSTEM_LIBRARIES, file_path)
+                        system_lib_name, sorted(self.allowed_system_libraries), file_path)
                     success = False
 
         return self.check_lib_deps(
