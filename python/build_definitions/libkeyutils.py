@@ -20,8 +20,8 @@ class LibKeyUtilsDependency(Dependency):
     def __init__(self) -> None:
         super(LibKeyUtilsDependency, self).__init__(
             'libkeyutils',
-            '1.6.1',
-            'https://people.redhat.com/~dhowells/keyutils/keyutils-{0}.tar.bz2',
+            '1.6.1-yb-1',
+            'https://github.com/yugabyte/libkeyutils/archive/refs/tags/v{0}.tar.gz',
             BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = True
 
