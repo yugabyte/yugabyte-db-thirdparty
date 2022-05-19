@@ -257,14 +257,6 @@ class LibTestLinux(LibTestBase):
             self.lib_re_list.append(f".* => {re.escape(shared_lib_path)}/")
 
     def check_libs_for_file(self, file_path: str) -> bool:
-        ldd_output_lines: List[str] = capture_all_output(
-            ['ldd', file_path],
-            env=LDD_ENV,
-            allowed_exit_codes={1})
-
-        if any(['not a dynamic executable' in line for line in ldd_output_lines]):
-            return True
-
         file_basename = os.path.basename(file_path)
         additional_allowed_pattern = None
         if file_basename.startswith('libc++abi.so.'):
@@ -337,6 +329,15 @@ class LibTestLinux(LibTestBase):
                 if removed_lib in new_needed_libs:
                     raise ValueError(f"Failed to remove needed library {removed_lib} from "
                                      f"{file_path}. File's current needed libs: {new_needed_libs}")
+
+        # After we potentially removed some of the
+        ldd_output_lines: List[str] = capture_all_output(
+            ['ldd', file_path],
+            env=LDD_ENV,
+            allowed_exit_codes={1})
+
+        if any(['not a dynamic executable' in line for line in ldd_output_lines]):
+            return True
 
         success = True
         for line in ldd_output_lines:

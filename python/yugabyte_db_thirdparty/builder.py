@@ -1172,11 +1172,20 @@ class Builder(BuilderInterface):
         mkdir_if_missing(build_dir)
 
         if dep.copy_sources:
-            log("Bootstrapping %s from %s using rsync", build_dir, src_dir)
-            bootstrap_start_sec = time.time()
-            subprocess.check_call(['rsync', '-a', src_dir + '/', build_dir])
-            bootstrap_elapsed_sec = time.time() - bootstrap_start_sec
-            log("Bootstrapping %s took %.3f sec", build_dir, bootstrap_elapsed_sec)
+            if dep.shared_and_static:
+                target_dirs = [
+                    os.path.join(build_dir, subdir_name)
+                    for subdir_name in ['shared', 'static']
+                ]
+            else:
+                target_dirs = [build_dir]
+
+            for target_dir in target_dirs:
+                log("Bootstrapping %s from %s using rsync", target_dir, src_dir)
+                bootstrap_start_sec = time.time()
+                subprocess.check_call(['rsync', '-a', src_dir + '/', target_dir])
+                bootstrap_elapsed_sec = time.time() - bootstrap_start_sec
+                log("Bootstrapping %s took %.3f sec", target_dir, bootstrap_elapsed_sec)
 
         return build_dir
 
