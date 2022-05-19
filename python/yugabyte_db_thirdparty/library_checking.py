@@ -57,6 +57,7 @@ IGNORED_DIR_SUFFIXES = (
 LDD_ENV = {'LC_ALL': 'en_US.UTF-8'}
 
 ALLOWED_SYSTEM_LIBRARIES = (
+    # These libraries are part of glibc.
     'libc',
     'libdl',
     'libm',
@@ -64,6 +65,14 @@ ALLOWED_SYSTEM_LIBRARIES = (
     'libresolv',
     'librt',
     'libutil',
+    # TODO: we should not really need libgcc_s as we should be using Clang's compiler-rt only.
+    'libgcc_s',
+)
+
+SKIPPED_LDD_OUTPUT_PREFIXES = (
+    'Unused ',
+    'ldd: warning: ',
+    'not a dynamic'
 )
 
 
@@ -98,6 +107,9 @@ class LibTestBase:
     logged_allowed_patterns: Set[str]
 
     extra_allowed_shared_lib_paths: Set[str]
+
+    # We collect all files to check in this list.
+    files_to_check: List[str]
 
     def __init__(self) -> None:
         self.tp_installed_dir = os.path.join(YB_THIRDPARTY_DIR, 'installed')
@@ -157,6 +169,8 @@ class LibTestBase:
         # Files to examine are much reduced if we look only at bin and lib directories.
         dir_pattern = re.compile('^(lib|libcxx|[s]bin)$')
         dirs = [os.path.join(self.tp_installed_dir, type) for type in BUILD_TYPES]
+
+        self.files_to_check = []
         for installed_dir in dirs:
             if not os.path.isdir(installed_dir):
                 logging.info("Directory %s does not exist, skipping", installed_dir)
@@ -172,12 +186,26 @@ class LibTestBase:
                                     continue
                                 if not self.should_check_file(full_path):
                                     continue
-                                if not self.check_libs_for_file(full_path):
-                                    test_pass = False
+
+                                self.files_to_check.append(full_path)
+
+        self.before_checking_all_files()
+        test_pass = self.check_all_files()
+
         if not test_pass:
             fatal(f"Found problematic library dependencies, using tool: {self.tool}")
         else:
             log("No problems found with library dependencies.")
+
+    def before_checking_all_files(self) -> None:
+        pass
+
+    def check_all_files(self) -> bool:
+        success = True
+        for file_path in self.files_to_check:
+            if not self.check_libs_for_file(file_path):
+                success = False
+        return success
 
     def add_allowed_shared_lib_paths(self, shared_lib_paths: Set[str]) -> None:
         self.extra_allowed_shared_lib_paths |= shared_lib_paths
@@ -256,6 +284,46 @@ class LibTestLinux(LibTestBase):
         for shared_lib_path in sorted(shared_lib_paths):
             self.lib_re_list.append(f".* => {re.escape(shared_lib_path)}/")
 
+    def before_checking_all_files(self) -> None:
+        for file_path in self.files_to_check:
+            self.fix_needed_libs_for_file(file_path)
+
+    def fix_needed_libs_for_file(self, file_path: str) -> None:
+        needed_libs: List[str] = get_needed_libs(file_path)
+
+        if needed_libs:
+            ldd_u_output_lines: List[str] = capture_all_output(
+                ['ldd', '-u', file_path],
+                allowed_exit_codes={1})
+            removed_libs: List[str] = []
+            for ldd_u_output_line in ldd_u_output_lines:
+                ldd_u_output_line = ldd_u_output_line.strip()
+                if ldd_u_output_line.startswith(SKIPPED_LDD_OUTPUT_PREFIXES):
+                    continue
+                unused_lib_path = ldd_u_output_line
+
+                if not os.path.exists(unused_lib_path):
+                    raise IOError("File does not exist: %s" % unused_lib_path)
+                unused_lib_name = os.path.basename(unused_lib_path)
+                if unused_lib_name not in needed_libs:
+                    raise ValueError(
+                        "Unused library %s does not match the list of needed libs: %s" % (
+                            unused_lib_path, needed_libs))
+                if unused_lib_name.startswith(('libatomic', 'libgcc_s')):
+                    subprocess.check_call([
+                        'patchelf',
+                        '--remove-needed',
+                        unused_lib_name,
+                        file_path
+                    ])
+                    log("Removed needed lib %s from %s", unused_lib_name, file_path)
+                    removed_libs.append(unused_lib_name)
+            new_needed_libs = get_needed_libs(file_path)
+            for removed_lib in removed_libs:
+                if removed_lib in new_needed_libs:
+                    raise ValueError(f"Failed to remove needed library {removed_lib} from "
+                                     f"{file_path}. File's current needed libs: {new_needed_libs}")
+
     def check_libs_for_file(self, file_path: str) -> bool:
         file_basename = os.path.basename(file_path)
         additional_allowed_pattern = None
@@ -294,41 +362,6 @@ class LibTestLinux(LibTestBase):
             #
             # reports "libc++.so.1 => not found".
             additional_allowed_pattern = LibTestLinux.LIBCXX_NOT_FOUND
-
-        needed_libs: List[str] = get_needed_libs(file_path)
-
-        if needed_libs:
-            ldd_u_output_lines: List[str] = capture_all_output(
-                ['ldd', '-u', file_path],
-                allowed_exit_codes={1})
-            removed_libs: List[str] = []
-            for ldd_u_output_line in ldd_u_output_lines:
-                ldd_u_output_line = ldd_u_output_line.strip()
-                if ldd_u_output_line.startswith(('Unused ', 'ldd: warning: ')):
-                    continue
-                unused_lib_path = ldd_u_output_line
-
-                if not os.path.exists(unused_lib_path):
-                    raise IOError("File does not exist: %s" % unused_lib_path)
-                unused_lib_name = os.path.basename(unused_lib_path)
-                if unused_lib_name not in needed_libs:
-                    raise ValueError(
-                        "Unused library %s does not match the list of needed libs: %s" % (
-                            unused_lib_path, needed_libs))
-                if unused_lib_name.startswith(('libatomic', 'libgcc_s')):
-                    subprocess.check_call([
-                        'patchelf',
-                        '--remove-needed',
-                        unused_lib_name,
-                        file_path
-                    ])
-                    log("Removed needed lib %s from %s", unused_lib_name, file_path)
-                    removed_libs.append(unused_lib_name)
-            new_needed_libs = get_needed_libs(file_path)
-            for removed_lib in removed_libs:
-                if removed_lib in new_needed_libs:
-                    raise ValueError(f"Failed to remove needed library {removed_lib} from "
-                                     f"{file_path}. File's current needed libs: {new_needed_libs}")
 
         # After we potentially removed some of the
         ldd_output_lines: List[str] = capture_all_output(
