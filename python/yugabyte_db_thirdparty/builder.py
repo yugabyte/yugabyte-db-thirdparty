@@ -311,9 +311,13 @@ class Builder(BuilderInterface):
             # On macOS, flex, bison, and krb5 depend on gettext, and we don't want to use gettext
             # from Homebrew.
             # libunistring is required by gettext.
-            (['libunistring', 'gettext'] if is_macos() else []) + [
+            (
+                ['libunistring', 'gettext'] if is_macos() else []
+            ) + [
                 'ncurses',
-                'libkeyutils',
+            ] + (
+                [] if is_macos() else ['libkeyutils', 'libverto']
+            ) + [
                 'libedit',
                 'icu4c',
                 'protobuf',
@@ -328,7 +332,6 @@ class Builder(BuilderInterface):
                 'libcds',
                 'libuv',
                 'cassandra_cpp_driver',
-                'libverto',
                 'krb5',
             ])
 

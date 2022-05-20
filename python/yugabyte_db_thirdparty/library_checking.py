@@ -67,6 +67,8 @@ ALLOWED_SYSTEM_LIBRARIES = (
     'libutil',
     # TODO: we should not really need libgcc_s as we should be using Clang's compiler-rt only.
     'libgcc_s',
+    # When we use Linuxbrew, we can also see ld-linux-x86-64.so.2 in ldd output.
+    'ld-linux',
 )
 
 SKIPPED_LDD_OUTPUT_PREFIXES = (
