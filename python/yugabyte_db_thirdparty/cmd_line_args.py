@@ -28,8 +28,8 @@ from build_definitions import BUILD_TYPES
 
 
 INCOMPATIBLE_ARGUMENTS: Dict[str, Set[str]] = {
-    'toolchain': set(['devtoolset', 'compiler_prefix', 'compiler_suffix']),
-    'check_libs_only': set(['download_extract_only', 'create_package']),
+    'toolchain': {'devtoolset', 'compiler_prefix', 'compiler_suffix'},
+    'check_libs_only': {'download_extract_only', 'create_package'},
 }
 
 

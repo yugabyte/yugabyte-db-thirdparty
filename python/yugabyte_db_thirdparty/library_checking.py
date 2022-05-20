@@ -81,6 +81,10 @@ NEEDED_LIBS_TO_REMOVE = (
     'libatomic',
 )
 
+LIBCXX_NOT_FOUND = re.compile(r'^\tlibc[+][+][.]so[.][0-9]+ => not found')
+SYSTEM_LIBRARY_RE = re.compile(
+    r'^.* => /lib(?:64|/(?:x86_64|aarch64)-linux-gnu)/([^ /]+) .*$')
+
 
 def compile_re_list(re_list: List[str]) -> Any:
     return re.compile("|".join(re_list))
@@ -90,8 +94,17 @@ def get_needed_libs(file_path: str) -> List[str]:
     return capture_all_output(
         ['patchelf', '--print-needed', file_path],
         allowed_exit_codes={1},
-        extra_msg_on_nonzero_exit_code=f"Warning: could not determine libraries directly "
+        extra_msg_on_nonzero_exit_code="Warning: could not determine libraries directly "
                                        f"needed by {file_path}")
+
+
+def is_text_based_so_file(so_path: str) -> bool:
+    # libc++.so is a text file containing this:
+    # INPUT(libc++.so.1 -lunwind -lc++abi)
+    # We can't analyze this kind of a file with ldd so we skip it.
+    with open(so_path, 'rb') as input_file:
+        first_bytes = input_file.read(64)
+        return first_bytes.startswith(b'INPUT')
 
 
 class LibTestBase:
@@ -166,9 +179,12 @@ class LibTestBase:
         raise NotImplementedError()
 
     def should_check_file(self, file_path: str) -> bool:
-        if (file_path.endswith(IGNORED_EXTENSIONS) or
+        if (os.path.islink(file_path) or
+                is_text_based_so_file(file_path) or
+                file_path.endswith(IGNORED_EXTENSIONS) or
                 os.path.basename(file_path) in IGNORED_FILE_NAMES):
             return False
+
         file_dir = os.path.dirname(file_path)
         return not any(file_dir.endswith(suffix) for suffix in IGNORED_DIR_SUFFIXES)
 
@@ -194,11 +210,8 @@ class LibTestBase:
                         for dirpath, dir_names, files in os.walk(examine_path):
                             for file_name in files:
                                 full_path = os.path.join(dirpath, file_name)
-                                if os.path.islink(full_path):
-                                    continue
                                 if not self.should_check_file(full_path):
                                     continue
-
                                 self.files_to_check.append(full_path)
 
         self.before_checking_all_files()
@@ -216,6 +229,7 @@ class LibTestBase:
         success = True
         for file_path in self.files_to_check:
             if not self.check_libs_for_file(file_path):
+                # We are not returning here because we want to log all errors.
                 success = False
         return success
 
@@ -270,9 +284,6 @@ class LibTestMac(LibTestBase):
 
 
 class LibTestLinux(LibTestBase):
-    LIBCXX_NOT_FOUND = re.compile(r'^\tlibc[+][+][.]so[.][0-9]+ => not found')
-    SYSTEM_LIBRARY_RE = re.compile(r'^.* => /lib(?:64)?/([^ ]+) .*$')
-
     def __init__(self) -> None:
         super().__init__()
         self.tool = "ldd"
@@ -331,7 +342,7 @@ class LibTestLinux(LibTestBase):
                         unused_lib_name,
                         file_path
                     ])
-                    log("Removed needed lib %s from %s", unused_lib_name, file_path)
+                    log("Removed unused needed lib %s from %s", unused_lib_name, file_path)
                     removed_libs.append(unused_lib_name)
             new_needed_libs = get_needed_libs(file_path)
             for removed_lib in removed_libs:
@@ -381,7 +392,7 @@ class LibTestLinux(LibTestBase):
             #   ldd $LLVM_DIR/lib/clang/11.0.0/lib/linux/libclang_rt.asan-x86_64.so
             #
             # reports "libc++.so.1 => not found".
-            additional_allowed_pattern = LibTestLinux.LIBCXX_NOT_FOUND
+            additional_allowed_pattern = LIBCXX_NOT_FOUND
 
         # After we potentially removed some of the
         ldd_output_lines: List[str] = capture_all_output(
@@ -394,7 +405,7 @@ class LibTestLinux(LibTestBase):
 
         success = True
         for line in ldd_output_lines:
-            match = LibTestLinux.SYSTEM_LIBRARY_RE.search(line.strip())
+            match = SYSTEM_LIBRARY_RE.search(line.strip())
             if match:
                 system_lib_name = match.group(1)
                 if not self.is_allowed_system_lib(system_lib_name):

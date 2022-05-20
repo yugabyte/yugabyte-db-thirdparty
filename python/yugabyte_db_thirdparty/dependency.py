@@ -37,10 +37,6 @@ class Dependency:
     # this tells the initial step to create separate build directories for shared and static builds.
     shared_and_static: bool
 
-    # Enforce the use of lld linker on Clang 14 and later by appending it to the linker flags in
-    # the compiler wrapper.
-    enforce_lld_in_compiler_wrapper: bool
-
     def __init__(
             self,
             name: str,

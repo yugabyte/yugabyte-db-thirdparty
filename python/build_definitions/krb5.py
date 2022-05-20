@@ -49,7 +49,14 @@ class Krb5Dependency(Dependency):
 
     def build(self, builder: BuilderInterface) -> None:
         # krb5 does not support building shared and static libraries at the same time.
-        for linking_type in ['static', 'shared']:
+        linking_types = ['shared']
+        if is_linux():
+            # krb5 static build of version 1.19.3 has some issues on macOS:
+            # https://gist.githubusercontent.com/mbautin/2f71c26bf388c720e5abbf9b8903419d/raw
+            # Only build static libs on Linux for now, because we only need them on Linux for LTO.
+            linking_types.append('static')
+
+        for linking_type in linking_types:
             build_dir = os.path.join(os.getcwd(), linking_type)
             with PushDir(build_dir):
                 log(f"Building krb5 with {linking_type} linking in {os.getcwd()}")
