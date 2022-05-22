@@ -33,9 +33,9 @@ class Dependency:
     mkdir_only: bool
     archive_name: Optional[str]
 
-    # Enforce the use of lld linker on Clang 14 and later by appending it to the linker flags in
-    # the compiler wrapper.
-    enforce_lld_in_compiler_wrapper: bool
+    # For dependencies built with configure/autotools, where out-of-source build is not possible,
+    # this tells the initial step to create separate build directories for shared and static builds.
+    shared_and_static: bool
 
     def __init__(
             self,
@@ -78,6 +78,8 @@ class Dependency:
         if build_group not in VALID_BUILD_GROUPS:
             raise ValueError("Invalid build group: %s, should be one of: %s" % (
                 build_group, VALID_BUILD_GROUPS))
+
+        self.shared_and_static = False
 
     def get_additional_compiler_flags(
             self,

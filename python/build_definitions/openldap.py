@@ -37,7 +37,7 @@ class OpenLDAPDependency(Dependency):
         )
 
         builder.build_with_configure(
-            builder.log_prefix(self),
+            dep=self,
             extra_args=['--disable-' + feature for feature in disabled_features] +
                        ['--with-cyrus-sasl=no'])
 

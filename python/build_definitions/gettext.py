@@ -33,7 +33,7 @@ class GetTextDependency(Dependency):
 
     def build(self, builder: BuilderInterface) -> None:
         builder.build_with_configure(
-            log_prefix=builder.log_prefix(self),
+            dep=self,
             extra_args=[
                 '--with-included-gettext',
                 '--disable-java',

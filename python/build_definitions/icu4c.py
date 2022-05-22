@@ -37,7 +37,7 @@ class Icu4cDependency(Dependency):
         self.copy_sources = True
 
     def get_additional_ld_flags(self, builder: BuilderInterface) -> List[str]:
-        if builder.compiler_choice.is_linux_clang1x() and builder.build_type == BUILD_TYPE_ASAN:
+        if builder.compiler_choice.is_linux_clang() and builder.build_type == BUILD_TYPE_ASAN:
             # Needed to find dlsym.
             return ['-ldl']
         return []
@@ -113,7 +113,7 @@ class Icu4cDependency(Dependency):
             post_configure_action = self._copy_res_files_from_uninstrumented
 
         builder.build_with_configure(
-            log_prefix=builder.log_prefix(self),
+            dep=self,
             src_subdir_name='source',
             extra_args=configure_extra_args,
             post_configure_action=post_configure_action

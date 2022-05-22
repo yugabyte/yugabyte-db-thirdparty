@@ -197,7 +197,7 @@ class CompilerChoice:
     def use_only_gcc(self) -> bool:
         return self.devtoolset is not None or self.single_compiler_type == 'gcc'
 
-    def is_linux_clang1x(self) -> bool:
+    def is_linux_clang(self) -> bool:
         llvm_major_version: Optional[int] = self.get_llvm_major_version()
         return (
             not is_macos() and

@@ -12,18 +12,27 @@
 # under the License.
 #
 
+import glob
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
 
-class BisonDependency(Dependency):
+class LibKeyUtilsDependency(Dependency):
     def __init__(self) -> None:
-        super(BisonDependency, self).__init__(
-            name='bison',
-            version='3.4.1',
-            url_pattern='https://ftp.gnu.org/gnu/bison/bison-{0}.tar.gz',
-            build_group=BUILD_GROUP_COMMON,
-            license='GPL-3.0')
+        super(LibKeyUtilsDependency, self).__init__(
+            'libkeyutils',
+            '1.6.1-yb-1',
+            'https://github.com/yugabyte/libkeyutils/archive/refs/tags/v{0}.tar.gz',
+            BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = True
 
     def build(self, builder: BuilderInterface) -> None:
-        builder.build_with_configure(dep=self, extra_args=['--with-pic'])
+        log_prefix = builder.log_prefix(self)
+        log_output(log_prefix, ['make'])
+        log_output(log_prefix, ['cp'] + glob.glob('*.h') + [builder.prefix_include])
+        log_output(
+            log_prefix,
+            ['cp'] +
+            glob.glob('*.a') +
+            glob.glob('*.so') +
+            glob.glob('*.so.*') +
+            [builder.prefix_lib])

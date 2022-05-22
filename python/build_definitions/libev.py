@@ -25,11 +25,7 @@ class LibEvDependency(Dependency):
         self.copy_sources = True
 
     def build(self, builder: BuilderInterface) -> None:
-        log_prefix = builder.log_prefix(self)
-        builder.build_with_configure(
-            log_prefix=log_prefix,
-            extra_args=['--with-pic']
-        )
+        builder.build_with_configure(dep=self, extra_args=['--with-pic'])
 
     def use_cppflags_env_var(self) -> bool:
         return True

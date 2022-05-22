@@ -242,6 +242,7 @@ class Builder(BuilderInterface):
         self.select_dependencies_to_build()
         if self.compiler_choice.devtoolset is not None:
             activate_devtoolset(self.compiler_choice.devtoolset)
+        self.compiler_choice.set_compiler(use_compiler_wrapper=False)
 
     def populate_dependencies(self) -> None:
         # We have to use get_build_def_module to access submodules of build_definitions,
@@ -301,8 +302,6 @@ class Builder(BuilderInterface):
                         libcxx_dep_module.LlvmLibCxxAbiDependency(version=llvm_version_str),
                         libcxx_dep_module.LlvmLibCxxDependency(version=llvm_version_str),
                     ]
-                self.additional_allowed_shared_lib_paths.add(
-                    get_clang_library_dir(self.compiler_choice.get_c_compiler()))
             else:
                 self.dependencies.append(get_build_def_module('libunwind').LibUnwindDependency())
 
@@ -312,8 +311,13 @@ class Builder(BuilderInterface):
             # On macOS, flex, bison, and krb5 depend on gettext, and we don't want to use gettext
             # from Homebrew.
             # libunistring is required by gettext.
-            (['libunistring', 'gettext'] if is_macos() else []) + [
+            (
+                ['libunistring', 'gettext'] if is_macos() else []
+            ) + [
                 'ncurses',
+            ] + (
+                [] if is_macos() else ['libkeyutils', 'libverto']
+            ) + [
                 'libedit',
                 'icu4c',
                 'protobuf',
@@ -360,7 +364,7 @@ class Builder(BuilderInterface):
     def _setup_path(self) -> None:
         add_path_entry(os.path.join(self.fs_layout.tp_installed_common_dir, 'bin'))
         add_homebrew_to_path()
-        if self.compiler_choice.is_linux_clang1x():
+        if self.compiler_choice.is_linux_clang():
             llvm_tool_dir = self.fs_layout.get_llvm_tool_dir()
             if create_llvm_tool_dir(self.compiler_choice.get_c_compiler(), llvm_tool_dir):
                 add_path_entry(llvm_tool_dir)
@@ -368,7 +372,6 @@ class Builder(BuilderInterface):
     def run(self) -> None:
         if is_macos() and get_target_arch() == 'x86_64':
             os.environ['MACOSX_DEPLOYMENT_TARGET'] = get_min_supported_macos_version()
-        self.compiler_choice.set_compiler(use_compiler_wrapper=False)
         if self.args.clean or self.args.clean_downloads:
             self.fs_layout.clean(self.selected_dependencies, self.args.clean_downloads)
         self.prepare_out_dirs()
@@ -523,7 +526,7 @@ class Builder(BuilderInterface):
 
     def build_with_configure(
             self,
-            log_prefix: str,
+            dep: Dependency,
             extra_args: List[str] = [],
             configure_cmd: List[str] = ['./configure'],
             install: List[str] = ['install'],
@@ -531,6 +534,7 @@ class Builder(BuilderInterface):
             autoconf: bool = False,
             src_subdir_name: Optional[str] = None,
             post_configure_action: Optional[Callable] = None) -> None:
+        log_prefix = self.log_prefix(dep)
         dir_for_build = os.getcwd()
         if src_subdir_name:
             dir_for_build = os.path.join(dir_for_build, src_subdir_name)
@@ -768,8 +772,8 @@ class Builder(BuilderInterface):
 
     def init_linux_clang_flags(self, dep: Dependency) -> None:
         """
-        Flags for Clang 10 and beyond. We are using LLVM-supplied libunwind, and in most cases,
-        compiler-rt in this configuration.
+        Flags for Clang. We are using LLVM-supplied libunwind, and in most cases, compiler-rt in
+        this configuration.
         """
         llvm_major_version = self.compiler_choice.get_llvm_major_version()
         assert llvm_major_version is not None
@@ -870,7 +874,7 @@ class Builder(BuilderInterface):
             self.prepend_lib_dir_and_rpath(libcxx_installed_lib)
 
         if is_libcxx:
-            log("Adding special compiler/linker flags for Clang 10 or newer for libc++")
+            log("Adding special compiler/linker flags for Clang for libc++")
             # This is needed for libc++ to find libc++abi headers.
             assert_dir_exists(libcxx_installed_include)
             self.preprocessor_flags.append('-I%s' % libcxx_installed_include)
@@ -878,17 +882,18 @@ class Builder(BuilderInterface):
             self.ld_flags.append('-L%s' % libcxx_installed_lib)
 
         if is_libcxx or is_libcxxabi or is_libcxx_with_abi:
-            log("Adding special linker flags for Clang 10 or newer for libc++ or libc++abi")
+            log("Adding special linker flags for Clang for libc++ or libc++abi")
             # libc++abi needs to be able to find libcxx at runtime, even though it can't always find
             # it at build time because libc++abi is built first.
             self.add_rpath(libcxx_installed_lib)
 
         self.preprocessor_flags.extend(clang_linuxbrew_isystem_flags)
 
-        # TODO: make this conditional only for the Linuxbrew + Clang combination.
-        self.cxx_flags.append('-Wno-error=unused-command-line-argument')
+        no_unused_arg = '-Wno-error=unused-command-line-argument'
+        self.compiler_flags.append(no_unused_arg)
+        self.ld_flags.append(no_unused_arg)
 
-        log("Flags after the end of setup for Clang 10 or newer:")
+        log("Flags after the end of setup for Clang:")
         log("compiler_flags     : %s", self.compiler_flags)
         log("cxx_flags          : %s", self.cxx_flags)
         log("c_flags            : %s", self.c_flags)
@@ -1172,11 +1177,20 @@ class Builder(BuilderInterface):
         mkdir_if_missing(build_dir)
 
         if dep.copy_sources:
-            log("Bootstrapping %s from %s using rsync", build_dir, src_dir)
-            bootstrap_start_sec = time.time()
-            subprocess.check_call(['rsync', '-a', src_dir + '/', build_dir])
-            bootstrap_elapsed_sec = time.time() - bootstrap_start_sec
-            log("Bootstrapping %s took %.3f sec", build_dir, bootstrap_elapsed_sec)
+            if dep.shared_and_static:
+                target_dirs = [
+                    os.path.join(build_dir, subdir_name)
+                    for subdir_name in ['shared', 'static']
+                ]
+            else:
+                target_dirs = [build_dir]
+
+            for target_dir in target_dirs:
+                log("Bootstrapping %s from %s using rsync", target_dir, src_dir)
+                bootstrap_start_sec = time.time()
+                subprocess.check_call(['rsync', '-a', src_dir + '/', target_dir])
+                bootstrap_elapsed_sec = time.time() - bootstrap_start_sec
+                log("Bootstrapping %s took %.3f sec", target_dir, bootstrap_elapsed_sec)
 
         return build_dir
 

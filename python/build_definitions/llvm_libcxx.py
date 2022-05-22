@@ -30,7 +30,7 @@ class LlvmLibCxxDependencyBase(LlvmPartDependencyBase):
             builder: BuilderInterface,
             ninja_build_file_path: str) -> None:
         super().postprocess_ninja_build_file(builder, ninja_build_file_path)
-        if not builder.compiler_choice.is_linux_clang1x():
+        if not builder.compiler_choice.is_linux_clang():
             return
 
         if builder.build_type not in [BUILD_TYPE_ASAN, BUILD_TYPE_TSAN]:
@@ -46,7 +46,7 @@ class LlvmLibCxxDependencyBase(LlvmPartDependencyBase):
 
     def get_additional_ld_flags(self, builder: BuilderInterface) -> List[str]:
         # This workaround is needed for both LLVM 10 and LLVM 11.
-        if (builder.compiler_choice.is_linux_clang1x() and
+        if (builder.compiler_choice.is_linux_clang() and
                 builder.build_type in [BUILD_TYPE_ASAN, BUILD_TYPE_TSAN]):
             # We need to link with these libraries in ASAN because otherwise libc++ CMake
             # configuration step fails and some C standard library functions cannot be found.

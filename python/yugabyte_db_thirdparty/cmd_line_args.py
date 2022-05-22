@@ -16,6 +16,8 @@ import sys
 import os
 import platform
 
+from typing import Dict, Set
+
 from sys_detection import is_macos, local_sys_conf
 
 from yugabyte_db_thirdparty.checksums import CHECKSUM_FILE_NAME
@@ -23,6 +25,12 @@ from yugabyte_db_thirdparty.util import log
 from yugabyte_db_thirdparty.toolchain import TOOLCHAIN_TYPES
 from yugabyte_db_thirdparty.constants import ADD_CHECKSUM_ARG
 from build_definitions import BUILD_TYPES
+
+
+INCOMPATIBLE_ARGUMENTS: Dict[str, Set[str]] = {
+    'toolchain': {'devtoolset', 'compiler_prefix', 'compiler_suffix'},
+    'check_libs_only': {'download_extract_only', 'create_package'},
+}
 
 
 def parse_cmd_line_args() -> argparse.Namespace:
@@ -171,7 +179,7 @@ def parse_cmd_line_args() -> argparse.Namespace:
         action='store_true')
 
     parser.add_argument(
-        '--delete-build-dir',
+        '--delete-build-dir', '--remove-build-dir',
         help="Delete each dependency's build directory to start each build from scratch. "
              "Note that this does not affect the corresponding source directory.",
         action='store_true')
@@ -184,6 +192,14 @@ def parse_cmd_line_args() -> argparse.Namespace:
         choices=['full', 'thin'],
         default=None
     )
+
+    parser.add_argument(
+        '--check-libs-only',
+        action='store_true',
+        help='Do not build anything. Only check the dependencies of installed executables and '
+             'libraries.'
+    )
+
     args = parser.parse_args()
 
     # ---------------------------------------------------------------------------------------------
@@ -224,16 +240,6 @@ def parse_cmd_line_args() -> argparse.Namespace:
                 "--devtoolset is not compatible with compiler type: %s" % args.single_compiler_type)
         args.single_compiler_type = 'gcc'
 
-    if args.toolchain:
-        if args.devtoolset:
-            raise ValueError("--devtoolset and --toolchain are incompatible")
-
-        if args.compiler_prefix:
-            raise ValueError("--compiler-prefix and --toolchain are incompatible")
-
-        if args.compiler_suffix:
-            raise ValueError("--compiler-suffix and --toolchain are incompatible")
-
     if args.enforce_arch and platform.machine() != args.enforce_arch:
         raise ValueError("Machine architecture is %s but we expect %s" % (
             platform.machine(), args.enforce_arch))
@@ -242,4 +248,16 @@ def parse_cmd_line_args() -> argparse.Namespace:
         # This is used e.g. in compiler_wrapper.py.
         os.environ['YB_THIRDPARTY_VERBOSE'] = '1'
 
+    incompatible_args = False
+    for arg1_name, incompatible_arg_set in INCOMPATIBLE_ARGUMENTS.items():
+        if getattr(args, arg1_name):
+            for arg2_name in incompatible_arg_set:
+                if getattr(args, arg2_name):
+                    log("Incompatible arguments: %s and %s",
+                        "--" + arg1_name.replace('_', '-'),
+                        "--" + arg2_name.replace('_', '-'))
+                    incompatible_args = True
+    if incompatible_args:
+        raise ValueError("Some incompatible arguments were specified. "
+                         "See the messages above for details.")
     return args
