@@ -4,8 +4,15 @@ name: ci
 on:
   push:
     branches:
-      - '*'
-
+      - master
+      # Not all of these branches might exist.
+      - 2.4
+      - 2.6
+      - 2.8
+      - 2.10
+      - 2.12
+      - 2.14
+      - 2.16
     paths-ignore:
       - README.md
 
