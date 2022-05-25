@@ -26,11 +26,14 @@ import logging
 from sys_detection import is_macos, is_linux
 
 from typing import List, Any, Set, Optional, Pattern
+
 from yugabyte_db_thirdparty.custom_logging import log, fatal, heading
 from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR, capture_all_output
 from yugabyte_db_thirdparty.macos import get_min_supported_macos_version
-from build_definitions import BUILD_TYPES
 from yugabyte_db_thirdparty.file_system_layout import FileSystemLayout
+from yugabyte_db_thirdparty.compiler_choice import CompilerChoice
+
+from build_definitions import BUILD_TYPES
 
 
 IGNORED_EXTENSIONS = (
@@ -142,13 +145,20 @@ class LibTestBase:
         self.allowed_system_libraries = set(ALLOWED_SYSTEM_LIBRARIES)
         self.needed_libs_to_remove = set(NEEDED_LIBS_TO_REMOVE)
 
-    def configure_for_compiler_type(self, compiler_type: str) -> None:
-        if compiler_type == 'gcc':
-            self.allowed_system_libraries |= {'libstdc++', 'libgcc_s'}
-        elif compiler_type == 'clang':
-            self.needed_libs_to_remove.add('libgcc_s')
+    def configure_for_compiler(self, compiler_choice: CompilerChoice) -> None:
+        if compiler_choice.using_gcc():
+            # The GCC toolchain links with the libstdc++ library in a system-wide location.
+            self.allowed_system_libraries.add('libstdc++')
+
+        if (compiler_choice.using_gcc() or
+                compiler_choice.using_clang() and
+                compiler_choice.is_llvm_major_version_at_least(13)):
+            # For GCC and Clang 13+, there are some issues with removing the libgcc_s dependency
+            # from libraries even if it is apparently not needed as shown by "ldd -u".
+            self.allowed_system_libraries.add('libgcc_s')
         else:
-            raise ValueError("Invalid compiler type: %s" % compiler_type)
+            # For Clang 12, it looks like we can safely remove the libgcc_s dependency.
+            self.needed_libs_to_remove.add('libgcc_s')
 
     def init_regex(self) -> None:
         self.allowed_patterns = compile_re_list(self.lib_re_list)

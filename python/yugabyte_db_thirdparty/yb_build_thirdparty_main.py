@@ -71,7 +71,7 @@ def main() -> None:
             lib_tester.add_allowed_shared_lib_paths({
                 get_clang_library_dir(builder.compiler_choice.get_c_compiler())
             })
-        lib_tester.configure_for_compiler_type(builder.compiler_choice.compiler_type)
+        lib_tester.configure_for_compiler(builder.compiler_choice)
 
         lib_tester.run()
 
