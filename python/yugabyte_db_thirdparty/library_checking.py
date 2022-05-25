@@ -11,6 +11,11 @@
 # under the License.
 #
 
+"""
+Checking that the executables and shared libraries we have built don't depend on any unexpected
+shared libraries installed on this system.
+"""
+
 import os
 import sys
 import re
@@ -22,13 +27,84 @@ from sys_detection import is_macos, is_linux
 
 from typing import List, Any, Set, Optional, Pattern
 from yugabyte_db_thirdparty.custom_logging import log, fatal, heading
-from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR
+from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR, capture_all_output
 from yugabyte_db_thirdparty.macos import get_min_supported_macos_version
 from build_definitions import BUILD_TYPES
 
 
+IGNORED_EXTENSIONS = (
+    '.a',
+    '.la',
+    '.pc',
+    '.inc',
+    '.h',
+    '.hpp',
+    '.cmake',
+)
+
+IGNORED_FILE_NAMES = set([
+    'LICENSE',
+    'krb5-send-pr',
+])
+
+IGNORED_DIR_SUFFIXES = (
+    '/include/c++/v1',
+    '/include/c++/v1/experimental',
+    '/include/c++/v1/ext',
+)
+
+# We pass some environment variables to ldd.
+LDD_ENV = {'LC_ALL': 'en_US.UTF-8'}
+
+ALLOWED_SYSTEM_LIBRARIES = (
+    # These libraries are part of glibc.
+    'libc',
+    'libdl',
+    'libm',
+    'libpthread',
+    'libresolv',
+    'librt',
+    'libutil',
+    # TODO: we should not really need libgcc_s as we should be using Clang's compiler-rt only.
+    'libgcc_s',
+    # When we use Linuxbrew, we can also see ld-linux-x86-64.so.2 in ldd output.
+    'ld-linux',
+)
+
+SKIPPED_LDD_OUTPUT_PREFIXES = (
+    'Unused ',
+    'ldd: warning: ',
+    'not a dynamic'
+)
+
+NEEDED_LIBS_TO_REMOVE = (
+    'libatomic',
+)
+
+LIBCXX_NOT_FOUND = re.compile(r'^\tlibc[+][+][.]so[.][0-9]+ => not found')
+SYSTEM_LIBRARY_RE = re.compile(
+    r'^.* => /lib(?:64|/(?:x86_64|aarch64)-linux-gnu)/([^ /]+) .*$')
+
+
 def compile_re_list(re_list: List[str]) -> Any:
     return re.compile("|".join(re_list))
+
+
+def get_needed_libs(file_path: str) -> List[str]:
+    return capture_all_output(
+        ['patchelf', '--print-needed', file_path],
+        allowed_exit_codes={1},
+        extra_msg_on_nonzero_exit_code="Warning: could not determine libraries directly "
+                                       f"needed by {file_path}")
+
+
+def is_text_based_so_file(so_path: str) -> bool:
+    # libc++.so is a text file containing this:
+    # INPUT(libc++.so.1 -lunwind -lc++abi)
+    # We can't analyze this kind of a file with ldd so we skip it.
+    with open(so_path, 'rb') as input_file:
+        first_bytes = input_file.read(64)
+        return first_bytes.startswith(b'INPUT')
 
 
 class LibTestBase:
@@ -51,11 +127,20 @@ class LibTestBase:
 
     extra_allowed_shared_lib_paths: Set[str]
 
+    # We collect all files to check in this list.
+    files_to_check: List[str]
+
+    allowed_system_libraries: Set[str]
+
     def __init__(self) -> None:
         self.tp_installed_dir = os.path.join(YB_THIRDPARTY_DIR, 'installed')
         self.lib_re_list = []
         self.logged_allowed_patterns = set()
         self.extra_allowed_shared_lib_paths = set()
+        self.allowed_system_libraries = set(ALLOWED_SYSTEM_LIBRARIES)
+
+    def allow_system_libstdcxx(self) -> None:
+        self.allowed_system_libraries.add('libstdc++')
 
     def init_regex(self) -> None:
         self.allowed_patterns = compile_re_list(self.lib_re_list)
@@ -63,11 +148,11 @@ class LibTestBase:
     def check_lib_deps(
             self,
             file_path: str,
-            cmdout: str,
+            cmd_output: List[str],
             additional_allowed_pattern: Optional[Pattern] = None) -> bool:
 
         status = True
-        for line in cmdout.splitlines():
+        for line in cmd_output:
             if (not self.allowed_patterns.match(line) and
                     not (additional_allowed_pattern is not None and
                          additional_allowed_pattern.match(line))):
@@ -93,6 +178,16 @@ class LibTestBase:
         """
         raise NotImplementedError()
 
+    def should_check_file(self, file_path: str) -> bool:
+        if (os.path.islink(file_path) or
+                is_text_based_so_file(file_path) or
+                file_path.endswith(IGNORED_EXTENSIONS) or
+                os.path.basename(file_path) in IGNORED_FILE_NAMES):
+            return False
+
+        file_dir = os.path.dirname(file_path)
+        return not any(file_dir.endswith(suffix) for suffix in IGNORED_DIR_SUFFIXES)
+
     def run(self) -> None:
         self.init_regex()
         heading("Scanning installed executables and libraries...")
@@ -102,6 +197,8 @@ class LibTestBase:
         # Files to examine are much reduced if we look only at bin and lib directories.
         dir_pattern = re.compile('^(lib|libcxx|[s]bin)$')
         dirs = [os.path.join(self.tp_installed_dir, type) for type in BUILD_TYPES]
+
+        self.files_to_check = []
         for installed_dir in dirs:
             if not os.path.isdir(installed_dir):
                 logging.info("Directory %s does not exist, skipping", installed_dir)
@@ -110,17 +207,31 @@ class LibTestBase:
                 for candidate in candidate_dirs:
                     if dir_pattern.match(candidate.name):
                         examine_path = os.path.join(installed_dir, candidate.name)
-                        for dirpath, dirnames, files in os.walk(examine_path):
+                        for dirpath, dir_names, files in os.walk(examine_path):
                             for file_name in files:
                                 full_path = os.path.join(dirpath, file_name)
-                                if os.path.islink(full_path):
+                                if not self.should_check_file(full_path):
                                     continue
-                                if not self.check_libs_for_file(full_path):
-                                    test_pass = False
+                                self.files_to_check.append(full_path)
+
+        self.before_checking_all_files()
+        test_pass = self.check_all_files()
+
         if not test_pass:
             fatal(f"Found problematic library dependencies, using tool: {self.tool}")
         else:
             log("No problems found with library dependencies.")
+
+    def before_checking_all_files(self) -> None:
+        pass
+
+    def check_all_files(self) -> bool:
+        success = True
+        for file_path in self.files_to_check:
+            if not self.check_libs_for_file(file_path):
+                # We are not returning here because we want to log all errors.
+                success = False
+        return success
 
     def add_allowed_shared_lib_paths(self, shared_lib_paths: Set[str]) -> None:
         self.extra_allowed_shared_lib_paths |= shared_lib_paths
@@ -143,11 +254,11 @@ class LibTestMac(LibTestBase):
         ]
 
     def check_libs_for_file(self, file_path: str) -> bool:
-        libout = subprocess.check_output(['otool', '-L', file_path]).decode('utf-8')
-        if 'is not an object file' in libout:
+        otool_output = subprocess.check_output(['otool', '-L', file_path]).decode('utf-8')
+        if 'is not an object file' in otool_output:
             return True
 
-        if not self.check_lib_deps(file_path, libout):
+        if not self.check_lib_deps(file_path, otool_output.splitlines()):
             return False
 
         min_supported_macos_version = get_min_supported_macos_version()
@@ -173,8 +284,6 @@ class LibTestMac(LibTestBase):
 
 
 class LibTestLinux(LibTestBase):
-    LIBCXX_NOT_FOUND = re.compile('^\tlibc[+][+][.]so[.][0-9]+ => not found')
-
     def __init__(self) -> None:
         super().__init__()
         self.tool = "ldd"
@@ -198,19 +307,55 @@ class LibTestLinux(LibTestBase):
         for shared_lib_path in sorted(shared_lib_paths):
             self.lib_re_list.append(f".* => {re.escape(shared_lib_path)}/")
 
+    def before_checking_all_files(self) -> None:
+        for file_path in self.files_to_check:
+            self.fix_needed_libs_for_file(file_path)
+
+    def fix_needed_libs_for_file(self, file_path: str) -> None:
+        needed_libs: List[str] = get_needed_libs(file_path)
+
+        if needed_libs:
+            ldd_u_output_lines: List[str] = capture_all_output(
+                ['ldd', '-u', file_path],
+                allowed_exit_codes={1})
+            removed_libs: List[str] = []
+            for ldd_u_output_line in ldd_u_output_lines:
+                ldd_u_output_line = ldd_u_output_line.strip()
+                if ldd_u_output_line.startswith('Inconsistency'):
+                    raise IOError(f'ldd -u failed on file {file_path}: {ldd_u_output_line}')
+                if ldd_u_output_line.startswith(SKIPPED_LDD_OUTPUT_PREFIXES):
+                    continue
+                unused_lib_path = ldd_u_output_line
+
+                if not os.path.exists(unused_lib_path):
+                    raise IOError("File does not exist: %s" % unused_lib_path)
+                unused_lib_name = os.path.basename(unused_lib_path)
+                if unused_lib_name not in needed_libs:
+                    raise ValueError(
+                        "Unused library %s does not match the list of needed libs: %s" % (
+                            unused_lib_path, needed_libs))
+                if any([unused_lib_name.startswith(lib_name + '.')
+                        for lib_name in NEEDED_LIBS_TO_REMOVE]):
+                    subprocess.check_call([
+                        'patchelf',
+                        '--remove-needed',
+                        unused_lib_name,
+                        file_path
+                    ])
+                    log("Removed unused needed lib %s from %s", unused_lib_name, file_path)
+                    removed_libs.append(unused_lib_name)
+            new_needed_libs = get_needed_libs(file_path)
+            for removed_lib in removed_libs:
+                if removed_lib in new_needed_libs:
+                    raise ValueError(f"Failed to remove needed library {removed_lib} from "
+                                     f"{file_path}. File's current needed libs: {new_needed_libs}")
+
+    def is_allowed_system_lib(self, lib_name: str) -> bool:
+        return any(lib_name.startswith(
+            (allowed_lib_name + '.', allowed_lib_name + '-'))
+            for allowed_lib_name in self.allowed_system_libraries)
+
     def check_libs_for_file(self, file_path: str) -> bool:
-        try:
-            libout = subprocess.check_output(
-                ['ldd', file_path],
-                stderr=subprocess.STDOUT, env={'LC_ALL': 'en_US.UTF-8'}).decode('utf-8')
-        except subprocess.CalledProcessError as ex:
-            if ex.returncode > 1:
-                log("Unexpected exit code %d from ldd, file %s", ex.returncode, file_path)
-                log(ex.stdout.decode('utf-8'))
-                return False
-
-            libout = ex.stdout.decode('utf-8')
-
         file_basename = os.path.basename(file_path)
         additional_allowed_pattern = None
         if file_basename.startswith('libc++abi.so.'):
@@ -247,9 +392,29 @@ class LibTestLinux(LibTestBase):
             #   ldd $LLVM_DIR/lib/clang/11.0.0/lib/linux/libclang_rt.asan-x86_64.so
             #
             # reports "libc++.so.1 => not found".
-            additional_allowed_pattern = self.LIBCXX_NOT_FOUND
+            additional_allowed_pattern = LIBCXX_NOT_FOUND
 
-        return self.check_lib_deps(file_path, libout, additional_allowed_pattern)
+        # After we potentially removed some of the
+        ldd_output_lines: List[str] = capture_all_output(
+            ['ldd', file_path],
+            env=LDD_ENV,
+            allowed_exit_codes={1})
+
+        if any(['not a dynamic executable' in line for line in ldd_output_lines]):
+            return True
+
+        success = True
+        for line in ldd_output_lines:
+            match = SYSTEM_LIBRARY_RE.search(line.strip())
+            if match:
+                system_lib_name = match.group(1)
+                if not self.is_allowed_system_lib(system_lib_name):
+                    log("Disallowed system library: %s. Allowed: %s. File: %s",
+                        system_lib_name, sorted(self.allowed_system_libraries), file_path)
+                    success = False
+
+        return self.check_lib_deps(
+            file_path, ldd_output_lines, additional_allowed_pattern) and success
 
 
 def get_lib_tester() -> LibTestBase:

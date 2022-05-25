@@ -14,7 +14,8 @@
 
 import os
 
-from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
+from yugabyte_db_thirdparty.build_definition_helpers import *
+from yugabyte_db_thirdparty.util import EnvVarContext  # noqa
 
 
 class ZLibDependency(Dependency):
@@ -27,8 +28,5 @@ class ZLibDependency(Dependency):
         self.copy_sources = True
 
     def build(self, builder: BuilderInterface) -> None:
-        os.environ['TEST_LDFLAGS'] = '-L. libz.a -fuse-ld=lld'
-        builder.build_with_configure(
-            log_prefix=builder.log_prefix(self)
-        )
-        del os.environ['TEST_LDFLAGS']
+        with EnvVarContext(TEST_LDFLAGS='-L. libz.a -fuse-ld=lld'):
+            builder.build_with_configure(dep=self)

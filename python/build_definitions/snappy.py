@@ -49,9 +49,8 @@ class SnappyDependency(Dependency):
             output_file.write('\n'.join(lines) + '\n')
 
     def build(self, builder: BuilderInterface) -> None:
-        log_prefix = builder.log_prefix(self)
         builder.build_with_configure(
-            log_prefix=log_prefix,
+            dep=self,
             extra_args=['--with-pic'],
             post_configure_action=self._disable_lzo2_library_in_test,
         )

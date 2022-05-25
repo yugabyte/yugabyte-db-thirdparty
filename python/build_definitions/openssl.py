@@ -34,7 +34,7 @@ class OpenSSLDependency(Dependency):
     def __init__(self) -> None:
         super(OpenSSLDependency, self).__init__(
             name='openssl',
-            version='1.1.1n',
+            version='1.1.1o',
             url_pattern='https://www.openssl.org/source/openssl-{0}.tar.gz',
             build_group=BUILD_GROUP_COMMON)
         self.copy_sources = True
@@ -50,7 +50,7 @@ class OpenSSLDependency(Dependency):
             configure_cmd += ['-Wl,-rpath=' + install_path]
 
         builder.build_with_configure(
-            log_prefix=builder.log_prefix(self),
+            dep=self,
             configure_cmd=configure_cmd,
             # https://bit.ly/openssl_install_without_manpages
             install=['install_sw']

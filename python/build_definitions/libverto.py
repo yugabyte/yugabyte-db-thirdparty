@@ -15,15 +15,19 @@
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
 
-class BisonDependency(Dependency):
+class LibVertoDependency(Dependency):
+    """
+    libverto is one of the dependencies of libkrad, which is part of Kerberos.
+    """
     def __init__(self) -> None:
-        super(BisonDependency, self).__init__(
-            name='bison',
-            version='3.4.1',
-            url_pattern='https://ftp.gnu.org/gnu/bison/bison-{0}.tar.gz',
-            build_group=BUILD_GROUP_COMMON,
-            license='GPL-3.0')
+        super(LibVertoDependency, self).__init__(
+            'libverto',
+            '0.3.2',
+            'https://github.com/latchset/libverto/releases/download/{0}/libverto-{0}.tar.gz',
+            BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = True
 
     def build(self, builder: BuilderInterface) -> None:
-        builder.build_with_configure(dep=self, extra_args=['--with-pic'])
+        builder.build_with_configure(
+            dep=self,
+            extra_args=['--without-glib', '--without-libevent', '--with-libev'])

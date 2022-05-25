@@ -27,7 +27,4 @@ class FlexDependency(Dependency):
         self.copy_sources = True
 
     def build(self, builder: BuilderInterface) -> None:
-        builder.build_with_configure(
-            log_prefix=builder.log_prefix(self),
-            extra_args=['--with-pic']
-        )
+        builder.build_with_configure(dep=self, extra_args=['--with-pic'])

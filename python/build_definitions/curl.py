@@ -38,10 +38,7 @@ class CurlDependency(Dependency):
             '--without-nghttp2'
         ]
 
-        builder.build_with_configure(
-            log_prefix=builder.log_prefix(self),
-            extra_args=extra_args
-        )
+        builder.build_with_configure(dep=self, extra_args=extra_args)
 
     def use_cppflags_env_var(self) -> bool:
         return True

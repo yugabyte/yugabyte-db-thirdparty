@@ -12,9 +12,6 @@
 # under the License.
 #
 
-import os
-import sys
-
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 from yugabyte_db_thirdparty.linuxbrew import using_linuxbrew
 
@@ -29,9 +26,7 @@ class NCursesDependency(Dependency):
         self.copy_sources = True
 
     def build(self, builder: BuilderInterface) -> None:
-        builder.build_with_configure(
-            log_prefix=builder.log_prefix(self),
-            extra_args=['--with-shared'])
+        builder.build_with_configure(dep=self, extra_args=['--with-shared'])
 
     def get_additional_leading_ld_flags(self, builder: 'BuilderInterface') -> List[str]:
         flags = super().get_additional_leading_ld_flags(builder)

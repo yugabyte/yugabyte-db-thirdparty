@@ -12,8 +12,10 @@ docker run -t \
   -e YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX \
   "--mount=type=bind,src=$checkout_dir,dst=/opt/yb-build/thirdparty/checkout" \
   "$YB_DOCKER_IMAGE" \
-  bash -c "
+  bash -c '
     set -euo pipefail
     cd /opt/yb-build/thirdparty/checkout
+    # To avoid the "unsafe repository owned by someone else" git error:
+    chown -R "$(whoami)" "$PWD"
     ./build_and_release.sh
-  "
+  '
