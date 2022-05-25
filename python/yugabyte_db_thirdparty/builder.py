@@ -484,7 +484,7 @@ class Builder(BuilderInterface):
 
         # The C++ standard must match CMAKE_CXX_STANDARD in the top-level CMakeLists.txt file in
         # the YugabyteDB source tree.
-        self.cxx_flags.append('-std=c++14')
+        self.cxx_flags.append('-std=c++20')
         self.cxx_flags.append('-frtti')
 
         if self.build_type == BUILD_TYPE_ASAN:
@@ -762,6 +762,9 @@ class Builder(BuilderInterface):
                 self.init_linux_clang_flags(dep)
             else:
                 raise ValueError(f"Unknown or unsupproted LLVM major version: {llvm_major_version}")
+
+        if self.compiler_choice.using_gcc():
+            self.cxx_flags.append('-fext-numeric-literals')
 
     def get_libcxx_dirs(self, libcxx_installed_suffix: str) -> Tuple[str, str]:
         libcxx_installed_path = os.path.join(
