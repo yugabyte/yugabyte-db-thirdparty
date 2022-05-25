@@ -94,6 +94,26 @@ def main() -> None:
         log("Time taken for packaging/upload %.1f sec",
             time.time() - packaging_and_upload_start_time_sec)
 
+    if builder.args.snyk:
+        snyk_token = os.environ.get('SNYK_TOKEN')
+        if snyk_token is None:
+            log("SNYK_TOKEN is not set, not running snyk.")
+        else:
+            log("Running Snyk Vulnerability Scan.")
+            os_type=os.environ.get('OSTYPE')
+            if os_type.startswith('linux'):
+                snyk_tool = 'snyk-linux'
+            else:
+                snyk_tool = 'snyk-macos'
+            curl_cmd = f"curl https://static.snyk.io/cli/latest/{snyk_tool} -o snyk"
+            os.system(curl_cmd)
+            os.system("chmod +x ./snyk")
+            rc = os.system(f"./snyk auth {snyk_token}")
+            if rc != 0:
+                log("Snyk authentication failed. Aborting scan.")
+            else:
+                homedir = os.environ.get('YB_THIRDPARTY_DIR')
+                os.system(f"./snyk monitor {homedir}/src --unmanaged")
 
 if __name__ == "__main__":
     main()

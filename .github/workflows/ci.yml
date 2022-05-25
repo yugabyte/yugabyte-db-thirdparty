@@ -282,6 +282,14 @@ jobs:
               --toolchain=llvm12_linuxbrew
               --expected-major-compiler-version=12
 
+          - name: almalinux8-x86_64-clang12-linuxbrew-snyk-scan
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_almalinux8:v2021-08-27T03_10_19
+            build_thirdparty_args: >-
+              --toolchain=llvm12
+              --expected-major-compiler-version=12
+              --snyk
+
           - name: almalinux8-x86_64-clang12-linuxbrew-thin-lto
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_almalinux8:v2022-05-02T07_00_12
