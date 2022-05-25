@@ -109,8 +109,5 @@ def main() -> None:
                 os.system(f"./snyk monitor {homedir}/src --unmanaged")
             
 
-            
-    
-
 if __name__ == "__main__":
     main()
