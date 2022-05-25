@@ -65,7 +65,7 @@ def main() -> None:
     if not builder.args.download_extract_only:
         lib_checking_start_time_sec = time.time()
 
-        lib_tester = get_lib_tester()
+        lib_tester = get_lib_tester(fs_layout=builder.fs_layout)
         lib_tester.add_allowed_shared_lib_paths(builder.additional_allowed_shared_lib_paths)
         if builder.compiler_choice.is_linux_clang():
             lib_tester.add_allowed_shared_lib_paths({

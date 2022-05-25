@@ -30,6 +30,7 @@ from yugabyte_db_thirdparty.custom_logging import log, fatal, heading
 from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR, capture_all_output
 from yugabyte_db_thirdparty.macos import get_min_supported_macos_version
 from build_definitions import BUILD_TYPES
+from yugabyte_db_thirdparty.file_system_layout import FileSystemLayout
 
 
 IGNORED_EXTENSIONS = (
@@ -130,6 +131,8 @@ class LibTestBase:
 
     allowed_system_libraries: Set[str]
     needed_libs_to_remove: Set[str]
+
+    fs_layout: FileSystemLayout
 
     def __init__(self) -> None:
         self.tp_installed_dir = os.path.join(YB_THIRDPARTY_DIR, 'installed')
@@ -355,13 +358,21 @@ class LibTestLinux(LibTestBase):
                     raise ValueError(f"Failed to remove needed library {removed_lib} from "
                                      f"{file_path}. File's current needed libs: {new_needed_libs}")
 
-    def is_allowed_system_lib(self, lib_name: str) -> bool:
+    def is_allowed_system_lib(
+            self, lib_name: str, additional_allowed_libraries: List[str] = []) -> bool:
         return any(lib_name.startswith(
             (allowed_lib_name + '.', allowed_lib_name + '-'))
-            for allowed_lib_name in self.allowed_system_libraries)
+            for allowed_lib_name in (
+                list(self.allowed_system_libraries) + additional_allowed_libraries
+            ))
 
     def check_libs_for_file(self, file_path: str) -> bool:
+        assert os.path.isabs(file_path), "Expected absolute path, got: %s" % file_path
         file_basename = os.path.basename(file_path)
+        rel_path_to_installed_dir = os.path.relpath(
+            os.path.abspath(file_path), self.fs_layout.tp_installed_dir)
+        is_sanitizer = rel_path_to_installed_dir.startswith(('asan/', 'tsan/'))
+
         additional_allowed_pattern = None
         if file_basename.startswith('libc++abi.so.'):
             # One exception: libc++abi.so is not able to find libc++ because it loads the ASAN
@@ -409,11 +420,21 @@ class LibTestLinux(LibTestBase):
             return True
 
         success = True
+
+        additional_allowed_libraries = []
+        if is_sanitizer:
+            # In ASAN builds, libc++ and libc++abi libraries end up depending on the system's
+            # libgcc_s and that's OK because we are not trying to make those builds portable
+            # across different Linux distributions.
+            additional_allowed_libraries.append('libgcc_s')
+
         for line in ldd_output_lines:
             match = SYSTEM_LIBRARY_RE.search(line.strip())
             if match:
                 system_lib_name = match.group(1)
-                if not self.is_allowed_system_lib(system_lib_name):
+                if not self.is_allowed_system_lib(
+                        system_lib_name,
+                        additional_allowed_libraries=additional_allowed_libraries):
                     log("Disallowed system library: %s. Allowed: %s. File: %s",
                         system_lib_name, sorted(self.allowed_system_libraries), file_path)
                     success = False
@@ -422,10 +443,13 @@ class LibTestLinux(LibTestBase):
             file_path, ldd_output_lines, additional_allowed_pattern) and success
 
 
-def get_lib_tester() -> LibTestBase:
+def get_lib_tester(fs_layout: FileSystemLayout) -> LibTestBase:
+    lib_tester: LibTestBase
     if is_macos():
-        return LibTestMac()
-    if is_linux():
-        return LibTestLinux()
-
-    fatal(f"Unsupported platform: {platform.system()}")
+        lib_tester = LibTestMac()
+    elif is_linux():
+        lib_tester = LibTestLinux()
+    else:
+        fatal(f"Unsupported platform: {platform.system()}")
+    lib_tester.fs_layout = fs_layout
+    return lib_tester
