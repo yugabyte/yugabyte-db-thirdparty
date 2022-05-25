@@ -65,8 +65,6 @@ ALLOWED_SYSTEM_LIBRARIES = (
     'libresolv',
     'librt',
     'libutil',
-    # TODO: we should not really need libgcc_s as we should be using Clang's compiler-rt only.
-    'libgcc_s',
     # When we use Linuxbrew, we can also see ld-linux-x86-64.so.2 in ldd output.
     'ld-linux',
 )
@@ -131,6 +129,7 @@ class LibTestBase:
     files_to_check: List[str]
 
     allowed_system_libraries: Set[str]
+    needed_libs_to_remove: Set[str]
 
     def __init__(self) -> None:
         self.tp_installed_dir = os.path.join(YB_THIRDPARTY_DIR, 'installed')
@@ -138,9 +137,15 @@ class LibTestBase:
         self.logged_allowed_patterns = set()
         self.extra_allowed_shared_lib_paths = set()
         self.allowed_system_libraries = set(ALLOWED_SYSTEM_LIBRARIES)
+        self.needed_libs_to_remove = set(NEEDED_LIBS_TO_REMOVE)
 
-    def allow_system_libstdcxx(self) -> None:
-        self.allowed_system_libraries.add('libstdc++')
+    def configure_for_compiler_type(self, compiler_type: str) -> None:
+        if compiler_type == 'gcc':
+            self.allowed_system_libraries |= {'libstdc++', 'libgcc_s'}
+        elif compiler_type == 'clang':
+            self.needed_libs_to_remove.add('libgcc_s')
+        else:
+            raise ValueError("Invalid compiler type: %s" % compiler_type)
 
     def init_regex(self) -> None:
         self.allowed_patterns = compile_re_list(self.lib_re_list)
@@ -335,7 +340,7 @@ class LibTestLinux(LibTestBase):
                         "Unused library %s does not match the list of needed libs: %s" % (
                             unused_lib_path, needed_libs))
                 if any([unused_lib_name.startswith(lib_name + '.')
-                        for lib_name in NEEDED_LIBS_TO_REMOVE]):
+                        for lib_name in self.needed_libs_to_remove]):
                     subprocess.check_call([
                         'patchelf',
                         '--remove-needed',

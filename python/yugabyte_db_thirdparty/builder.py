@@ -484,7 +484,13 @@ class Builder(BuilderInterface):
 
         # The C++ standard must match CMAKE_CXX_STANDARD in the top-level CMakeLists.txt file in
         # the YugabyteDB source tree.
-        self.cxx_flags.append('-std=c++20')
+        if is_linux():
+            self.cxx_flags.append('-std=c++20')
+        else:
+            # TODO: investigate why icu4c compilation fails with -std=c++20 when built on GitHub
+            # Actions macOS workers with Clang 12 (need to check macOS SDK version, etc.)
+            self.cxx_flags.append('-std=c++17')
+
         self.cxx_flags.append('-frtti')
 
         if self.build_type == BUILD_TYPE_ASAN:
