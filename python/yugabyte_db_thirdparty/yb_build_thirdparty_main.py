@@ -15,6 +15,7 @@
 
 import build_definitions
 import time
+import platform
 
 from build_definitions import *  # noqa
 from yugabyte_db_thirdparty.arch import verify_arch
@@ -100,20 +101,16 @@ def main() -> None:
             log("SNYK_TOKEN is not set, not running snyk.")
         else:
             log("Running Snyk Vulnerability Scan.")
-            os_type=os.environ.get('OSTYPE')
+            os_type=os.environ.get('OSTYPE','')
             if os_type.startswith('linux'):
-                snyk_tool = 'snyk-linux'
-            else:
-                snyk_tool = 'snyk-macos'
-            curl_cmd = f"curl https://static.snyk.io/cli/latest/{snyk_tool} -o snyk"
-            os.system(curl_cmd)
-            os.system("chmod +x ./snyk")
-            rc = os.system(f"./snyk auth {snyk_token}")
-            if rc != 0:
-                log("Snyk authentication failed. Aborting scan.")
-            else:
-                homedir = os.environ.get('YB_THIRDPARTY_DIR')
-                os.system(f"./snyk monitor {homedir}/src --unmanaged")
+                os.system("curl https://static.snyk.io/cli/latest/snyk-linux -o snyk")
+                os.system("chmod +x ./snyk")
+                rc = os.system(f"./snyk auth {snyk_token}")
+                if rc != 0:
+                    log("Snyk authentication failed. Aborting scan.")
+                else:
+                    homedir = os.environ.get('YB_THIRDPARTY_DIR')
+                    os.system(f"./snyk monitor {homedir}/src --unmanaged")
 
 if __name__ == "__main__":
     main()

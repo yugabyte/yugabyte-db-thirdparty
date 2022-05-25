@@ -8,6 +8,7 @@ echo "Building in directory: $checkout_dir"
 docker run -t \
   --cap-add=SYS_PTRACE \
   -e GITHUB_TOKEN \
+  -e SNYK_TOKEN \
   -e YB_BUILD_THIRDPARTY_ARGS \
   -e YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX \
   "--mount=type=bind,src=$checkout_dir,dst=/opt/yb-build/thirdparty/checkout" \
