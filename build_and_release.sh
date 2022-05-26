@@ -198,6 +198,18 @@ echo "Free disk space on all volumes:"
 df -H
 echo
 
+echo "Current directory"
+pwd
+echo
+
+echo "Free disk space in current directory:"
+df -H .
+echo
+
+echo "Free disk space on all volumes:"
+df -H
+echo
+
 cd "$repo_dir"
 
 if [[ -n ${GITHUB_TOKEN:-} ]]; then
