@@ -212,11 +212,13 @@ echo
 
 cd "$repo_dir"
 
-if [[ -n ${GITHUB_TOKEN:-} ]]; then
-  log "GITHUB_TOKEN is set. Checking it by listing 0 issues."
+GITHUB_TOKEN=${GITHUB_TOKEN:-}
+if [[ -n ${GITHUB_TOKEN:-} &&
+      ${GITHUB_TOKEN} =~ ^[0-9a-zA-Z_-]{40}$ ]]; then
+  log "GITHUB_TOKEN is set and is exactly 40 characters long. Checking it by listing 0 issues."
   ( set -x; hub issue -L 0 )
 else
-  log "GITHUB_TOKEN is not set, not checking it."
+  log "GITHUB_TOKEN length is ${#GITHUB_TOKEN} characters (not 40), considering it as unset."
 fi
 
 # We intentionally don't escape variables here so they get split into multiple arguments.
