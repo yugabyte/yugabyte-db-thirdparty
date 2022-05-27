@@ -24,19 +24,24 @@ jobs:
         type: string
         default: ""
 
-    # Need docker run with SYS_PTRACE for address sanitizer to work
+
     machine:
+      # Need docker run with SYS_PTRACE for address sanitizer to work.
+      # TOOD: find documentation about how this is related to Docker capabilities.
       enabled: true
 
-    steps:
-      - checkout
+      image: ubuntu-2004:current
+      resource_class: arm.medium
+
+      steps:
+        - checkout
 
       - run:
           name: Build YugabyteDB third-party dependencies
           command: |
-            export YB_BUILD_THIRDPARTY_ARGS="<< parameters.build_thirdparty_args >>"
             export YB_DOCKER_IMAGE="<< parameters.docker_image >>"
-            export YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX="<< parameters.archive_name_suffix >>"
+            export YB_BUILD_THIRDPARTY_ARGS="<< parameters.build_thirdparty_args >>"
+            export YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX="<< parameters.name >>"
             .github/workflows/linux_build.sh
 
 workflows:
@@ -44,7 +49,6 @@ workflows:
     jobs:
       - build:
           name: ubuntu2004-aarch64-clang12
-          archive_name_suffix: centos7-linuxbrew
           docker_image: yugabyteci/yb_build_infra_ubuntu2004_aarch64:v2022-05-26T23_24_32
           build_thirdparty_args: >-
             --toolchain=llvm12
