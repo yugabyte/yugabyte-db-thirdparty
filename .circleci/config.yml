@@ -25,10 +25,6 @@ jobs:
         default: ""
 
     machine:
-      # Need docker run with SYS_PTRACE for address sanitizer to work.
-      # TOOD: find documentation about how this is related to Docker capabilities.
-      enabled: true
-
       image: ubuntu-2004:current
       resource_class: arm.medium
 
