@@ -34,9 +34,9 @@ jobs:
       - run:
           name: Build YugabyteDB third-party dependencies
           command: |
-            export YB_BUILD_THIRDPARTY_ARGS=<< parameters.build_thirdparty_args >>
-            export YB_DOCKER_IMAGE=<< parameters.docker_image >>
-            export YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX=<< parameters.archive_name_suffix >>
+            export YB_BUILD_THIRDPARTY_ARGS="<< parameters.build_thirdparty_args >>"
+            export YB_DOCKER_IMAGE="<< parameters.docker_image >>"
+            export YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX="<< parameters.archive_name_suffix >>"
             .github/workflows/linux_build.sh
 
 workflows:
