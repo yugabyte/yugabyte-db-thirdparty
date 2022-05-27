@@ -16,9 +16,9 @@ version: 2.1
 jobs:
   build:
     parameters:
-      docker_image:
-        type: string
       archive_name_suffix:
+        type: string
+      docker_image:
         type: string
       build_thirdparty_args:
         type: string
@@ -35,14 +35,14 @@ jobs:
           command: |
             export YB_DOCKER_IMAGE="<< parameters.docker_image >>"
             export YB_BUILD_THIRDPARTY_ARGS="<< parameters.build_thirdparty_args >>"
-            export YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX="<< parameters.name >>"
+            export YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX="<< parameters.archive_name_suffix >>"
             .github/workflows/linux_build.sh
 
 workflows:
   build-release:
     jobs:
       - build:
-          name: ubuntu2004-aarch64-clang12
+          archive_name_suffix: ubuntu2004-aarch64-clang12
           docker_image: yugabyteci/yb_build_infra_ubuntu2004_aarch64:v2022-05-26T23_24_32
           build_thirdparty_args: >-
             --toolchain=llvm12
