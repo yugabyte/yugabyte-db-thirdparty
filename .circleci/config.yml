@@ -32,16 +32,16 @@ jobs:
       image: ubuntu-2004:current
       resource_class: arm.medium
 
-      steps:
-        - checkout
+    steps:
+      - checkout
 
-        - run:
-          name: Build YugabyteDB third-party dependencies
-          command: |
-            export YB_DOCKER_IMAGE="<< parameters.docker_image >>"
-            export YB_BUILD_THIRDPARTY_ARGS="<< parameters.build_thirdparty_args >>"
-            export YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX="<< parameters.name >>"
-            .github/workflows/linux_build.sh
+      - run:
+        name: Build YugabyteDB third-party dependencies
+        command: |
+          export YB_DOCKER_IMAGE="<< parameters.docker_image >>"
+          export YB_BUILD_THIRDPARTY_ARGS="<< parameters.build_thirdparty_args >>"
+          export YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX="<< parameters.name >>"
+          .github/workflows/linux_build.sh
 
 workflows:
   build-release:
