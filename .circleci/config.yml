@@ -24,7 +24,6 @@ jobs:
         type: string
         default: ""
 
-
     machine:
       # Need docker run with SYS_PTRACE for address sanitizer to work.
       # TOOD: find documentation about how this is related to Docker capabilities.
@@ -36,7 +35,7 @@ jobs:
       steps:
         - checkout
 
-      - run:
+        - run:
           name: Build YugabyteDB third-party dependencies
           command: |
             export YB_DOCKER_IMAGE="<< parameters.docker_image >>"
