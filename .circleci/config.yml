@@ -26,7 +26,7 @@ jobs:
 
     machine:
       image: ubuntu-2004:current
-      resource_class: arm.medium
+      resource_class: arm.large
 
     steps:
       - checkout
@@ -47,6 +47,7 @@ workflows:
           build_thirdparty_args: >-
             --toolchain=llvm12
             --expected-major-compiler-version=12
+            --skip-sanitizers
 
       # - build:
       #     name: centos7-gcc-devtoolset-8
