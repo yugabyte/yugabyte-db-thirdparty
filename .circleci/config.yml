@@ -49,60 +49,28 @@ workflows:
             --expected-major-compiler-version=12
             --skip-sanitizers
 
-      # - build:
-      #     name: centos7-gcc-devtoolset-8
-      #     archive_name_suffix: centos7-devtoolset-8
-      #     docker_image: yugabyteci/yb_build_infra_centos7:v2020-12-14T01_12_21
-      #     build_thirdparty_args: "--devtoolset=8"
-      # - build:
-      #     name: centos7-gcc-devtoolset-9
-      #     archive_name_suffix: centos7-devtoolset-9
-      #     docker_image: yugabyteci/yb_build_infra_centos7:v2020-12-14T01_12_21
-      #     build_thirdparty_args: "--devtoolset=9"
-      # - build:
-      #     name: centos7-clang7
-      #     archive_name_suffix: centos7-clang7
-      #     docker_image: yugabyteci/yb_build_infra_centos7:v2020-12-14T01_12_21
-      #     build_thirdparty_args: --toolchain=llvm7
-      # - build:
-      #     name: centos7-clang11
-      #     archive_name_suffix: centos7-clang11
-      #     docker_image: yugabyteci/yb_build_infra_centos7:v2020-12-14T01_12_21
-      #     build_thirdparty_args: --toolchain=llvm11
-      # - build:
-      #     name: centos7-clang12
-      #     archive_name_suffix: centos7-clang12
-      #     docker_image: yugabyteci/yb_build_infra_centos7:v2020-12-14T01_12_21
-      #     build_thirdparty_args: --toolchain=llvm12
-      # - build:
-      #     name: ubuntu1804-gcc7
-      #     archive_name_suffix: ubuntu1804-gcc7
-      #     docker_image: yugabyteci/yb_build_infra_ubuntu1804:v2020-12-14T01_12_20
-      #     build_thirdparty_args: >-
-      #       --compiler-prefix=/usr
-      #       --single-compiler-type=gcc
-      #       --compiler-suffix=-7
-      # - build:
-      #     name: ubuntu1804-gcc8
-      #     archive_name_suffix: ubuntu1804-gcc8
-      #     docker_image: yugabyteci/yb_build_infra_ubuntu1804:v2020-12-14T01_12_20
-      #     build_thirdparty_args: >-
-      #       --compiler-prefix=/usr
-      #       --single-compiler-type=gcc
-      #       --compiler-suffix=-8
-      # - build:
-      #     name: ubuntu1804-clang10
-      #     archive_name_suffix: ubuntu1804-clang10
-      #     docker_image: yugabyteci/yb_build_infra_ubuntu1804:v2020-12-14T01_12_20
-      #     build_thirdparty_args: >-
-      #       --single-compiler-type=clang
-      #       --compiler-prefix=/usr
-      #       --compiler-suffix=-10
-      # - build:
-      #     name: ubuntu1804-clang11
-      #     archive_name_suffix: ubuntu1804-clang11
-      #     docker_image: yugabyteci/yb_build_infra_ubuntu1804:v2020-12-14T01_12_20
-      #     build_thirdparty_args: >-
-      #       --single-compiler-type=clang
-      #       --compiler-prefix=/usr
-      #       --compiler-suffix=-11
+      - build:
+          archive_name_suffix: ubuntu2004-aarch64-clang12-full-lto
+          docker_image: yugabyteci/yb_build_infra_ubuntu2004_aarch64:v2022-05-26T23_24_32
+          build_thirdparty_args: >-
+            --toolchain=llvm12
+            --expected-major-compiler-version=12
+            --skip-sanitizers
+            --lto=full
+
+      - build:
+          archive_name_suffix: almalinux8-aarch64-clang12
+          docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2022-05-28T06_36_58
+          build_thirdparty_args: >-
+            --toolchain=llvm12
+            --expected-major-compiler-version=12
+            --skip-sanitizers
+
+      - build:
+          archive_name_suffix: almalinux8-aarch64-clang12-full-lto
+          docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2022-05-28T06_36_58
+          build_thirdparty_args: >-
+            --toolchain=llvm12
+            --expected-major-compiler-version=12
+            --skip-sanitizers
+            --lto=full
