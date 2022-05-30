@@ -41,36 +41,36 @@ jobs:
 workflows:
   build-release:
     jobs:
-      - build:
-          archive_name_suffix: ubuntu2004-aarch64-clang12
-          docker_image: yugabyteci/yb_build_infra_ubuntu2004_aarch64:v2022-05-26T23_24_32
-          build_thirdparty_args: >-
-            --toolchain=llvm12
-            --expected-major-compiler-version=12
-            --skip-sanitizers
+      ubuntu2004-aarch64-clang12:
+        archive_name_suffix: ubuntu2004-aarch64-clang12
+        docker_image: yugabyteci/yb_build_infra_ubuntu2004_aarch64:v2022-05-26T23_24_32
+        build_thirdparty_args: >-
+          --toolchain=llvm12
+          --expected-major-compiler-version=12
+          --skip-sanitizers
 
-      - build:
-          archive_name_suffix: ubuntu2004-aarch64-clang12-full-lto
-          docker_image: yugabyteci/yb_build_infra_ubuntu2004_aarch64:v2022-05-26T23_24_32
-          build_thirdparty_args: >-
-            --toolchain=llvm12
-            --expected-major-compiler-version=12
-            --skip-sanitizers
-            --lto=full
+      ubuntu2004-aarch64-clang12-full-lto:
+        archive_name_suffix: ubuntu2004-aarch64-clang12-full-lto
+        docker_image: yugabyteci/yb_build_infra_ubuntu2004_aarch64:v2022-05-26T23_24_32
+        build_thirdparty_args: >-
+          --toolchain=llvm12
+          --expected-major-compiler-version=12
+          --skip-sanitizers
+          --lto=full
 
-      - build:
-          archive_name_suffix: almalinux8-aarch64-clang12
-          docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2022-05-28T06_36_58
-          build_thirdparty_args: >-
-            --toolchain=llvm12
-            --expected-major-compiler-version=12
-            --skip-sanitizers
+      almalinux8-aarch64-clang12:
+        archive_name_suffix: almalinux8-aarch64-clang12
+        docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2022-05-28T06_36_58
+        build_thirdparty_args: >-
+          --toolchain=llvm12
+          --expected-major-compiler-version=12
+          --skip-sanitizers
 
-      - build:
-          archive_name_suffix: almalinux8-aarch64-clang12-full-lto
-          docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2022-05-28T06_36_58
-          build_thirdparty_args: >-
-            --toolchain=llvm12
-            --expected-major-compiler-version=12
-            --skip-sanitizers
-            --lto=full
+      almalinux8-aarch64-clang12-full-lto:
+        archive_name_suffix: almalinux8-aarch64-clang12-full-lto
+        docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2022-05-28T06_36_58
+        build_thirdparty_args: >-
+          --toolchain=llvm12
+          --expected-major-compiler-version=12
+          --skip-sanitizers
+          --lto=full
