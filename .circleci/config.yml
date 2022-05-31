@@ -41,6 +41,8 @@ jobs:
 workflows:
   build-release:
     jobs:
+      # TODO: find a way to assign different names to each build.
+      # As specified below, they are named build-1, build-2, etc.
       - build:
           archive_name_suffix: ubuntu2004-aarch64-clang12
           docker_image: yugabyteci/yb_build_infra_ubuntu2004_aarch64:v2022-05-26T23_24_32
