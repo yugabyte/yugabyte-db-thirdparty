@@ -294,6 +294,12 @@ class CompilerChoice:
             return None
         return extract_major_version(self.get_llvm_version_str())
 
+    def is_llvm_major_version_at_least(self, lower_bound: int) -> bool:
+        llvm_major_version = self.get_llvm_major_version()
+        if llvm_major_version is None:
+            raise ValueError("Expected compiler type to be 'clang'")
+        return llvm_major_version >= lower_bound
+
     def get_gcc_major_version(self) -> Optional[int]:
         if self.compiler_type != 'gcc':
             return None
