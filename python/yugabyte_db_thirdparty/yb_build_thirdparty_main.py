@@ -100,7 +100,7 @@ def main() -> None:
             log("SNYK_TOKEN is not set, not running snyk.")
         else:
             log("Running Snyk Vulnerability Scan.")
-            os_type=os.environ.get('OSTYPE','')
+            os_type=os.environ.get('OSTYPE', '')
             if os_type.startswith('linux'):
                 os.system("curl https://static.snyk.io/cli/latest/snyk-linux -o snyk")
                 os.system("chmod +x ./snyk")
