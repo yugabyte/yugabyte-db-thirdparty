@@ -26,7 +26,10 @@ class NCursesDependency(Dependency):
         self.copy_sources = True
 
     def build(self, builder: BuilderInterface) -> None:
-        builder.build_with_configure(dep=self, extra_args=['--with-shared'])
+        extra_args = ['--with-shared']
+        if is_macos():
+            extra_args.append('--with-default-terminfo-dir=/usr/share/terminfo')
+        builder.build_with_configure(dep=self, extra_args=extra_args)
 
     def get_additional_leading_ld_flags(self, builder: 'BuilderInterface') -> List[str]:
         flags = super().get_additional_leading_ld_flags(builder)
