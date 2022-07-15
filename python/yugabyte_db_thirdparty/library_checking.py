@@ -93,8 +93,10 @@ def compile_re_list(re_list: List[str]) -> Any:
 
 
 def get_needed_libs(file_path: str) -> List[str]:
+    env = {"PATH": os.getenv("PATH")}
     return capture_all_output(
         ['patchelf', '--print-needed', file_path],
+        env=env,
         allowed_exit_codes={1},
         extra_msg_on_nonzero_exit_code="Warning: could not determine libraries directly "
                                        f"needed by {file_path}")
@@ -317,6 +319,9 @@ class LibTestLinux(LibTestBase):
             "^.* => /lib/",
             "^.* => /usr/lib/x86_64-linux-gnu/",
             "^.* => /opt/yb-build/brew/linuxbrew",
+            "^.* => /nix/store/",
+            "/bin/sh:",
+            "^.*/nix/store/",
             f"^.* => {re.escape(YB_THIRDPARTY_DIR)}"
         ]
 
