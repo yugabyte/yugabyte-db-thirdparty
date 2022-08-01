@@ -987,6 +987,11 @@ class Builder(BuilderInterface):
 
         self.compiler_choice.set_compiler(
             use_compiler_wrapper=self.args.use_compiler_wrapper or dep.need_compiler_wrapper(self))
+        if self.args.download_extract_only:
+            log("Skipping build of dependency %s, build type %s, --download-extract-only is "
+                "specified.", dep.name, self.build_type)
+            return
+
         self.init_flags(dep)
 
         # This is needed at least for glog to be able to find gflags.
@@ -998,11 +1003,6 @@ class Builder(BuilderInterface):
 
         if only_process_flags:
             log("Skipping the build of dependecy %s", dep.name)
-            return
-
-        if self.args.download_extract_only:
-            log("Skipping build of dependency %s, build type %s, --download-extract-only is "
-                "specified.", dep.name, self.build_type)
             return
 
         env_vars: Dict[str, Optional[str]] = {
