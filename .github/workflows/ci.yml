@@ -122,7 +122,7 @@ jobs:
             docker_image: yugabyteci/yb_build_infra_ubuntu2204:v2022-05-20T17_13_08
             build_thirdparty_args: >-
               --compiler-prefix=/usr
-              --single-compiler-type=gcc
+              --compiler-type=gcc
               --compiler-suffix=-11
               --expected-major-compiler-version=11
 
