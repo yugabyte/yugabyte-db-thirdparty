@@ -13,7 +13,6 @@
 
 import os
 import subprocess
-from python.yugabyte_db_thirdparty.file_system_layout import FileSystemLayout
 
 from sys_detection import is_linux
 
@@ -54,19 +53,3 @@ def run_snyk_scan(fs_layout: FileSystemLayout) -> None:
         raise RuntimeError("Snyk authentication failed. Aborting scan.")
 
     log_and_run_cmd([snyk_binary_path, 'monitor', 'fs_layout', '--unmanaged'])
-
-
-        # snyk_token = os.environ.get('SNYK_TOKEN')
-        # if snyk_token is None:
-        #     log("SNYK_TOKEN is not set, not running snyk.")
-        # else:
-        #     log("Running Snyk Vulnerability Scan.")
-        #     if is_linux():
-        #         os.system("curl https://static.snyk.io/cli/latest/snyk-linux -o snyk")
-        #         os.system("chmod +x ./snyk")
-        #         rc = os.system(f"./snyk auth {snyk_token}")
-        #         if rc != 0:
-        #             log("Snyk authentication failed. Aborting scan.")
-        #         else:
-        #             homedir = os.environ.get('YB_THIRDPARTY_DIR')
-        #             os.system(f"./snyk monitor {homedir}/src --unmanaged")
