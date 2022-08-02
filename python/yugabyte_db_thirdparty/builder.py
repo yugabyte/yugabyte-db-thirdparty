@@ -239,6 +239,8 @@ class Builder(BuilderInterface):
 
         compiler_type, compiler_prefix = self.determine_compiler_type_and_prefix()
 
+        if self.args.devtoolset is not None:
+            activate_devtoolset(self.args.devtoolset)
         self.compiler_choice = CompilerChoice(
             compiler_type=compiler_type,
             compiler_prefix=compiler_prefix,
@@ -263,9 +265,6 @@ class Builder(BuilderInterface):
         self.lto_type = self.args.lto
 
     def finish_initialization(self) -> None:
-        if self.compiler_choice.devtoolset is not None:
-            activate_devtoolset(self.compiler_choice.devtoolset)
-        self.compiler_choice.finish_initialization()
         self.fs_layout.finish_initialization(
             compiler_choice=self.compiler_choice,
             lto_type=self.args.lto)

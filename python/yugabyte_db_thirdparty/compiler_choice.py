@@ -83,7 +83,6 @@ class CompilerChoice:
 
         self.expected_major_compiler_version = expected_major_compiler_version
 
-    def finish_initialization(self) -> None:
         self.find_compiler()
         self.identify_compiler_version()
 
