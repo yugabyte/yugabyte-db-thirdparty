@@ -39,7 +39,7 @@ LOWEST_GCC_VERSION_STR = '7.0.0'
 
 
 class CompilerChoice:
-    compiler_type: str
+    compiler_family: str
     cc: Optional[str]
     cxx: Optional[str]
     c_compiler_or_wrapper: Optional[str]
@@ -56,15 +56,15 @@ class CompilerChoice:
 
     def __init__(
             self,
-            compiler_type: str,
+            compiler_family: str,
             compiler_prefix: Optional[str],
             compiler_suffix: str,
             devtoolset: Optional[int],
             use_compiler_wrapper: bool,
             use_ccache: bool,
             expected_major_compiler_version: Optional[int]) -> None:
-        assert compiler_type in ['gcc', 'clang']
-        self.compiler_type = compiler_type
+        assert compiler_family in ['gcc', 'clang']
+        self.compiler_family = compiler_family
         self.compiler_prefix = compiler_prefix
         self.compiler_suffix = compiler_suffix
         self.devtoolset = devtoolset
@@ -93,7 +93,7 @@ class CompilerChoice:
         elif self.is_clang():
             compilers = self.find_clang()
         else:
-            fatal("Unknown compiler type {}".format(self.compiler_type))
+            fatal("Unknown compiler type {}".format(self.compiler_family))
         assert len(compilers) == 2
 
         for compiler in compilers:
@@ -174,10 +174,10 @@ class CompilerChoice:
                 os.path.join(clang_bin_dir, 'clang++') + self.compiler_suffix)
 
     def is_clang(self) -> bool:
-        return self.compiler_type == 'clang'
+        return self.compiler_family == 'clang'
 
     def is_gcc(self) -> bool:
-        return self.compiler_type == 'gcc'
+        return self.compiler_family == 'gcc'
 
     def is_linux_clang(self) -> bool:
         return is_linux() and self.is_clang()
@@ -266,7 +266,7 @@ class CompilerChoice:
         return llvm_major_version >= lower_bound
 
     def get_gcc_major_version(self) -> Optional[int]:
-        if self.compiler_type != 'gcc':
+        if self.compiler_family != 'gcc':
             return None
         assert self.compiler_version_str is not None
         return extract_major_version(self.compiler_version_str)
@@ -282,15 +282,15 @@ class CompilerChoice:
                     self.expected_major_compiler_version,
                     actual_major_version,
                     self.compiler_version_str,
-                    self.compiler_type,
+                    self.compiler_family,
                     self.cc_identification,
                     self.cxx_identification
                 ))
 
     def using_clang(self) -> bool:
-        assert self.compiler_type is not None
-        return self.compiler_type == 'clang'
+        assert self.compiler_family is not None
+        return self.compiler_family == 'clang'
 
     def using_gcc(self) -> bool:
-        assert self.compiler_type is not None
-        return self.compiler_type == 'gcc'
+        assert self.compiler_family is not None
+        return self.compiler_family == 'gcc'

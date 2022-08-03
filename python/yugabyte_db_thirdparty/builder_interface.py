@@ -33,7 +33,7 @@ class BuilderInterface:
     preprocessor_flags: List[str]
     ld_flags: List[str]
 
-    compiler_type: str
+    compiler_family: str
     prefix_lib: str
     prefix_bin: str
     shared_lib_suffix: str

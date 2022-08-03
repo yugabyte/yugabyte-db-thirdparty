@@ -54,21 +54,16 @@ def parse_cmd_line_args() -> argparse.Namespace:
     parser.add_argument(ADD_CHECKSUM_ARG,
                         help='Compute and add unknown checksums to %s' % CHECKSUM_FILE_NAME,
                         action='store_true')
-    parser.add_argument('--compiler-type',
+    parser.add_argument('--compiler-family',
                         help='Compiler type, gcc or clang. '
                              'Most times this can be determined automatically.',
                         choices=['gcc', 'clang'])
-
+    parser.add_argument('--use-per-build-subdirs',
+                        help='Use per-build-type subdirectories inside build/ and installed/. '
+                             'Useful for debugging these third-party build scripts.',
+                        action='store_true')
     parser.add_argument('--skip',
                         help='Dependencies to skip')
-
-    parser.add_argument(
-        '--single-compiler-type',
-        type=str,
-        choices=['gcc', 'clang'],
-        default=None,
-        help='Produce a third-party dependencies build using only a single compiler. '
-             'This also implies that we are not using Linuxbrew.')
 
     parser.add_argument(
         '--compiler-prefix',

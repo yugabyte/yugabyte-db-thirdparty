@@ -187,8 +187,8 @@ class Builder(BuilderInterface):
                 "For a combination of toolchains, the second one must be Linuxbrew, got: %s" %
                 toolchains[1].toolchain_type)
 
-    def determine_compiler_type_and_prefix(self) -> Tuple[str, Optional[str]]:
-        compiler_type: Optional[str] = None
+    def determine_compiler_family_and_prefix(self) -> Tuple[str, Optional[str]]:
+        compiler_family: Optional[str] = None
         compiler_prefix: Optional[str] = None
         if self.args.toolchain:
             self.install_toolchains()
@@ -196,30 +196,30 @@ class Builder(BuilderInterface):
             compiler_prefix = self.toolchain.toolchain_root
             self.toolchain.write_url_and_path_files()
             if self.args.toolchain.startswith('llvm'):
-                compiler_type = 'clang'
+                compiler_family = 'clang'
         elif self.args.devtoolset:
-            compiler_type = 'gcc'
+            compiler_family = 'gcc'
         elif self.args.compiler_prefix:
             compiler_prefix = self.args.compiler_prefix
 
         if is_macos():
-            if compiler_type is None:
-                compiler_type = 'clang'
-            elif compiler_type != 'clang':
+            if compiler_family is None:
+                compiler_family = 'clang'
+            elif compiler_family != 'clang':
                 raise ValueError("Only clang compiler type is supported on macOS")
 
-        if self.args.compiler_type is not None:
-            if compiler_type is None:
-                compiler_type = self.args.compiler_type
-            elif compiler_type != self.args.compiler_type:
+        if self.args.compiler_family is not None:
+            if compiler_family is None:
+                compiler_family = self.args.compiler_family
+            elif compiler_family != self.args.compiler_family:
                 raise ValueError("Compiler type specified on the command line is %s, "
-                                 "but automatically determined as %s" % (self.args.compiler_type,
-                                                                         compiler_type))
+                                 "but automatically determined as %s" % (self.args.compiler_family,
+                                                                         compiler_family))
 
-        if compiler_type is None:
+        if compiler_family is None:
             raise ValueError(
-                "Could not determine compiler type. Use --compiler-type to disambiguate.")
-        return compiler_type, compiler_prefix
+                "Could not determine compiler type. Use --compiler-family to disambiguate.")
+        return compiler_family, compiler_prefix
 
     def parse_args(self) -> None:
         self.args = parse_cmd_line_args()
@@ -237,12 +237,12 @@ class Builder(BuilderInterface):
             should_add_checksum=self.args.add_checksum,
             download_dir=self.fs_layout.tp_download_dir)
 
-        compiler_type, compiler_prefix = self.determine_compiler_type_and_prefix()
+        compiler_family, compiler_prefix = self.determine_compiler_family_and_prefix()
 
         if self.args.devtoolset is not None:
             activate_devtoolset(self.args.devtoolset)
         self.compiler_choice = CompilerChoice(
-            compiler_type=compiler_type,
+            compiler_family=compiler_family,
             compiler_prefix=compiler_prefix,
             compiler_suffix=self.args.compiler_suffix,
             devtoolset=self.args.devtoolset,
@@ -266,6 +266,7 @@ class Builder(BuilderInterface):
 
     def finish_initialization(self) -> None:
         self.fs_layout.finish_initialization(
+            use_per_build_subdirs=self.args.use_per_build_subdirs,
             compiler_choice=self.compiler_choice,
             lto_type=self.args.lto)
         self.populate_dependencies()
