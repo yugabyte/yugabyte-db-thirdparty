@@ -156,7 +156,6 @@ class Builder(BuilderInterface):
     of dependencies to build, build types, and the directories to install dependencies.
     """
     def __init__(self) -> None:
-        self.fs_layout = FileSystemLayout()
         self.linuxbrew_dir = None
         self.additional_allowed_shared_lib_paths = set()
 
@@ -164,7 +163,7 @@ class Builder(BuilderInterface):
         self.fossa_deps = []
         self.lto_type = None
 
-    def _install_toolchains(self) -> None:
+    def install_toolchains(self) -> None:
         toolchains = ensure_toolchains_installed(
             self.download_manager, self.args.toolchain.split('_'))
 
@@ -188,6 +187,40 @@ class Builder(BuilderInterface):
                 "For a combination of toolchains, the second one must be Linuxbrew, got: %s" %
                 toolchains[1].toolchain_type)
 
+    def determine_compiler_family_and_prefix(self) -> Tuple[str, Optional[str]]:
+        compiler_family: Optional[str] = None
+        compiler_prefix: Optional[str] = None
+        if self.args.toolchain:
+            self.install_toolchains()
+            assert self.toolchain is not None  # install_toolchains guarantees this.
+            compiler_prefix = self.toolchain.toolchain_root
+            self.toolchain.write_url_and_path_files()
+            if self.args.toolchain.startswith('llvm'):
+                compiler_family = 'clang'
+        elif self.args.devtoolset:
+            compiler_family = 'gcc'
+        elif self.args.compiler_prefix:
+            compiler_prefix = self.args.compiler_prefix
+
+        if is_macos():
+            if compiler_family is None:
+                compiler_family = 'clang'
+            elif compiler_family != 'clang':
+                raise ValueError("Only clang compiler family is supported on macOS")
+
+        if self.args.compiler_family is not None:
+            if compiler_family is None:
+                compiler_family = self.args.compiler_family
+            elif compiler_family != self.args.compiler_family:
+                raise ValueError("Compiler type specified on the command line is %s, "
+                                 "but automatically determined as %s" % (self.args.compiler_family,
+                                                                         compiler_family))
+
+        if compiler_family is None:
+            raise ValueError(
+                "Could not determine compiler family. Use --compiler-family to disambiguate.")
+        return compiler_family, compiler_prefix
+
     def parse_args(self) -> None:
         self.args = parse_cmd_line_args()
 
@@ -198,23 +231,18 @@ class Builder(BuilderInterface):
         if self.args.make_parallelism:
             os.environ['YB_MAKE_PARALLELISM'] = str(self.args.make_parallelism)
 
+        self.fs_layout = FileSystemLayout()
+
         self.download_manager = DownloadManager(
             should_add_checksum=self.args.add_checksum,
             download_dir=self.fs_layout.tp_download_dir)
 
-        single_compiler_type = None
-        if self.args.toolchain:
-            self._install_toolchains()
-            assert self.toolchain is not None  # _install_toolchains guarantees this.
-            compiler_prefix = self.toolchain.toolchain_root
-            single_compiler_type = self.toolchain.get_compiler_type()
-            self.toolchain.write_url_and_path_files()
-        else:
-            compiler_prefix = self.args.compiler_prefix
-            single_compiler_type = self.args.single_compiler_type
+        compiler_family, compiler_prefix = self.determine_compiler_family_and_prefix()
 
+        if self.args.devtoolset is not None:
+            activate_devtoolset(self.args.devtoolset)
         self.compiler_choice = CompilerChoice(
-            single_compiler_type=single_compiler_type,
+            compiler_family=compiler_family,
             compiler_prefix=compiler_prefix,
             compiler_suffix=self.args.compiler_suffix,
             devtoolset=self.args.devtoolset,
@@ -237,11 +265,12 @@ class Builder(BuilderInterface):
         self.lto_type = self.args.lto
 
     def finish_initialization(self) -> None:
-        self.compiler_choice.finish_initialization()
+        self.fs_layout.finish_initialization(
+            use_per_build_subdirs=self.args.use_per_build_subdirs,
+            compiler_choice=self.compiler_choice,
+            lto_type=self.args.lto)
         self.populate_dependencies()
         self.select_dependencies_to_build()
-        if self.compiler_choice.devtoolset is not None:
-            activate_devtoolset(self.compiler_choice.devtoolset)
         self.compiler_choice.set_compiler(use_compiler_wrapper=False)
 
     def populate_dependencies(self) -> None:
@@ -281,7 +310,7 @@ class Builder(BuilderInterface):
                         get_build_def_module('llvm7_libcxx').Llvm7LibCXXDependency())
 
             llvm_major_version: Optional[int] = self.compiler_choice.get_llvm_major_version()
-            if (self.compiler_choice.use_only_clang() and
+            if (self.compiler_choice.is_clang() and
                     llvm_major_version is not None and llvm_major_version >= 10):
                 if self.toolchain:
                     llvm_version_str = self.toolchain.get_llvm_version_str()
@@ -381,7 +410,7 @@ class Builder(BuilderInterface):
         build_types = [BUILD_TYPE_UNINSTRUMENTED]
 
         if (is_linux() and
-                self.compiler_choice.use_only_clang() and
+                self.compiler_choice.is_clang() and
                 not self.args.skip_sanitizers and
                 not using_linuxbrew()):
             # We only support ASAN/TSAN builds on Clang, when not using Linuxbrew.
@@ -987,6 +1016,11 @@ class Builder(BuilderInterface):
 
         self.compiler_choice.set_compiler(
             use_compiler_wrapper=self.args.use_compiler_wrapper or dep.need_compiler_wrapper(self))
+        if self.args.download_extract_only:
+            log("Skipping build of dependency %s, build type %s, --download-extract-only is "
+                "specified.", dep.name, self.build_type)
+            return
+
         self.init_flags(dep)
 
         # This is needed at least for glog to be able to find gflags.
@@ -998,11 +1032,6 @@ class Builder(BuilderInterface):
 
         if only_process_flags:
             log("Skipping the build of dependecy %s", dep.name)
-            return
-
-        if self.args.download_extract_only:
-            log("Skipping build of dependency %s, build type %s, --download-extract-only is "
-                "specified.", dep.name, self.build_type)
             return
 
         env_vars: Dict[str, Optional[str]] = {

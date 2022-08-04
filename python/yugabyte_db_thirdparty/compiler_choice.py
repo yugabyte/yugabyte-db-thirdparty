@@ -39,12 +39,11 @@ LOWEST_GCC_VERSION_STR = '7.0.0'
 
 
 class CompilerChoice:
-    compiler_type: str
+    compiler_family: str
     cc: Optional[str]
     cxx: Optional[str]
     c_compiler_or_wrapper: Optional[str]
     cxx_compiler_or_wrapper: Optional[str]
-    single_compiler_type: Optional[str]
     compiler_prefix: Optional[str]
     compiler_suffix: str
     devtoolset: Optional[int]
@@ -57,14 +56,15 @@ class CompilerChoice:
 
     def __init__(
             self,
-            single_compiler_type: Optional[str],
+            compiler_family: str,
             compiler_prefix: Optional[str],
             compiler_suffix: str,
             devtoolset: Optional[int],
             use_compiler_wrapper: bool,
             use_ccache: bool,
             expected_major_compiler_version: Optional[int]) -> None:
-        self.single_compiler_type = single_compiler_type
+        assert compiler_family in ['gcc', 'clang']
+        self.compiler_family = compiler_family
         self.compiler_prefix = compiler_prefix
         self.compiler_suffix = compiler_suffix
         self.devtoolset = devtoolset
@@ -82,36 +82,18 @@ class CompilerChoice:
         self.compiler_version_str = None
 
         self.expected_major_compiler_version = expected_major_compiler_version
-        if self.single_compiler_type == 'clang':
-            # This is necessary because we might want to know Clang version before set_compiler
-            # is called externally.
-            self.set_compiler(use_compiler_wrapper=False)
 
-    def detect_clang_version(self) -> None:
-        """
-        Detects Clang version when the only compiler we are using is Clang. This is needed so we can
-        use versions of components that are part of LLVM's repository that match the version of
-        Clang.
-        """
-        if is_linux() and self.single_compiler_type == 'clang':
-            self.find_compiler_by_type(self.single_compiler_type)
-            self._identify_compiler_version()
+        self.find_compiler()
+        self.identify_compiler_version()
 
-    def finish_initialization(self) -> None:
-        self.detect_clang_version()
-
-    def find_compiler_by_type(self, compiler_type: str) -> None:
+    def find_compiler(self) -> None:
         compilers: Tuple[str, str]
-        if compiler_type == 'gcc':
-            if self.use_only_clang():
-                raise ValueError('Not allowed to use GCC')
+        if self.is_gcc():
             compilers = self.find_gcc()
-        elif compiler_type == 'clang':
-            if self.use_only_gcc():
-                raise ValueError('Not allowed to use Clang')
+        elif self.is_clang():
             compilers = self.find_clang()
         else:
-            fatal("Unknown compiler type {}".format(compiler_type))
+            fatal("Unknown compiler family {}".format(self.compiler_family))
         assert len(compilers) == 2
 
         for compiler in compilers:
@@ -191,35 +173,19 @@ class CompilerChoice:
         return (os.path.join(clang_bin_dir, 'clang') + self.compiler_suffix,
                 os.path.join(clang_bin_dir, 'clang++') + self.compiler_suffix)
 
-    def use_only_clang(self) -> bool:
-        return is_macos() or self.single_compiler_type == 'clang'
+    def is_clang(self) -> bool:
+        return self.compiler_family == 'clang'
 
-    def use_only_gcc(self) -> bool:
-        return self.devtoolset is not None or self.single_compiler_type == 'gcc'
+    def is_gcc(self) -> bool:
+        return self.compiler_family == 'gcc'
 
     def is_linux_clang(self) -> bool:
-        llvm_major_version: Optional[int] = self.get_llvm_major_version()
-        return (
-            not is_macos() and
-            self.single_compiler_type == 'clang' and
-            llvm_major_version is not None and
-            llvm_major_version >= 10
-        )
+        return is_linux() and self.is_clang()
 
     def set_compiler(self, use_compiler_wrapper: bool) -> None:
         self.use_compiler_wrapper = use_compiler_wrapper
-        compiler_type = 'clang' if self.use_only_clang() else 'gcc'
 
-        if is_macos():
-            if compiler_type != 'clang':
-                raise ValueError(
-                    "Cannot set compiler type to %s on macOS, only clang is supported" %
-                    compiler_type)
-            self.compiler_type = 'clang'
-        else:
-            self.compiler_type = compiler_type
-
-        self.find_compiler_by_type(compiler_type)
+        self.find_compiler()
 
         c_compiler = self.get_c_compiler()
         cxx_compiler = self.get_cxx_compiler()
@@ -240,7 +206,7 @@ class CompilerChoice:
         os.environ['CC'] = self.c_compiler_or_wrapper
         os.environ['CXX'] = self.cxx_compiler_or_wrapper
 
-        self._identify_compiler_version()
+        self.identify_compiler_version()
 
         log(f"C compiler: {self.cc_identification}")
         log(f"C++ compiler: {self.cxx_identification}")
@@ -257,7 +223,7 @@ class CompilerChoice:
                 f"GCC version is too old: {compiler_identification}; "
                 f"required at least {LOWEST_GCC_VERSION_STR}")
 
-    def _identify_compiler_version(self) -> None:
+    def identify_compiler_version(self) -> None:
         c_compiler = self.get_c_compiler()
         cxx_compiler = self.get_cxx_compiler()
 
@@ -280,8 +246,7 @@ class CompilerChoice:
         self.compiler_version_str = self.cc_identification.version_str
 
     def get_llvm_version_str(self) -> str:
-        assert self.single_compiler_type == 'clang', \
-            f"Expected the compiler type to be 'clang' only but found '{self.single_compiler_type}'"
+        assert self.is_clang()
         assert self.compiler_version_str is not None
         return self.compiler_version_str
 
@@ -290,18 +255,18 @@ class CompilerChoice:
         return extract_major_version(self.compiler_version_str)
 
     def get_llvm_major_version(self) -> Optional[int]:
-        if self.single_compiler_type is None or self.single_compiler_type == 'gcc':
+        if not self.is_clang():
             return None
         return extract_major_version(self.get_llvm_version_str())
 
     def is_llvm_major_version_at_least(self, lower_bound: int) -> bool:
         llvm_major_version = self.get_llvm_major_version()
         if llvm_major_version is None:
-            raise ValueError("Expected compiler type to be 'clang'")
+            raise ValueError("Expected compiler family to be 'clang'")
         return llvm_major_version >= lower_bound
 
     def get_gcc_major_version(self) -> Optional[int]:
-        if self.compiler_type != 'gcc':
+        if self.compiler_family != 'gcc':
             return None
         assert self.compiler_version_str is not None
         return extract_major_version(self.compiler_version_str)
@@ -317,15 +282,15 @@ class CompilerChoice:
                     self.expected_major_compiler_version,
                     actual_major_version,
                     self.compiler_version_str,
-                    self.compiler_type,
+                    self.compiler_family,
                     self.cc_identification,
                     self.cxx_identification
                 ))
 
     def using_clang(self) -> bool:
-        assert self.compiler_type is not None
-        return self.compiler_type == 'clang'
+        assert self.compiler_family is not None
+        return self.compiler_family == 'clang'
 
     def using_gcc(self) -> bool:
-        assert self.compiler_type is not None
-        return self.compiler_type == 'gcc'
+        assert self.compiler_family is not None
+        return self.compiler_family == 'gcc'

@@ -30,7 +30,7 @@ class CRCUtilDependency(Dependency):
         self.patches = ['crcutil-fix-offsetof.patch']
 
     def get_additional_compiler_flags(self, builder: BuilderInterface) -> List[str]:
-        if (builder.compiler_choice.compiler_type == 'gcc' and
+        if (builder.compiler_choice.compiler_family == 'gcc' and
                 platform.uname().processor == 'x86_64'):
             # -mcrc32 (https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html)
             # This option enables built-in functions __builtin_ia32_crc32qi, __builtin_ia32_crc32hi,

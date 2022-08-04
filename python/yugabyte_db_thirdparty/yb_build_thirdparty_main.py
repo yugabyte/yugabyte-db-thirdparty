@@ -29,6 +29,8 @@ from yugabyte_db_thirdparty.packager import Packager
 from yugabyte_db_thirdparty.remote_build import build_remotely
 from yugabyte_db_thirdparty.library_checking import get_lib_tester
 from yugabyte_db_thirdparty.clang_util import get_clang_library_dir
+from yugabyte_db_thirdparty.snyk import run_snyk_scan
+
 
 import_submodules(build_definitions)
 
@@ -95,21 +97,7 @@ def main() -> None:
             time.time() - packaging_and_upload_start_time_sec)
 
     if builder.args.snyk:
-        snyk_token = os.environ.get('SNYK_TOKEN')
-        if snyk_token is None:
-            log("SNYK_TOKEN is not set, not running snyk.")
-        else:
-            log("Running Snyk Vulnerability Scan.")
-            os_type = os.environ.get('OSTYPE', '')
-            if os_type.startswith('linux'):
-                os.system("curl https://static.snyk.io/cli/latest/snyk-linux -o snyk")
-                os.system("chmod +x ./snyk")
-                rc = os.system(f"./snyk auth {snyk_token}")
-                if rc != 0:
-                    log("Snyk authentication failed. Aborting scan.")
-                else:
-                    homedir = os.environ.get('YB_THIRDPARTY_DIR')
-                    os.system(f"./snyk monitor {homedir}/src --unmanaged")
+        run_snyk_scan(builder.fs_layout)
 
 
 if __name__ == "__main__":

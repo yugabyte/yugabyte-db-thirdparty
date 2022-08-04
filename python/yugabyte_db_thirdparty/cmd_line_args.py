@@ -54,16 +54,16 @@ def parse_cmd_line_args() -> argparse.Namespace:
     parser.add_argument(ADD_CHECKSUM_ARG,
                         help='Compute and add unknown checksums to %s' % CHECKSUM_FILE_NAME,
                         action='store_true')
+    parser.add_argument('--compiler-family',
+                        help='Compiler type, gcc or clang. '
+                             'Most times this can be determined automatically.',
+                        choices=['gcc', 'clang'])
+    parser.add_argument('--use-per-build-subdirs',
+                        help='Use per-build-type subdirectories inside build/ and installed/. '
+                             'Useful for debugging these third-party build scripts.',
+                        action='store_true')
     parser.add_argument('--skip',
                         help='Dependencies to skip')
-
-    parser.add_argument(
-        '--single-compiler-type',
-        type=str,
-        choices=['gcc', 'clang'],
-        default=None,
-        help='Produce a third-party dependencies build using only a single compiler. '
-             'This also implies that we are not using Linuxbrew.')
 
     parser.add_argument(
         '--compiler-prefix',
@@ -215,12 +215,6 @@ def parse_cmd_line_args() -> argparse.Namespace:
     if args.dependencies and args.skip:
         raise ValueError("--skip is not compatible with specifying a list of dependencies to build")
 
-    if is_macos():
-        if args.single_compiler_type not in [None, 'clang']:
-            raise ValueError(
-                "--single-compiler-type=%s is not allowed on macOS" % args.single_compiler_type)
-        args.single_compiler_type = 'clang'
-
     if args.local and (args.remote_build_server is not None or args.remote_build_dir is not None):
         log("Forcing a local build")
         args.remote_build_server = None
@@ -241,10 +235,6 @@ def parse_cmd_line_args() -> argparse.Namespace:
     if args.devtoolset is not None and not is_remote_build:
         if not local_sys_conf().is_redhat_family():
             raise ValueError("--devtoolset can only be used on Red Hat Enterprise Linux OS family")
-        if args.single_compiler_type not in [None, 'gcc']:
-            raise ValueError(
-                "--devtoolset is not compatible with compiler type: %s" % args.single_compiler_type)
-        args.single_compiler_type = 'gcc'
 
     if args.enforce_arch and platform.machine() != args.enforce_arch:
         raise ValueError("Machine architecture is %s but we expect %s" % (

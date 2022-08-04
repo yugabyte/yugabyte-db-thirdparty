@@ -51,7 +51,7 @@ class Toolchain:
     toolchain_url: str
     toolchain_type: str
     toolchain_root: str
-    compiler_type: Optional[str]
+    compiler_family: Optional[str]
 
     def __init__(
             self,
@@ -61,21 +61,21 @@ class Toolchain:
         self.toolchain_url = toolchain_url
         self.toolchain_type = toolchain_type
         self.toolchain_root = toolchain_root
-        self.compiler_type = None
+        self.compiler_family = None
 
-    def get_compiler_type(self) -> str:
-        if self.compiler_type:
-            return self.compiler_type
+    def get_compiler_family(self) -> str:
+        if self.compiler_family:
+            return self.compiler_family
 
         candidate_paths = []
-        for compiler_type_candidate in ['clang', 'gcc']:
-            compiler_path = os.path.join(self.toolchain_root, 'bin', compiler_type_candidate)
+        for compiler_family_candidate in ['clang', 'gcc']:
+            compiler_path = os.path.join(self.toolchain_root, 'bin', compiler_family_candidate)
             if os.path.exists(compiler_path):
-                self.compiler_type = compiler_type_candidate
-                return compiler_type_candidate
+                self.compiler_family = compiler_family_candidate
+                return compiler_family_candidate
             candidate_paths.append(compiler_path)
         raise RuntimeError(
-            f"Cannot determine compiler type for toolchain at '{self.toolchain_root}'. "
+            f"Cannot determine compiler family for toolchain at '{self.toolchain_root}'. "
             f"Considered paths: {candidate_paths}.")
 
     def write_url_and_path_files(self) -> None:

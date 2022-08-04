@@ -87,15 +87,15 @@ class BoostDependency(Dependency):
                     out.write(line)
             cxx_flags = builder.preprocessor_flags + builder.compiler_flags + builder.cxx_flags
             log("C++ flags to use when building Boost: %s", cxx_flags)
-            compiler_type = builder.compiler_choice.compiler_type
+            compiler_family = builder.compiler_choice.compiler_family
             # To make sure Boost's b2 does not select one of its default "toolsets" and ignores all
             # of our compiler flags, we add a "-yb" suffix to the compiler "version" that we give
             # it.--
             compiler_version = '%dyb' % builder.compiler_choice.get_compiler_major_version()
-            boost_toolset = '%s-%s' % (compiler_type, compiler_version)
+            boost_toolset = '%s-%s' % (compiler_family, compiler_version)
             log("Giving Boost a custom toolset to use: %s", boost_toolset)
             out.write(PROJECT_CONFIG.format(
-                    compiler_type,
+                    compiler_family,
                     compiler_version,
                     builder.compiler_choice.get_cxx_compiler_or_wrapper(),
                     ' '.join(['<compileflags>' + flag for flag in cxx_flags]),

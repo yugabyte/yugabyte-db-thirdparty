@@ -11,10 +11,13 @@
 # under the License.
 #
 
-from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR
+from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR, remove_path
 from yugabyte_db_thirdparty.dependency import Dependency
 from yugabyte_db_thirdparty.custom_logging import heading, log
-from yugabyte_db_thirdparty.util import remove_path
+from yugabyte_db_thirdparty.compiler_choice import CompilerChoice
+from yugabyte_db_thirdparty.linuxbrew import using_linuxbrew
+from yugabyte_db_thirdparty.arch import get_target_arch
+
 from build_definitions import BUILD_TYPES, BUILD_TYPE_COMMON, validate_build_type
 
 import os
@@ -28,11 +31,36 @@ class FileSystemLayout:
     tp_installed_dir: str
     tp_installed_common_dir: str
 
+    build_specific_subdir: str
+
     def __init__(self) -> None:
-        self.tp_build_dir = os.path.join(YB_THIRDPARTY_DIR, 'build')
         self.tp_src_dir = os.path.join(YB_THIRDPARTY_DIR, 'src')
         self.tp_download_dir = os.path.join(YB_THIRDPARTY_DIR, 'download')
-        self.tp_installed_dir = os.path.join(YB_THIRDPARTY_DIR, 'installed')
+
+    def finish_initialization(
+            self,
+            use_per_build_subdirs: bool,
+            compiler_choice: CompilerChoice,
+            lto_type: Optional[str]) -> None:
+        build_parent_dir = self.tp_build_dir = os.path.join(YB_THIRDPARTY_DIR, 'build')
+        installed_parent_dir = os.path.join(YB_THIRDPARTY_DIR, 'installed')
+        if use_per_build_subdirs:
+            compiler_family_and_version = '%s%d' % (
+                compiler_choice.compiler_family,
+                compiler_choice.get_compiler_major_version())
+            subdir_items = [compiler_family_and_version]
+            if using_linuxbrew():
+                subdir_items.append('linuxbrew')
+            if lto_type:
+                subdir_items.append('%s-lto' % lto_type)
+            subdir_items.append(get_target_arch())
+            build_specific_subdir = '-'.join(subdir_items)
+            self.tp_build_dir = os.path.join(build_parent_dir, build_specific_subdir)
+            self.tp_installed_dir = os.path.join(installed_parent_dir, build_specific_subdir)
+        else:
+            self.tp_build_dir = build_parent_dir
+            self.tp_installed_dir = installed_parent_dir
+
         self.tp_installed_common_dir = os.path.join(self.tp_installed_dir, BUILD_TYPE_COMMON)
 
     def get_archive_path(self, dep: Dependency) -> Optional[str]:
@@ -44,7 +72,7 @@ class FileSystemLayout:
     def get_source_path(self, dep: Dependency) -> str:
         return os.path.join(self.tp_src_dir, dep.get_source_dir_basename())
 
-    def _remove_path_for_dependency(
+    def remove_path_for_dependency(
             self, dep: Dependency, path: Optional[str], description: str) -> None:
         full_description = f"{description} for dependency {dep.name}"
         if path is None:
@@ -68,23 +96,23 @@ class FileSystemLayout:
 
         for dependency in selected_dependencies:
             for build_type in BUILD_TYPES:
-                self._remove_path_for_dependency(
+                self.remove_path_for_dependency(
                     dep=dependency,
                     path=self.get_build_stamp_path_for_dependency(dependency, build_type),
                     description="build stamp")
-                self._remove_path_for_dependency(
+                self.remove_path_for_dependency(
                     dep=dependency,
                     path=self.get_build_dir_for_dependency(dependency, build_type),
                     description="build stamp")
 
                 if dependency.dir_name is not None:
-                    self._remove_path_for_dependency(
+                    self.remove_path_for_dependency(
                         dep=dependency,
                         path=self.get_source_path(dependency),
                         description="source")
 
             if clean_downloads:
-                self._remove_path_for_dependency(
+                self.remove_path_for_dependency(
                     dep=dependency,
                     path=self.get_archive_path(dependency),
                     description="downloaded archive")
