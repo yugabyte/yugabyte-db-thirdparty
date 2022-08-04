@@ -48,10 +48,18 @@ To modify some dependency (e.g. glog):
 
 ## Ensuring a clean build
 
-We don't currently use separate directories for different "build types" in yugabyte-db-thirdparty unlike we do in YugabyteDB. Therefore, when changing to a different compiler type, compiler flags, etc., it would be safest to remove build output before rebuilding:
+By default, we don't use separate directories for different "build types" in yugabyte-db-thirdparty unlike we do in YugabyteDB. Therefore, when changing to a different compiler family, compiler version, compiler flags, etc., it would be safest to remove build output before rebuilding:
 
 ```
 rm -rf build installed
+```
+
+However, during development, `--use-per-build-subdirs` introduces per-built type subdirectories under `build` and `installed` directories.
+
+```
+$ ls build
+clang14-x86_64
+gcc11-x86_64
 ```
 
 ## Building and publishing a tarball manually
@@ -69,7 +77,7 @@ Set the GITHUB_TOKEN environment variable before running the commands below.
 ### Apple macOS arm64 (M1)
 
 ```
-export YB_TARGET_ARCH=arm64 
+export YB_TARGET_ARCH=arm64
 export PATH=/opt/homebrew/bin:$PATH
 export YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX=macos-arm64
 rm -rf venv
@@ -110,4 +118,3 @@ Use the search box with terms such as "aarch64" or "arm64":
 
 * https://github.com/yugabyte/yugabyte-db-thirdparty/releases?q=aarch64&expanded=true
 * https://github.com/yugabyte/yugabyte-db-thirdparty/releases?q=arm64&expanded=true
-                              

@@ -206,7 +206,7 @@ class Builder(BuilderInterface):
             if compiler_family is None:
                 compiler_family = 'clang'
             elif compiler_family != 'clang':
-                raise ValueError("Only clang compiler type is supported on macOS")
+                raise ValueError("Only clang compiler family is supported on macOS")
 
         if self.args.compiler_family is not None:
             if compiler_family is None:
@@ -218,7 +218,7 @@ class Builder(BuilderInterface):
 
         if compiler_family is None:
             raise ValueError(
-                "Could not determine compiler type. Use --compiler-family to disambiguate.")
+                "Could not determine compiler family. Use --compiler-family to disambiguate.")
         return compiler_family, compiler_prefix
 
     def parse_args(self) -> None:

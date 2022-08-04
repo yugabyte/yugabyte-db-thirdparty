@@ -75,7 +75,7 @@ class Toolchain:
                 return compiler_family_candidate
             candidate_paths.append(compiler_path)
         raise RuntimeError(
-            f"Cannot determine compiler type for toolchain at '{self.toolchain_root}'. "
+            f"Cannot determine compiler family for toolchain at '{self.toolchain_root}'. "
             f"Considered paths: {candidate_paths}.")
 
     def write_url_and_path_files(self) -> None:

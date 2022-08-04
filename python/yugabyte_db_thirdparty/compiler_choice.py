@@ -93,7 +93,7 @@ class CompilerChoice:
         elif self.is_clang():
             compilers = self.find_clang()
         else:
-            fatal("Unknown compiler type {}".format(self.compiler_family))
+            fatal("Unknown compiler family {}".format(self.compiler_family))
         assert len(compilers) == 2
 
         for compiler in compilers:
@@ -262,7 +262,7 @@ class CompilerChoice:
     def is_llvm_major_version_at_least(self, lower_bound: int) -> bool:
         llvm_major_version = self.get_llvm_major_version()
         if llvm_major_version is None:
-            raise ValueError("Expected compiler type to be 'clang'")
+            raise ValueError("Expected compiler family to be 'clang'")
         return llvm_major_version >= lower_bound
 
     def get_gcc_major_version(self) -> Optional[int]:
