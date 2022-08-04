@@ -31,7 +31,7 @@ def run_snyk_scan(fs_layout: FileSystemLayout) -> None:
     snyk_token = os.environ.get('SNYK_TOKEN', '').strip()
     if not snyk_token:
         log("SNYK_TOKEN is not set, not running Snyk")
-        # This is not a failure. E.g. this could be a PR buildtest.
+        # This is not a failure. E.g. this could be a PR build.
         return
 
     if not is_linux():
@@ -39,7 +39,7 @@ def run_snyk_scan(fs_layout: FileSystemLayout) -> None:
         # Similarly, not a failure.
         return
 
-    log("Running Snyk Vulnerability Scan.")
+    log("Running Snyk vulnerability scan.")
     download_dir_path = fs_layout.tp_download_dir
     snyk_binary_path = os.path.join(download_dir_path, 'snyk')
 
