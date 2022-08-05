@@ -22,7 +22,7 @@ class SqueaselDependency(Dependency):
     def __init__(self) -> None:
         super(SqueaselDependency, self).__init__(
             name='squeasel',
-            version='d83cf6d9af0e2c98c16467a6a035ae0d7ca21cb1-yb-1',
+            version='d83cf6d9af0e2c98c16467a6a035ae0d7ca21cb1-yb-2',
             url_pattern='https://github.com/yugabyte/squeasel/archive/squeasel-{0}.tar.gz',
             build_group=BUILD_GROUP_COMMON)
         self.copy_sources = True
