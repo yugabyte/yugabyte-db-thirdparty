@@ -52,4 +52,4 @@ def run_snyk_scan(fs_layout: FileSystemLayout) -> None:
     if subprocess.call([snyk_binary_path, 'auth', snyk_token]) != 0:
         raise RuntimeError("Snyk authentication failed. Aborting scan.")
 
-    log_and_run_cmd([snyk_binary_path, 'monitor', 'fs_layout', '--unmanaged'])
+    log_and_run_cmd([snyk_binary_path, 'monitor', fs_layout.tp_src_dir, '--unmanaged'])
