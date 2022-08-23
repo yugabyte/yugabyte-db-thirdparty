@@ -25,7 +25,7 @@ import logging
 
 from sys_detection import is_macos, is_linux
 
-from typing import List, Any, Set, Optional, Pattern
+from typing import List, Any, Set, Optional, Pattern, Type
 
 from yugabyte_db_thirdparty.custom_logging import log, fatal, heading
 from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR, capture_all_output, shlex_join
@@ -460,7 +460,7 @@ class LibTestLinux(LibTestBase):
 
 
 def get_lib_tester(fs_layout: FileSystemLayout) -> LibTestBase:
-    lib_tester: LibTestBase
+    lib_tester_class: Type[LibTestBase]
     if is_macos():
         lib_tester_class = LibTestMac
     elif is_linux():
