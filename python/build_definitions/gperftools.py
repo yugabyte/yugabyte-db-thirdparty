@@ -22,7 +22,7 @@ class GPerfToolsDependency(Dependency):
         super(GPerfToolsDependency, self).__init__(
             name='gperftools',
             version='2.7-yb-1',
-            url_pattern='https://github.com/gperftools/gperftools/releases/download/gperftools-{0}/'
+            url_pattern='https://github.com/yugabyte/gperftools/archive/refs/tags/'
                         'gperftools-{0}.tar.gz',
             build_group=BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = True
