@@ -1,5 +1,7 @@
---- src/glog/vlog_is_on.h.in 2015-03-11 07:02:27.000000000 +0300
-+++ src/glog/vlog_is_on.h.in 2018-01-30 11:28:15.000000000 +0300
+diff --git src/glog/vlog_is_on.h.in src/glog/vlog_is_on.h.in
+index d325434..f138177 100644
+--- src/glog/vlog_is_on.h.in
++++ src/glog/vlog_is_on.h.in
 @@ -73,6 +73,21 @@
  #endif
 
@@ -22,20 +24,16 @@
  // We emit an anonymous static int* variable at every VLOG_IS_ON(n) site.
  // (Normally) the first time every VLOG_IS_ON(n) site is hit,
  // we determine what variable will dynamically control logging at this site:
-@@ -83,10 +98,15 @@
+@@ -83,8 +98,12 @@
    __extension__  \
-   ({ static @ac_google_namespace@::int32* vlocal__ = &@ac_google_namespace@::kLogSiteUninitialized;           \
+   ({ static @ac_google_namespace@::SiteFlag vlocal__{NULL, NULL, 0, NULL};       \
       @ac_google_namespace@::int32 verbose_level__ = (verboselevel);                    \
 +     GLOG_IGNORE_READS_BEGIN();                                                        \
 +     bool result =                                                                     \
-      (*vlocal__ >= verbose_level__) &&                          \
-      ((vlocal__ != &@ac_google_namespace@::kLogSiteUninitialized) ||                   \
-       (@ac_google_namespace@::InitVLOG3__(&vlocal__, &FLAGS_v,                         \
--                   __FILE__, verbose_level__))); })
-+                   __FILE__, verbose_level__)));                                       \
+      (vlocal__.level == NULL ? @ac_google_namespace@::InitVLOG3__(&vlocal__, &FLAGS_v, \
+                         __FILE__, verbose_level__) : *vlocal__.level >= verbose_level__); \
 +     GLOG_IGNORE_READS_END();                                                          \
 +     result;                                                                           \
-+  })
+   })
  #else
  // GNU extensions not available, so we do not support --vmodule.
- // Dynamic value of FLAGS_v always controls the logging level.
