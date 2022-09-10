@@ -52,7 +52,7 @@ log_path=${log_dir}/${log_file_name}
 (
   cd "${log_dir}"
   for link_name in "${latest_log_links[@]}"; do
-    ln -sfT "${log_file_name}" "${link_name}"
+    ln -sf "${log_file_name}" "${link_name}"
   done
 )
 link_path_list_str=""
