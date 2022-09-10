@@ -25,10 +25,10 @@ import logging
 
 from sys_detection import is_macos, is_linux
 
-from typing import List, Any, Set, Optional, Pattern
+from typing import List, Any, Set, Optional, Pattern, Type
 
 from yugabyte_db_thirdparty.custom_logging import log, fatal, heading
-from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR, capture_all_output
+from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR, capture_all_output, shlex_join
 from yugabyte_db_thirdparty.macos import get_min_supported_macos_version
 from yugabyte_db_thirdparty.file_system_layout import FileSystemLayout
 from yugabyte_db_thirdparty.compiler_choice import CompilerChoice
@@ -137,13 +137,14 @@ class LibTestBase:
 
     fs_layout: FileSystemLayout
 
-    def __init__(self) -> None:
-        self.tp_installed_dir = os.path.join(YB_THIRDPARTY_DIR, 'installed')
+    def __init__(self, fs_layout: FileSystemLayout) -> None:
         self.lib_re_list = []
         self.logged_allowed_patterns = set()
         self.extra_allowed_shared_lib_paths = set()
         self.allowed_system_libraries = set(ALLOWED_SYSTEM_LIBRARIES)
         self.needed_libs_to_remove = set(NEEDED_LIBS_TO_REMOVE)
+        self.fs_layout = fs_layout
+        self.tp_installed_dir = fs_layout.tp_installed_dir
 
     def configure_for_compiler(self, compiler_choice: CompilerChoice) -> None:
         if compiler_choice.using_gcc():
@@ -214,17 +215,20 @@ class LibTestBase:
         test_pass = True
         # Files to examine are much reduced if we look only at bin and lib directories.
         dir_pattern = re.compile('^(lib|libcxx|[s]bin)$')
-        dirs = [os.path.join(self.tp_installed_dir, type) for type in BUILD_TYPES]
+        installed_dirs_per_build_type = [
+                os.path.join(self.tp_installed_dir, build_type) for build_type in BUILD_TYPES]
 
         self.files_to_check = []
-        for installed_dir in dirs:
-            if not os.path.isdir(installed_dir):
-                logging.info("Directory %s does not exist, skipping", installed_dir)
+        for installed_dir_for_one_build_type in installed_dirs_per_build_type:
+            if not os.path.isdir(installed_dir_for_one_build_type):
+                logging.info("Directory %s does not exist, skipping",
+                             installed_dir_for_one_build_type)
                 continue
-            with os.scandir(installed_dir) as candidate_dirs:
+            with os.scandir(installed_dir_for_one_build_type) as candidate_dirs:
                 for candidate in candidate_dirs:
                     if dir_pattern.match(candidate.name):
-                        examine_path = os.path.join(installed_dir, candidate.name)
+                        examine_path = os.path.join(
+                                installed_dir_for_one_build_type, candidate.name)
                         for dirpath, dir_names, files in os.walk(examine_path):
                             for file_name in files:
                                 full_path = os.path.join(dirpath, file_name)
@@ -256,8 +260,8 @@ class LibTestBase:
 
 
 class LibTestMac(LibTestBase):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, fs_layout: FileSystemLayout) -> None:
+        super().__init__(fs_layout=fs_layout)
         self.tool = "otool -L"
         self.lib_re_list = [
             "^\t/System/Library/",
@@ -302,8 +306,8 @@ class LibTestMac(LibTestBase):
 
 
 class LibTestLinux(LibTestBase):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, fs_layout: FileSystemLayout) -> None:
+        super().__init__(fs_layout=fs_layout)
         self.tool = "ldd"
         self.lib_re_list = [
             "^\tlinux-vdso",
@@ -333,9 +337,9 @@ class LibTestLinux(LibTestBase):
         needed_libs: List[str] = get_needed_libs(file_path)
 
         if needed_libs:
-            ldd_u_output_lines: List[str] = capture_all_output(
-                ['ldd', '-u', file_path],
-                allowed_exit_codes={1})
+            ldd_u_cmd = ['ldd', '-u', file_path]
+            ldd_u_cmd_str = shlex_join(ldd_u_cmd)
+            ldd_u_output_lines: List[str] = capture_all_output(ldd_u_cmd, allowed_exit_codes={1})
             removed_libs: List[str] = []
             for ldd_u_output_line in ldd_u_output_lines:
                 ldd_u_output_line = ldd_u_output_line.strip()
@@ -346,7 +350,9 @@ class LibTestLinux(LibTestBase):
                 unused_lib_path = ldd_u_output_line
 
                 if not os.path.exists(unused_lib_path):
-                    raise IOError("File does not exist: %s" % unused_lib_path)
+                    raise IOError(
+                        f"File does not exist: {unused_lib_path} "
+                        f"(obtained as an output line from command: {ldd_u_cmd_str})")
                 unused_lib_name = os.path.basename(unused_lib_path)
                 if unused_lib_name not in needed_libs:
                     raise ValueError(
@@ -380,7 +386,7 @@ class LibTestLinux(LibTestBase):
         assert os.path.isabs(file_path), "Expected absolute path, got: %s" % file_path
         file_basename = os.path.basename(file_path)
         rel_path_to_installed_dir = os.path.relpath(
-            os.path.abspath(file_path), self.fs_layout.tp_installed_dir)
+            os.path.abspath(file_path), self.tp_installed_dir)
         is_sanitizer = rel_path_to_installed_dir.startswith(('asan/', 'tsan/'))
 
         additional_allowed_pattern = None
@@ -454,12 +460,11 @@ class LibTestLinux(LibTestBase):
 
 
 def get_lib_tester(fs_layout: FileSystemLayout) -> LibTestBase:
-    lib_tester: LibTestBase
+    lib_tester_class: Type[LibTestBase]
     if is_macos():
-        lib_tester = LibTestMac()
+        lib_tester_class = LibTestMac
     elif is_linux():
-        lib_tester = LibTestLinux()
+        lib_tester_class = LibTestLinux
     else:
         fatal(f"Unsupported platform: {platform.system()}")
-    lib_tester.fs_layout = fs_layout
-    return lib_tester
+    return lib_tester_class(fs_layout=fs_layout)
