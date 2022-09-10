@@ -21,18 +21,60 @@ set -euo pipefail
 # This may re-execute the current script using the "arch" command based on YB_TARGET_ARCH.
 ensure_correct_mac_architecture "$@"
 
-echo "YB_THIRDPARTY_DIR=$YB_THIRDPARTY_DIR"
-
+build_thirdparty_args=( "$@" )
+toolchain=""
+# Do some lightweight parsing of the arguments to find what we need for the log file name.
+# TODO: redirect log to file in Python itself, so we don't have to do this parsing here.
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --toolchain=*)
+      toolchain=${1#--toolchain=}
+    ;;
+    --toolchain)
+      toolchain=$2
+      shift
+    ;;
+  esac
+  shift
+done
 activate_virtualenv
 
-if [[ $OSTYPE == linux* && -n ${YB_LINUXBREW_DIR:-} ]]; then
-  if [[ ! -d $YB_LINUXBREW_DIR ]]; then
-    fatal "Directory specified by YB_LINUXBREW_DIR ('$YB_LINUXBREW_DIR') does not exist"
-  fi
-  export PATH=$YB_LINUXBREW_DIR/bin:$PATH
+log_dir=$HOME/logs
+mkdir -p "${log_dir}"
+log_file_name=build_thirdparty
+latest_log_links=( "build_thirdparty_latest.log" )
+if [[ -n ${toolchain} ]]; then
+  log_file_name+=_${toolchain}
+  latest_log_links=( "build_thirdparty_latest_${toolchain}.log" )
 fi
+log_file_name+=_$( date +%Y-%m-%dT%H_%M_%S ).log
+log_path=${log_dir}/${log_file_name}
+(
+  cd "${log_dir}"
+  for link_name in "${latest_log_links[@]}"; do
+    ln -sfT "${log_file_name}" "${link_name}"
+  done
+)
+link_path_list_str=""
+for link_name in "${latest_log_links[@]}"; do
+  if [[ -n ${link_path_list_str} ]]; then
+    link_path_list_str+=", "
+  fi
+  link_path_list_str+=${link_name}
+done
 
-set -x
+echo
+echo "Logging to ${log_path} (linked to ${link_path_list_str})"
+echo
 
-# shellcheck disable=SC2086
-python3 "$YB_THIRDPARTY_DIR/python/yugabyte_db_thirdparty/yb_build_thirdparty_main.py" "$@"
+(
+  set -x
+
+  # shellcheck disable=SC2086
+  python3 "$YB_THIRDPARTY_DIR/python/yugabyte_db_thirdparty/yb_build_thirdparty_main.py" \
+    "${build_thirdparty_args[@]}"
+) |& tee "${log_path}"
+
+echo
+echo "Log saved to ${log_path}"
+echo

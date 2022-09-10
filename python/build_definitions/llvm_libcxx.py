@@ -12,6 +12,7 @@
 #
 
 import os
+import sys_detection
 
 from build_definitions.llvm_part import LlvmPartDependencyBase
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
@@ -158,9 +159,16 @@ class LibCxxWithAbiDependency(LlvmLibCxxDependencyBase):
         return 'runtimes'
 
     def get_additional_cmake_args(self, builder: BuilderInterface) -> List[str]:
-        return [
-            '-DLLVM_ENABLE_RUNTIMES=libcxx;libcxxabi',
-        ]
+        args = ['-DLLVM_ENABLE_RUNTIMES=libcxx;libcxxabi']
+        if builder.build_type == BUILD_TYPE_TSAN:
+            local_sys_conf = sys_detection.local_sys_conf()
+            if local_sys_conf.is_redhat_family() and int(local_sys_conf.short_os_version()) == 7:
+                # On CentOS 7, we want to prevent libcxxabi build system from deciding that the
+                # platform already has an implementation of __cxa_thread_atexit_impl. Instead,
+                # it should still use the weak symbol.
+                # See https://github.com/yugabyte/yugabyte-db/issues/13615 for details.
+                args.append('-DLIBCXXABI_HAS_CXA_THREAD_ATEXIT_IMPL=OFF')
+        return args
 
     def get_compiler_wrapper_ld_flags_to_append(self, builder: 'BuilderInterface') -> List[str]:
         extra_ld_flags = super().get_compiler_wrapper_ld_flags_to_append(builder)
