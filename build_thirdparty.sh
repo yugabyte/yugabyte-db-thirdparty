@@ -67,13 +67,14 @@ echo
 echo "Logging to ${log_path} (linked to ${link_path_list_str})"
 echo
 
+# Cannot use |& redirection of both stdout and stderr due to the need to support Bash 3.
 (
   set -x
 
   # shellcheck disable=SC2086
   python3 "$YB_THIRDPARTY_DIR/python/yugabyte_db_thirdparty/yb_build_thirdparty_main.py" \
     "${build_thirdparty_args[@]}"
-) |& tee "${log_path}"
+) 2>&1 | tee "${log_path}"
 
 echo
 echo "Log saved to ${log_path}"
