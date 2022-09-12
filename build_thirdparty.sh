@@ -76,7 +76,6 @@ fi
 (
   set -x
   "${cmd[@]}"
-  # shellcheck disable=SC2086
 ) 2>&1 | tee "${log_path}"
 
 echo
