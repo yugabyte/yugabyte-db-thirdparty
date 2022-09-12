@@ -67,13 +67,16 @@ echo
 echo "Logging to ${log_path} (linked to ${link_path_list_str})"
 echo
 
+cmd=( python3 "${YB_THIRDPARTY_DIR}/python/yugabyte_db_thirdparty/yb_build_thirdparty_main.py" )
+if [[ ${#build_thirdparty_args[@]} -gt 0 ]]; then
+  cmd+=( "${build_thirdparty_args[@]}" )
+fi
+
 # Cannot use |& redirection of both stdout and stderr due to the need to support Bash 3.
 (
   set -x
-
+  "${cmd[@]}"
   # shellcheck disable=SC2086
-  python3 "$YB_THIRDPARTY_DIR/python/yugabyte_db_thirdparty/yb_build_thirdparty_main.py" \
-    "${build_thirdparty_args[@]}"
 ) 2>&1 | tee "${log_path}"
 
 echo
