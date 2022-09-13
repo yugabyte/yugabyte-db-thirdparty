@@ -34,7 +34,7 @@ using {0} : {1} :
 
 class BoostDependency(Dependency):
     MAJOR_VERSION = 1
-    MINOR_VERSION = 80
+    MINOR_VERSION = 78
     PATCH_VERSION = 0
     VERSION_TUPLE = (MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION)
     VERSION_STR = "%s.%s.%s" % VERSION_TUPLE
@@ -44,8 +44,7 @@ class BoostDependency(Dependency):
         super(BoostDependency, self).__init__(
             name='boost',
             version=self.VERSION_STR,
-            # URL grabbed from https://www.boost.org/users/history/version_1_80_0.html
-            # and modified manually.
+            # URL grabbed from https://www.boost.org/users/history/version_1_77_0.html
             url_pattern='https://boostorg.jfrog.io/artifactory/main/release/{}/source/'
                         'boost_{}.tar.bz2'.format(self.VERSION_STR, self.VERSION_STR_UNDERSCORES),
             build_group=BUILD_GROUP_INSTRUMENTED,
