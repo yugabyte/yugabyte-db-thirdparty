@@ -19,7 +19,7 @@ class LibBacktraceDependency(Dependency):
     def __init__(self) -> None:
         super(LibBacktraceDependency, self).__init__(
             name='libbacktrace',
-            version='ba79a27ee9a62b1be86d0ddae7614c316b7f6fbb',
+            version='8602fda64e78f1f46563220f2ee9f7e70819c51d',
             url_pattern='https://github.com/yugabyte/libbacktrace/archive/{0}.zip',
             build_group=BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = True

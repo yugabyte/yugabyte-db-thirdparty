@@ -38,7 +38,7 @@ def get_llvm_url(tag: str) -> str:
             tag, tag)
 
 
-LLVM_VERSIONS = [11, 12, 13, 14]
+LLVM_VERSIONS = [11, 12, 13, 14, 15]
 
 TOOLCHAIN_TYPES = (
     ['llvm%d' % v for v in LLVM_VERSIONS] +
