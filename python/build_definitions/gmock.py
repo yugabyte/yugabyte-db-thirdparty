@@ -38,7 +38,8 @@ class GMockDependency(Dependency):
         log("Installing gmock (shared)")
         for suffix in ['', '.' + self.version]:
             subprocess.check_call([
-                'cp', '-a', 'shared/lib/libgmock.{}{}'.format(builder.shared_lib_suffix, suffix), lib_dir
+                'cp', '-a', 'shared/lib/libgmock.{}{}'.format(builder.shared_lib_suffix, suffix),
+                lib_dir
                 ])
 
         src_dir = builder.fs_layout.get_source_path(self)
