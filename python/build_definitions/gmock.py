@@ -22,7 +22,7 @@ class GMockDependency(Dependency):
     def __init__(self) -> None:
         super(GMockDependency, self).__init__(
             name='gmock',
-            version='1.12.0',
+            version='1.12.1',
             url_pattern='https://github.com/google/googletest/archive/release-{0}.tar.gz',
             build_group=BUILD_GROUP_INSTRUMENTED)
         self.dir = "googletest-release-{}".format(self.version)
@@ -36,9 +36,10 @@ class GMockDependency(Dependency):
         subprocess.check_call(['cp', '-a', 'static/lib/libgmock.a', lib_dir])
         self.do_build(builder, 'shared')
         log("Installing gmock (shared)")
-        subprocess.check_call([
-            'cp', '-a', 'shared/lib/libgmock.{}'.format(builder.shared_lib_suffix), lib_dir
-            ])
+        for suffix in ['', '.' + self.version]:
+            subprocess.check_call([
+                'cp', '-a', 'shared/lib/libgmock.{}{}'.format(builder.shared_lib_suffix, suffix), lib_dir
+                ])
 
         src_dir = builder.fs_layout.get_source_path(self)
         subprocess.check_call(
