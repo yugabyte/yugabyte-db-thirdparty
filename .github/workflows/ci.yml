@@ -269,7 +269,7 @@ jobs:
           YB_DOCKER_IMAGE: ${{ matrix.docker_image }}
           YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX: ${{ matrix.name }}
           YB_BUILD_THIRDPARTY_ARGS: ${{ matrix.build_thirdparty_args }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.CUSTOM_GITHUB_TOKEN }}
           SNYK_TOKEN: ${{ secrets.SNYK_AUTH_TOKEN }}
 
       - uses: actions/upload-artifact@v2
