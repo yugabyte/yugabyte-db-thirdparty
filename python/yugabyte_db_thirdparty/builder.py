@@ -355,7 +355,7 @@ class Builder(BuilderInterface):
                 'gflags',
                 'glog',
                 'gperftools',
-                'gmock',
+                'googletest',
                 'snappy',
                 'crcutil',
                 'libcds',

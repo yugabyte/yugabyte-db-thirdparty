@@ -18,10 +18,10 @@ import subprocess
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
 
-class GMockDependency(Dependency):
+class GoogleTestDependency(Dependency):
     def __init__(self) -> None:
-        super(GMockDependency, self).__init__(
-            name='gmock',
+        super(GoogleTestDependency, self).__init__(
+            name='googletest',
             version='1.12.1',
             url_pattern='https://github.com/google/googletest/archive/release-{0}.tar.gz',
             build_group=BUILD_GROUP_INSTRUMENTED)
@@ -29,18 +29,20 @@ class GMockDependency(Dependency):
         self.copy_sources = False
 
     def build(self, builder: BuilderInterface) -> None:
-        self.do_build(builder, 'static')
-        log("Installing gmock (static)")
-        lib_dir = builder.prefix_lib
-        include_dir = builder.prefix_include
-        subprocess.check_call(['cp', '-a', 'static/lib/libgmock.a', lib_dir])
-        self.do_build(builder, 'shared')
-        log("Installing gmock (shared)")
-        for suffix in ['', '.' + self.version]:
-            subprocess.check_call([
-                'cp', '-a', 'shared/lib/libgmock.{}{}'.format(builder.shared_lib_suffix, suffix),
-                lib_dir
-                ])
+        for lib in ['gmock', 'gtest']:
+            self.do_build(builder, 'static')
+            log("Installing " + lib + " (static)")
+            lib_dir = builder.prefix_lib
+            include_dir = builder.prefix_include
+            subprocess.check_call(['cp', '-a', 'static/lib/lib' + lib + '.a', lib_dir])
+            self.do_build(builder, 'shared')
+            log("Installing " + lib + " (shared)")
+            for suffix in ['', '.' + self.version]:
+                subprocess.check_call([
+                    'cp', '-a',
+                    'shared/lib/lib{}.{}{}'.format(lib, builder.shared_lib_suffix, suffix),
+                    lib_dir
+                    ])
 
         src_dir = builder.fs_layout.get_source_path(self)
         subprocess.check_call(
