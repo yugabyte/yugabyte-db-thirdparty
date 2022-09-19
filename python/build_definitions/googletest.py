@@ -29,13 +29,13 @@ class GoogleTestDependency(Dependency):
         self.copy_sources = False
 
     def build(self, builder: BuilderInterface) -> None:
+        self.do_build(builder, 'static')
+        self.do_build(builder, 'shared')
+        lib_dir = builder.prefix_lib
+        include_dir = builder.prefix_include
         for lib in ['gmock', 'gtest']:
-            self.do_build(builder, 'static')
             log("Installing " + lib + " (static)")
-            lib_dir = builder.prefix_lib
-            include_dir = builder.prefix_include
             subprocess.check_call(['cp', '-a', 'static/lib/lib' + lib + '.a', lib_dir])
-            self.do_build(builder, 'shared')
             log("Installing " + lib + " (shared)")
             for suffix in ['', '.' + self.version]:
                 subprocess.check_call([
