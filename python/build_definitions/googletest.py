@@ -38,11 +38,12 @@ class GoogleTestDependency(Dependency):
             subprocess.check_call(['cp', '-a', 'static/lib/lib' + lib + '.a', lib_dir])
             log("Installing " + lib + " (shared)")
             for suffix in ['', '.' + self.version]:
+                if is_macos():
+                    suffix += '.' + builder.shared_lib_suffix
+                else:
+                    suffix = '.' + builder.shared_lib_suffix + suffix
                 subprocess.check_call([
-                    'cp', '-a',
-                    'shared/lib/lib{}.{}{}'.format(lib, builder.shared_lib_suffix, suffix),
-                    lib_dir
-                    ])
+                    'cp', '-a', 'shared/lib/lib{}{}'.format(lib, suffix), lib_dir])
 
         src_dir = builder.fs_layout.get_source_path(self)
         subprocess.check_call(
