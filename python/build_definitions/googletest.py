@@ -18,11 +18,11 @@ import subprocess
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
 
-class GMockDependency(Dependency):
+class GoogleTestDependency(Dependency):
     def __init__(self) -> None:
-        super(GMockDependency, self).__init__(
-            name='gmock',
-            version='1.8.0',
+        super(GoogleTestDependency, self).__init__(
+            name='googletest',
+            version='1.12.1',
             url_pattern='https://github.com/google/googletest/archive/release-{0}.tar.gz',
             build_group=BUILD_GROUP_INSTRUMENTED)
         self.dir = "googletest-release-{}".format(self.version)
@@ -30,15 +30,20 @@ class GMockDependency(Dependency):
 
     def build(self, builder: BuilderInterface) -> None:
         self.do_build(builder, 'static')
-        log("Installing gmock (static)")
+        self.do_build(builder, 'shared')
         lib_dir = builder.prefix_lib
         include_dir = builder.prefix_include
-        subprocess.check_call(['cp', '-a', 'static/googlemock/libgmock.a', lib_dir])
-        self.do_build(builder, 'shared')
-        log("Installing gmock (shared)")
-        subprocess.check_call([
-            'cp', '-a', 'shared/googlemock/libgmock.{}'.format(builder.shared_lib_suffix), lib_dir
-            ])
+        for lib in ['gmock', 'gtest']:
+            log("Installing " + lib + " (static)")
+            subprocess.check_call(['cp', '-a', 'static/lib/lib' + lib + '.a', lib_dir])
+            log("Installing " + lib + " (shared)")
+            for suffix in ['', '.' + self.version]:
+                if is_macos():
+                    suffix += '.' + builder.shared_lib_suffix
+                else:
+                    suffix = '.' + builder.shared_lib_suffix + suffix
+                subprocess.check_call([
+                    'cp', '-a', 'shared/lib/lib{}{}'.format(lib, suffix), lib_dir])
 
         src_dir = builder.fs_layout.get_source_path(self)
         subprocess.check_call(
