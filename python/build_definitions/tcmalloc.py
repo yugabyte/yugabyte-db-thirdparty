@@ -13,14 +13,16 @@
 #
 
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
-import os;
+import glob
+
 
 class TCMallocDependency(Dependency):
     def __init__(self) -> None:
         super(TCMallocDependency, self).__init__(
             name='tcmalloc',
             version='2',
-            url_pattern='https://github.com/SrivastavaAnubhav/tcmalloc/archive/refs/tags/v{0}.tar.gz',
+            url_pattern='https://github.com/SrivastavaAnubhav/tcmalloc/archive/refs/tags/'
+                        'v{0}.tar.gz',
             build_group=BUILD_GROUP_COMMON)
         self.copy_sources = True
 
@@ -32,5 +34,5 @@ class TCMallocDependency(Dependency):
         log_output(
             log_prefix,
             ['cp'] +
-            glob.glob('bazel-bin/tcmalloc/*.so')
+            glob.glob('bazel-bin/tcmalloc/*.so') +
             [builder.prefix_lib])
