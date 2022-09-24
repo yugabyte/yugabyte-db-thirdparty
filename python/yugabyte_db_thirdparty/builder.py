@@ -511,15 +511,6 @@ class Builder(BuilderInterface):
         else:
             fatal("Unsupported platform: {}".format(platform.system()))
 
-        # The C++ standard must match CMAKE_CXX_STANDARD in the top-level CMakeLists.txt file in
-        # the YugabyteDB source tree.
-        std_cxx = '20'
-        if is_macos():
-            version = self.compiler_choice.get_llvm_major_version()
-            if version and version < 13:
-                std_cxx = '2a'
-        self.cxx_flags.append('-std=c++{}'.format(std_cxx))
-
         self.cxx_flags.append('-frtti')
 
         if self.build_type == BUILD_TYPE_ASAN:
@@ -942,19 +933,12 @@ class Builder(BuilderInterface):
         return self.compiler_flags + dep.get_additional_compiler_flags(self)
 
     def get_effective_cxx_flags(self, dep: Dependency) -> List[str]:
-        additional_flags = dep.get_additional_cxx_flags(self)
-        keys: Set[str] = set()
-        for flag in additional_flags:
-            pos = flag.find('=')
-            if pos != -1:
-                keys.add(flag[:pos])
-        result = []
-        for flag in self.cxx_flags + self.get_effective_compiler_flags(dep):
-            pos = flag.find('=')
-            if pos == -1 or flag[:pos] not in keys:
-                result.append(flag)
-        result += additional_flags
-        return result
+        # The C++ standard must match CMAKE_CXX_STANDARD in the top-level CMakeLists.txt file in
+        # the YugabyteDB source tree.
+        return (self.cxx_flags +
+                self.get_effective_compiler_flags(dep) +
+                dep.get_additional_cxx_flags(self) +
+                ['-std=c++{}'.format(dep.get_cxx_version(self))])
 
     def get_effective_c_flags(self, dep: Dependency) -> List[str]:
         return (self.c_flags +

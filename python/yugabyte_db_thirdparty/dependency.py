@@ -11,7 +11,7 @@
 # under the License.
 
 import os
-from sys_detection import is_linux
+from sys_detection import is_linux, is_macos
 
 from build_definitions import ExtraDownload, VALID_BUILD_GROUPS
 from yugabyte_db_thirdparty.archive_handling import make_archive_name
@@ -91,6 +91,13 @@ class Dependency:
 
     def get_additional_cxx_flags(self, builder: 'BuilderInterface') -> List[str]:
         return []
+
+    def get_cxx_version(self, builder: 'BuilderInterface') -> str:
+        if is_macos():
+            version = builder.compiler_choice.get_llvm_major_version()
+            if version and version < 13:
+                return '2a'
+        return '20'
 
     def get_additional_leading_ld_flags(self, builder: 'BuilderInterface') -> List[str]:
         """
