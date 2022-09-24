@@ -947,7 +947,7 @@ class Builder(BuilderInterface):
         for flag in additional_flags:
             pos = flag.find('=')
             if pos != -1:
-                keys.insert(key[:pos])
+                keys.add(flag[:pos])
         result = []
         for flag in self.cxx_flags + self.get_effective_compiler_flags(dep):
             pos = flag.find('=')
