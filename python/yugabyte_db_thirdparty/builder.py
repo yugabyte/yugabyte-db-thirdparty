@@ -511,15 +511,6 @@ class Builder(BuilderInterface):
         else:
             fatal("Unsupported platform: {}".format(platform.system()))
 
-        # The C++ standard must match CMAKE_CXX_STANDARD in the top-level CMakeLists.txt file in
-        # the YugabyteDB source tree.
-        if is_linux():
-            self.cxx_flags.append('-std=c++20')
-        else:
-            # TODO: investigate why icu4c compilation fails with -std=c++20 when built on GitHub
-            # Actions macOS workers with Clang 12 (need to check macOS SDK version, etc.)
-            self.cxx_flags.append('-std=c++17')
-
         self.cxx_flags.append('-frtti')
 
         if self.build_type == BUILD_TYPE_ASAN:
@@ -942,9 +933,12 @@ class Builder(BuilderInterface):
         return self.compiler_flags + dep.get_additional_compiler_flags(self)
 
     def get_effective_cxx_flags(self, dep: Dependency) -> List[str]:
+        # The C++ standard must match CMAKE_CXX_STANDARD in the top-level CMakeLists.txt file in
+        # the YugabyteDB source tree.
         return (self.cxx_flags +
                 self.get_effective_compiler_flags(dep) +
-                dep.get_additional_cxx_flags(self))
+                dep.get_additional_cxx_flags(self) +
+                ['-std=c++{}'.format(dep.get_cxx_version(self))])
 
     def get_effective_c_flags(self, dep: Dependency) -> List[str]:
         return (self.c_flags +

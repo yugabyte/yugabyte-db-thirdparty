@@ -95,6 +95,13 @@ class Icu4cDependency(Dependency):
             return
         write_file(makefile_path, '\n'.join(makefile_lines) + '\n')
 
+    def get_cxx_version(self, builder: BuilderInterface) -> str:
+        if is_macos():
+            llvm_major_version = builder.compiler_choice.get_llvm_major_version()
+            if llvm_major_version is not None and llvm_major_version < 13:
+                return '17'
+        return super().get_cxx_version(builder)
+
     def build(self, builder: BuilderInterface) -> None:
         configure_extra_args = [
             '--disable-samples',
