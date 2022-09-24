@@ -513,7 +513,12 @@ class Builder(BuilderInterface):
 
         # The C++ standard must match CMAKE_CXX_STANDARD in the top-level CMakeLists.txt file in
         # the YugabyteDB source tree.
-        self.cxx_flags.append('-std=c++20')
+        std_cxx = '20'
+        if is_macos():
+            version = self.compiler_choice.get_llvm_major_version()
+            if version and version < 13:
+                std_cxx = '2a'
+        self.cxx_flags.append('-std=c++{}'.format(std_cxx))
 
         self.cxx_flags.append('-frtti')
 
