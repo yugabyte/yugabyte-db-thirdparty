@@ -942,9 +942,19 @@ class Builder(BuilderInterface):
         return self.compiler_flags + dep.get_additional_compiler_flags(self)
 
     def get_effective_cxx_flags(self, dep: Dependency) -> List[str]:
-        return (self.cxx_flags +
-                self.get_effective_compiler_flags(dep) +
-                dep.get_additional_cxx_flags(self))
+        additional_flags = dep.get_additional_cxx_flags(self)
+        keys: Set[str] = set()
+        for flag in additional_flags:
+            pos = flag.find('=')
+            if pos != -1:
+                keys.insert(key[:pos])
+        result = []
+        for flag in self.cxx_flags + self.get_effective_compiler_flags(dep):
+            pos = flag.find('=')
+            if pos == -1 or flag[:pos] not in keys:
+                result.append(flag)
+        result += additional_flags
+        return result
 
     def get_effective_c_flags(self, dep: Dependency) -> List[str]:
         return (self.c_flags +
