@@ -4,7 +4,7 @@ set -euo pipefail
 
 df -H .
 checkout_dir=$PWD
-YB_DOWNLOAD_EXTRACT_ONLY=${DOWNLOAD_EXTRACT_ONLY:-}
+export YB_DOWNLOAD_EXTRACT_ONLY=${DOWNLOAD_EXTRACT_ONLY:-}
 echo "Building in directory: $checkout_dir"
 docker run -t \
   --cap-add=SYS_PTRACE \
