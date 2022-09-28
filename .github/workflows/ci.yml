@@ -172,6 +172,7 @@ jobs:
             build_thirdparty_args: >-
               --toolchain=llvm13
               --expected-major-compiler-version=13
+              --download-extract-only
               --snyk
 
           # Clang/LLVM 14
