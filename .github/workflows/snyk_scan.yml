@@ -1,0 +1,44 @@
+name: snyk_scan
+
+on:
+  schedule:
+  - cron:  '0 1 * * *'
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - name: almalinux8-x86_64-clang13-linuxbrew-snyk-scan
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_almalinux8:v2021-08-27T03_10_19
+            build_thirdparty_args: >-
+              --toolchain=llvm13
+              --expected-major-compiler-version=13
+              --download-extract-only
+              --snyk
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+        with:
+          # We need to fetch all history because we are cloning the checkout directory further
+          # in test code.
+          fetch-depth: 0
+
+      - name: Build
+        run: |
+          if [[ $OSTYPE == darwin* ]]; then
+            ./.github/workflows/macos_build.sh
+          else
+            ./.github/workflows/linux_build.sh
+          fi
+        env:
+          YB_DOCKER_IMAGE: ${{ matrix.docker_image }}
+          YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX: ${{ matrix.name }}
+          YB_BUILD_THIRDPARTY_ARGS: ${{ matrix.build_thirdparty_args }}
+          GITHUB_TOKEN: ${{ secrets.CUSTOM_GITHUB_TOKEN }}
+          SNYK_TOKEN: ${{ secrets.SNYK_AUTH_TOKEN }}
+          DOWNLOAD_EXTRACT_ONLY: true
