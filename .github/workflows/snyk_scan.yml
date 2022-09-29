@@ -41,4 +41,4 @@ jobs:
           YB_BUILD_THIRDPARTY_ARGS: ${{ matrix.build_thirdparty_args }}
           GITHUB_TOKEN: ${{ secrets.CUSTOM_GITHUB_TOKEN }}
           SNYK_TOKEN: ${{ secrets.SNYK_AUTH_TOKEN }}
-          DOWNLOAD_EXTRACT_ONLY: true
+          SKIP_UPLOAD: true

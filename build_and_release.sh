@@ -237,7 +237,7 @@ fi
   fi
   set -x
 
-  if [[ -z ${YB_DOWNLOAD_EXTRACT_ONLY:-} ]]; then
+  if [[ -z ${YB_SKIP_UPLOAD:-} ]]; then
     time $build_thirdparty_cmd_str --upload-as-tag "$tag"
   else
     time $build_thirdparty_cmd_str
