@@ -29,7 +29,7 @@ class LibUuidDependency(Dependency):
         linux_llvm15_or_later = (
             is_linux() and llvm_major_version is not None and llvm_major_version >= 15)
         flags = []
-        if linux_llvm15_or_later: 
+        if linux_llvm15_or_later:
             # https://gist.githubusercontent.com/mbautin/9ae79d6c81adaa68746287458cac4d10/raw
             flags.append('-Wno-error=implicit-function-declaration')
 
