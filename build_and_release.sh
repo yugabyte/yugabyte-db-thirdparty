@@ -236,7 +236,12 @@ fi
     export PATH=$YB_LINUXBREW_DIR/bin:$PATH
   fi
   set -x
-  time $build_thirdparty_cmd_str --upload-as-tag "$tag"
+
+  if [[ -z ${YB_SKIP_UPLOAD:-} ]]; then
+    time $build_thirdparty_cmd_str --upload-as-tag "$tag"
+  else
+    time $build_thirdparty_cmd_str
+  fi
 )
 
 for file_to_copy in archive.tar.gz archive.tar.gz.sha256; do
