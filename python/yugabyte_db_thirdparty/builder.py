@@ -292,6 +292,7 @@ class Builder(BuilderInterface):
             'bison',
             'openldap',
             'redis_cli',
+            'xxhash',
         ])
         for dep in self.dependencies:
             if dep.build_group != BUILD_GROUP_COMMON:
