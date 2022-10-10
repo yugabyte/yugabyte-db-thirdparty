@@ -39,6 +39,11 @@ class LlvmLibUnwindDependency(LlvmPartDependencyBase):
                 '-DCMAKE_BUILD_TYPE=Release',
                 '-DBUILD_SHARED_LIBS=ON',
                 '-DLIBUNWIND_USE_COMPILER_RT=ON',
+                # Enable the workaround already present in libunwind's CMakeLists.txt for old
+                # versions of CMake and AIX operating system, that ended up being necessary in our
+                # case too. Without this, libunwind's .S files are not being compiled, resulting
+                # in the missing symbol __unw_getcontext.
+                '-DYB_LIBUNWIND_FORCE_ASM_AS_C=ON',
                 f'-DLLVM_PATH={llvm_path}',
             ],
             src_subdir_name=src_subdir_name)

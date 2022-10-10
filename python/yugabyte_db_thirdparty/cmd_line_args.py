@@ -186,7 +186,8 @@ def parse_cmd_line_args() -> argparse.Namespace:
     parser.add_argument(
         '--delete-build-dir', '--remove-build-dir',
         help="Delete each dependency's build directory to start each build from scratch. "
-             "Note that this does not affect the corresponding source directory.",
+             "Note that this does not affect the corresponding source directory."
+             "Implies --force.",
         action='store_true')
 
     parser.add_argument(
@@ -264,5 +265,8 @@ def parse_cmd_line_args() -> argparse.Namespace:
 
     if args.per_build_dirs and args.no_per_build_dirs:
         raise ValueError("--per-build-dirs is not compatible with --no-per-build-dirs")
+
+    if args.delete_build_dir:
+        args.force = True
 
     return args

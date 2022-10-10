@@ -1,0 +1,12 @@
+diff --git a/libunwind/src/CMakeLists.txt b/libunwind/src/CMakeLists.txt
+index 61df2737be75..56d49474328e 100644
+--- a/libunwind/src/CMakeLists.txt
++++ b/libunwind/src/CMakeLists.txt
+@@ -36,6 +36,7 @@ set(LIBUNWIND_ASM_SOURCES
+ # as C files as well.
+ if((APPLE AND CMAKE_VERSION VERSION_LESS 3.19) OR
+    (MINGW AND CMAKE_VERSION VERSION_LESS 3.17) OR
++   YB_LIBUNWIND_FORCE_ASM_AS_C OR
+    (${CMAKE_SYSTEM_NAME} MATCHES "AIX"))
+   set_source_files_properties(${LIBUNWIND_ASM_SOURCES} PROPERTIES LANGUAGE C)
+ endif()
