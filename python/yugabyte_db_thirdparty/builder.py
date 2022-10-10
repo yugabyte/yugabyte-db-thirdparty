@@ -266,7 +266,10 @@ class Builder(BuilderInterface):
 
     def finish_initialization(self) -> None:
         self.fs_layout.finish_initialization(
-            use_per_build_subdirs=self.args.use_per_build_subdirs,
+            per_build_subdirs=(
+                True if self.args.per_build_dirs else
+                (False if self.args.no_per_build_dirs else None)
+            ),
             compiler_choice=self.compiler_choice,
             lto_type=self.args.lto)
         self.populate_dependencies()

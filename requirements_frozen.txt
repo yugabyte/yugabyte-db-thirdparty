@@ -6,7 +6,7 @@ compiler-identification==1.0.3
 docker==5.0.3
 downloadutil==1.0.2
 idna==3.3
-llvm-installer==1.1.7
+llvm-installer==1.1.8
 mypy==0.971
 mypy-extensions==0.4.3
 packaging==21.3
