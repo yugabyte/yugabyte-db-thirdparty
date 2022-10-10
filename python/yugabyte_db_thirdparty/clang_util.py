@@ -95,9 +95,11 @@ def create_llvm_tool_dir(clang_path: str, tool_dir_path: str) -> bool:
         ]
     ] + [('lld', 'ld')]
     for src_name, dst_name in src_dst_names:
-        create_symlink(
-            os.path.join(llvm_bin_dir, src_name),
-            os.path.join(tool_dir_path, dst_name),
-            src_must_exist=True
-        )
+        # E.g. for "llvm-ar" we symlink it as both "ar" and "llvm-ar".
+        for symlink_name in set([dst_name, os.path.basename(src_name)]):
+            create_symlink(
+                os.path.join(llvm_bin_dir, src_name),
+                os.path.join(tool_dir_path, symlink_name),
+                src_must_exist=True
+            )
     return True
