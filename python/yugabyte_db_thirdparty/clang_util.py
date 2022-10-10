@@ -13,6 +13,8 @@
 
 import subprocess
 import os
+import platform
+
 from typing import Optional, List, Tuple
 from yugabyte_db_thirdparty.string_util import shlex_join
 from yugabyte_db_thirdparty.util import mkdir_if_missing, create_symlink
@@ -40,16 +42,23 @@ def get_clang_library_dirs(clang_executable_path: str) -> List[str]:
 def get_clang_library_dir(clang_executable_path: str) -> str:
     library_dirs = get_clang_library_dirs(clang_executable_path)
     candidate_dirs: List[str] = []
-    for library_dir in library_dirs:
-        candidate_dir = os.path.join(library_dir, 'lib', 'linux')
-        if os.path.isdir(candidate_dir):
-            return candidate_dir
-        candidate_dirs.append(candidate_dir)
 
+    arch = platform.machine()
+    arch_specific_subdir_name = f'{arch}-unknown-linux-gnu'
+
+    for library_dir in library_dirs:
+        for subdir_name in ['linux', arch_specific_subdir_name]:
+            candidate_dir = os.path.join(library_dir, 'lib', subdir_name)
+            if os.path.isdir(candidate_dir):
+                return candidate_dir
+            candidate_dirs.append(candidate_dir)
+
+    for candidate_dir in candidate_dirs:
+        log(f"Considered candidate directory: {candidate_dir}")
     raise ValueError(
-        f"Could not find a 'lib/linux' subdirectory in any of the library directories "
-        f"returned by 'clang -print-search-dirs' (clang path: {clang_executable_path}):\n"
-        f"{library_dirs}\n.Considered candidate directories:{candidate_dirs}")
+        "Could not find the Clang runtime library directory by appending lib/... suffixes to "
+        "any of the directories returned by 'clang -print-search-dirs' "
+        f"(clang path: {clang_executable_path}): {library_dirs}")
 
 
 def get_clang_include_dir(clang_executable_path: str) -> str:
