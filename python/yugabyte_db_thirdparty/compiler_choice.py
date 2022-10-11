@@ -300,7 +300,7 @@ class CompilerChoice:
         return '%s%d' % (self.compiler_family, self.get_compiler_major_version())
 
     def get_build_type_components(
-            self, lto_type: Optional[str], with_arch: bool) -> str:
+            self, lto_type: Optional[str], with_arch: bool) -> List[str]:
         """
         Returns a list of components that can be used to generate e.g. subdirectory names inside
         the "build" and "installed" directories, or the log prefix used when building a dependency.
