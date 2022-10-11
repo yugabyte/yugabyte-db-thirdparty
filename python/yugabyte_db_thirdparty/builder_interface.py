@@ -70,6 +70,14 @@ class BuilderInterface:
             shared_and_static: bool = False) -> None:
         raise NotImplementedError()
 
+    def build_with_bazel(
+            self,
+            dep: 'Dependency',
+            verbose_output: bool = False,
+            should_clean: bool = False,
+            targets: List[str] = []) -> None:
+        raise NotImplementedError()
+
     def log_prefix(self, dep: 'Dependency') -> str:
         raise NotImplementedError()
 

@@ -54,7 +54,7 @@ By default, we don't use separate directories for different "build types" in yug
 rm -rf build installed
 ```
 
-However, during development, `--use-per-build-subdirs` introduces per-built type subdirectories under `build` and `installed` directories.
+However, during development, `--per-build-dirs` introduces per-built type subdirectories under `build` and `installed` directories.
 
 ```
 $ ls build

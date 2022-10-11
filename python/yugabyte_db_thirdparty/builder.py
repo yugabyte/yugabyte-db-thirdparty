@@ -385,6 +385,8 @@ class Builder(BuilderInterface):
                 'libuv',
                 'cassandra_cpp_driver',
                 'krb5',
+                'abseil',
+                'tcmalloc',
             ])
 
     def select_dependencies_to_build(self) -> None:
@@ -767,6 +769,40 @@ class Builder(BuilderInterface):
         else:
             do_build_with_cmake()
             self.validate_build_output()
+
+    def build_with_bazel(
+            self,
+            dep: Dependency,
+            verbose_output: bool = False,
+            should_clean: bool = False,
+            targets: List[str] = []) -> None:
+        log_prefix = self.log_prefix(dep)
+        if should_clean:
+            self.log_output(log_prefix, ['bazel', 'clean', '--expunge'])
+
+        # Need to remove the space after isystem so replacing the space separators with colons
+        # works properly.
+        bazel_cxxopts = os.environ["CXXFLAGS"].replace("isystem ", "isystem").replace(" ", ":")
+        # Add stdlib=libc++ to avoid linking with libstdc++.
+        bazel_linkopts = os.environ["LDFLAGS"].replace(" ", ":") + ":-stdlib=libc++"
+
+        # Build without curses for more readable build output.
+        build_command = "bazel build --curses=no"
+        if verbose_output:
+            build_command += " --subcommands"
+        build_command += f" --repo_env=BAZEL_CXXOPTS='{bazel_cxxopts}'"
+        build_command += f" --repo_env=BAZEL_LINKOPTS='{bazel_linkopts}'"
+
+        # Need to explicitly pass environment variables which we want to be available.
+        env_vars_to_copy = ["PATH", "CC", "CXX", "YB_THIRDPARTY_REAL_C_COMPILER",
+                            "YB_THIRDPARTY_REAL_CXX_COMPILER", "YB_THIRDPARTY_USE_CCACHE"]
+        for env_var in env_vars_to_copy:
+            build_command += f" --action_env={env_var}={os.environ[env_var]}"
+
+        # TODO (asrivastava): Change to log_output.
+        for target in targets:
+            log(f"Building {target} with command " + build_command)
+            os.system(build_command + " " + target)
 
     def validate_build_output(self) -> None:
         if is_macos():
