@@ -227,6 +227,37 @@ jobs:
               --expected-major-compiler-version=14
               --lto=full
 
+          # Clang/LLVM 15
+          - name: almalinux8-x86_64-clang15
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_almalinux8:v2022-05-02T07_00_12
+            build_thirdparty_args: >-
+              --toolchain=llvm15
+              --expected-major-compiler-version=15
+
+          - name: almalinux8-x86_64-clang15-full-lto
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_almalinux8:v2022-05-02T07_00_12
+            build_thirdparty_args: >-
+              --toolchain=llvm15
+              --expected-major-compiler-version=15
+              --lto=full
+
+          - name: almalinux8-x86_64-clang15-linuxbrew
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_almalinux8:v2022-05-02T07_00_12
+            build_thirdparty_args: >-
+              --toolchain=llvm15_linuxbrew
+              --expected-major-compiler-version=15
+
+          - name: almalinux8-x86_64-clang15-linuxbrew-full-lto
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_almalinux8:v2022-05-02T07_00_12
+            build_thirdparty_args: >-
+              --toolchain=llvm15_linuxbrew
+              --expected-major-compiler-version=15
+              --lto=full
+
           # ---------------------------------------------------------------------------------------
           # macOS
           # ---------------------------------------------------------------------------------------
