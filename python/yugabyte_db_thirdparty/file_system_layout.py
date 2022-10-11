@@ -50,7 +50,9 @@ class FileSystemLayout:
         """
         build_parent_dir = self.tp_build_dir = os.path.join(YB_THIRDPARTY_DIR, 'build')
         installed_parent_dir = os.path.join(YB_THIRDPARTY_DIR, 'installed')
-        if per_build_subdirs is None and os.path.isdir(build_parent_dir):
+        if (per_build_subdirs is None and
+                os.path.exists(build_parent_dir) and
+                os.path.isdir(build_parent_dir)):
             for dir_name in os.listdir(build_parent_dir):
                 if dir_name != 'llvm-tools' and '-' in dir_name:
                     logging.info(
@@ -139,4 +141,3 @@ class FileSystemLayout:
         ar, ld, as symlinks to their LLVM counterparts.
         """
         return os.path.join(self.tp_build_dir, 'llvm-tools')
-

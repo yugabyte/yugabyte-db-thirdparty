@@ -34,7 +34,6 @@ class CryptBlowfishDependency(Dependency):
         return 'lib%s.%s' % (self.name, suffix)
 
     def build(self, builder: BuilderInterface) -> None:
-        builder.check_current_dir()
         log_prefix = builder.log_prefix(self)
         log_output(log_prefix, ['make', 'clean'])
         log_output(log_prefix, ['make'])
