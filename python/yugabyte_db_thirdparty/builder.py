@@ -266,7 +266,10 @@ class Builder(BuilderInterface):
 
     def finish_initialization(self) -> None:
         self.fs_layout.finish_initialization(
-            use_per_build_subdirs=self.args.use_per_build_subdirs,
+            per_build_subdirs=(
+                True if self.args.per_build_dirs else
+                (False if self.args.no_per_build_dirs else None)
+            ),
             compiler_choice=self.compiler_choice,
             lto_type=self.args.lto)
         self.populate_dependencies()
@@ -549,7 +552,17 @@ class Builder(BuilderInterface):
         self.additional_allowed_shared_lib_paths.add(path)
 
     def log_prefix(self, dep: Dependency) -> str:
-        return '{} ({})'.format(dep.name, self.build_type)
+        detail_components = self.compiler_choice.get_build_type_components(
+                lto_type=self.lto_type, with_arch=False) + [self.build_type]
+        return '{} ({})'.format(dep.name, ', '.join(detail_components))
+
+    def check_current_dir(self) -> None:
+        current_dir = os.path.realpath(os.getcwd())
+        top_dir = os.path.realpath(YB_THIRDPARTY_DIR)
+        if current_dir == top_dir:
+            raise IOError(
+                    "Dependency build is not allowed to run with the current directory being "
+                    f"the top-level directory of yugabyte-db-thirdparty: {YB_THIRDPARTY_DIR}")
 
     def build_with_configure(
             self,
@@ -561,6 +574,7 @@ class Builder(BuilderInterface):
             autoconf: bool = False,
             src_subdir_name: Optional[str] = None,
             post_configure_action: Optional[Callable] = None) -> None:
+        self.check_current_dir()
         log_prefix = self.log_prefix(dep)
         dir_for_build = os.getcwd()
         if src_subdir_name:
@@ -621,6 +635,7 @@ class Builder(BuilderInterface):
             should_install: bool = True,
             install_targets: List[str] = ['install'],
             shared_and_static: bool = False) -> None:
+        self.check_current_dir()
         build_tool = 'make'
         if use_ninja_if_available:
             ninja_available = is_ninja_available()
@@ -736,6 +751,17 @@ class Builder(BuilderInterface):
                         "Incorrect object file architecture generated for %s (%s expected): %s" % (
                             object_file_path, target_arch, file_type))
 
+    def check_spurious_a_out_file(self) -> None:
+        """"
+        Sometimes an a.out file gets generated in the top-level directory. This is an attempt to
+        catch it and figure out how it is being generated.
+        """
+        spurious_a_out_path = os.path.join(YB_THIRDPARTY_DIR, 'a.out')
+        if os.path.exists(spurious_a_out_path):
+            log(f'The spurious a.out file got generated in {YB_THIRDPARTY_DIR}. Deleting it.'
+                'In the future, we will track down where it is coming from.')
+            os.remove(spurious_a_out_path)
+
     def build_one_build_type(self, build_type: str) -> None:
         if (build_type != BUILD_TYPE_COMMON and
                 self.args.build_type is not None and
@@ -756,6 +782,7 @@ class Builder(BuilderInterface):
                 should_rebuild = self.should_rebuild_dependency(dep)
                 if should_build and should_rebuild:
                     self.build_dependency(dep, only_process_flags=False)
+                    self.check_spurious_a_out_file()
                 else:
                     self.build_dependency(dep, only_process_flags=True)
                     log(f"Skipped dependency {dep.name}: "
@@ -876,11 +903,19 @@ class Builder(BuilderInterface):
             assert self.compiler_choice.cc is not None
             compiler_rt_lib_dir = get_clang_library_dir(self.compiler_choice.get_c_compiler())
             self.add_lib_dir_and_rpath(compiler_rt_lib_dir)
-            ubsan_lib_name = f'clang_rt.ubsan_minimal-{platform.processor()}'
-            ubsan_lib_so_path = os.path.join(compiler_rt_lib_dir, f'lib{ubsan_lib_name}.so')
-            if not os.path.exists(ubsan_lib_so_path):
-                raise IOError(f"UBSAN library not found at {ubsan_lib_so_path}")
-            self.ld_flags.append(f'-l{ubsan_lib_name}')
+            ubsan_lib_candidates = []
+            ubsan_lib_found = False
+            for ubsan_lib_arch_suffix in ['', f'-{platform.processor()}']:
+                ubsan_lib_name = f'clang_rt.ubsan_minimal{ubsan_lib_arch_suffix}'
+                ubsan_lib_so_path = os.path.join(compiler_rt_lib_dir, f'lib{ubsan_lib_name}.so')
+                ubsan_lib_candidates.append(ubsan_lib_so_path)
+                if os.path.exists(ubsan_lib_so_path):
+                    self.ld_flags.append(f'-l{ubsan_lib_name}')
+                    ubsan_lib_found = True
+                    break
+            if not ubsan_lib_found:
+                raise IOError(
+                    f"UBSAN library not found at any of the paths: {ubsan_lib_candidates}")
 
         if self.build_type == BUILD_TYPE_TSAN and llvm_major_version >= 13:
             self.executable_only_ld_flags.extend(['-fsanitize=thread'])

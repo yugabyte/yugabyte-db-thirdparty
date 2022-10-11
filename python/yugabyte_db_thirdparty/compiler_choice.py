@@ -29,6 +29,7 @@ from yugabyte_db_thirdparty.util import (
 )
 from yugabyte_db_thirdparty.devtoolset import validate_devtoolset_compiler_path
 from yugabyte_db_thirdparty.linuxbrew import using_linuxbrew, get_linuxbrew_dir
+from yugabyte_db_thirdparty.arch import get_target_arch
 
 from compiler_identification import (
     CompilerIdentification, identify_compiler
@@ -294,3 +295,21 @@ class CompilerChoice:
     def using_gcc(self) -> bool:
         assert self.compiler_family is not None
         return self.compiler_family == 'gcc'
+
+    def get_compiler_family_and_version(self) -> str:
+        return '%s%d' % (self.compiler_family, self.get_compiler_major_version())
+
+    def get_build_type_components(
+            self, lto_type: Optional[str], with_arch: bool) -> List[str]:
+        """
+        Returns a list of components that can be used to generate e.g. subdirectory names inside
+        the "build" and "installed" directories, or the log prefix used when building a dependency.
+        """
+        components = [self.get_compiler_family_and_version()]
+        if using_linuxbrew():
+            components.append('linuxbrew')
+        if lto_type is not None:
+            components.append('%s-lto' % lto_type)
+        if with_arch:
+            components.append(get_target_arch())
+        return components

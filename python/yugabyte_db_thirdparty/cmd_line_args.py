@@ -58,9 +58,14 @@ def parse_cmd_line_args() -> argparse.Namespace:
                         help='Compiler type, gcc or clang. '
                              'Most times this can be determined automatically.',
                         choices=['gcc', 'clang'])
-    parser.add_argument('--use-per-build-subdirs',
+    parser.add_argument('--per-build-dirs',
                         help='Use per-build-type subdirectories inside build/ and installed/. '
-                             'Useful for debugging these third-party build scripts.',
+                             'Useful for debugging these third-party build scripts. If the build '
+                             'directory already has per-build-type subdirectories, this flag is '
+                             'implied.',
+                        action='store_true')
+    parser.add_argument('--no-per-build-dirs',
+                        help='The opposite of --per-build-dirs.',
                         action='store_true')
     parser.add_argument('--skip',
                         help='Dependencies to skip')
@@ -181,7 +186,8 @@ def parse_cmd_line_args() -> argparse.Namespace:
     parser.add_argument(
         '--delete-build-dir', '--remove-build-dir',
         help="Delete each dependency's build directory to start each build from scratch. "
-             "Note that this does not affect the corresponding source directory.",
+             "Note that this does not affect the corresponding source directory."
+             "Implies --force.",
         action='store_true')
 
     parser.add_argument(
@@ -256,4 +262,11 @@ def parse_cmd_line_args() -> argparse.Namespace:
     if incompatible_args:
         raise ValueError("Some incompatible arguments were specified. "
                          "See the messages above for details.")
+
+    if args.per_build_dirs and args.no_per_build_dirs:
+        raise ValueError("--per-build-dirs is not compatible with --no-per-build-dirs")
+
+    if args.delete_build_dir:
+        args.force = True
+
     return args

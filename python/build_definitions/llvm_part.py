@@ -29,6 +29,8 @@ class LlvmPartDependencyBase(Dependency):
             ),
             archive_name_prefix='llvm',
             build_group=build_group)
+        if self.version.startswith('15.'):
+            self.patches = ['llvm15-libunwind-force-asm-as-c.patch']
 
     def get_source_dir_basename(self) -> str:
         return f'llvm-{self.version}'

@@ -21,6 +21,7 @@ from yugabyte_db_thirdparty.arch import get_target_arch
 from build_definitions import BUILD_TYPES, BUILD_TYPE_COMMON, validate_build_type
 
 import os
+import logging
 from typing import Optional, List
 
 
@@ -39,22 +40,31 @@ class FileSystemLayout:
 
     def finish_initialization(
             self,
-            use_per_build_subdirs: bool,
+            per_build_subdirs: Optional[bool],
             compiler_choice: CompilerChoice,
             lto_type: Optional[str]) -> None:
+        """
+        :param per_build_subdirs: whether to create a separate build directory for each build type,
+            or if this is None, the value is determined automatically based on the contents of the
+            build directory.
+        """
         build_parent_dir = self.tp_build_dir = os.path.join(YB_THIRDPARTY_DIR, 'build')
         installed_parent_dir = os.path.join(YB_THIRDPARTY_DIR, 'installed')
-        if use_per_build_subdirs:
-            compiler_family_and_version = '%s%d' % (
-                compiler_choice.compiler_family,
-                compiler_choice.get_compiler_major_version())
-            subdir_items = [compiler_family_and_version]
-            if using_linuxbrew():
-                subdir_items.append('linuxbrew')
-            if lto_type:
-                subdir_items.append('%s-lto' % lto_type)
-            subdir_items.append(get_target_arch())
-            build_specific_subdir = '-'.join(subdir_items)
+        if (per_build_subdirs is None and
+                os.path.exists(build_parent_dir) and
+                os.path.isdir(build_parent_dir)):
+            for dir_name in os.listdir(build_parent_dir):
+                if dir_name != 'llvm-tools' and '-' in dir_name:
+                    logging.info(
+                        "Found directory named %s in %s, assuming per-build subdirs. "
+                        "To disable this behavior, specify --no-per-build-subdirs.",
+                        dir_name, build_parent_dir)
+                    per_build_subdirs = True
+                    break
+
+        if per_build_subdirs:
+            build_specific_subdir = '-'.join(compiler_choice.get_build_type_components(
+                lto_type=lto_type, with_arch=True))
             self.tp_build_dir = os.path.join(build_parent_dir, build_specific_subdir)
             self.tp_installed_dir = os.path.join(installed_parent_dir, build_specific_subdir)
         else:

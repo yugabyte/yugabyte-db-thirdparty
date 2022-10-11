@@ -73,11 +73,15 @@ if [[ ${#build_thirdparty_args[@]} -gt 0 ]]; then
 fi
 
 # Cannot use |& redirection of both stdout and stderr due to the need to support Bash 3.
+set +e
 (
   set -x
   "${cmd[@]}"
 ) 2>&1 | tee "${log_path}"
+exit_code=$?
+set -e
 
 echo
 echo "Log saved to ${log_path}"
 echo
+exit ${exit_code}

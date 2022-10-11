@@ -43,6 +43,11 @@ workflows:
     jobs:
       # TODO: find a way to assign different names to each build.
       # As specified below, they are named build-1, build-2, etc.
+
+      # ===========================================================================================
+      # Clang 12 ==================================================================================
+      # ===========================================================================================
+
       - build:
           archive_name_suffix: ubuntu2004-aarch64-clang12
           docker_image: yugabyteci/yb_build_infra_ubuntu2004_aarch64:v2022-05-26T23_24_32
@@ -74,5 +79,43 @@ workflows:
           build_thirdparty_args: >-
             --toolchain=llvm12
             --expected-major-compiler-version=12
+            --skip-sanitizers
+            --lto=full
+
+      # ===========================================================================================
+      # Clang 15 ==================================================================================
+      # ===========================================================================================
+
+      - build:
+          archive_name_suffix: ubuntu2004-aarch64-clang15
+          docker_image: yugabyteci/yb_build_infra_ubuntu2004_aarch64:v2022-05-26T23_24_32
+          build_thirdparty_args: >-
+            --toolchain=llvm15
+            --expected-major-compiler-version=15
+            --skip-sanitizers
+
+      - build:
+          archive_name_suffix: ubuntu2004-aarch64-clang15-full-lto
+          docker_image: yugabyteci/yb_build_infra_ubuntu2004_aarch64:v2022-05-26T23_24_32
+          build_thirdparty_args: >-
+            --toolchain=llvm15
+            --expected-major-compiler-version=15
+            --skip-sanitizers
+            --lto=full
+
+      - build:
+          archive_name_suffix: almalinux8-aarch64-clang15
+          docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2022-05-28T06_36_58
+          build_thirdparty_args: >-
+            --toolchain=llvm15
+            --expected-major-compiler-version=15
+            --skip-sanitizers
+
+      - build:
+          archive_name_suffix: almalinux8-aarch64-clang15-full-lto
+          docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2022-05-28T06_36_58
+          build_thirdparty_args: >-
+            --toolchain=llvm15
+            --expected-major-compiler-version=15
             --skip-sanitizers
             --lto=full

@@ -26,9 +26,26 @@ class OpenLDAPDependency(Dependency):
         self.copy_sources = True
 
     def get_additional_compiler_flags(self, builder: BuilderInterface) -> List[str]:
-        if is_macos():
-            return ['-Wno-error=implicit-function-declaration']
-        return []
+        llvm_major_version = builder.compiler_choice.get_llvm_major_version()
+        flags = []
+        linux_llvm15_or_later = (
+            is_linux() and llvm_major_version is not None and llvm_major_version >= 15)
+
+        if is_macos() or linux_llvm15_or_later:
+            # To avoid this error with Clang 15 on Linux:
+            # https://gist.githubusercontent.com/mbautin/a9ca659ec5955ecb0e3d469376659c2b/raw
+            flags.append('-Wno-error=implicit-function-declaration')
+
+        if linux_llvm15_or_later:
+            # See the links for the errors with Clang 15 on Linux that make the corresponding
+            # -Wno-error=... flags necessary.
+            flags.extend([
+                # https://gist.githubusercontent.com/mbautin/354c8882998067a87ec8c832d454603f/raw
+                '-Wno-error=implicit-int',
+                # https://gist.githubusercontent.com/mbautin/b8b022cedd1bd34bbf82576e1972a22f/raw
+                '-Wno-error=int-conversion'
+            ])
+        return flags
 
     def build(self, builder: BuilderInterface) -> None:
         # build client only
