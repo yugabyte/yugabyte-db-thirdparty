@@ -50,7 +50,7 @@ class FileSystemLayout:
         """
         build_parent_dir = self.tp_build_dir = os.path.join(YB_THIRDPARTY_DIR, 'build')
         installed_parent_dir = os.path.join(YB_THIRDPARTY_DIR, 'installed')
-        if per_build_subdirs is None:
+        if per_build_subdirs is None and os.path.isdir(build_parent_dir):
             for dir_name in os.listdir(build_parent_dir):
                 if dir_name != 'llvm-tools' and '-' in dir_name:
                     logging.info(
@@ -61,16 +61,8 @@ class FileSystemLayout:
                     break
 
         if per_build_subdirs:
-            compiler_family_and_version = '%s%d' % (
-                compiler_choice.compiler_family,
-                compiler_choice.get_compiler_major_version())
-            subdir_items = [compiler_family_and_version]
-            if using_linuxbrew():
-                subdir_items.append('linuxbrew')
-            if lto_type:
-                subdir_items.append('%s-lto' % lto_type)
-            subdir_items.append(get_target_arch())
-            build_specific_subdir = '-'.join(subdir_items)
+            build_specific_subdir = '-'.join(compiler_choice.get_build_type_components(
+                lto_type=lto_type, with_arch=True))
             self.tp_build_dir = os.path.join(build_parent_dir, build_specific_subdir)
             self.tp_installed_dir = os.path.join(installed_parent_dir, build_specific_subdir)
         else:
@@ -147,3 +139,4 @@ class FileSystemLayout:
         ar, ld, as symlinks to their LLVM counterparts.
         """
         return os.path.join(self.tp_build_dir, 'llvm-tools')
+

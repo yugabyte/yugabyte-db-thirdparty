@@ -552,7 +552,17 @@ class Builder(BuilderInterface):
         self.additional_allowed_shared_lib_paths.add(path)
 
     def log_prefix(self, dep: Dependency) -> str:
-        return '{} ({})'.format(dep.name, self.build_type)
+        detail_components = self.compiler_choice.get_build_type_components(
+                lto_type=self.lto_type, with_arch=False) + [self.build_type]
+        return '{} ({})'.format(dep.name, ', '.join(detail_components))
+
+    def check_current_dir(self) -> None:
+        current_dir = os.path.realpath(os.getcwd())
+        top_dir = os.path.realpath(YB_THIRDPARTY_DIR)
+        if current_dir == top_dir:
+            raise IOError(
+                    "Dependency build is not allowed to run with the current directory being "
+                    f"the top-level directory of yugabyte-db-thirdparty: {YB_THIRDPARTY_DIR}")
 
     def build_with_configure(
             self,
@@ -564,6 +574,7 @@ class Builder(BuilderInterface):
             autoconf: bool = False,
             src_subdir_name: Optional[str] = None,
             post_configure_action: Optional[Callable] = None) -> None:
+        self.check_current_dir()
         log_prefix = self.log_prefix(dep)
         dir_for_build = os.getcwd()
         if src_subdir_name:
@@ -624,6 +635,7 @@ class Builder(BuilderInterface):
             should_install: bool = True,
             install_targets: List[str] = ['install'],
             shared_and_static: bool = False) -> None:
+        self.check_current_dir()
         build_tool = 'make'
         if use_ninja_if_available:
             ninja_available = is_ninja_available()
@@ -739,6 +751,15 @@ class Builder(BuilderInterface):
                         "Incorrect object file architecture generated for %s (%s expected): %s" % (
                             object_file_path, target_arch, file_type))
 
+    def check_spurious_a_out_file(self) -> None:
+        """"
+        Sometimes an a.out file gets generated in the top-level directory. This is an attempt to
+        catch it and figure out how it is being generated.
+        """
+        if os.path.exists(os.path.join(YB_THIRDPARTY_DIR, 'a.out')):
+            raise IOError(
+                    f'The spurious a.out file got generated in {YB_THIRDPARTY_DIR}')
+
     def build_one_build_type(self, build_type: str) -> None:
         if (build_type != BUILD_TYPE_COMMON and
                 self.args.build_type is not None and
@@ -759,6 +780,7 @@ class Builder(BuilderInterface):
                 should_rebuild = self.should_rebuild_dependency(dep)
                 if should_build and should_rebuild:
                     self.build_dependency(dep, only_process_flags=False)
+                    self.check_spurious_a_out_file()
                 else:
                     self.build_dependency(dep, only_process_flags=True)
                     log(f"Skipped dependency {dep.name}: "
