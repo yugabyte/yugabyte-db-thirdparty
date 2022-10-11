@@ -756,9 +756,11 @@ class Builder(BuilderInterface):
         Sometimes an a.out file gets generated in the top-level directory. This is an attempt to
         catch it and figure out how it is being generated.
         """
-        if os.path.exists(os.path.join(YB_THIRDPARTY_DIR, 'a.out')):
-            raise IOError(
-                    f'The spurious a.out file got generated in {YB_THIRDPARTY_DIR}')
+        spurious_a_out_path = os.path.join(YB_THIRDPARTY_DIR, 'a.out')
+        if os.path.exists(spurious_a_out_path):
+            log(f'The spurious a.out file got generated in {YB_THIRDPARTY_DIR}. Deleting it.'
+                'In the future, we will track down where it is coming from.')
+            os.remove(spurious_a_out_path)
 
     def build_one_build_type(self, build_type: str) -> None:
         if (build_type != BUILD_TYPE_COMMON and
