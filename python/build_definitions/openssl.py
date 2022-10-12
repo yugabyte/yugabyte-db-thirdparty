@@ -43,7 +43,7 @@ class OpenSSLDependency(Dependency):
         common_configure_options = ['shared', 'no-tests']
         install_path = os.path.join(
             builder.fs_layout.tp_installed_common_dir, "lib")
-        if is_macos_arm64_build():
+        if is_macos_arm64_build() and not builder.args.arm64_apple_target:
             use_arm64_bash_in_script('config')
         configure_cmd = ['./config'] + common_configure_options
         if not is_macos():

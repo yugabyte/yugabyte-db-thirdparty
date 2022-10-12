@@ -38,7 +38,6 @@ import_submodules(build_definitions)
 
 def main() -> None:
     configure_logging()
-    verify_arch()
 
     unset_env_var_if_set('CC')
     unset_env_var_if_set('CXX')
@@ -51,6 +50,8 @@ def main() -> None:
 
     builder = Builder()
     builder.parse_args()
+    if not builder.args.arm64_apple_target:
+        verify_arch()
     if builder.remote_build:
         build_remotely(
             remote_server=builder.args.remote_build_server,

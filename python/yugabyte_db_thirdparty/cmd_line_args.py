@@ -24,6 +24,8 @@ from yugabyte_db_thirdparty.checksums import CHECKSUM_FILE_NAME
 from yugabyte_db_thirdparty.util import log
 from yugabyte_db_thirdparty.toolchain import TOOLCHAIN_TYPES
 from yugabyte_db_thirdparty.constants import ADD_CHECKSUM_ARG
+from yugabyte_db_thirdparty.arch import set_target_arch
+
 from build_definitions import BUILD_TYPES
 
 
@@ -69,6 +71,10 @@ def parse_cmd_line_args() -> argparse.Namespace:
                         action='store_true')
     parser.add_argument('--skip',
                         help='Dependencies to skip')
+
+    parser.add_argument('--arm64-apple-target',
+                        action='store_true',
+                        help='Cross-compile for arm64 on an x86_64 macOS machine')
 
     parser.add_argument(
         '--compiler-prefix',
@@ -268,5 +274,10 @@ def parse_cmd_line_args() -> argparse.Namespace:
 
     if args.delete_build_dir:
         args.force = True
+
+    if args.arm64_apple_target:
+        if not is_macos():
+            raise ValueError('--arm64-apple-target is only supported on macOS')
+        set_target_arch('arm64')
 
     return args

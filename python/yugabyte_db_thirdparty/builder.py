@@ -308,11 +308,6 @@ class Builder(BuilderInterface):
                 get_build_def_module('libuuid').LibUuidDependency(),
             ]
 
-            standalone_llvm7_toolchain = self.toolchain and self.toolchain.toolchain_type == 'llvm7'
-            if standalone_llvm7_toolchain:
-                self.dependencies.append(
-                        get_build_def_module('llvm7_libcxx').Llvm7LibCXXDependency())
-
             llvm_major_version: Optional[int] = self.compiler_choice.get_llvm_major_version()
             if (self.compiler_choice.is_clang() and
                     llvm_major_version is not None and llvm_major_version >= 10):
@@ -512,6 +507,10 @@ class Builder(BuilderInterface):
                 ["-mmacosx-version-min=%s" % get_min_supported_macos_version()])
 
             self.ld_flags.append("-Wl,-headerpad_max_install_names")
+
+            # https://stackoverflow.com/questions/65361672/build-apple-silicon-binary-on-intel-machine
+            if self.args.arm64_apple_target:
+                self.compiler_flags += ['--target=arm64-apple-macos']
         else:
             fatal("Unsupported platform: {}".format(platform.system()))
 
@@ -591,7 +590,8 @@ class Builder(BuilderInterface):
                 configure_args = (
                     configure_cmd.copy() + ['--prefix={}'.format(self.prefix)] + extra_args
                 )
-                configure_args = get_arch_switch_cmd_prefix() + configure_args
+                if not self.args.arm64_apple_target:
+                    configure_args = get_arch_switch_cmd_prefix() + configure_args
                 log_output(
                     log_prefix,
                     configure_args,
