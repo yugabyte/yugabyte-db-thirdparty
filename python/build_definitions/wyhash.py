@@ -18,19 +18,19 @@ import os
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
 
-class XXHashDependency(Dependency):
+class WYHashDependency(Dependency):
     def __init__(self) -> None:
-        super(XXHashDependency, self).__init__(
-            name='xxhash',
-            version='0.8.1',
-            url_pattern='https://github.com/Cyan4973/xxHash/archive/refs/tags/v{0}.tar.gz',
+        super(WYHashDependency, self).__init__(
+            name='wyhash',
+            version='a5995b98ebfa7bd38bfadc0919326d2e7aabb805',
+            url_pattern='https://github.com/wangyi-fudan/wyhash/archive/{0}.zip',
             build_group=BUILD_GROUP_COMMON)
-        self.dir = 'xxhash-{}'.format(self.version)
-        self.copy_sources = True
+        self.dir = 'wyhash-{}'.format(self.version)
+        self.copy_sources = False
 
     def build(self, builder: BuilderInterface) -> None:
-        log_prefix = builder.log_prefix(self)
-        os.environ["PREFIX"] = builder.prefix
-        log_output(log_prefix, ['make', '-j{}'.format(multiprocessing.cpu_count())])
-        log_output(log_prefix, ['make', 'install'])
-        del os.environ["PREFIX"]
+        fname = 'wyhash.h'
+        source_path = builder.fs_layout.get_source_path(self)
+        mkdir_if_missing(builder.prefix_include)
+        copy_file_and_log(os.path.join(source_path, fname),
+                          os.path.join(builder.prefix_include, fname))
