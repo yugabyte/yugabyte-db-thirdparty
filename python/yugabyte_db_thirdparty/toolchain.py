@@ -24,9 +24,10 @@ import sys_detection
 from sys_detection import SHORT_OS_NAME_REGEX_STR, is_compatible_os_and_version
 
 
+LINUXBREW_ARCHIVE_VERSION = '20181203T161736vA'
 LINUXBREW_URL = (
-    'https://github.com/yugabyte/brew-build/releases/download/'
-    '20181203T161736v9/linuxbrew-20181203T161736v9.tar.gz'
+    f'https://github.com/yugabyte/brew-build/releases/download/'
+    f'{LINUXBREW_ARCHIVE_VERSION}/linuxbrew-{LINUXBREW_ARCHIVE_VERSION}.tar.gz'
 )
 
 LLVM_VERSION_FROM_ARCHIVE_NAME_RE = re.compile(
