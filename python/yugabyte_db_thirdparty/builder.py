@@ -495,7 +495,7 @@ class Builder(BuilderInterface):
 
             # Currently linux/aarch64 build is optimized for Graviton2.
             if platform.uname().processor == 'aarch64':
-                self.c_flags += GRAVITON_FLAGS
+                self.compiler_flags += GRAVITON_FLAGS
 
         elif is_macos():
             self.shared_lib_suffix = "dylib"
