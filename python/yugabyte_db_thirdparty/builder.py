@@ -83,19 +83,24 @@ from yugabyte_db_thirdparty.constants import (
 )
 
 
-ASAN_FLAGS = [
+ASAN_COMPILER_FLAGS = [
     '-fsanitize=address',
     '-fsanitize=undefined',
     '-DADDRESS_SANITIZER',
 ]
 
-TSAN_FLAGS = [
+ASAN_LD_FLAGS = [
+    '-Wl,--allow-shlib-undefined',
+    '-Wl,--unresolved-symbols=ignore-all'
+]
+
+TSAN_COMPILER_FLAGS = [
     '-fsanitize=thread',
     '-DTHREAD_SANITIZER',
 ]
 
 # https://github.com/aws/aws-graviton-getting-started/blob/main/c-c++.md
-GRAVITON_FLAGS = [
+GRAVITON_COMPILER_FLAGS = [
     '-march=armv8.2-a+fp16+rcpc+dotprod+crypto',
     '-mtune=neoverse-n1',
     '-mno-outline-atomics',
@@ -495,7 +500,7 @@ class Builder(BuilderInterface):
 
             # Currently linux/aarch64 build is optimized for Graviton2.
             if platform.uname().processor == 'aarch64':
-                self.compiler_flags += GRAVITON_FLAGS
+                self.compiler_flags += GRAVITON_COMPILER_FLAGS
 
         elif is_macos():
             self.shared_lib_suffix = "dylib"
@@ -518,10 +523,11 @@ class Builder(BuilderInterface):
         self.cxx_flags.append('-frtti')
 
         if self.build_type == BUILD_TYPE_ASAN:
-            self.compiler_flags += ASAN_FLAGS
+            self.compiler_flags += ASAN_COMPILER_FLAGS
+            self.ld_flags += ASAN_LD_FLAGS
 
         if self.build_type == BUILD_TYPE_TSAN:
-            self.compiler_flags += TSAN_FLAGS
+            self.compiler_flags += TSAN_COMPILER_FLAGS
 
     def add_linuxbrew_flags(self) -> None:
         if using_linuxbrew():
@@ -879,8 +885,6 @@ class Builder(BuilderInterface):
             dep.name, is_libcxxabi, is_libcxx)
 
         if self.build_type == BUILD_TYPE_ASAN:
-            self.compiler_flags.append('-shared-libasan')
-
             if is_libcxxabi or is_libcxx_with_abi:
                 # To avoid an infinite loop in UBSAN.
                 # https://monorail-prod.appspot.com/p/chromium/issues/detail?id=609786

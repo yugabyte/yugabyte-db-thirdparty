@@ -83,8 +83,10 @@ def colored_log(color: str, *args: Any) -> None:
         log(*args)
 
 
-def print_line_with_colored_prefix(prefix: str, line: str) -> None:
-    log("%s[%s] %s%s", CYAN_COLOR, prefix, NO_COLOR, line.rstrip())
+def print_line_with_colored_prefix(prefix: Optional[str], line: str) -> None:
+    maybe_prefix_with_color = \
+        '%s[%s] %s' % (CYAN_COLOR, prefix, NO_COLOR) if prefix is not None else ''
+    log("%s%s", maybe_prefix_with_color, line.rstrip())
 
 
 def log_output(
@@ -97,13 +99,20 @@ def log_output(
             prefix, "Running command: {} (current directory: {})".format(cmd_str, os.getcwd()))
         process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         assert process.stdout is not None
+
+        prev_line: Optional[bytes] = None
         for line in process.stdout:
             if disallowed_pattern and disallowed_pattern.search(line.decode('utf-8')):
                 raise RuntimeError(
                     "Output line from command [[ {} ]] contains a disallowed pattern: {}".format(
                         cmd_str, disallowed_pattern))
 
-            print_line_with_colored_prefix(prefix, line.decode('utf-8'))
+            print_line_with_colored_prefix(
+                # Do not print the prefix if the previous line ends with a line continuation
+                # character.
+                None if prev_line is not None and prev_line.endswith(b'\\\n') else prefix,
+                line.decode('utf-8'))
+            prev_line = line
 
         process.stdout.close()
         exit_code = process.wait()
