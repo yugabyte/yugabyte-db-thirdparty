@@ -29,8 +29,14 @@ HOMEBREW_BIN_DIR_BY_ARCH = {
 }
 
 
+def set_target_arch(target_arch: str) -> None:
+    global g_target_arch
+    os.environ['YB_TARGET_ARCH'] = target_arch
+    g_target_arch = target_arch
+
+
 def get_target_arch() -> str:
-    global g_target_arch, g_target_arch_initialized
+    global g_target_arch
 
     if g_target_arch is not None:
         return g_target_arch

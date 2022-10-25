@@ -37,6 +37,14 @@ class CurlDependency(Dependency):
             '--without-librtmp',
             '--without-nghttp2'
         ]
+        if builder.is_mac_intel_to_arm_cross_compile():
+            # TODO: can we use arm64 instead of aarch64?
+            # TODO: what exactly is the difference between build and target triples?
+            extra_args += [
+                '--build=aarch64-apple-darwin',
+                '--target=aarch64-apple-darwin',
+                '--host=x86_64-apple-darwin'
+            ]
 
         builder.build_with_configure(dep=self, extra_args=extra_args)
 

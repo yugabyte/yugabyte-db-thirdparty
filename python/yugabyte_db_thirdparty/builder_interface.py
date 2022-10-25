@@ -96,3 +96,6 @@ class BuilderInterface:
 
     def get_install_prefix_with_qualifier(self, qualifier: Optional[str]) -> str:
         raise NotImplementedError()
+
+    def is_mac_intel_to_arm_cross_compile(self) -> bool:
+        raise NotImplementedError()
