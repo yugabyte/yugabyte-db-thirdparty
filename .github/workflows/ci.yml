@@ -57,30 +57,6 @@ jobs:
               --toolchain=llvm13
               --expected-major-compiler-version=13
 
-          - name: centos7-x86_64-clang13-full-lto
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_centos7:v2022-05-20T17_13_07
-            build_thirdparty_args: >-
-              --toolchain=llvm13
-              --expected-major-compiler-version=13
-              --lto=full
-
-          # Clang 14
-          - name: centos7-x86_64-clang14
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_centos7:v2022-05-20T17_13_07
-            build_thirdparty_args: >-
-              --toolchain=llvm14
-              --expected-major-compiler-version=14
-
-          - name: centos7-x86_64-clang14-full-lto
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_centos7:v2022-05-20T17_13_07
-            build_thirdparty_args: >-
-              --toolchain=llvm14
-              --expected-major-compiler-version=14
-              --lto=full
-
           # Clang 15
           - name: centos7-x86_64-clang15
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
@@ -106,13 +82,6 @@ jobs:
             build_thirdparty_args: >-
               --toolchain=llvm13
               --expected-major-compiler-version=13
-
-          - name: ubuntu2004-x86_64-clang14
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_ubuntu2004:v2022-05-20T17_13_09
-            build_thirdparty_args: >-
-              --toolchain=llvm14
-              --expected-major-compiler-version=14
 
           - name: ubuntu2004-x86_64-clang15
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
@@ -141,13 +110,6 @@ jobs:
               --toolchain=llvm13
               --expected-major-compiler-version=13
 
-          - name: ubuntu2204-x86_64-clang14
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_ubuntu2204:v2022-05-20T17_13_08
-            build_thirdparty_args: >-
-              --toolchain=llvm14
-              --expected-major-compiler-version=14
-
           - name: ubuntu2204-x86_64-clang15
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_ubuntu2204:v2022-05-20T17_13_08
@@ -172,60 +134,6 @@ jobs:
             build_thirdparty_args: >-
               --toolchain=llvm13
               --expected-major-compiler-version=13
-
-          - name: almalinux8-x86_64-clang13-full-lto
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_almalinux8:v2022-05-02T07_00_12
-            build_thirdparty_args: >-
-              --toolchain=llvm13
-              --expected-major-compiler-version=13
-              --lto=full
-
-          - name: almalinux8-x86_64-clang13-linuxbrew
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_almalinux8:v2022-05-02T07_00_12
-            build_thirdparty_args: >-
-              --toolchain=llvm13_linuxbrew
-              --expected-major-compiler-version=13
-
-          - name: almalinux8-x86_64-clang13-linuxbrew-full-lto
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_almalinux8:v2022-05-02T07_00_12
-            build_thirdparty_args: >-
-              --toolchain=llvm13_linuxbrew
-              --expected-major-compiler-version=13
-              --lto=full
-
-          # Clang/LLVM 14
-          - name: almalinux8-x86_64-clang14
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_almalinux8:v2022-05-02T07_00_12
-            build_thirdparty_args: >-
-              --toolchain=llvm14
-              --expected-major-compiler-version=14
-
-          - name: almalinux8-x86_64-clang14-full-lto
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_almalinux8:v2022-05-02T07_00_12
-            build_thirdparty_args: >-
-              --toolchain=llvm14
-              --expected-major-compiler-version=14
-              --lto=full
-
-          - name: almalinux8-x86_64-clang14-linuxbrew
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_almalinux8:v2022-05-02T07_00_12
-            build_thirdparty_args: >-
-              --toolchain=llvm14_linuxbrew
-              --expected-major-compiler-version=14
-
-          - name: almalinux8-x86_64-clang14-linuxbrew-full-lto
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_almalinux8:v2022-05-02T07_00_12
-            build_thirdparty_args: >-
-              --toolchain=llvm14_linuxbrew
-              --expected-major-compiler-version=14
-              --lto=full
 
           # Clang/LLVM 15
           - name: almalinux8-x86_64-clang15
