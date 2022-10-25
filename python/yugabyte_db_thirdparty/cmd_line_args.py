@@ -72,7 +72,7 @@ def parse_cmd_line_args() -> argparse.Namespace:
     parser.add_argument('--skip',
                         help='Dependencies to skip')
 
-    parser.add_argument('--arm64-apple-target',
+    parser.add_argument('--mac-intel-to-arm-cross-compile',
                         action='store_true',
                         help='Cross-compile for arm64 on an x86_64 macOS machine')
 
@@ -275,9 +275,12 @@ def parse_cmd_line_args() -> argparse.Namespace:
     if args.delete_build_dir:
         args.force = True
 
-    if args.arm64_apple_target:
+    if args.mac_intel_to_arm_cross_compile:
         if not is_macos():
-            raise ValueError('--arm64-apple-target is only supported on macOS')
+            raise ValueError('--mac-intel-to-arm-cross-compile is only supported on macOS')
+        if platform.machine() != 'x86_64':
+            raise ValueError(
+                '--mac-intel-to-arm-cross-compile is only allowed on an x86_64 host OS')
         set_target_arch('arm64')
 
     return args

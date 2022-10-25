@@ -55,6 +55,7 @@ from yugabyte_db_thirdparty.arch import (
     get_target_arch,
     get_other_macos_arch,
     add_homebrew_to_path,
+    is_macos_arm64_build,
 )
 from yugabyte_db_thirdparty.util import (
     assert_dir_exists,
@@ -509,7 +510,7 @@ class Builder(BuilderInterface):
             self.ld_flags.append("-Wl,-headerpad_max_install_names")
 
             # https://stackoverflow.com/questions/65361672/build-apple-silicon-binary-on-intel-machine
-            if self.args.arm64_apple_target:
+            if self.is_mac_intel_to_arm_cross_compile():
                 self.compiler_flags += ['--target=arm64-apple-macos']
         else:
             fatal("Unsupported platform: {}".format(platform.system()))
@@ -582,16 +583,34 @@ class Builder(BuilderInterface):
         with PushDir(dir_for_build):
             log("Building in %s using the configure tool", dir_for_build)
             try:
-                if run_autogen:
-                    log_output(log_prefix, ['./autogen.sh'])
-                if autoconf:
-                    log_output(log_prefix, ['autoreconf', '-i'])
+                autogen_cmd = ['./autogen.sh'] if run_autogen else None
+                autoreconf_cmd = ['autoreconf', '-i'] if autoconf else None
 
                 configure_args = (
                     configure_cmd.copy() + ['--prefix={}'.format(self.prefix)] + extra_args
                 )
-                if not self.args.arm64_apple_target:
+                if not self.args.mac_intel_to_arm_cross_compile:
                     configure_args = get_arch_switch_cmd_prefix() + configure_args
+
+                # Write all the commands we use to configure the project into a script so we can
+                # re-run it easily for debugging.
+                configure_debug_script_lines = (line for line in [
+                    '#!/usr/bin/env bash',
+                    f'. ./{DEPENDENCY_ENV_FILE_NAME}',
+                    'set -euo pipefail -x',
+                    shlex_join(autogen_cmd) if autogen_cmd else None,
+                    shlex_join(configure_args) if configure_args else None
+                ] if line is not None)
+                configure_debug_script_path = os.path.join(dir_for_build, 'yb_configure.sh')
+                with open(configure_debug_script_path, 'w') as configure_debug_script_file:
+                    configure_debug_script_file.write(
+                        '\n'.join(configure_debug_script_lines) + '\n')
+                os.chmod(configure_debug_script_path, 0o755)
+
+                for maybe_preliminary_cmd in [autogen_cmd, autoreconf_cmd]:
+                    if maybe_preliminary_cmd is not None:
+                        log_output(log_prefix, maybe_preliminary_cmd)
+
                 log_output(
                     log_prefix,
                     configure_args,
@@ -1306,3 +1325,6 @@ class Builder(BuilderInterface):
             '-DOPENSSL_LIBRARIES=%s;%s' % (openssl_crypto_library, openssl_ssl_library)
         ]
         return openssl_options
+
+    def is_mac_intel_to_arm_cross_compile(self) -> bool:
+        return is_macos_arm64_build() and self.args.mac_intel_to_arm_cross_compile

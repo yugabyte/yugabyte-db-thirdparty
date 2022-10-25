@@ -50,7 +50,7 @@ def main() -> None:
 
     builder = Builder()
     builder.parse_args()
-    if not builder.args.arm64_apple_target:
+    if not builder.args.mac_intel_to_arm_cross_compile:
         verify_arch()
     if builder.remote_build:
         build_remotely(

@@ -40,12 +40,13 @@ class OpenSSLDependency(Dependency):
         self.copy_sources = True
 
     def build(self, builder: BuilderInterface) -> None:
-        common_configure_options = ['shared', 'no-tests']
-        install_path = os.path.join(
-            builder.fs_layout.tp_installed_common_dir, "lib")
-        if is_macos_arm64_build() and not builder.args.arm64_apple_target:
+        configure_options = ['shared', 'no-tests']
+        install_path = os.path.join(builder.fs_layout.tp_installed_common_dir, "lib")
+        if builder.args.mac_intel_to_arm_cross_compile:
+            configure_options.append('darwin64-arm64-cc')
+        elif is_macos_arm64_build():
             use_arm64_bash_in_script('config')
-        configure_cmd = ['./config'] + common_configure_options
+        configure_cmd = ['./Configure'] + configure_options
         if not is_macos():
             configure_cmd += ['-Wl,-rpath=' + install_path]
 
