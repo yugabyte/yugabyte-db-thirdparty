@@ -29,7 +29,6 @@ class LibBacktraceDependency(Dependency):
             # This is needed so that the configure script does not decide that some functions,
             # e.g. getexecname, are available while they are really not.
             return {
-#                '-Wl,--allow-shlib-undefined',
                 '-Wl,--unresolved-symbols=ignore-all'
             }
         return set()
