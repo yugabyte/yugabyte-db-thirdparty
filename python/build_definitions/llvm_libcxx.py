@@ -58,6 +58,13 @@ class LlvmLibCxxDependencyBase(LlvmPartDependencyBase):
 
         return []
 
+    def get_compiler_wrapper_ld_flags_to_remove(self, builder: BuilderInterface) -> Set[str]:
+        if builder.build_type == BUILD_TYPE_ASAN:
+            # We need to be able to ignore undefined symbols because ASAN runtime library will be
+            # linked statically to each executable.
+            return {'-Wl,-z,defs'}
+        return set()
+
     def get_install_prefix(self, builder: BuilderInterface) -> str:
         return os.path.join(builder.prefix, 'libcxx')
 
