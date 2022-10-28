@@ -87,6 +87,8 @@ ASAN_COMPILER_FLAGS = [
     '-fsanitize=address',
     '-fsanitize=undefined',
     '-DADDRESS_SANITIZER',
+    '-mllvm',
+    '-asan-use-private-alias=1',
 ]
 
 ASAN_LD_FLAGS = [
@@ -423,8 +425,10 @@ class Builder(BuilderInterface):
                 not self.args.skip_sanitizers and
                 not using_linuxbrew()):
             # We only support ASAN/TSAN builds on Clang, when not using Linuxbrew.
-            build_types.append(BUILD_TYPE_ASAN)
-            build_types.append(BUILD_TYPE_TSAN)
+            if not self.args.skip_asan:
+                build_types.append(BUILD_TYPE_ASAN)
+            if not self.args.skip_tsan:
+                build_types.append(BUILD_TYPE_TSAN)
         log(f"Full list of build types: {build_types}")
 
         for build_type in build_types:
