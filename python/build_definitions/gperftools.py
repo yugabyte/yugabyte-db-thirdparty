@@ -31,10 +31,11 @@ class GPerfToolsDependency(Dependency):
 
     def build(self, builder: BuilderInterface) -> None:
         log_prefix = builder.log_prefix(self)
-        log_output(log_prefix, ['./configure', '--prefix={}'.format(builder.prefix),
-                                '--enable-frame-pointers', '--enable-heap-checker', '--with-pic'])
-        log_output(log_prefix, ['make', 'clean'])
-        log_output(log_prefix, ['make', 'install', '-j', '1'])
+        builder.log_output(
+                log_prefix, ['./configure', '--prefix={}'.format(builder.prefix),
+                             '--enable-frame-pointers', '--enable-heap-checker', '--with-pic'])
+        builder.log_output(log_prefix, ['make', 'clean'])
+        builder.log_output(log_prefix, ['make', 'install', '-j', '1'])
 
     def should_build(self, builder: BuilderInterface) -> bool:
         return builder.is_release_build()

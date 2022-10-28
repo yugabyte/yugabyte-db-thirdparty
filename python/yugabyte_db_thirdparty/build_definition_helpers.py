@@ -17,7 +17,7 @@
 
 from yugabyte_db_thirdparty.builder_interface import BuilderInterface
 from yugabyte_db_thirdparty.dependency import Dependency
-from yugabyte_db_thirdparty.custom_logging import log, log_output, fatal
+from yugabyte_db_thirdparty.custom_logging import log, fatal
 from yugabyte_db_thirdparty.util import (
     mkdir_if_missing,
     PushDir,

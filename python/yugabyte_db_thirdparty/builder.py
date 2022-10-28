@@ -21,6 +21,8 @@ import stat
 import time
 import re
 
+from re import Pattern
+
 from typing import Optional, List, Set, Tuple, Dict, Any, Callable
 
 from sys_detection import is_macos, is_linux
@@ -37,14 +39,26 @@ from build_definitions import (
     get_build_def_module,
     get_deps_from_module_names,
 )
-from yugabyte_db_thirdparty.builder_helpers import PLACEHOLDER_RPATH, get_make_parallelism, \
-    get_rpath_flag, log_and_set_env_var_to_list, format_cmake_args_for_log
+from yugabyte_db_thirdparty.builder_helpers import (
+    format_cmake_args_for_log,
+    get_make_parallelism,
+    get_rpath_flag,
+    log_and_set_env_var_to_list,
+    PLACEHOLDER_RPATH,
+)
 from yugabyte_db_thirdparty.builder_helpers import is_ninja_available
 from yugabyte_db_thirdparty.builder_interface import BuilderInterface
 from yugabyte_db_thirdparty.cmd_line_args import parse_cmd_line_args
 from yugabyte_db_thirdparty.compiler_choice import CompilerChoice
-from yugabyte_db_thirdparty.custom_logging import fatal, log, heading, log_output, colored_log, \
-    YELLOW_COLOR, SEPARATOR
+from yugabyte_db_thirdparty.custom_logging import (
+    colored_log,
+    fatal,
+    heading,
+    log,
+    log_output_internal,
+    SEPARATOR,
+    YELLOW_COLOR,
+)
 from yugabyte_db_thirdparty.dependency import Dependency
 from yugabyte_db_thirdparty.devtoolset import activate_devtoolset
 from yugabyte_db_thirdparty.download_manager import DownloadManager
@@ -594,15 +608,15 @@ class Builder(BuilderInterface):
             log("Building in %s using the configure tool", dir_for_build)
             try:
                 if run_autogen:
-                    log_output(log_prefix, ['./autogen.sh'])
+                    self.log_output(log_prefix, ['./autogen.sh'])
                 if autoconf:
-                    log_output(log_prefix, ['autoreconf', '-i'])
+                    self.log_output(log_prefix, ['autoreconf', '-i'])
 
                 configure_args = (
                     configure_cmd.copy() + ['--prefix={}'.format(self.prefix)] + extra_args
                 )
                 configure_args = get_arch_switch_cmd_prefix() + configure_args
-                log_output(
+                self.log_output(
                     log_prefix,
                     configure_args,
                     disallowed_pattern=DISALLOWED_CONFIGURE_OUTPUT_RE)
@@ -629,11 +643,23 @@ class Builder(BuilderInterface):
             if post_configure_action:
                 post_configure_action()
 
-            log_output(log_prefix, ['make', '-j{}'.format(get_make_parallelism())])
+            self.log_output(log_prefix, ['make', '-j{}'.format(get_make_parallelism())])
             if install:
-                log_output(log_prefix, ['make'] + install)
+                self.log_output(log_prefix, ['make'] + install)
 
             self.validate_build_output()
+
+    def log_output(
+            self,
+            prefix: str,
+            args: List[Any],
+            disallowed_pattern: Optional[Pattern] = None) -> None:
+        log_output(
+            prefix=prefix,
+            args=args,
+            disallowed_pattern=disallowed_pattern,
+            color=not self.args.concise_output,
+            hide_log_on_success=self.args.concise_output)
 
     def build_with_cmake(
             self,
@@ -706,15 +732,15 @@ class Builder(BuilderInterface):
                      stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IWGRP |
                      stat.S_IROTH)
 
-            log_output(log_prefix, final_cmake_args)
+            self.log_output(log_prefix, final_cmake_args)
 
             if build_tool == 'ninja':
                 dep.postprocess_ninja_build_file(self, 'build.ninja')
 
-            log_output(log_prefix, build_tool_cmd)
+            self.log_output(log_prefix, build_tool_cmd)
 
             if should_install:
-                log_output(log_prefix, [build_tool] + install_targets)
+                self.log_output(log_prefix, [build_tool] + install_targets)
 
             with open('compile_commands.json') as compile_commands_file:
                 compile_commands = json.load(compile_commands_file)

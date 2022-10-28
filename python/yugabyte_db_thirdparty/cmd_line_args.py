@@ -218,6 +218,13 @@ def parse_cmd_line_args() -> argparse.Namespace:
              "Sets download-extract-only = True as well.",
         action='store_true'
     )
+
+    parser.add_argument(
+        '--concise-output',
+        help='Hide logs of third-party dependency builds when those builds are successful.',
+        action='store_true'
+    )
+
     args = parser.parse_args()
 
     # ---------------------------------------------------------------------------------------------

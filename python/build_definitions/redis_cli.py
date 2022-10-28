@@ -29,5 +29,6 @@ class RedisCliDependency(Dependency):
 
     def build(self, builder: BuilderInterface) -> None:
         log_prefix = builder.log_prefix(self)
-        log_output(log_prefix, ['make', '-j{}'.format(multiprocessing.cpu_count()), 'redis-cli'])
-        log_output(log_prefix, ['cp', 'src/redis-cli', builder.prefix_bin])
+        builder.log_output(
+                log_prefix, ['make', '-j{}'.format(multiprocessing.cpu_count()), 'redis-cli'])
+        builder.log_output(log_prefix, ['cp', 'src/redis-cli', builder.prefix_bin])
