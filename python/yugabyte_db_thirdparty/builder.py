@@ -654,7 +654,7 @@ class Builder(BuilderInterface):
             prefix: str,
             args: List[Any],
             disallowed_pattern: Optional[Pattern] = None) -> None:
-        log_output(
+        log_output_internal(
             prefix=prefix,
             args=args,
             disallowed_pattern=disallowed_pattern,
