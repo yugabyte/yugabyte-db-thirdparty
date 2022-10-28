@@ -10,7 +10,8 @@
 # or implied. See the License for the specific language governing permissions and limitations
 # under the License.
 
-from typing import List, Optional, Callable, TYPE_CHECKING
+from re import Pattern
+from typing import List, Optional, Callable, Any, TYPE_CHECKING
 
 from yugabyte_db_thirdparty.file_system_layout import FileSystemLayout
 
@@ -95,4 +96,11 @@ class BuilderInterface:
         raise NotImplementedError()
 
     def get_install_prefix_with_qualifier(self, qualifier: Optional[str]) -> str:
+        raise NotImplementedError()
+
+    def log_output(
+            self,
+            prefix: str,
+            args: List[Any],
+            disallowed_pattern: Optional[Pattern] = None) -> None:
         raise NotImplementedError()

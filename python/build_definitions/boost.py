@@ -115,7 +115,7 @@ class BoostDependency(Dependency):
                     sublib_file = self.libfile(sublib, builder)
                     sublib_path = os.path.join(builder.prefix_lib, sublib_file)
                     builder.log_output(log_prefix, ['install_name_tool', '-change', sublib_file,
-                                            sublib_path, path])
+                                       sublib_path, path])
 
     def libfile(self, lib: str, builder: BuilderInterface) -> str:
         return 'libboost_{}.{}'.format(lib, builder.shared_lib_suffix)
