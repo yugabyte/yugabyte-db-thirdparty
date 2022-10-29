@@ -148,7 +148,6 @@ def log_output_internal(
         process.stdout.close()
         exit_code = process.wait()
         if exit_code != 0:
-            # We do not use fatal() here because that would skip upstream exception handling.
             raise LogOutputException("Execution failed with code: {}".format(exit_code))
         log("Command completed successfully in %.1f sec: %s", time.time() - start_time_sec, cmd_str)
     except OSError as err:
