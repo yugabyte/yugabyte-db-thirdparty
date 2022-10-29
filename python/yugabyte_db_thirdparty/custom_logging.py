@@ -140,6 +140,15 @@ def log_output_internal(
         os.remove(output_path)
         output_path = None
 
+    def remove_tmp_file() -> None:
+        nonlocal output_file, output_path
+        if output_file is not None:
+            output_file.close()
+            output_file = None
+        if output_path is not None:
+            os.remove(output_path)
+            output_path = None
+
     try:
         log("Running command: %s (current directory: %s)", cmd_str, os.getcwd())
         process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -175,6 +184,7 @@ def log_output_internal(
         elapsed_time_sec = time.time() - start_time_sec
         log("Command completed with exit code %s (took %.1f sec): %s",
             exit_code, elapsed_time_sec, cmd_str)
+        remove_tmp_file()
 
 
 def log_separator() -> None:
