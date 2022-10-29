@@ -101,8 +101,6 @@ ASAN_COMPILER_FLAGS = [
     '-fsanitize=address',
     '-fsanitize=undefined',
     '-DADDRESS_SANITIZER',
-    '-mllvm',
-    '-asan-use-private-alias=1',
 ]
 
 ASAN_LD_FLAGS = [
@@ -950,6 +948,10 @@ class Builder(BuilderInterface):
             if not ubsan_lib_found:
                 raise IOError(
                     f"UBSAN library not found at any of the paths: {ubsan_lib_candidates}")
+            llvm_major_version = self.compiler_choice.get_llvm_major_version()
+            assert llvm_major_version is not None
+            if llvm_major_version >= 14:
+                self.compiler_flags += ['-mllvm', '-asan-use-private-alias=1']
 
         if self.build_type == BUILD_TYPE_TSAN and llvm_major_version >= 13:
             self.executable_only_ld_flags.extend(['-fsanitize=thread'])
