@@ -35,4 +35,4 @@ class CQLShDependency(Dependency):
         log_prefix = builder.log_prefix(self)
         out_dir = os.path.join(builder.prefix, 'cqlsh', subdir)
         mkdir_if_missing(out_dir)
-        log_output(log_prefix, ['rsync', '-av', subdir + '/', out_dir + '/'])
+        builder.log_output(log_prefix, ['rsync', '-av', subdir + '/', out_dir + '/'])

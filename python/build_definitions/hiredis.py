@@ -29,6 +29,7 @@ class HiRedisDependency(Dependency):
     def build(self, builder: BuilderInterface) -> None:
         log_prefix = builder.log_prefix(self)
         jobs = multiprocessing.cpu_count()
-        log_output(log_prefix,
-                   ['make', '-j{}'.format(jobs), 'PREFIX={}'.format(builder.prefix), 'install'])
+        builder.log_output(
+                log_prefix,
+                ['make', '-j{}'.format(jobs), 'PREFIX={}'.format(builder.prefix), 'install'])
         fix_shared_library_references(builder.prefix, 'libhiredis')

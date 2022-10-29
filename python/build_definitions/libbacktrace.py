@@ -24,5 +24,14 @@ class LibBacktraceDependency(Dependency):
             build_group=BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = True
 
+    def get_compiler_wrapper_ld_flags_to_remove(self, builder: BuilderInterface) -> Set[str]:
+        if builder.build_type == BUILD_TYPE_ASAN:
+            # This is needed so that the configure script does not decide that some functions,
+            # e.g. getexecname, are available while they are really not.
+            return {
+                '-Wl,--unresolved-symbols=ignore-all'
+            }
+        return set()
+
     def build(self, builder: BuilderInterface) -> None:
         builder.build_with_configure(dep=self, extra_args=['--with-pic'])

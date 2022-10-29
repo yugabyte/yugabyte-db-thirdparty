@@ -70,7 +70,7 @@ class BoostDependency(Dependency):
             env_var_overrides['PATH'] = '%s:%s' % ('/bin', os.environ['PATH'])
 
         with EnvVarContext(**env_var_overrides):
-            log_output(log_prefix, [
+            builder.log_output(log_prefix, [
                 './bootstrap.sh',
                 '--prefix={}'.format(prefix),
             ])
@@ -105,17 +105,17 @@ class BoostDependency(Dependency):
         build_cmd = ['./b2', 'install', 'cxxstd=14', 'toolset=%s' % boost_toolset, '-q']
         if is_macos_arm64_build():
             build_cmd.append('instruction-set=arm64')
-        log_output(log_prefix, build_cmd)
+        builder.log_output(log_prefix, build_cmd)
 
         if is_macos():
             for lib in libs:
                 path = os.path.join(builder.prefix_lib, self.libfile(lib, builder))
-                log_output(log_prefix, ['install_name_tool', '-id', path, path])
+                builder.log_output(log_prefix, ['install_name_tool', '-id', path, path])
                 for sublib in libs:
                     sublib_file = self.libfile(sublib, builder)
                     sublib_path = os.path.join(builder.prefix_lib, sublib_file)
-                    log_output(log_prefix, ['install_name_tool', '-change', sublib_file,
-                                            sublib_path, path])
+                    builder.log_output(log_prefix, ['install_name_tool', '-change', sublib_file,
+                                       sublib_path, path])
 
     def libfile(self, lib: str, builder: BuilderInterface) -> str:
         return 'libboost_{}.{}'.format(lib, builder.shared_lib_suffix)

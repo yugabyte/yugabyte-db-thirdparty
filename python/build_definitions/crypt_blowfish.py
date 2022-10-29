@@ -35,8 +35,8 @@ class CryptBlowfishDependency(Dependency):
 
     def build(self, builder: BuilderInterface) -> None:
         log_prefix = builder.log_prefix(self)
-        log_output(log_prefix, ['make', 'clean'])
-        log_output(log_prefix, ['make'])
+        builder.log_output(log_prefix, ['make', 'clean'])
+        builder.log_output(log_prefix, ['make'])
         crypt_blowfish_include_dir = os.path.join(builder.prefix_include, 'crypt_blowfish')
         mkdir_if_missing(crypt_blowfish_include_dir)
         # Copy over all the headers into a generic include/ directory.

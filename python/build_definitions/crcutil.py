@@ -41,5 +41,5 @@ class CRCUtilDependency(Dependency):
 
     def build(self, builder: BuilderInterface) -> None:
         log_prefix = builder.log_prefix(self)
-        log_output(log_prefix, ['./autogen.sh'])
+        builder.log_output(log_prefix, ['./autogen.sh'])
         builder.build_with_configure(dep=self)

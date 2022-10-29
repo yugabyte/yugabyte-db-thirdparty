@@ -21,6 +21,8 @@ import stat
 import time
 import re
 
+from re import Pattern
+
 from typing import Optional, List, Set, Tuple, Dict, Any, Callable
 
 from sys_detection import is_macos, is_linux
@@ -37,14 +39,26 @@ from build_definitions import (
     get_build_def_module,
     get_deps_from_module_names,
 )
-from yugabyte_db_thirdparty.builder_helpers import PLACEHOLDER_RPATH, get_make_parallelism, \
-    get_rpath_flag, log_and_set_env_var_to_list, format_cmake_args_for_log
+from yugabyte_db_thirdparty.builder_helpers import (
+    format_cmake_args_for_log,
+    get_make_parallelism,
+    get_rpath_flag,
+    log_and_set_env_var_to_list,
+    PLACEHOLDER_RPATH,
+)
 from yugabyte_db_thirdparty.builder_helpers import is_ninja_available
 from yugabyte_db_thirdparty.builder_interface import BuilderInterface
 from yugabyte_db_thirdparty.cmd_line_args import parse_cmd_line_args
 from yugabyte_db_thirdparty.compiler_choice import CompilerChoice
-from yugabyte_db_thirdparty.custom_logging import fatal, log, heading, log_output, colored_log, \
-    YELLOW_COLOR, SEPARATOR
+from yugabyte_db_thirdparty.custom_logging import (
+    colored_log,
+    fatal,
+    heading,
+    log,
+    log_output_internal,
+    SEPARATOR,
+    YELLOW_COLOR,
+)
 from yugabyte_db_thirdparty.dependency import Dependency
 from yugabyte_db_thirdparty.devtoolset import activate_devtoolset
 from yugabyte_db_thirdparty.download_manager import DownloadManager
@@ -83,19 +97,24 @@ from yugabyte_db_thirdparty.constants import (
 )
 
 
-ASAN_FLAGS = [
+ASAN_COMPILER_FLAGS = [
     '-fsanitize=address',
     '-fsanitize=undefined',
     '-DADDRESS_SANITIZER',
 ]
 
-TSAN_FLAGS = [
+ASAN_LD_FLAGS = [
+    '-Wl,--allow-shlib-undefined',
+    '-Wl,--unresolved-symbols=ignore-all'
+]
+
+TSAN_COMPILER_FLAGS = [
     '-fsanitize=thread',
     '-DTHREAD_SANITIZER',
 ]
 
 # https://github.com/aws/aws-graviton-getting-started/blob/main/c-c++.md
-GRAVITON_FLAGS = [
+GRAVITON_COMPILER_FLAGS = [
     '-march=armv8.2-a+fp16+rcpc+dotprod+crypto',
     '-mtune=neoverse-n1',
     '-mno-outline-atomics',
@@ -418,8 +437,10 @@ class Builder(BuilderInterface):
                 not self.args.skip_sanitizers and
                 not using_linuxbrew()):
             # We only support ASAN/TSAN builds on Clang, when not using Linuxbrew.
-            build_types.append(BUILD_TYPE_ASAN)
-            build_types.append(BUILD_TYPE_TSAN)
+            if not self.args.skip_asan:
+                build_types.append(BUILD_TYPE_ASAN)
+            if not self.args.skip_tsan:
+                build_types.append(BUILD_TYPE_TSAN)
         log(f"Full list of build types: {build_types}")
 
         for build_type in build_types:
@@ -495,7 +516,7 @@ class Builder(BuilderInterface):
 
             # Currently linux/aarch64 build is optimized for Graviton2.
             if platform.uname().processor == 'aarch64':
-                self.compiler_flags += GRAVITON_FLAGS
+                self.compiler_flags += GRAVITON_COMPILER_FLAGS
 
         elif is_macos():
             self.shared_lib_suffix = "dylib"
@@ -518,10 +539,11 @@ class Builder(BuilderInterface):
         self.cxx_flags.append('-frtti')
 
         if self.build_type == BUILD_TYPE_ASAN:
-            self.compiler_flags += ASAN_FLAGS
+            self.compiler_flags += ASAN_COMPILER_FLAGS
+            self.ld_flags += ASAN_LD_FLAGS
 
         if self.build_type == BUILD_TYPE_TSAN:
-            self.compiler_flags += TSAN_FLAGS
+            self.compiler_flags += TSAN_COMPILER_FLAGS
 
     def add_linuxbrew_flags(self) -> None:
         if using_linuxbrew():
@@ -584,15 +606,15 @@ class Builder(BuilderInterface):
             log("Building in %s using the configure tool", dir_for_build)
             try:
                 if run_autogen:
-                    log_output(log_prefix, ['./autogen.sh'])
+                    self.log_output(log_prefix, ['./autogen.sh'])
                 if autoconf:
-                    log_output(log_prefix, ['autoreconf', '-i'])
+                    self.log_output(log_prefix, ['autoreconf', '-i'])
 
                 configure_args = (
                     configure_cmd.copy() + ['--prefix={}'.format(self.prefix)] + extra_args
                 )
                 configure_args = get_arch_switch_cmd_prefix() + configure_args
-                log_output(
+                self.log_output(
                     log_prefix,
                     configure_args,
                     disallowed_pattern=DISALLOWED_CONFIGURE_OUTPUT_RE)
@@ -619,11 +641,23 @@ class Builder(BuilderInterface):
             if post_configure_action:
                 post_configure_action()
 
-            log_output(log_prefix, ['make', '-j{}'.format(get_make_parallelism())])
+            self.log_output(log_prefix, ['make', '-j{}'.format(get_make_parallelism())])
             if install:
-                log_output(log_prefix, ['make'] + install)
+                self.log_output(log_prefix, ['make'] + install)
 
             self.validate_build_output()
+
+    def log_output(
+            self,
+            prefix: str,
+            args: List[Any],
+            disallowed_pattern: Optional[Pattern] = None) -> None:
+        log_output_internal(
+            prefix=prefix,
+            args=args,
+            disallowed_pattern=disallowed_pattern,
+            color=not self.args.concise_output,
+            hide_log_on_success=self.args.concise_output)
 
     def build_with_cmake(
             self,
@@ -696,15 +730,15 @@ class Builder(BuilderInterface):
                      stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IWGRP |
                      stat.S_IROTH)
 
-            log_output(log_prefix, final_cmake_args)
+            self.log_output(log_prefix, final_cmake_args)
 
             if build_tool == 'ninja':
                 dep.postprocess_ninja_build_file(self, 'build.ninja')
 
-            log_output(log_prefix, build_tool_cmd)
+            self.log_output(log_prefix, build_tool_cmd)
 
             if should_install:
-                log_output(log_prefix, [build_tool] + install_targets)
+                self.log_output(log_prefix, [build_tool] + install_targets)
 
             with open('compile_commands.json') as compile_commands_file:
                 compile_commands = json.load(compile_commands_file)
@@ -879,8 +913,6 @@ class Builder(BuilderInterface):
             dep.name, is_libcxxabi, is_libcxx)
 
         if self.build_type == BUILD_TYPE_ASAN:
-            self.compiler_flags.append('-shared-libasan')
-
             if is_libcxxabi or is_libcxx_with_abi:
                 # To avoid an infinite loop in UBSAN.
                 # https://monorail-prod.appspot.com/p/chromium/issues/detail?id=609786
@@ -916,6 +948,12 @@ class Builder(BuilderInterface):
             if not ubsan_lib_found:
                 raise IOError(
                     f"UBSAN library not found at any of the paths: {ubsan_lib_candidates}")
+            llvm_major_version = self.compiler_choice.get_llvm_major_version()
+            assert llvm_major_version is not None
+            if (llvm_major_version >= 14 and
+                    dep.build_group != BUILD_GROUP_COMMON and
+                    dep.name != 'crcutil'):
+                self.compiler_flags += ['-mllvm', '-asan-use-private-alias=1']
 
         if self.build_type == BUILD_TYPE_TSAN and llvm_major_version >= 13:
             self.executable_only_ld_flags.extend(['-fsanitize=thread'])

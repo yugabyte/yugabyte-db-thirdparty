@@ -27,9 +27,9 @@ class LibKeyUtilsDependency(Dependency):
 
     def build(self, builder: BuilderInterface) -> None:
         log_prefix = builder.log_prefix(self)
-        log_output(log_prefix, ['make'])
-        log_output(log_prefix, ['cp'] + glob.glob('*.h') + [builder.prefix_include])
-        log_output(
+        builder.log_output(log_prefix, ['make'])
+        builder.log_output(log_prefix, ['cp'] + glob.glob('*.h') + [builder.prefix_include])
+        builder.log_output(
             log_prefix,
             ['cp'] +
             glob.glob('*.a') +

@@ -26,6 +26,16 @@ from yugabyte_db_thirdparty.constants import (
 )
 
 
+def cmd_join_one_arg_per_line(cmd_args: List[str]) -> str:
+    return '\n'.join([
+        '( \\',
+        f'  cd {shlex.quote(os.getcwd())}; \\',
+        f'  {shlex.quote(cmd_args[0])} \\',
+        '    ' + ' \\\n    '.join(cmd_args[1:]) + ' \\',
+        ')'
+    ])
+
+
 class CompilerWrapper:
     is_cxx: bool
     args: List[str]
@@ -151,6 +161,10 @@ class CompilerWrapper:
         try:
             subprocess.check_call(cmd_args)
         except subprocess.CalledProcessError as ex:
+            sys.stderr.write(
+                "Command failed with exit code %d (one argument per line): %s\n" % (
+                    ex.returncode,
+                    cmd_join_one_arg_per_line(cmd_args)))
             sys.stderr.write("Command failed with exit code %d: %s\n" % (ex.returncode, cmd_str))
             raise ex
 

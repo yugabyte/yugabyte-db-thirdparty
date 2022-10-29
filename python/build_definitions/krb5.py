@@ -45,7 +45,14 @@ class Krb5Dependency(Dependency):
         return flags
 
     def get_compiler_wrapper_ld_flags_to_remove(self, builder: BuilderInterface) -> Set[str]:
-        return {'-Wl,--no-undefined'}
+        to_remove = {'-Wl,--no-undefined'}
+
+        if builder.build_type == BUILD_TYPE_ASAN:
+            # This is needed so that the configure script does not decide that some functions,
+            # e.g. getexecname, are available while they are really not.
+            to_remove.add('-Wl,--unresolved-symbols=ignore-all')
+
+        return to_remove
 
     def build(self, builder: BuilderInterface) -> None:
         # krb5 does not support building shared and static libraries at the same time.

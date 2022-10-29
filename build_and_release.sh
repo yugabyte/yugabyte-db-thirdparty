@@ -222,7 +222,8 @@ else
 fi
 
 # We intentionally don't escape variables here so they get split into multiple arguments.
-build_thirdparty_cmd_str=./build_thirdparty.sh
+build_thirdparty_cmd_str="./build_thirdparty.sh --concise-output"
+
 if [[ -n ${YB_BUILD_THIRDPARTY_ARGS:-} ]]; then
   build_thirdparty_cmd_str+=" $YB_BUILD_THIRDPARTY_ARGS"
 fi
