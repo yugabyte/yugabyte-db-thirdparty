@@ -20,7 +20,7 @@ import string
 import random
 
 from yugabyte_db_thirdparty.string_util import shlex_join
-from typing import List, Any, NoReturn, Pattern, Optional
+from typing import List, Any, NoReturn, Pattern, Optional, Union
 
 
 g_logging_configured = False
@@ -121,6 +121,25 @@ def log_output_internal(
         output_file = open(output_path, 'w')
 
     start_time_sec = time.time()
+
+    exit_code: Union[str, int] = "<unknown>"
+
+    def show_error_details() -> None:
+        nonlocal output_file, output_path
+        if output_file is None:
+            return
+        output_file.close()
+        output_file = None
+        assert output_path is not None
+        with open(output_path) as output_file_for_reading:
+            log("PATH is: %s", os.getenv("PATH"))
+            log("Output from command: %s", cmd_str)
+            for line_str in output_file_for_reading:
+                log(line_str.rstrip())
+            log("End of output from command: %s", cmd_str)
+        os.remove(output_path)
+        output_path = None
+
     try:
         log("Running command: %s (current directory: %s)", cmd_str, os.getcwd())
         process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -149,27 +168,13 @@ def log_output_internal(
         exit_code = process.wait()
         if exit_code != 0:
             raise LogOutputException("Execution failed with code: {}".format(exit_code))
-        log("Command completed successfully in %.1f sec: %s", time.time() - start_time_sec, cmd_str)
-    except OSError as err:
-        elapsed_time_sec = time.time() - start_time_sec
-        log("Error when trying to execute command (took %.1f sec): %s",
-            elapsed_time_sec, cmd_str)
-        log("PATH is: %s", os.getenv("PATH"))
-        if output_file:
-            output_file.close()
-            output_file = None
-            assert output_path is not None
-            with open(output_path) as output_file_for_reading:
-                log("Output from this command")
-                for line_str in output_file_for_reading:
-                    log(line_str.rstrip())
-                log("End of output from command: %s", cmd_str)
+    except Exception:
+        show_error_details()
         raise
     finally:
-        if output_file is not None:
-            output_file.close()
-        if output_path is not None:
-            os.remove(output_path)
+        elapsed_time_sec = time.time() - start_time_sec
+        log("Command completed with exit code %s (took %.1f sec): %s",
+            exit_code, elapsed_time_sec, cmd_str)
 
 
 def log_separator() -> None:
