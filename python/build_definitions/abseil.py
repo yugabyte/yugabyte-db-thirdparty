@@ -44,8 +44,8 @@ class AbseilDependency(Dependency):
         builder.log_output(log_prefix, ['chmod', '644', 'bazel-bin/absl/absl_static.a'])
 
         builder.log_output(log_prefix, ['cp',
-                                'bazel-bin/absl/libabsl_shared.so',
-                                builder.prefix_lib + '/libabsl.so'])
+                                        'bazel-bin/absl/libabsl_shared.so',
+                                        builder.prefix_lib + '/libabsl.so'])
         builder.log_output(log_prefix, ['cp', '-f',
-                                'bazel-bin/absl/absl_static.a',
-                                builder.prefix_lib + '/libabsl.a'])
+                                        'bazel-bin/absl/absl_static.a',
+                                        builder.prefix_lib + '/libabsl.a'])

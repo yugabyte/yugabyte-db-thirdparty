@@ -38,10 +38,10 @@ class TCMallocDependency(Dependency):
 
         builder.log_output(log_prefix, ['mkdir', '-p', builder.prefix_include + '/tcmalloc'])
         builder.log_output(log_prefix, ['cp', '-f'] + glob.glob('./tcmalloc/*.h') +
-                               [builder.prefix_include + '/tcmalloc'])
+                                       [builder.prefix_include + '/tcmalloc'])
         builder.log_output(log_prefix, ['cp', '-f',
-                                'bazel-bin/tcmalloc/libtcmalloc_shared.so',
-                                builder.prefix_lib + '/libgoogletcmalloc.so'])
+                                        'bazel-bin/tcmalloc/libtcmalloc_shared.so',
+                                        builder.prefix_lib + '/libgoogletcmalloc.so'])
         builder.log_output(log_prefix, ['cp', '-f',
-                                'bazel-bin/tcmalloc/tcmalloc_static.a',
-                                builder.prefix_lib + '/libgoogletcmalloc.a'])
+                                        'bazel-bin/tcmalloc/tcmalloc_static.a',
+                                        builder.prefix_lib + '/libgoogletcmalloc.a'])
