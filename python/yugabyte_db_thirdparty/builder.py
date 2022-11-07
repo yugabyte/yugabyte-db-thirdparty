@@ -784,7 +784,7 @@ class Builder(BuilderInterface):
         # works properly.
         bazel_cxxopts = os.environ["CXXFLAGS"].replace("isystem ", "isystem").replace(" ", ":")
         # Add stdlib=libc++ to avoid linking with libstdc++.
-        bazel_linkopts = os.environ["LDFLAGS"].replace(" ", ":") + ":-stdlib=libc++"
+        bazel_linkopts = os.environ["LDFLAGS"].replace(" ", ":")
 
         # Build without curses for more readable build output.
         build_command = "bazel build --curses=no"
@@ -1003,12 +1003,8 @@ class Builder(BuilderInterface):
         if not is_libcxx and not is_libcxxabi and not is_libcxx_with_abi:
             log("Adding special compiler/linker flags for Clang 10+ for dependencies other than "
                 "libc++")
-            self.ld_flags += ['-lc++', '-lc++abi']
-
-            self.cxx_flags = [
-                '-stdlib=libc++',
-                '-nostdinc++'
-            ] + self.cxx_flags
+            self.ld_flags += ['-stdlib=libc++', '-lc++', '-lc++abi']
+            self.cxx_flags += ['-nostdinc++']
             self.preprocessor_flags.extend(['-isystem', libcxx_installed_include])
             self.prepend_lib_dir_and_rpath(libcxx_installed_lib)
 
