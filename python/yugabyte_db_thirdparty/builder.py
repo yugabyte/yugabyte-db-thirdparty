@@ -368,7 +368,7 @@ class Builder(BuilderInterface):
             ) + [
                 'ncurses',
             ] + (
-                [] if is_macos() else ['libkeyutils', 'libverto']
+                [] if is_macos() else ['libkeyutils', 'libverto', 'abseil', 'tcmalloc']
             ) + [
                 'libedit',
                 'icu4c',
@@ -385,8 +385,6 @@ class Builder(BuilderInterface):
                 'libuv',
                 'cassandra_cpp_driver',
                 'krb5',
-                'abseil',
-                'tcmalloc',
             ])
 
     def select_dependencies_to_build(self) -> None:
@@ -773,8 +771,8 @@ class Builder(BuilderInterface):
     def build_with_bazel(
             self,
             dep: Dependency,
-            verbose_output: bool = False,
-            should_clean: bool = False,
+            verbose_output: bool = True,
+            should_clean: bool = True,
             targets: List[str] = []) -> None:
         log_prefix = self.log_prefix(dep)
         if should_clean:
@@ -797,12 +795,31 @@ class Builder(BuilderInterface):
         env_vars_to_copy = ["PATH", "CC", "CXX", "YB_THIRDPARTY_REAL_C_COMPILER",
                             "YB_THIRDPARTY_REAL_CXX_COMPILER", "YB_THIRDPARTY_USE_CCACHE"]
         for env_var in env_vars_to_copy:
+            if env_var not in os.environ:
+                log(f"Environment variable {env_var} not found. Not passing it to Bazel.")
+                continue
             build_command += f" --action_env={env_var}={os.environ[env_var]}"
 
         # TODO (asrivastava): Change to log_output.
         for target in targets:
             log(f"Building {target} with command " + build_command)
             os.system(build_command + " " + target)
+
+    def install_bazel_build_output(
+            self,
+            dep: Dependency,
+            src_file: str,
+            dest_file: str,
+            src_folder: str,
+            is_shared: bool) -> None:
+        log_prefix = self.log_prefix(dep)
+        src_path = f'bazel-bin/{src_folder}/{src_file}'
+        dest_path = os.path.join(self.prefix_lib, dest_file)
+
+        # Fix permissions on libraries. Bazel builds write-protected files by default, which
+        # prevents overwriting when building thirdparty multiple times.
+        self.log_output(log_prefix, ['chmod', '755' if is_shared else '644', src_path])
+        self.log_output(log_prefix, ['cp', src_path, dest_path])
 
     def validate_build_output(self) -> None:
         if is_macos():
@@ -1004,7 +1021,9 @@ class Builder(BuilderInterface):
             log("Adding special compiler/linker flags for Clang 10+ for dependencies other than "
                 "libc++")
             self.ld_flags += ['-stdlib=libc++', '-lc++', '-lc++abi']
-            self.cxx_flags += ['-nostdinc++']
+            # TODO(asrivastava): We might not need libc++ in cxxflags but removing it causes certain
+            # builds to fail.
+            self.cxx_flags += ['-stdlib=libc++', '-nostdinc++']
             self.preprocessor_flags.extend(['-isystem', libcxx_installed_include])
             self.prepend_lib_dir_and_rpath(libcxx_installed_lib)
 

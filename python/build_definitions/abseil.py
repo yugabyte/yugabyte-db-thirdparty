@@ -30,22 +30,19 @@ class AbseilDependency(Dependency):
         log_prefix = builder.log_prefix(self)
         builder.build_with_bazel(dep=self,
                                  targets=["absl:absl_shared", "absl:absl_static"])
+        builder.install_bazel_build_output(
+                dep=self,
+                src_file="libabsl_shared.so",
+                dest_file="absl_shared." + builder.shared_lib_suffix,
+                src_folder="absl",
+                is_shared=True)
+        builder.install_bazel_build_output(
+                dep=self, src_file="absl_static.a", dest_file="absl_static.a",
+                src_folder="absl", is_shared=False)
 
         # Copy headers, keeping the folder structure.
-        copy_headers_command = "find ./absl -name *.h -exec cp --parents \\{\\} " + \
-            builder.prefix_include + " \\;"
+        copy_headers_command = "rsync -avm --include='*.h' -f 'hide,! */' ./absl " + \
+            builder.prefix_include
         # TODO: Use log_output.
         print("Copying headers: " + copy_headers_command)
         os.system(copy_headers_command)
-
-        # Fix permissions on libraries. Bazel builds write-protected files by default, which
-        # prevents overwriting when building thirdparty multiple times.
-        builder.log_output(log_prefix, ['chmod', '755', 'bazel-bin/absl/libabsl_shared.so'])
-        builder.log_output(log_prefix, ['chmod', '644', 'bazel-bin/absl/absl_static.a'])
-
-        builder.log_output(log_prefix, ['cp',
-                                        'bazel-bin/absl/libabsl_shared.so',
-                                        builder.prefix_lib + '/libabsl.so'])
-        builder.log_output(log_prefix, ['cp', '-f',
-                                        'bazel-bin/absl/absl_static.a',
-                                        builder.prefix_lib + '/libabsl.a'])

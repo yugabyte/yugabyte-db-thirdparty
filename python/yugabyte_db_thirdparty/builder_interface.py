@@ -78,6 +78,15 @@ class BuilderInterface:
             targets: List[str] = []) -> None:
         raise NotImplementedError()
 
+    def install_bazel_build_output(
+            self,
+            dep: 'Dependency',
+            src_file: str,
+            dest_file: str,
+            src_folder: str,
+            is_shared: bool) -> None:
+        raise NotImplementedError()
+
     def log_prefix(self, dep: 'Dependency') -> str:
         raise NotImplementedError()
 

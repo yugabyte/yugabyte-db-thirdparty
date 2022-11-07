@@ -31,17 +31,17 @@ class TCMallocDependency(Dependency):
         builder.build_with_bazel(dep=self,
                                  targets=["tcmalloc:tcmalloc_shared", "tcmalloc:tcmalloc_static"])
 
-        # Fix permissions on libraries. Bazel builds write-protected files by default, which
-        # prevents overwriting when building thirdparty multiple times.
-        builder.log_output(log_prefix, ['chmod', '755', 'bazel-bin/tcmalloc/libtcmalloc_shared.so'])
-        builder.log_output(log_prefix, ['chmod', '644', 'bazel-bin/tcmalloc/tcmalloc_static.a'])
+        builder.install_bazel_build_output(
+                dep=self,
+                src_file="libtcmalloc_shared.so",
+                dest_file=f"googletcmalloc_shared.{builder.shared_lib_suffix}",
+                src_folder="tcmalloc",
+                is_shared=True)
+        builder.install_bazel_build_output(
+                dep=self, src_file="tcmalloc_static.a", dest_file="googletcmalloc_static.a",
+                src_folder="tcmalloc", is_shared=False)
 
+        # Copy headers.
         builder.log_output(log_prefix, ['mkdir', '-p', builder.prefix_include + '/tcmalloc'])
-        builder.log_output(log_prefix, ['cp', '-f'] + glob.glob('./tcmalloc/*.h') +
+        builder.log_output(log_prefix, ['cp'] + glob.glob('./tcmalloc/*.h') +
                                        [builder.prefix_include + '/tcmalloc'])
-        builder.log_output(log_prefix, ['cp', '-f',
-                                        'bazel-bin/tcmalloc/libtcmalloc_shared.so',
-                                        builder.prefix_lib + '/libgoogletcmalloc.so'])
-        builder.log_output(log_prefix, ['cp', '-f',
-                                        'bazel-bin/tcmalloc/tcmalloc_static.a',
-                                        builder.prefix_lib + '/libgoogletcmalloc.a'])
