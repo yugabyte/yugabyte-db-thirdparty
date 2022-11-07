@@ -785,11 +785,11 @@ class Builder(BuilderInterface):
         bazel_linkopts = os.environ["LDFLAGS"].replace(" ", ":")
 
         # Build without curses for more readable build output.
-        build_command = "bazel build --curses=no"
+        build_command = ["bazel", "build", "--curses=no"]
         if verbose_output:
-            build_command += " --subcommands"
-        build_command += f" --repo_env=BAZEL_CXXOPTS='{bazel_cxxopts}'"
-        build_command += f" --repo_env=BAZEL_LINKOPTS='{bazel_linkopts}'"
+            build_command.append("--subcommands")
+        build_command += ["--action_env", f"BAZEL_CXXOPTS={bazel_cxxopts}"]
+        build_command += ["--action_env", f"BAZEL_LINKOPTS={bazel_linkopts}"]
 
         # Need to explicitly pass environment variables which we want to be available.
         env_vars_to_copy = ["PATH", "CC", "CXX", "YB_THIRDPARTY_REAL_C_COMPILER",
@@ -798,12 +798,10 @@ class Builder(BuilderInterface):
             if env_var not in os.environ:
                 log(f"Environment variable {env_var} not found. Not passing it to Bazel.")
                 continue
-            build_command += f" --action_env={env_var}={os.environ[env_var]}"
+            build_command += ["--action_env", f"{env_var}={os.environ[env_var]}"]
 
-        # TODO (asrivastava): Change to log_output.
         for target in targets:
-            log(f"Building {target} with command " + build_command)
-            os.system(build_command + " " + target)
+            self.log_output(log_prefix, build_command + [target])
 
     def install_bazel_build_output(
             self,

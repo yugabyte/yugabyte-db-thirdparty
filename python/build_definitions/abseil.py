@@ -40,9 +40,6 @@ class AbseilDependency(Dependency):
                 dep=self, src_file="absl_static.a", dest_file="absl_static.a",
                 src_folder="absl", is_shared=False)
 
-        # Copy headers, keeping the folder structure.
-        copy_headers_command = "rsync -avm --include='*.h' -f 'hide,! */' ./absl " + \
-            builder.prefix_include
-        # TODO: Use log_output.
-        print("Copying headers: " + copy_headers_command)
-        os.system(copy_headers_command)
+        # Copy headers, keeping the folder structure. https://stackoverflow.com/a/29457076.
+        builder.log_output(log_prefix, ["rsync", "-a", "--include=*.h", "-f", "hide,! */",
+                                        "./absl", builder.prefix_include])
