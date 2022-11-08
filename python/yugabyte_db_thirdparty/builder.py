@@ -368,7 +368,7 @@ class Builder(BuilderInterface):
             ) + [
                 'ncurses',
             ] + (
-                [] if is_macos() else ['libkeyutils', 'libverto']
+                [] if is_macos() else ['libkeyutils', 'libverto', 'abseil', 'tcmalloc']
             ) + [
                 'libedit',
                 'icu4c',
@@ -768,6 +768,57 @@ class Builder(BuilderInterface):
             do_build_with_cmake()
             self.validate_build_output()
 
+    def build_with_bazel(
+            self,
+            dep: Dependency,
+            verbose_output: bool = True,
+            should_clean: bool = True,
+            targets: List[str] = []) -> None:
+        log_prefix = self.log_prefix(dep)
+        if should_clean:
+            self.log_output(log_prefix, ['bazel', 'clean', '--expunge'])
+
+        # Need to remove the space after isystem so replacing the space separators with colons
+        # works properly.
+        bazel_cxxopts = os.environ["CXXFLAGS"].replace("isystem ", "isystem").replace(" ", ":")
+        # Add stdlib=libc++ to avoid linking with libstdc++.
+        bazel_linkopts = os.environ["LDFLAGS"].replace(" ", ":")
+
+        # Build without curses for more readable build output.
+        build_command = ["bazel", "build", "--curses=no"]
+        if verbose_output:
+            build_command.append("--subcommands")
+        build_command += ["--action_env", f"BAZEL_CXXOPTS={bazel_cxxopts}"]
+        build_command += ["--action_env", f"BAZEL_LINKOPTS={bazel_linkopts}"]
+
+        # Need to explicitly pass environment variables which we want to be available.
+        env_vars_to_copy = ["PATH", "CC", "CXX", "YB_THIRDPARTY_REAL_C_COMPILER",
+                            "YB_THIRDPARTY_REAL_CXX_COMPILER", "YB_THIRDPARTY_USE_CCACHE"]
+        for env_var in env_vars_to_copy:
+            if env_var not in os.environ:
+                log(f"Environment variable {env_var} not found. Not passing it to Bazel.")
+                continue
+            build_command += ["--action_env", f"{env_var}={os.environ[env_var]}"]
+
+        for target in targets:
+            self.log_output(log_prefix, build_command + [target])
+
+    def install_bazel_build_output(
+            self,
+            dep: Dependency,
+            src_file: str,
+            dest_file: str,
+            src_folder: str,
+            is_shared: bool) -> None:
+        log_prefix = self.log_prefix(dep)
+        src_path = f'bazel-bin/{src_folder}/{src_file}'
+        dest_path = os.path.join(self.prefix_lib, dest_file)
+
+        # Fix permissions on libraries. Bazel builds write-protected files by default, which
+        # prevents overwriting when building thirdparty multiple times.
+        self.log_output(log_prefix, ['chmod', '755' if is_shared else '644', src_path])
+        self.log_output(log_prefix, ['cp', src_path, dest_path])
+
     def validate_build_output(self) -> None:
         if is_macos():
             target_arch = get_target_arch()
@@ -967,12 +1018,10 @@ class Builder(BuilderInterface):
         if not is_libcxx and not is_libcxxabi and not is_libcxx_with_abi:
             log("Adding special compiler/linker flags for Clang 10+ for dependencies other than "
                 "libc++")
-            self.ld_flags += ['-lc++', '-lc++abi']
-
-            self.cxx_flags = [
-                '-stdlib=libc++',
-                '-nostdinc++'
-            ] + self.cxx_flags
+            self.ld_flags += ['-stdlib=libc++', '-lc++', '-lc++abi']
+            # TODO(asrivastava): We might not need libc++ in cxxflags but removing it causes certain
+            # builds to fail.
+            self.cxx_flags += ['-stdlib=libc++', '-nostdinc++']
             self.preprocessor_flags.extend(['-isystem', libcxx_installed_include])
             self.prepend_lib_dir_and_rpath(libcxx_installed_lib)
 
