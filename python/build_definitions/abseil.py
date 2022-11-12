@@ -33,11 +33,11 @@ class AbseilDependency(Dependency):
         builder.install_bazel_build_output(
                 dep=self,
                 src_file="libabsl_shared.so",
-                dest_file="absl_shared." + builder.shared_lib_suffix,
+                dest_file=f"libabsl.{builder.shared_lib_suffix}",
                 src_folder="absl",
                 is_shared=True)
         builder.install_bazel_build_output(
-                dep=self, src_file="absl_static.a", dest_file="absl_static.a",
+                dep=self, src_file="absl_static.a", dest_file="libabsl.a",
                 src_folder="absl", is_shared=False)
 
         # Copy headers, keeping the folder structure. https://stackoverflow.com/a/29457076.
