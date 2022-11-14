@@ -34,11 +34,11 @@ class TCMallocDependency(Dependency):
         builder.install_bazel_build_output(
                 dep=self,
                 src_file="libtcmalloc_shared.so",
-                dest_file=f"googletcmalloc_shared.{builder.shared_lib_suffix}",
+                dest_file=f"libgoogletcmalloc.{builder.shared_lib_suffix}",
                 src_folder="tcmalloc",
                 is_shared=True)
         builder.install_bazel_build_output(
-                dep=self, src_file="tcmalloc_static.a", dest_file="googletcmalloc_static.a",
+                dep=self, src_file="tcmalloc_static.a", dest_file="libgoogletcmalloc.a",
                 src_folder="tcmalloc", is_shared=False)
 
         # Copy headers.
