@@ -41,5 +41,5 @@ class AbseilDependency(Dependency):
                 src_folder="absl", is_shared=False)
 
         # Copy headers, keeping the folder structure. https://stackoverflow.com/a/29457076.
-        builder.log_output(log_prefix, ["rsync", "-a", "--include=*.h", "-f", "hide,! */",
-                                        "./absl", builder.prefix_include])
+        builder.log_output(log_prefix, ["rsync", "-a", "--include=*.h", "--include=*.inc", "-f",
+                                        "hide,! */", "./absl", builder.prefix_include])
