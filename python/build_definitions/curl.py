@@ -35,7 +35,8 @@ class CurlDependency(Dependency):
             '--without-brotli',
             '--without-libidn2',
             '--without-librtmp',
-            '--without-nghttp2'
+            '--without-nghttp2',
+            '--without-zstd',
         ]
 
         builder.build_with_configure(dep=self, extra_args=extra_args)
