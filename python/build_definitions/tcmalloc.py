@@ -21,7 +21,7 @@ class TCMallocDependency(Dependency):
     def __init__(self) -> None:
         super(TCMallocDependency, self).__init__(
             name='tcmalloc',
-            version='fe1d78b-yb-3',
+            version='e116a66-yb-1',
             url_pattern='https://github.com/yugabyte/tcmalloc/archive/{0}.tar.gz',
             build_group=BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = True
@@ -41,7 +41,6 @@ class TCMallocDependency(Dependency):
                 dep=self, src_file="tcmalloc_static.a", dest_file="libgoogletcmalloc.a",
                 src_folder="tcmalloc", is_shared=False)
 
-        # Copy headers.
-        builder.log_output(log_prefix, ['mkdir', '-p', builder.prefix_include + '/tcmalloc'])
-        builder.log_output(log_prefix, ['cp'] + glob.glob('./tcmalloc/*.h') +
-                                       [builder.prefix_include + '/tcmalloc'])
+        # Copy headers, keeping the folder structure. https://stackoverflow.com/a/29457076.
+        builder.log_output(log_prefix, ["rsync", "-a", "--include=*.h", "-f",
+                                        "hide,! */", "./tcmalloc", builder.prefix_include])
