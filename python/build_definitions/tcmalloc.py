@@ -41,6 +41,6 @@ class TCMallocDependency(Dependency):
                 dep=self, src_file="tcmalloc_static.a", dest_file="libgoogletcmalloc.a",
                 src_folder="tcmalloc", is_shared=False)
 
-        # Copy headers, keeping the folder structure. https://stackoverflow.com/a/29457076.
+        # Copy headers, keeping the folder structure. https://stackoverflow.com/a/9626253/1890288.
         builder.log_output(log_prefix, ["rsync", "-a", "--include=*.h", "-f",
                                         "hide,! */", "./tcmalloc", builder.prefix_include])
