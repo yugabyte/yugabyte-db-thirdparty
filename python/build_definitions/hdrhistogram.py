@@ -21,7 +21,7 @@ class HdrHistogramDependency(Dependency):
             'hdrhistogram',
             '0.11.6-yb-1',
             'https://github.com/yugabyte/HdrHistogram_c/archive/hdrhistogram-{0}.tar.gz',
-            BUILD_GROUP_COMMON)
+            BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = True
 
     def get_additional_cmake_args(self, builder: BuilderInterface) -> List[str]:
