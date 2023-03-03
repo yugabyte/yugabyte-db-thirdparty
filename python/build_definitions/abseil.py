@@ -20,7 +20,7 @@ class AbseilDependency(Dependency):
     def __init__(self) -> None:
         super(AbseilDependency, self).__init__(
             name='abseil',
-            version='0064d9d-yb-1',
+            version='0064d9d-yb-2',
             url_pattern='https://github.com/yugabyte/abseil-cpp/archive/refs/tags/'
                         '{0}.tar.gz',
             build_group=BUILD_GROUP_INSTRUMENTED)
@@ -40,6 +40,6 @@ class AbseilDependency(Dependency):
                 dep=self, src_file="absl_static.a", dest_file="libabsl.a",
                 src_folder="absl", is_shared=False)
 
-        # Copy headers, keeping the folder structure. https://stackoverflow.com/a/29457076.
+        # Copy headers, keeping the folder structure. https://stackoverflow.com/a/9626253/1890288.
         builder.log_output(log_prefix, ["rsync", "-a", "--include=*.h", "--include=*.inc", "-f",
                                         "hide,! */", "./absl", builder.prefix_include])
