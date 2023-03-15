@@ -34,7 +34,7 @@ To modify some dependency (e.g. glog):
         super(GLogDependency, self).__init__(
             name='glog',
             version='0.4.0-yb-yourusername-1',
-            url_pattern='https://github.com/yourgithubyusername/glog/archive/v{0}.tar.gz',
+            url_pattern='https://github.com/yourgithubyusername/glog/archive/refs/tags/{0}.tar.gz',
             build_group=BUILD_GROUP_INSTRUMENTED)
 ```
 
