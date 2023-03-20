@@ -315,6 +315,7 @@ class Builder(BuilderInterface):
             'openldap',
             'redis_cli',
             'wyhash',
+            'hdr_histogram_pgss',
         ])
         for dep in self.dependencies:
             if dep.build_group != BUILD_GROUP_COMMON:
