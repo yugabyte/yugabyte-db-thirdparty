@@ -22,8 +22,8 @@ class Krb5Dependency(Dependency):
     def __init__(self) -> None:
         super(Krb5Dependency, self).__init__(
             'krb5',
-            '1.19.3',
-            'https://kerberos.org/dist/krb5/1.19/krb5-{0}.tar.gz',
+            '1.20.1',
+            'https://kerberos.org/dist/krb5/1.20/krb5-{0}.tar.gz',
             BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = True
         self.patches = ['krb5-1.19.3-use-ldflags-for-test.patch']
