@@ -34,7 +34,7 @@ To modify some dependency (e.g. glog):
             name='glog',
             version='0.4.0-yb-1',
             url_pattern='https://github.com/yugabyte/glog/archive/v{0}.tar.gz',
-            local_archive='~/path/to/glog',
+            local_archive='/path/to/glog',
             build_group=BUILD_GROUP_INSTRUMENTED)
 ```
 * When you are done with your changes to the dependency, e.g. glog, get them checked into our fork, i.e. yugabyte/glog on GitHub, and create the next "official" Yugabyte tag for that dependency, e.g. 0.4.0-yb-2 (we usually add a `-yb-N` suffix to the upstream version).
