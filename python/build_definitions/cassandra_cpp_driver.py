@@ -69,4 +69,9 @@ class CassandraCppDriverDependency(Dependency):
             # Needed to avoid this error:
             # https://gist.githubusercontent.com/mbautin/d1ce54c995f9e535ab214a12945d2e7b/raw
             extra_cxx_flags.append('-Wno-error=free-nonheap-object')
+            if gcc_major_version >= 12:
+                extra_cxx_flags.extend([
+                    '-Wno-error=array-bounds',
+                    '-Wno-error=deprecated-declarations'
+                ])
         return extra_cxx_flags

@@ -875,14 +875,12 @@ class Builder(BuilderInterface):
                         f"should_build={should_build}, "
                         f"should_rebuild={should_rebuild}.")
 
-    def get_install_prefix_with_qualifier(self, qualifier: Optional[str] = None) -> str:
-        return os.path.join(
-            self.fs_layout.tp_installed_dir,
-            self.build_type + ('_%s' % qualifier if qualifier else ''))
+    def get_install_prefix(self) -> str:
+        return os.path.join(self.fs_layout.tp_installed_dir, self.build_type)
 
     def set_build_type(self, build_type: str) -> None:
         self.build_type = build_type
-        self.prefix = self.get_install_prefix_with_qualifier(qualifier=None)
+        self.prefix = self.get_install_prefix()
         self.prefix_bin = os.path.join(self.prefix, 'bin')
         self.prefix_lib = os.path.join(self.prefix, 'lib')
         self.prefix_include = os.path.join(self.prefix, 'include')

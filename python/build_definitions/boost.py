@@ -34,7 +34,7 @@ using {0} : {1} :
 
 class BoostDependency(Dependency):
     MAJOR_VERSION = 1
-    MINOR_VERSION = 78
+    MINOR_VERSION = 81
     PATCH_VERSION = 0
     VERSION_TUPLE = (MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION)
     VERSION_STR = "%s.%s.%s" % VERSION_TUPLE

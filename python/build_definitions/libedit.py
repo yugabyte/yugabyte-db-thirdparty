@@ -12,6 +12,8 @@
 # under the License.
 #
 
+import os
+
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
 
@@ -23,6 +25,9 @@ class LibEditDependency(Dependency):
               url_pattern='https://github.com/yugabyte/libedit/archive/libedit-{}.tar.gz',
               build_group=BUILD_GROUP_INSTRUMENTED)
         self.copy_sources = True
+
+    def get_additional_compiler_flags(self, builder: BuilderInterface) -> List[str]:
+        return ['-I%s' % os.path.join(builder.prefix_include, 'ncurses')]
 
     def build(self, builder: BuilderInterface) -> None:
         builder.build_with_configure(dep=self, extra_args=['--with-pic'])
