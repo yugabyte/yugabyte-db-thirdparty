@@ -51,7 +51,7 @@ class BoostDependency(Dependency):
             license='Boost Software License 1.0')
         self.dir = '{}_{}'.format(self.name, self.underscored_version)
         self.copy_sources = True
-        self.patches = ['boost-1-78-add-arm64-instruction-set.patch']
+        self.patches = ['boost-1-81-add-arm64-instruction-set.patch']
 
     def build(self, builder: BuilderInterface) -> None:
         libs = ['system', 'thread', 'atomic', 'program_options', 'regex', 'date_time']
