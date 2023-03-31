@@ -317,6 +317,9 @@ class DownloadManager:
             # Just create an empty directory with the specified name.
             log("Creating %s", src_path)
             mkdir_if_missing(src_path)
+        elif dep.local_archive:
+            log("Copying from local archive at %s to %s", dep.local_archive, src_path)
+            shutil.copytree(dep.local_archive, src_path)
         else:
             download_url = dep.download_url
             log("Download URL: %s", download_url)

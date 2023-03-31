@@ -32,6 +32,7 @@ class Dependency:
     license: Optional[str]
     mkdir_only: bool
     archive_name: Optional[str]
+    local_archive: Optional[str]
 
     # For dependencies built with configure/autotools, where out-of-source build is not possible,
     # this tells the initial step to create separate build directories for shared and static builds.
@@ -45,7 +46,8 @@ class Dependency:
             build_group: str,
             archive_name_prefix: Optional[str] = None,
             license: Optional[str] = None,
-            mkdir_only: bool = False) -> None:
+            mkdir_only: bool = False,
+            local_archive: Optional[str] = None) -> None:
         self.name = name
         self.version = version
         self.dir_name = '{}-{}'.format(name, version)
@@ -61,6 +63,7 @@ class Dependency:
         if not mkdir_only:
             self.archive_name = make_archive_name(
                 archive_name_prefix or name, version, self.download_url)
+        self.local_archive = local_archive
 
         self.patch_version = 0
         self.extra_downloads = []
