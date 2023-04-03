@@ -24,6 +24,10 @@ LIBRARY_DIRS_PREFIX = 'libraries: ='
 
 
 def get_clang_library_dirs(clang_executable_path: str) -> List[str]:
+    """
+    Returns a list of library directories for Clang by parsing the output of '-print-search-dirs'
+    command.
+    """
     search_dirs_cmd = [clang_executable_path, '-print-search-dirs']
     search_dirs_output = subprocess.check_output(search_dirs_cmd).decode('utf-8')
     library_dirs: Optional[List[str]] = None
@@ -39,17 +43,34 @@ def get_clang_library_dirs(clang_executable_path: str) -> List[str]:
     return library_dirs
 
 
-def get_clang_library_dir(clang_executable_path: str) -> str:
+def get_clang_library_dir(
+        clang_executable_path: str,
+        look_for_file: Optional[str] = None) -> Optional[str]:
+    """
+    Finds and returns the Clang runtime library directory using the provided Clang executable path.
+    For each of the library directories returned by get_clang_library_dirs(), we will look for a
+    a lib/linux or lib/<arch>-unknown-linux-gnu subdirectory. If we find such a subdirectory, we
+    will consider returning it (but only if it contains the given file if specified).
+
+    :param clang_executable_path: The path to the Clang executable.
+    :param look_for_file: An optional file to look for in the candidate directory. If this file does
+                          not exist in the candidate directory, we will continue looking for another
+                          candidate directory.
+    :return: the Clang runtime library directory.
+    """
     library_dirs = get_clang_library_dirs(clang_executable_path)
     candidate_dirs: List[str] = []
 
     arch = platform.machine()
     arch_specific_subdir_name = f'{arch}-unknown-linux-gnu'
+    subdir_names = ['linux', arch_specific_subdir_name]
 
     for library_dir in library_dirs:
-        for subdir_name in ['linux', arch_specific_subdir_name]:
+        for subdir_name in subdir_names:
             candidate_dir = os.path.join(library_dir, 'lib', subdir_name)
-            if os.path.isdir(candidate_dir):
+            if os.path.isdir(candidate_dir) and (
+                    look_for_file is None or
+                    os.path.exists(os.path.join(candidate_dir, look_for_file))):
                 return candidate_dir
             candidate_dirs.append(candidate_dir)
 
@@ -58,7 +79,9 @@ def get_clang_library_dir(clang_executable_path: str) -> str:
     raise ValueError(
         "Could not find the Clang runtime library directory by appending lib/... suffixes to "
         "any of the directories returned by 'clang -print-search-dirs' "
-        f"(clang path: {clang_executable_path}): {library_dirs}")
+        f"(clang path: {clang_executable_path}, subdir names: {subdir_names}, "
+        f"file name that must exist in the directory: {look_for_file}): {library_dirs}"
+    )
 
 
 def get_clang_include_dir(clang_executable_path: str) -> str:

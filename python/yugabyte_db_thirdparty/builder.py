@@ -983,13 +983,19 @@ class Builder(BuilderInterface):
                 # parts of the runtime library and C++ standard libraries are present.
 
             assert self.compiler_choice.cc is not None
-            compiler_rt_lib_dir = get_clang_library_dir(self.compiler_choice.get_c_compiler())
-            self.add_lib_dir_and_rpath(compiler_rt_lib_dir)
             ubsan_lib_candidates = []
             ubsan_lib_found = False
             for ubsan_lib_arch_suffix in ['', f'-{platform.processor()}']:
                 ubsan_lib_name = f'clang_rt.ubsan_minimal{ubsan_lib_arch_suffix}'
-                ubsan_lib_so_path = os.path.join(compiler_rt_lib_dir, f'lib{ubsan_lib_name}.so')
+                ubsan_lib_file_name = f'lib{ubsan_lib_name}.so'
+                compiler_rt_lib_dir = get_clang_library_dir(
+                    self.compiler_choice.get_c_compiler(),
+                    look_for_file=ubsan_lib_file_name)
+                if compiler_rt_lib_dir is None:
+                    continue
+                self.add_lib_dir_and_rpath(compiler_rt_lib_dir)
+
+                ubsan_lib_so_path = os.path.join(compiler_rt_lib_dir, ubsan_lib_file_name)
                 ubsan_lib_candidates.append(ubsan_lib_so_path)
                 if os.path.exists(ubsan_lib_so_path):
                     self.ld_flags.append(f'-l{ubsan_lib_name}')

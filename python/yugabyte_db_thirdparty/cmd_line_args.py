@@ -23,7 +23,7 @@ from sys_detection import is_macos, local_sys_conf
 from yugabyte_db_thirdparty.checksums import CHECKSUM_FILE_NAME
 from yugabyte_db_thirdparty.util import log
 from yugabyte_db_thirdparty.toolchain import TOOLCHAIN_TYPES
-from yugabyte_db_thirdparty.constants import ADD_CHECKSUM_ARG
+from yugabyte_db_thirdparty.constants import ADD_CHECKSUM_ARG, ADD_CHECKSUM_ALTERNATE_ARG
 from build_definitions import BUILD_TYPES
 
 
