@@ -57,7 +57,7 @@ def parse_cmd_line_args() -> argparse.Namespace:
                         action='store_true',
                         default=False,
                         help='Clean, including downloads.')
-    parser.add_argument(ADD_CHECKSUM_ARG,
+    parser.add_argument(ADD_CHECKSUM_ARG, ADD_CHECKSUM_ALTERNATE_ARG,
                         help='Compute and add unknown checksums to %s' % CHECKSUM_FILE_NAME,
                         action='store_true')
     parser.add_argument('--compiler-family',
