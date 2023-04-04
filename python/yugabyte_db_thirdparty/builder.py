@@ -327,11 +327,6 @@ class Builder(BuilderInterface):
                 get_build_def_module('libuuid').LibUuidDependency(),
             ]
 
-            standalone_llvm7_toolchain = self.toolchain and self.toolchain.toolchain_type == 'llvm7'
-            if standalone_llvm7_toolchain:
-                self.dependencies.append(
-                        get_build_def_module('llvm7_libcxx').Llvm7LibCXXDependency())
-
             llvm_major_version: Optional[int] = self.compiler_choice.get_llvm_major_version()
             if (self.compiler_choice.is_clang() and
                     llvm_major_version is not None and llvm_major_version >= 10):
@@ -988,11 +983,13 @@ class Builder(BuilderInterface):
             for ubsan_lib_arch_suffix in ['', f'-{platform.processor()}']:
                 ubsan_lib_name = f'clang_rt.ubsan_minimal{ubsan_lib_arch_suffix}'
                 ubsan_lib_file_name = f'lib{ubsan_lib_name}.so'
-                compiler_rt_lib_dir = get_clang_library_dir(
+                compiler_rt_lib_dir_as_list = get_clang_library_dir(
                     self.compiler_choice.get_c_compiler(),
                     look_for_file=ubsan_lib_file_name)
-                if compiler_rt_lib_dir is None:
+                if not compiler_rt_lib_dir_as_list:
                     continue
+                assert len(compiler_rt_lib_dir_as_list) == 1
+                compiler_rt_lib_dir = compiler_rt_lib_dir_as_list[0]
                 self.add_lib_dir_and_rpath(compiler_rt_lib_dir)
 
                 ubsan_lib_so_path = os.path.join(compiler_rt_lib_dir, ubsan_lib_file_name)

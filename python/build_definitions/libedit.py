@@ -27,7 +27,14 @@ class LibEditDependency(Dependency):
         self.copy_sources = True
 
     def get_additional_compiler_flags(self, builder: BuilderInterface) -> List[str]:
-        return ['-I%s' % os.path.join(builder.prefix_include, 'ncurses')]
+        flags = ['-I%s' % os.path.join(builder.prefix_include, 'ncurses')]
+        llvm_major_version = builder.compiler_choice.get_llvm_major_version()
+        if (builder.compiler_choice.is_linux_clang() and
+                builder.build_type == BUILD_TYPE_ASAN and
+                llvm_major_version is not None and
+                llvm_major_version >= 16):
+            flags.append('-Wno-error=implicit-function-declaration')
+        return flags
 
     def build(self, builder: BuilderInterface) -> None:
         builder.build_with_configure(dep=self, extra_args=['--with-pic'])

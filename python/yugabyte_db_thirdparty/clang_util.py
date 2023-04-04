@@ -45,7 +45,8 @@ def get_clang_library_dirs(clang_executable_path: str) -> List[str]:
 
 def get_clang_library_dir(
         clang_executable_path: str,
-        look_for_file: Optional[str] = None) -> Optional[str]:
+        look_for_file: Optional[str] = None,
+        all_dirs: bool = False) -> List[str]:
     """
     Finds and returns the Clang runtime library directory using the provided Clang executable path.
     For each of the library directories returned by get_clang_library_dirs(), we will look for a
@@ -56,7 +57,9 @@ def get_clang_library_dir(
     :param look_for_file: An optional file to look for in the candidate directory. If this file does
                           not exist in the candidate directory, we will continue looking for another
                           candidate directory.
-    :return: the Clang runtime library directory.
+    :param all_dirs: to return all possible directories
+    :return: the Clang runtime library directory, or an empty list if not found, or all directories
+             if all_dirs is specified.
     """
     library_dirs = get_clang_library_dirs(clang_executable_path)
     candidate_dirs: List[str] = []
@@ -65,14 +68,27 @@ def get_clang_library_dir(
     arch_specific_subdir_name = f'{arch}-unknown-linux-gnu'
     subdir_names = ['linux', arch_specific_subdir_name]
 
+    found_dirs: List[str] = []
+
     for library_dir in library_dirs:
         for subdir_name in subdir_names:
             candidate_dir = os.path.join(library_dir, 'lib', subdir_name)
             if os.path.isdir(candidate_dir) and (
                     look_for_file is None or
                     os.path.exists(os.path.join(candidate_dir, look_for_file))):
-                return candidate_dir
+                if all_dirs:
+                    found_dirs.append(candidate_dir)
+                else:
+                    return [candidate_dir]
             candidate_dirs.append(candidate_dir)
+
+    if (all_dirs and found_dirs) or look_for_file is not None:
+        # If we are looking for all directories, return all directories we found. But make sure
+        # we found at least one.
+        #
+        # If we are looking for a specific file, allow returning an empty list if we did not find
+        # a directory with that particular file.
+        return found_dirs
 
     for candidate_dir in candidate_dirs:
         log(f"Considered candidate directory: {candidate_dir}")
