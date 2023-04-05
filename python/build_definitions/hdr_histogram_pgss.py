@@ -21,7 +21,7 @@ class HdrHistogramPGSSDependency(Dependency):
     def __init__(self) -> None:
         super(HdrHistogramPGSSDependency, self).__init__(
             name='HdrHistogram_c',
-            version='v1.1.1',
+            version='v1.1.2',
             url_pattern='https://github.com/acuskev/HdrHistogram_c/archive/refs/tags/{0}.tar.gz',
             build_group=BUILD_GROUP_COMMON)
         self.copy_sources = True

@@ -381,7 +381,7 @@ class Builder(BuilderInterface):
                 'libuv',
                 'cassandra_cpp_driver',
                 'krb5',
-                'hdrhistogram',
+                'hdr_histogram_pgss'
             ])
 
     def select_dependencies_to_build(self) -> None:
