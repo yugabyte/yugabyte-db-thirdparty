@@ -34,6 +34,7 @@ class Icu4cDependency(Dependency):
                 Icu4cDependency.VERSION_WITH_DASH,
                 Icu4cDependency.VERSION_WITH_UNDERSCORE),
             build_group=BUILD_GROUP_INSTRUMENTED)
+        self.patches = ['icu4c-remove-undef-strict-ansi.patch']
         self.copy_sources = True
 
     def get_additional_ld_flags(self, builder: BuilderInterface) -> List[str]:
