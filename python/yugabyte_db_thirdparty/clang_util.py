@@ -57,7 +57,8 @@ def get_clang_library_dir(
     :param look_for_file: An optional file to look for in the candidate directory. If this file does
                           not exist in the candidate directory, we will continue looking for another
                           candidate directory.
-    :param all_dirs: to return all possible directories
+    :param all_dirs: to return all possible directories. This set of directories is filtered by the
+                     presence of the look_for_file if specified.
     :return: the Clang runtime library directory, or an empty list if not found, or all directories
              if all_dirs is specified.
     """
@@ -79,6 +80,7 @@ def get_clang_library_dir(
                 if all_dirs:
                     found_dirs.append(candidate_dir)
                 else:
+                    # Return the first directory we found satisfying the condition.
                     return [candidate_dir]
             candidate_dirs.append(candidate_dir)
 
