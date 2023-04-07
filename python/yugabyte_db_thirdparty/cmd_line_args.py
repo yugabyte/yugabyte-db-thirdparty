@@ -23,7 +23,7 @@ from sys_detection import is_macos, local_sys_conf
 from yugabyte_db_thirdparty.checksums import CHECKSUM_FILE_NAME
 from yugabyte_db_thirdparty.util import log
 from yugabyte_db_thirdparty.toolchain import TOOLCHAIN_TYPES
-from yugabyte_db_thirdparty.constants import ADD_CHECKSUM_ARG
+from yugabyte_db_thirdparty.constants import ADD_CHECKSUM_ARG, ADD_CHECKSUM_ALTERNATE_ARG
 from build_definitions import BUILD_TYPES
 
 
@@ -57,7 +57,7 @@ def parse_cmd_line_args() -> argparse.Namespace:
                         action='store_true',
                         default=False,
                         help='Clean, including downloads.')
-    parser.add_argument(ADD_CHECKSUM_ARG,
+    parser.add_argument(ADD_CHECKSUM_ARG, ADD_CHECKSUM_ALTERNATE_ARG,
                         help='Compute and add unknown checksums to %s' % CHECKSUM_FILE_NAME,
                         action='store_true')
     parser.add_argument('--compiler-family',

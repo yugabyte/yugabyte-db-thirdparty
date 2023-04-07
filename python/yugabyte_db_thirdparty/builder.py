@@ -327,11 +327,6 @@ class Builder(BuilderInterface):
                 get_build_def_module('libuuid').LibUuidDependency(),
             ]
 
-            standalone_llvm7_toolchain = self.toolchain and self.toolchain.toolchain_type == 'llvm7'
-            if standalone_llvm7_toolchain:
-                self.dependencies.append(
-                        get_build_def_module('llvm7_libcxx').Llvm7LibCXXDependency())
-
             llvm_major_version: Optional[int] = self.compiler_choice.get_llvm_major_version()
             if (self.compiler_choice.is_clang() and
                     llvm_major_version is not None and llvm_major_version >= 10):
@@ -875,14 +870,12 @@ class Builder(BuilderInterface):
                         f"should_build={should_build}, "
                         f"should_rebuild={should_rebuild}.")
 
-    def get_install_prefix_with_qualifier(self, qualifier: Optional[str] = None) -> str:
-        return os.path.join(
-            self.fs_layout.tp_installed_dir,
-            self.build_type + ('_%s' % qualifier if qualifier else ''))
+    def get_install_prefix(self) -> str:
+        return os.path.join(self.fs_layout.tp_installed_dir, self.build_type)
 
     def set_build_type(self, build_type: str) -> None:
         self.build_type = build_type
-        self.prefix = self.get_install_prefix_with_qualifier(qualifier=None)
+        self.prefix = self.get_install_prefix()
         self.prefix_bin = os.path.join(self.prefix, 'bin')
         self.prefix_lib = os.path.join(self.prefix, 'lib')
         self.prefix_include = os.path.join(self.prefix, 'include')
@@ -985,13 +978,21 @@ class Builder(BuilderInterface):
                 # parts of the runtime library and C++ standard libraries are present.
 
             assert self.compiler_choice.cc is not None
-            compiler_rt_lib_dir = get_clang_library_dir(self.compiler_choice.get_c_compiler())
-            self.add_lib_dir_and_rpath(compiler_rt_lib_dir)
             ubsan_lib_candidates = []
             ubsan_lib_found = False
             for ubsan_lib_arch_suffix in ['', f'-{platform.processor()}']:
                 ubsan_lib_name = f'clang_rt.ubsan_minimal{ubsan_lib_arch_suffix}'
-                ubsan_lib_so_path = os.path.join(compiler_rt_lib_dir, f'lib{ubsan_lib_name}.so')
+                ubsan_lib_file_name = f'lib{ubsan_lib_name}.so'
+                compiler_rt_lib_dir_as_list = get_clang_library_dir(
+                    self.compiler_choice.get_c_compiler(),
+                    look_for_file=ubsan_lib_file_name)
+                if not compiler_rt_lib_dir_as_list:
+                    continue
+                assert len(compiler_rt_lib_dir_as_list) == 1
+                compiler_rt_lib_dir = compiler_rt_lib_dir_as_list[0]
+                self.add_lib_dir_and_rpath(compiler_rt_lib_dir)
+
+                ubsan_lib_so_path = os.path.join(compiler_rt_lib_dir, ubsan_lib_file_name)
                 ubsan_lib_candidates.append(ubsan_lib_so_path)
                 if os.path.exists(ubsan_lib_so_path):
                     self.ld_flags.append(f'-l{ubsan_lib_name}')
