@@ -19,8 +19,8 @@ class HdrHistogramDependency(Dependency):
     def __init__(self) -> None:
         super(HdrHistogramDependency, self).__init__(
             'hdrhistogram',
-            'v1.1.4',
-            'https://github.com/acuskev/HdrHistogram_c/archive/refs/tags/{0}.tar.gz',
+            '0.11.6-yb-2',
+            'https://github.com/yugabyte/HdrHistogram_c/archive/hdrhistogram-{0}.tar.gz',
             BUILD_GROUP_COMMON)
         self.copy_sources = True
 
