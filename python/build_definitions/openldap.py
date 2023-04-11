@@ -24,6 +24,8 @@ class OpenLDAPDependency(Dependency):
               'https://github.com/yugabyte/openldap/archive/OPENLDAP_REL_ENG_{}.tar.gz',
               BUILD_GROUP_COMMON)
         self.copy_sources = True
+        self.patch_version = 1
+        self.patches = ['openldap-do-not-build-docs.patch']
 
     def get_additional_compiler_flags(self, builder: BuilderInterface) -> List[str]:
         llvm_major_version = builder.compiler_choice.get_llvm_major_version()
