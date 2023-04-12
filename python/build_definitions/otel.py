@@ -29,6 +29,9 @@ class OtelDependency(Dependency):
         builder.build_with_cmake(self,
                                  ['-DCMAKE_POSITION_INDEPENDENT_CODE=ON',
                                   '-DBUILD_SHARED_LIBS=ON',
+                                  '-DBUILD_TESTING=OFF',
                                   '-DWITH_OTLP=ON',
+                                  '-DWITH_OTLP_HTTP=ON',
                                   '-DWITH_BENCHMARK=OFF',
+                                  "-DCMAKE_PREFIX_PATH={path}".format(path=os.path.join(builder.fs_layout.tp_installed_common_dir, "lib")),
                                   "-DOTELCPP_PROTO_PATH={path}".format(path=os.path.join(builder.fs_layout.tp_src_dir, "opentelemetry-proto-0.1.2"))])
