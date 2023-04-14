@@ -19,9 +19,9 @@ class HdrHistogramDependency(Dependency):
     def __init__(self) -> None:
         super(HdrHistogramDependency, self).__init__(
             'hdrhistogram',
-            '0.11.6-yb-1',
+            '0.11.6-yb-2',
             'https://github.com/yugabyte/HdrHistogram_c/archive/hdrhistogram-{0}.tar.gz',
-            BUILD_GROUP_INSTRUMENTED)
+            BUILD_GROUP_COMMON)
         self.copy_sources = True
 
     def get_additional_cmake_args(self, builder: BuilderInterface) -> List[str]:
