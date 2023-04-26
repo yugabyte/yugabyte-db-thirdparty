@@ -165,9 +165,9 @@ index 255056e..b66168e 100755
 - Use the `[skip ci]` tag for your branch setup commit to prevent useless builds and yugabyte-db-thirdparty releases from happening.
 
 For example, see the following commits for yugabyte-db-thirdparty branches created earlier:
-- 13e6a0104886e8e0c891e4936564814039a9ae67 (2.4)
-- fe0425532c1fccc0cb638e4e8d08fe202300aaaf (2.6)
-- 604821d7210dd248937f7d2eb575503ab7827340 (2.8)
-- 66b10387c67b82073ab79444a6ac721ad11672ac (2.14)
+- [`13e6a0104886e8e0c891e4936564814039a9ae67`](https://github.com/yugabyte/yugabyte-db-thirdparty/commit/13e6a0104886e8e0c891e4936564814039a9ae67) (2.4)
+- [`fe0425532c1fccc0cb638e4e8d08fe202300aaaf`](https://github.com/yugabyte/yugabyte-db-thirdparty/commit/fe0425532c1fccc0cb638e4e8d08fe202300aaaf) (2.6)
+- [`604821d7210dd248937f7d2eb575503ab7827340`](https://github.com/yugabyte/yugabyte-db-thirdparty/commit/604821d7210dd248937f7d2eb575503ab7827340) (2.8)
+- [`66b10387c67b82073ab79444a6ac721ad11672ac`](https://github.com/yugabyte/yugabyte-db-thirdparty/commit/66b10387c67b82073ab79444a6ac721ad11672ac) (2.14)
 
 
