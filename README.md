@@ -162,7 +162,7 @@ index 255056e..b66168e 100755
 +fi
 +tag+=$( date +%Y%m%d%H%M%S )-${git_sha1:0:10}
 ```
-- Use the `[skip ci]` tag for your branch setup commit to prevent useless builds and yugabyte-db-thirdparty releases from happening.
+- Include `[skip ci]` in the commit message for your branch setup commit to prevent useless builds and yugabyte-db-thirdparty releases from happening.
 
 For example, see the following commits for yugabyte-db-thirdparty branches created earlier:
 - [`13e6a0104886e8e0c891e4936564814039a9ae67`](https://github.com/yugabyte/yugabyte-db-thirdparty/commit/13e6a0104886e8e0c891e4936564814039a9ae67) (2.4)
