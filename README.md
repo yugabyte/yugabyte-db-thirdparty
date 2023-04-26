@@ -132,3 +132,42 @@ Use the search box with terms such as "aarch64" or "arm64":
 
 * https://github.com/yugabyte/yugabyte-db-thirdparty/releases?q=aarch64&expanded=true
 * https://github.com/yugabyte/yugabyte-db-thirdparty/releases?q=arm64&expanded=true
+
+### Setting up a new release version branch
+
+We have multiple branches in the yugabyte-db-thirdparty repository for various long-lived YugabyteDB releases, such as 2.4, 2.6, 2.8, 2.14, 2.17.3, etc.
+There is a certain amount of setup necessary before such a branch is operational.
+
+- Create the branch off of the corresponding commit. Typically it is the yugabyte-db-thirdparty commit specified in the thirdparty_archives.yml file of the appropriate branch of https://github.com/yugabyte/yugabyte-db of the corresponding release of YugabyteDB.
+- Create a branch.txt file in the yugabyte-db-thirdparty branch with the branch name / version number.
+- Add processing of the branch.txt file to the `build_and_release.sh` script of your branch.  The purpose of these changes is to read the branch.txt file, and if it is present, include the `v<version>-` prefix in the tag of generated release archives. If this logic is already present, skip this step.
+```
+diff --git a/build_and_release.sh b/build_and_release.sh
+index 255056e..b66168e 100755
+--- a/build_and_release.sh
++++ b/build_and_release.sh
+@@ -155,7 +155,16 @@ fi
+
+ original_repo_dir=$PWD
+ git_sha1=$( git rev-parse HEAD )
+-tag=v$( date +%Y%m%d%H%M%S )-${git_sha1:0:10}
++branch_file_path="$YB_THIRDPARTY_DIR/branch.txt"
++branch_name=""
++if [[ -f ${branch_file_path} ]]; then
++  branch_name=$(<"${branch_file_path}")
++fi
++tag=v
++if [[ -n ${branch_name} ]]; then
++  tag+="${branch_name}-"
++fi
++tag+=$( date +%Y%m%d%H%M%S )-${git_sha1:0:10}
+```
+- Use the `[skip ci]` tag for your branch setup commit to prevent useless builds and yugabyte-db-thirdparty releases from happening.
+
+For example, see the following commits for yugabyte-db-thirdparty branches created earlier:
+- 13e6a0104886e8e0c891e4936564814039a9ae67 (2.4)
+- fe0425532c1fccc0cb638e4e8d08fe202300aaaf (2.6)
+- 604821d7210dd248937f7d2eb575503ab7827340 (2.8)
+- 66b10387c67b82073ab79444a6ac721ad11672ac (2.14)
+
+
