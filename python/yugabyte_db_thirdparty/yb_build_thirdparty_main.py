@@ -72,9 +72,12 @@ def main() -> None:
         lib_tester = get_lib_tester(fs_layout=builder.fs_layout)
         lib_tester.add_allowed_shared_lib_paths(builder.additional_allowed_shared_lib_paths)
         if builder.compiler_choice.is_linux_clang():
-            lib_tester.add_allowed_shared_lib_paths({
-                get_clang_library_dir(builder.compiler_choice.get_c_compiler())
-            })
+            clang_library_dirs: List[str] = get_clang_library_dir(
+                builder.compiler_choice.get_c_compiler(),
+                all_dirs=True
+            )
+            assert len(clang_library_dirs) > 0
+            lib_tester.add_allowed_shared_lib_paths(set(clang_library_dirs))
         lib_tester.configure_for_compiler(builder.compiler_choice)
 
         lib_tester.run()
