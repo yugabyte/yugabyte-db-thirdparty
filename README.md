@@ -184,5 +184,7 @@ For example, see the following commits for yugabyte-db-thirdparty branches creat
 - [`fe0425532c1fccc0cb638e4e8d08fe202300aaaf`](https://github.com/yugabyte/yugabyte-db-thirdparty/commit/fe0425532c1fccc0cb638e4e8d08fe202300aaaf) (2.6)
 - [`604821d7210dd248937f7d2eb575503ab7827340`](https://github.com/yugabyte/yugabyte-db-thirdparty/commit/604821d7210dd248937f7d2eb575503ab7827340) (2.8)
 - [`66b10387c67b82073ab79444a6ac721ad11672ac`](https://github.com/yugabyte/yugabyte-db-thirdparty/commit/66b10387c67b82073ab79444a6ac721ad11672ac) (2.14)
+- [`b703b42e2bac6749482f87705d10fb6c4467f9bf`](https://github.com/yugabyte/yugabyte-db-thirdparty/commit/b703b42e2bac6749482f87705d10fb6c4467f9bf) (2.17.3)
+- [`50d0076b8165b8771d2c876f40d85335f43d1419`](https://github.com/yugabyte/yugabyte-db-thirdparty/commit/50d0076b8165b8771d2c876f40d85335f43d1419) (2.18)
 
 
