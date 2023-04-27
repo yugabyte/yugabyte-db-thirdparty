@@ -162,6 +162,21 @@ index 255056e..b66168e 100755
 +fi
 +tag+=$( date +%Y%m%d%H%M%S )-${git_sha1:0:10}
 ```
+- In the `ci.yml` file (GitHub Actions configuration) of the branch, add the branch to the list of branches that PRs should be tested for, e.g. as in commit [`43f3f7a685600643dd1e976b32e1c6ac50be9514`](https://github.com/yugabyte/yugabyte-db-thirdparty/commit/43f3f7a685600643dd1e976b32e1c6ac50be9514):
+```
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index c875c40f..febe635e 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -21,6 +21,7 @@ on:
+   pull_request:
+     branches:
+       - master
++      - 2.17.3
+ 
+     paths-ignore:
+       - README.md
+```
 - Include `[skip ci]` in the commit message for your branch setup commit to prevent useless builds and yugabyte-db-thirdparty releases from happening.
 
 For example, see the following commits for yugabyte-db-thirdparty branches created earlier:
