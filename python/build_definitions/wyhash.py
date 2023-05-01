@@ -24,13 +24,13 @@ class WYHashDependency(Dependency):
             name='wyhash',
             version='a5995b98ebfa7bd38bfadc0919326d2e7aabb805',
             url_pattern='https://github.com/wangyi-fudan/wyhash/archive/{0}.zip',
-            build_group=BUILD_GROUP_COMMON)
+            build_group=BuildGroup.COMMON)
         self.dir = 'wyhash-{}'.format(self.version)
         self.copy_sources = False
 
     def build(self, builder: BuilderInterface) -> None:
         fname = 'wyhash.h'
         source_path = builder.fs_layout.get_source_path(self)
-        mkdir_if_missing(builder.prefix_include)
+        mkdir_p(builder.prefix_include)
         copy_file_and_log(os.path.join(source_path, fname),
                           os.path.join(builder.prefix_include, fname))

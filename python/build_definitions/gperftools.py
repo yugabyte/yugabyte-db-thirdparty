@@ -24,7 +24,7 @@ class GPerfToolsDependency(Dependency):
             version='2.8.1-yb-4',
             url_pattern='https://github.com/yugabyte/gperftools/archive/refs/tags/'
                         'gperftools-{0}.tar.gz',
-            build_group=BUILD_GROUP_INSTRUMENTED)
+            build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = True
         self.patch_version = 0
         self.post_patch = ['autoreconf', '-fvi']

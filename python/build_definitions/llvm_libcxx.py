@@ -24,7 +24,7 @@ class LlvmLibCxxDependencyBase(LlvmPartDependencyBase):
         super(LlvmLibCxxDependencyBase, self).__init__(
             name=name,
             version=version,
-            build_group=BUILD_GROUP_INSTRUMENTED)
+            build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
 
     def postprocess_ninja_build_file(
             self,
@@ -34,7 +34,7 @@ class LlvmLibCxxDependencyBase(LlvmPartDependencyBase):
         if not builder.compiler_choice.is_linux_clang():
             return
 
-        if builder.build_type not in [BUILD_TYPE_ASAN, BUILD_TYPE_TSAN]:
+        if builder.build_type not in [BuildType.ASAN, BuildType.TSAN]:
             return
 
         removed_string = '-lstdc++'
@@ -48,7 +48,7 @@ class LlvmLibCxxDependencyBase(LlvmPartDependencyBase):
     def get_additional_ld_flags(self, builder: BuilderInterface) -> List[str]:
         # This workaround is needed for both LLVM 10 and LLVM 11.
         if (builder.compiler_choice.is_linux_clang() and
-                builder.build_type in [BUILD_TYPE_ASAN, BUILD_TYPE_TSAN]):
+                builder.build_type in [BuildType.ASAN, BuildType.TSAN]):
             # We need to link with these libraries in ASAN because otherwise libc++ CMake
             # configuration step fails and some C standard library functions cannot be found.
             # However, we then remove -lstdc++ from the generated build.ninja file (see
@@ -59,7 +59,7 @@ class LlvmLibCxxDependencyBase(LlvmPartDependencyBase):
         return []
 
     def get_compiler_wrapper_ld_flags_to_remove(self, builder: BuilderInterface) -> Set[str]:
-        if builder.build_type == BUILD_TYPE_ASAN:
+        if builder.build_type == BuildType.ASAN:
             # We need to be able to ignore undefined symbols because ASAN runtime library will be
             # linked statically to each executable.
             return {'-Wl,-z,defs'}
@@ -111,7 +111,7 @@ class LlvmLibCxxAbiDependency(LlvmLibCxxDependencyBase):
             builder.fs_layout.get_source_path(self), 'libcxxabi', 'include')
         # Put C++ ABI headers together with libc++ headers.
         dest_include_path = os.path.join(self.get_install_prefix(builder), 'include', 'c++', 'v1')
-        mkdir_if_missing(dest_include_path)
+        mkdir_p(dest_include_path)
         for header_name in ['cxxabi.h', '__cxxabi_config.h']:
             copy_file_and_log(
                 os.path.join(src_include_path, header_name),
@@ -167,7 +167,7 @@ class LibCxxWithAbiDependency(LlvmLibCxxDependencyBase):
 
     def get_additional_cmake_args(self, builder: BuilderInterface) -> List[str]:
         args = ['-DLLVM_ENABLE_RUNTIMES=libcxx;libcxxabi']
-        if builder.build_type == BUILD_TYPE_TSAN:
+        if builder.build_type == BuildType.TSAN:
             local_sys_conf = sys_detection.local_sys_conf()
             if local_sys_conf.is_redhat_family() and int(local_sys_conf.short_os_version()) == 7:
                 # On CentOS 7, we want to prevent libcxxabi build system from deciding that the
@@ -179,7 +179,7 @@ class LibCxxWithAbiDependency(LlvmLibCxxDependencyBase):
 
     def get_compiler_wrapper_ld_flags_to_append(self, builder: 'BuilderInterface') -> List[str]:
         extra_ld_flags = super().get_compiler_wrapper_ld_flags_to_append(builder)
-        if builder.build_type == BUILD_TYPE_TSAN:
+        if builder.build_type == BuildType.TSAN:
             # It is not clear why in Clang 13 this suddenly becomes necessary in order to avoid
             # failing with undefined TSAN-related symbols while linking shared libraries.
             extra_ld_flags.append('-Wl,--unresolved-symbols=ignore-all')

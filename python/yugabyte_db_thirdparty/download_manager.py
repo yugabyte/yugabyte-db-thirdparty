@@ -30,7 +30,7 @@ from yugabyte_db_thirdparty.string_util import shlex_join
 from yugabyte_db_thirdparty.util import (
     PushDir,
     compute_file_sha256,
-    mkdir_if_missing,
+    mkdir_p,
     remove_path,
     YB_THIRDPARTY_DIR,
     which_must_exist,
@@ -213,7 +213,7 @@ class DownloadManager:
         log(f"Ensuring {url} is downloaded to path {file_path}")
         file_name = os.path.basename(file_path)
 
-        mkdir_if_missing(self.download_dir)
+        mkdir_p(self.download_dir)
 
         if os.path.exists(file_path) and verify_checksum:
             # We check the file name against our checksum map only if the file exists. This is done
@@ -316,7 +316,7 @@ class DownloadManager:
         if dep.mkdir_only:
             # Just create an empty directory with the specified name.
             log("Creating %s", src_path)
-            mkdir_if_missing(src_path)
+            mkdir_p(src_path)
         elif dep.local_archive:
             log("Copying from local archive at %s to %s", dep.local_archive, src_path)
             shutil.copytree(dep.local_archive, src_path)
@@ -401,7 +401,7 @@ class DownloadManager:
                 f"URL {toolchain_url}")
             return toolchain_dest_dir_path
 
-        mkdir_if_missing(dest_parent_dir)
+        mkdir_p(dest_parent_dir)
 
         tmp_suffix = ".tmp-%s" % get_temporal_randomized_file_name_suffix()
 

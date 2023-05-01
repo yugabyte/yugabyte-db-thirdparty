@@ -11,6 +11,12 @@
 # under the License.
 #
 
+import os
+import logging
+
+from typing import Optional, List, Dict, Tuple
+from enum import Enum
+
 from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR, remove_path
 from yugabyte_db_thirdparty.dependency import Dependency
 from yugabyte_db_thirdparty.custom_logging import heading, log
@@ -18,11 +24,12 @@ from yugabyte_db_thirdparty.compiler_choice import CompilerChoice
 from yugabyte_db_thirdparty.linuxbrew import using_linuxbrew
 from yugabyte_db_thirdparty.arch import get_target_arch
 
-from build_definitions import BUILD_TYPES, BUILD_TYPE_COMMON, validate_build_type
+from build_definitions import BuildType
 
-import os
-import logging
-from typing import Optional, List
+
+class SourcePathType(Enum):
+    DEFAULT = 'DEFAULT'
+    DEV_REPO = 'DEV_REPO'
 
 
 class FileSystemLayout:
@@ -34,9 +41,13 @@ class FileSystemLayout:
 
     build_specific_subdir: str
 
+    # Maps dependency names to their custom source directories used for development.
+    dev_repo_mappings: Dict[str, str]
+
     def __init__(self) -> None:
         self.tp_src_dir = os.path.join(YB_THIRDPARTY_DIR, 'src')
         self.tp_download_dir = os.path.join(YB_THIRDPARTY_DIR, 'download')
+        self.dev_repo_mappings = {}
 
     def finish_initialization(
             self,
@@ -71,7 +82,8 @@ class FileSystemLayout:
             self.tp_build_dir = build_parent_dir
             self.tp_installed_dir = installed_parent_dir
 
-        self.tp_installed_common_dir = os.path.join(self.tp_installed_dir, BUILD_TYPE_COMMON)
+        self.tp_installed_common_dir = os.path.join(
+            self.tp_installed_dir, BuildType.COMMON.dir_name())
 
     def get_archive_path(self, dep: Dependency) -> Optional[str]:
         archive_name = dep.get_archive_name()
@@ -80,7 +92,13 @@ class FileSystemLayout:
         return os.path.join(self.tp_download_dir, archive_name)
 
     def get_source_path(self, dep: Dependency) -> str:
-        return os.path.join(self.tp_src_dir, dep.get_source_dir_basename())
+        return self.get_source_path_with_type(dep)[0]
+
+    def get_source_path_with_type(self, dep: Dependency) -> Tuple[str, SourcePathType]:
+        if dep.name in self.dev_repo_mappings:
+            return self.dev_repo_mappings[dep.name], SourcePathType.DEV_REPO
+
+        return os.path.join(self.tp_src_dir, dep.get_source_dir_basename()), SourcePathType.DEFAULT
 
     def remove_path_for_dependency(
             self, dep: Dependency, path: Optional[str], description: str) -> None:
@@ -105,7 +123,7 @@ class FileSystemLayout:
         heading('Clean')
 
         for dependency in selected_dependencies:
-            for build_type in BUILD_TYPES:
+            for build_type in BuildType:
                 self.remove_path_for_dependency(
                     dep=dependency,
                     path=self.get_build_stamp_path_for_dependency(dependency, build_type),
@@ -127,13 +145,13 @@ class FileSystemLayout:
                     path=self.get_archive_path(dependency),
                     description="downloaded archive")
 
-    def get_build_stamp_path_for_dependency(self, dep: Dependency, build_type: str) -> str:
-        validate_build_type(build_type)
-        return os.path.join(self.tp_build_dir, build_type, '.build-stamp-{}'.format(dep.name))
+    def get_build_stamp_path_for_dependency(self, dep: Dependency, build_type: BuildType) -> str:
+        return os.path.join(self.tp_build_dir,
+                            build_type.dir_name(),
+                            '.build-stamp-{}'.format(dep.name))
 
-    def get_build_dir_for_dependency(self, dep: Dependency, build_type: str) -> str:
-        validate_build_type(build_type)
-        return os.path.join(self.tp_build_dir, build_type, dep.dir_name)
+    def get_build_dir_for_dependency(self, dep: Dependency, build_type: BuildType) -> str:
+        return os.path.join(self.tp_build_dir, build_type.dir_name(), dep.dir_name)
 
     def get_llvm_tool_dir(self) -> str:
         """
@@ -141,3 +159,11 @@ class FileSystemLayout:
         ar, ld, as symlinks to their LLVM counterparts.
         """
         return os.path.join(self.tp_build_dir, 'llvm-tools')
+
+    def add_dev_repo_mapping(self, mapping_str: str) -> None:
+        dep_name, repo_dir = mapping_str.split('=')
+        if dep_name in self.dev_repo_mappings:
+            raise ValueError(
+                f"Duplicate development repository directory mapping for dependency {dep_name}: "
+                f"{self.dev_repo_mappings[dep_name]} and {repo_dir}")
+        self.dev_repo_mappings[dep_name] = repo_dir

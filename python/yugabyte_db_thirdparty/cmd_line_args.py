@@ -17,14 +17,16 @@ import os
 import platform
 
 from typing import Dict, Set
+from argparse_utils import enum_action  # type: ignore
 
 from sys_detection import is_macos, local_sys_conf
+
+from build_definitions import BuildType
 
 from yugabyte_db_thirdparty.checksums import CHECKSUM_FILE_NAME
 from yugabyte_db_thirdparty.util import log
 from yugabyte_db_thirdparty.toolchain import TOOLCHAIN_TYPES
 from yugabyte_db_thirdparty.constants import ADD_CHECKSUM_ARG, ADD_CHECKSUM_ALTERNATE_ARG
-from build_definitions import BUILD_TYPES
 
 
 INCOMPATIBLE_ARGUMENTS: Dict[str, Set[str]] = {
@@ -38,8 +40,8 @@ def parse_cmd_line_args() -> argparse.Namespace:
     parser.add_argument('--build-type',
                         default=None,
                         type=str,
-                        choices=BUILD_TYPES,
-                        help='Build only specific part of thirdparty dependencies.')
+                        action=enum_action(BuildType),
+                        help='Build only the third-party dependencies of the given type')
     parser.add_argument('--skip-sanitizers',
                         action='store_true',
                         help='Do not build ASAN and TSAN instrumented dependencies.')
@@ -225,6 +227,35 @@ def parse_cmd_line_args() -> argparse.Namespace:
         action='store_true'
     )
 
+    parser.add_argument(
+        '--compile-commands', '--ccmds',
+        help='Generate the compilation commands database (compile_commands.json) in every build '
+             'directory, execpt in ASAN/TSAN builds. This is using the compiler wrapper so it '
+             'works for all build systems (CMake, Make, Bazel). Also generates a Visual Studio '
+             'Code .vscode/settings.json file in each build directory, and tries to invoke '
+             'clangd-indexer to create a static clangd index.',
+        action='store_true')
+
+    parser.add_argument(
+        '--postprocess-compile-commands-only', '--fix-ccmds-only',
+        help='Perform a fix-up of the compilation commands database (compile_commands.json) in '
+             'every build directory without performing the build. Useful during debugging. This '
+             'fix-up step is also performed as part of the build if --compile-commands is '
+             'specified. Implies --skip-sanitizers.',
+        action='store_true')
+
+    parser.add_argument(
+        '--ignore-build-stamps',
+        help='Ignore build stamp files when deciding whether to rebuild a dependency.',
+        action='store_true')
+
+    parser.add_argument(
+        '--dev-repo',
+        help='Specify "development mode" local repository paths for some dependencies. E.g. '
+             '--dev-repo- tcmalloc=~/code/tcmalloc. These development repository paths are '
+             'created automatically if not present.',
+        nargs='+')
+
     args = parser.parse_args()
 
     # ---------------------------------------------------------------------------------------------
@@ -281,5 +312,8 @@ def parse_cmd_line_args() -> argparse.Namespace:
 
     if args.delete_build_dir:
         args.force = True
+
+    if args.compile_commands:
+        args.use_compiler_wrapper = True
 
     return args

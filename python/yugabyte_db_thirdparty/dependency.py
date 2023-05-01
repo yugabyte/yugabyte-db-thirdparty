@@ -11,12 +11,14 @@
 # under the License.
 
 import os
+from typing import Optional, List, Set, TYPE_CHECKING
+
 from sys_detection import is_linux, is_macos
 
-from build_definitions import ExtraDownload, VALID_BUILD_GROUPS
+from build_definitions import ExtraDownload, BuildGroup
 from yugabyte_db_thirdparty.archive_handling import make_archive_name
-
-from typing import Optional, List, Set, TYPE_CHECKING
+from yugabyte_db_thirdparty.git_util import parse_github_url
+from yugabyte_db_thirdparty.custom_logging import log
 
 if TYPE_CHECKING:
     from .builder_interface import BuilderInterface
@@ -38,12 +40,21 @@ class Dependency:
     # this tells the initial step to create separate build directories for shared and static builds.
     shared_and_static: bool
 
+    # For Bazel dependencies, this is the name of the subdirectory in Bazel's build directory
+    # that is mapped to this project's build directory. Used during rewriting the compilation
+    # database.
+    bazel_project_subdir_name: Optional[str]
+
+    github_org_name: Optional[str]
+    github_repo_name: Optional[str]
+    github_ref: Optional[str]
+
     def __init__(
             self,
             name: str,
             version: str,
             url_pattern: Optional[str],
-            build_group: str,
+            build_group: BuildGroup,
             archive_name_prefix: Optional[str] = None,
             license: Optional[str] = None,
             mkdir_only: bool = False,
@@ -78,11 +89,18 @@ class Dependency:
         self.copy_sources = False
         self.license = license
 
-        if build_group not in VALID_BUILD_GROUPS:
-            raise ValueError("Invalid build group: %s, should be one of: %s" % (
-                build_group, VALID_BUILD_GROUPS))
-
         self.shared_and_static = False
+        self.bazel_project_subdir_name = None
+
+        if self.download_url is not None:
+            parse_result = parse_github_url(self.download_url)
+            self.github_org_name = None
+            self.github_repo_name = None
+            self.github_ref = None
+            if parse_result:
+                self.github_org_name, self.github_repo_name, self.github_ref = parse_result
+            elif self.download_url.startswith('https://github.com/'):
+                log("Warning: failed to parse GitHub URL %s", self.download_url)
 
     def get_additional_compiler_flags(
             self,

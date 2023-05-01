@@ -23,8 +23,9 @@ class AbseilDependency(Dependency):
             version='0064d9d-yb-2',
             url_pattern='https://github.com/yugabyte/abseil-cpp/archive/refs/tags/'
                         '{0}.tar.gz',
-            build_group=BUILD_GROUP_INSTRUMENTED)
+            build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = True
+        self.bazel_project_subdir_name = 'com_google_absl'
 
     def build(self, builder: BuilderInterface) -> None:
         log_prefix = builder.log_prefix(self)

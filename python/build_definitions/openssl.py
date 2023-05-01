@@ -36,7 +36,7 @@ class OpenSSLDependency(Dependency):
             name='openssl',
             version='1.1.1t',
             url_pattern='https://www.openssl.org/source/openssl-{0}.tar.gz',
-            build_group=BUILD_GROUP_COMMON)
+            build_group=BuildGroup.COMMON)
         self.copy_sources = True
 
     def build(self, builder: BuilderInterface) -> None:

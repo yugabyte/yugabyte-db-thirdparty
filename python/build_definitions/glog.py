@@ -25,7 +25,7 @@ class GLogDependency(Dependency):
             name='glog',
             version='0.4.0-yb-5',
             url_pattern='https://github.com/yugabyte/glog/archive/v{0}.tar.gz',
-            build_group=BUILD_GROUP_INSTRUMENTED)
+            build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.patch_version = 1
         self.patch_strip = 0
         self.patches = ['glog-tsan-annotations.patch',
@@ -36,7 +36,7 @@ class GLogDependency(Dependency):
         cmake_args = [
             '-DCMAKE_BUILD_TYPE=Release',
         ]
-        if builder.build_type in [BUILD_TYPE_ASAN, BUILD_TYPE_TSAN]:
+        if builder.build_type in [BuildType.ASAN, BuildType.TSAN]:
             # Can't build glog unit tests in ASAN/TSAN because of their overrides of new/delete.
             # We could patch glog to support that at some point.
             cmake_args += ['-DBUILD_TESTING=OFF']
@@ -44,7 +44,7 @@ class GLogDependency(Dependency):
 
     def get_additional_ld_flags(self, builder: BuilderInterface) -> List[str]:
         if builder.compiler_choice.is_linux_clang() and builder.build_type in [
-                BUILD_TYPE_ASAN, BUILD_TYPE_TSAN]:
+                BuildType.ASAN, BuildType.TSAN]:
             # Without this, getting undefined symbols:
             # - pthread_rwlock_destroy
             # - pthread_rwlock_init

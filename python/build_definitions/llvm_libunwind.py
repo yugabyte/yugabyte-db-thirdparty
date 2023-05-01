@@ -22,7 +22,7 @@ class LlvmLibUnwindDependency(LlvmPartDependencyBase):
         super(LlvmLibUnwindDependency, self).__init__(
             name='llvm_libunwind',
             version=version,
-            build_group=BUILD_GROUP_COMMON)
+            build_group=BuildGroup.COMMON)
 
     def get_additional_cxx_flags(self, builder: 'BuilderInterface') -> List[str]:
         return ['-D_LIBUNWIND_NO_HEAP']
@@ -59,5 +59,5 @@ class LlvmLibUnwindDependency(LlvmPartDependencyBase):
                     file_path = os.path.abspath(os.path.join(root, file_name))
                     rel_path = os.path.relpath(file_path, src_include_path)
                     dest_path = os.path.join(dest_include_path, rel_path)
-                    mkdir_if_missing(os.path.dirname(dest_path))
+                    mkdir_p(os.path.dirname(dest_path))
                     copy_file_and_log(file_path, dest_path)

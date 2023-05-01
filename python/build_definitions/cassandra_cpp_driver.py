@@ -24,7 +24,7 @@ class CassandraCppDriverDependency(Dependency):
         super(CassandraCppDriverDependency, self).__init__(
                 'cassandra-cpp-driver', '2.9.0-yb-13',
                 'https://github.com/yugabyte/cassandra-cpp-driver/archive/{0}.tar.gz',
-                BUILD_GROUP_INSTRUMENTED)
+                BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = False
         self.patch_version = 0
 

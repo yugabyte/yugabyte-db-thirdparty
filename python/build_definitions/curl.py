@@ -21,7 +21,7 @@ class CurlDependency(Dependency):
             name='curl',
             version='7.86.0',
             url_pattern="https://curl.haxx.se/download/curl-{0}.tar.gz",
-            build_group=BUILD_GROUP_COMMON)
+            build_group=BuildGroup.COMMON)
         self.copy_sources = True
 
     def build(self, builder: BuilderInterface) -> None:

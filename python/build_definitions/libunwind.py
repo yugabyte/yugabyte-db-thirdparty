@@ -22,7 +22,7 @@ class LibUnwindDependency(Dependency):
             version='1.5.0',
             url_pattern='https://github.com/libunwind/libunwind/releases/download/'
                         'v1.5/libunwind-{0}.tar.gz',
-            build_group=BUILD_GROUP_COMMON)
+            build_group=BuildGroup.COMMON)
         self.copy_sources = True
 
     def build(self, builder: BuilderInterface) -> None:

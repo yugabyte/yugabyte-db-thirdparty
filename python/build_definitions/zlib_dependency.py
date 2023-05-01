@@ -24,7 +24,7 @@ class ZLibDependency(Dependency):
             name='zlib',
             version='1.2.12-yb-1',
             url_pattern='https://github.com/yugabyte/zlib/archive/refs/tags/v{0}.tar.gz',
-            build_group=BUILD_GROUP_COMMON)
+            build_group=BuildGroup.COMMON)
         self.copy_sources = True
 
     def build(self, builder: BuilderInterface) -> None:

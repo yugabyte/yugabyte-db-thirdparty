@@ -25,7 +25,7 @@ class OtelDependency(Dependency):
             version='1.9.0',
             url_pattern='https://github.com/open-telemetry/opentelemetry-cpp/'
                         + 'archive/refs/tags/v{0}.tar.gz',
-            build_group=BUILD_GROUP_INSTRUMENTED)
+            build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         # Patch fixes the following error with current protobuf installation
         # Missing value for flag: --experimental_allow_proto3_optional
         self.patches = ['otel_cpp_remove_experimental_allow_proto3_optional.patch',

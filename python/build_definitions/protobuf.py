@@ -24,7 +24,7 @@ class ProtobufDependency(Dependency):
             'protobuf',
             '3.5.1-yb-1',
             'https://github.com/yugabyte/protobuf/archive/refs/tags/v{0}.tar.gz',
-            BUILD_GROUP_INSTRUMENTED)
+            BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = True
 
     def build(self, builder: BuilderInterface) -> None:

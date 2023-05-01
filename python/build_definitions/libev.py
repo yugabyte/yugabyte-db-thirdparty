@@ -21,7 +21,7 @@ class LibEvDependency(Dependency):
             name='libev',
             version='4.27',
             url_pattern='http://dist.schmorp.de/libev/Attic/libev-{0}.tar.gz',
-            build_group=BUILD_GROUP_COMMON)
+            build_group=BuildGroup.COMMON)
         self.copy_sources = True
 
     def build(self, builder: BuilderInterface) -> None:

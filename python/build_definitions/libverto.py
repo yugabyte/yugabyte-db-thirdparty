@@ -24,7 +24,7 @@ class LibVertoDependency(Dependency):
             'libverto',
             '0.3.2',
             'https://github.com/latchset/libverto/releases/download/{0}/libverto-{0}.tar.gz',
-            BUILD_GROUP_INSTRUMENTED)
+            BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = True
 
     def build(self, builder: BuilderInterface) -> None:

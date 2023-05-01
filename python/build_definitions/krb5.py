@@ -24,7 +24,7 @@ class Krb5Dependency(Dependency):
             'krb5',
             '1.20.1',
             'https://kerberos.org/dist/krb5/1.20/krb5-{0}.tar.gz',
-            BUILD_GROUP_INSTRUMENTED)
+            BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.patches = ['krb5-1.19.3-use-ldflags-for-test.patch']
         self.patch_strip = 0
         self.copy_sources = True
@@ -33,7 +33,7 @@ class Krb5Dependency(Dependency):
     def get_additional_ld_flags(self, builder: BuilderInterface) -> List[str]:
         flags: List[str] = list(super().get_additional_ld_flags(builder))
         if builder.compiler_choice.is_linux_clang():
-            if builder.build_type == BUILD_TYPE_ASAN:
+            if builder.build_type == BuildType.ASAN:
                 # Needed to find dlsym.
                 flags.append('-ldl')
         return flags
@@ -47,7 +47,7 @@ class Krb5Dependency(Dependency):
     def get_compiler_wrapper_ld_flags_to_remove(self, builder: BuilderInterface) -> Set[str]:
         to_remove = {'-Wl,--no-undefined'}
 
-        if builder.build_type == BUILD_TYPE_ASAN:
+        if builder.build_type == BuildType.ASAN:
             # This is needed so that the configure script does not decide that some functions,
             # e.g. getexecname, are available while they are really not.
             to_remove.add('-Wl,--unresolved-symbols=ignore-all')
@@ -71,7 +71,7 @@ class Krb5Dependency(Dependency):
                     extra_args = ['--enable-shared', '--disable-static']
                 else:
                     extra_args = ['--disable-shared', '--enable-static']
-                if builder.build_type in [BUILD_TYPE_ASAN]:
+                if builder.build_type in [BuildType.ASAN]:
                     extra_args.append('--enable-asan')
                 builder.build_with_configure(
                     dep=self,

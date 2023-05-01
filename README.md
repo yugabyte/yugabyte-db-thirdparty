@@ -35,7 +35,7 @@ To modify some dependency (e.g. glog):
             version='0.4.0-yb-1',
             url_pattern='https://github.com/yugabyte/glog/archive/v{0}.tar.gz',
             local_archive='/path/to/glog',
-            build_group=BUILD_GROUP_INSTRUMENTED)
+            build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
 ```
 * When you are done with your changes to the dependency, e.g. glog, get them checked into our fork, i.e. yugabyte/glog on GitHub, and create the next "official" Yugabyte tag for that dependency, e.g. 0.4.0-yb-2 (we usually add a `-yb-N` suffix to the upstream version).
 * Reference the updated tag from the version field in the dependency's python file as shown below. **Remember to remove `local_archive`.**
@@ -44,7 +44,7 @@ To modify some dependency (e.g. glog):
             name='glog',
             version='0.4.0-yb-2', # Note the updated tag
             url_pattern='https://github.com/yugabyte/glog/archive/v{0}.tar.gz',
-            build_group=BUILD_GROUP_INSTRUMENTED)
+            build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
 ```
 
 * Rebuild thirdparty (`--add-checksum` so it would auto-add the checksum for your archive):
@@ -173,7 +173,7 @@ index c875c40f..febe635e 100644
      branches:
        - master
 +      - 2.17.3
- 
+
      paths-ignore:
        - README.md
 ```
@@ -186,5 +186,3 @@ For example, see the following commits for yugabyte-db-thirdparty branches creat
 - [`66b10387c67b82073ab79444a6ac721ad11672ac`](https://github.com/yugabyte/yugabyte-db-thirdparty/commit/66b10387c67b82073ab79444a6ac721ad11672ac) (2.14)
 - [`b703b42e2bac6749482f87705d10fb6c4467f9bf`](https://github.com/yugabyte/yugabyte-db-thirdparty/commit/b703b42e2bac6749482f87705d10fb6c4467f9bf) (2.17.3)
 - [`50d0076b8165b8771d2c876f40d85335f43d1419`](https://github.com/yugabyte/yugabyte-db-thirdparty/commit/50d0076b8165b8771d2c876f40d85335f43d1419) (2.18)
-
-

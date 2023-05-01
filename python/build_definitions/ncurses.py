@@ -22,7 +22,7 @@ class NCursesDependency(Dependency):
             'ncurses',
             '6.3',
             'https://ftp.gnu.org/pub/gnu/ncurses/ncurses-{0}.tar.gz',
-            BUILD_GROUP_INSTRUMENTED)
+            BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = True
 
     def build(self, builder: BuilderInterface) -> None:

@@ -17,7 +17,7 @@ import platform
 
 from typing import Optional, List, Tuple
 from yugabyte_db_thirdparty.string_util import shlex_join
-from yugabyte_db_thirdparty.util import mkdir_if_missing, create_symlink
+from yugabyte_db_thirdparty.util import mkdir_p, create_symlink
 from yugabyte_db_thirdparty.custom_logging import log
 
 LIBRARY_DIRS_PREFIX = 'libraries: ='
@@ -125,7 +125,7 @@ def create_llvm_tool_dir(clang_path: str, tool_dir_path: str) -> bool:
             "LLVM tools to put on PATH. Clang path: %s" % clang_path)
         return False
 
-    mkdir_if_missing(tool_dir_path)
+    mkdir_p(tool_dir_path)
     llvm_bin_dir = os.path.dirname(os.path.abspath(clang_path))
     # llvm-as does not work properly when substituted for the as command. Don't add it here.
     src_dst_names: List[Tuple[str, str]] = [

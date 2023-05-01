@@ -14,6 +14,7 @@ from re import Pattern
 from typing import List, Optional, Callable, Any, TYPE_CHECKING
 
 from yugabyte_db_thirdparty.file_system_layout import FileSystemLayout
+from build_definitions import BuildType
 
 if TYPE_CHECKING:
     from .dependency import Dependency
@@ -41,7 +42,7 @@ class BuilderInterface:
     tp_installed_common_dir: str
     prefix_include: str
     tp_dir: str
-    build_type: str
+    build_type: BuildType
     compiler_choice: 'CompilerChoice'
     fs_layout: FileSystemLayout
     lto_type: Optional[str]

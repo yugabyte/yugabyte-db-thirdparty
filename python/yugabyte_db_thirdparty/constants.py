@@ -17,3 +17,9 @@ ADD_CHECKSUM_ALTERNATE_ARG = ADD_CHECKSUM_ARG + 's'
 
 COMPILER_WRAPPER_ENV_VAR_NAME_LD_FLAGS_TO_APPEND = 'YB_COMPILER_WRAPPER_LD_FLAGS_TO_APPEND'
 COMPILER_WRAPPER_ENV_VAR_NAME_LD_FLAGS_TO_REMOVE = 'YB_COMPILER_WRAPPER_LD_FLAGS_TO_REMOVE'
+
+# We create a file with this name in every build directory to point back to the source directory
+# from which the build directory was created.
+SRC_PATH_FILE_NAME = 'yb_dep_src_path.txt'
+
+GIT_CLONE_DEPTH = 10

@@ -19,7 +19,7 @@ from yugabyte_db_thirdparty.builder_interface import BuilderInterface
 from yugabyte_db_thirdparty.dependency import Dependency
 from yugabyte_db_thirdparty.custom_logging import log, fatal
 from yugabyte_db_thirdparty.util import (
-    mkdir_if_missing,
+    mkdir_p,
     PushDir,
     remove_path,
     copy_file_and_log
@@ -28,10 +28,8 @@ from yugabyte_db_thirdparty.arch import is_macos_arm64_build
 from yugabyte_db_thirdparty.rpath_fixes import fix_shared_library_references
 
 from build_definitions import (
-    BUILD_GROUP_COMMON,
-    BUILD_GROUP_INSTRUMENTED,
-    BUILD_TYPE_ASAN,
-    BUILD_TYPE_TSAN,
+    BuildGroup,
+    BuildType,
 )
 
 from typing import List, Dict, Set, Any, Optional, Callable

@@ -23,7 +23,7 @@ class CRCUtilDependency(Dependency):
             name='crcutil',
             version='v20210630-8678969f02c4679fa40abaa9c5d7afadec50ed84',
             url_pattern='https://github.com/yugabyte/crcutil/archive/refs/tags/{0}.tar.gz',
-            build_group=BUILD_GROUP_INSTRUMENTED)
+            build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = True
         self.patch_version = 1
         self.patch_strip = 0

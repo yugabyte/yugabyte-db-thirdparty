@@ -24,7 +24,7 @@ class RapidJsonDependency(Dependency):
             name='rapidjson',
             version='1.1.0-yb-2',
             url_pattern='https://github.com/yugabyte/rapidjson/archive/v{0}.zip',
-            build_group=BUILD_GROUP_COMMON)
+            build_group=BuildGroup.COMMON)
         self.copy_sources = False
 
     def build(self, builder: BuilderInterface) -> None:

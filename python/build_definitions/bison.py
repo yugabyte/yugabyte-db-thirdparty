@@ -21,7 +21,7 @@ class BisonDependency(Dependency):
             name='bison',
             version='3.4.1',
             url_pattern='https://ftp.gnu.org/gnu/bison/bison-{0}.tar.gz',
-            build_group=BUILD_GROUP_COMMON,
+            build_group=BuildGroup.COMMON,
             license='GPL-3.0')
         self.copy_sources = True
 

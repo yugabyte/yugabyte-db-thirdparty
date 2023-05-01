@@ -12,6 +12,7 @@
 # under the License.
 #
 
+import enum
 import os
 import sys
 
@@ -26,40 +27,37 @@ from yugabyte_db_thirdparty.archive_handling import make_archive_name
 if TYPE_CHECKING:
     from yugabyte_db_thirdparty.dependency import Dependency
 
-# -------------------------------------------------------------------------------------------------
-# Build groups
-# -------------------------------------------------------------------------------------------------
 
-# These are broad groups of dependencies.
+class BuildType(enum.Enum):
+    # Dependencies from BuildGroup.COMMON are only built with this build type.
+    COMMON = enum.auto()
 
-# Dependencies that are never instrumented with ASAN/UBSAN or TSAN.
-# Also we should not build any C++ code as part of this. Only C code
-# TODO: should we actually instrument some of these?
-BUILD_GROUP_COMMON = 'build_group_common'
+    # Dependencies from BuildGroup.POTENTIALLY_INSTRUMENTED are built with these build types.
+    UNINSTRUMENTED = enum.auto()
+    ASAN = enum.auto()  # AddressSanitizer and UndefinedBehaviorSanitizer.
+    TSAN = enum.auto()  # ThreadSanitizer
 
-# TODO: this should be called BUILD_GROUP_POTENTIALLY_INSTRUMENTED, because we only instrument these
-# dependencies for special builds like ASAN/TSAN.
-BUILD_GROUP_INSTRUMENTED = 'build_group_potentially_instrumented'
-VALID_BUILD_GROUPS = [BUILD_GROUP_COMMON, BUILD_GROUP_INSTRUMENTED]
+    def dir_name(self) -> str:
+        return self.name.lower()
 
-# -------------------------------------------------------------------------------------------------
-# Build types
-# -------------------------------------------------------------------------------------------------
+    def is_sanitizer(self) -> bool:
+        return self in (BuildType.ASAN, BuildType.TSAN)
 
-BUILD_TYPE_COMMON = 'common'
 
-BUILD_TYPE_UNINSTRUMENTED = 'uninstrumented'
+class BuildGroup(enum.Enum):
+    # Dependencies that are never instrumented with ASAN/UBSAN or TSAN.
+    # Also we should not build any C++ code as part of this, only C code.
+    COMMON = enum.auto()
 
-# Clang-based builds with ASAN+UBSAN and TSAN enabled.
-BUILD_TYPE_ASAN = 'asan'
-BUILD_TYPE_TSAN = 'tsan'
+    # Dependencies that instrumented with ASAN/UBSAN or TSAN.
+    POTENTIALLY_INSTRUMENTED = enum.auto()
 
-BUILD_TYPES = [
-    BUILD_TYPE_COMMON,
-    BUILD_TYPE_UNINSTRUMENTED,
-    BUILD_TYPE_ASAN,
-    BUILD_TYPE_TSAN
-]
+    def default_build_type(self) -> BuildType:
+        if self == BuildGroup.COMMON:
+            return BuildType.COMMON
+        if self == BuildGroup.POTENTIALLY_INSTRUMENTED:
+            return BuildType.UNINSTRUMENTED
+        raise ValueError("Unknown build group: %s" % self)
 
 
 def unset_env_var_if_set(name: str) -> None:
@@ -135,7 +133,3 @@ def get_dependency_by_submodule_name(module_name: str) -> 'Dependency':
 
 def get_deps_from_module_names(module_names: List[str]) -> List['Dependency']:
     return [get_dependency_by_submodule_name(module_name) for module_name in module_names]
-
-
-def validate_build_type(build_type: str) -> None:
-    assert build_type in BUILD_TYPES, f"Invalid build type: {build_type}"

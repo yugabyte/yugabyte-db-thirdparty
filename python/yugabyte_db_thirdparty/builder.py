@@ -29,13 +29,8 @@ from sys_detection import is_macos, is_linux
 from pathlib import Path
 
 from build_definitions import (
-    BUILD_GROUP_COMMON,
-    BUILD_GROUP_INSTRUMENTED,
-    BUILD_TYPE_ASAN,
-    BUILD_TYPE_COMMON,
-    BUILD_TYPE_TSAN,
-    BUILD_TYPE_UNINSTRUMENTED,
-    BUILD_TYPES,
+    BuildGroup,
+    BuildType,
     get_build_def_module,
     get_deps_from_module_names,
 )
@@ -70,11 +65,11 @@ from yugabyte_db_thirdparty.arch import (
     get_other_macos_arch,
     add_homebrew_to_path,
 )
+from yugabyte_db_thirdparty import util
 from yugabyte_db_thirdparty.util import (
     assert_dir_exists,
     assert_list_contains,
     EnvVarContext,
-    mkdir_if_missing,
     PushDir,
     read_file,
     remove_path,
@@ -83,6 +78,7 @@ from yugabyte_db_thirdparty.util import (
     shlex_join,
 )
 from yugabyte_db_thirdparty.file_system_layout import FileSystemLayout
+from yugabyte_db_thirdparty import file_system_layout
 from yugabyte_db_thirdparty.toolchain import Toolchain, ensure_toolchains_installed
 from yugabyte_db_thirdparty.clang_util import (
     get_clang_library_dir,
@@ -95,7 +91,13 @@ from yugabyte_db_thirdparty.constants import (
     COMPILER_WRAPPER_ENV_VAR_NAME_LD_FLAGS_TO_APPEND,
     COMPILER_WRAPPER_ENV_VAR_NAME_LD_FLAGS_TO_REMOVE,
 )
+from yugabyte_db_thirdparty import (
+    compile_commands,
+    constants,
+    git_util,
+)
 
+# -------------------------------------------------------------------------------------------------
 
 ASAN_COMPILER_FLAGS = [
     '-fsanitize=address',
@@ -169,6 +171,10 @@ class Builder(BuilderInterface):
 
     lto_type: Optional[str]
     selected_dependencies: List[Dependency]
+
+    # Mapping from e.g. com_google_tcmalloc or com_google_absl to the corresponiding build
+    # directories.
+    bazel_path_mapping: Dict[str, str]
 
     """
     This class manages the overall process of building third-party dependencies, including the set
@@ -252,6 +258,10 @@ class Builder(BuilderInterface):
 
         self.fs_layout = FileSystemLayout()
 
+        if self.args.dev_repo:
+            for dev_repo_mapping in self.args.dev_repo:
+                self.fs_layout.add_dev_repo_mapping(dev_repo_mapping)
+
         self.download_manager = DownloadManager(
             should_add_checksum=self.args.add_checksum,
             download_dir=self.fs_layout.tp_download_dir)
@@ -265,10 +275,10 @@ class Builder(BuilderInterface):
             compiler_prefix=compiler_prefix,
             compiler_suffix=self.args.compiler_suffix,
             devtoolset=self.args.devtoolset,
-            use_compiler_wrapper=False,
             use_ccache=self.args.use_ccache,
             expected_major_compiler_version=self.args.expected_major_compiler_version
         )
+
         llvm_major_version: Optional[int] = self.compiler_choice.get_llvm_major_version()
         if llvm_major_version:
             if using_linuxbrew():
@@ -279,7 +289,6 @@ class Builder(BuilderInterface):
             if llvm_major_version >= 13:
                 log("Automatically enabling compiler wrapper for Clang major version 13 or higher")
                 self.args.use_compiler_wrapper = True
-        self.compiler_choice.use_compiler_wrapper = self.args.use_compiler_wrapper
 
         self.lto_type = self.args.lto
 
@@ -317,7 +326,7 @@ class Builder(BuilderInterface):
             'wyhash',
         ])
         for dep in self.dependencies:
-            if dep.build_group != BUILD_GROUP_COMMON:
+            if dep.build_group != BuildGroup.COMMON:
                 raise ValueError(
                     "Expected the initial group of dependencies to all be in the common build "
                     f"group, found: {dep.build_group} for dependency {dep.name}")
@@ -427,18 +436,29 @@ class Builder(BuilderInterface):
         self.prepare_out_dirs()
         self._setup_path()
 
-        self.build_one_build_type(BUILD_TYPE_COMMON)
-        build_types = [BUILD_TYPE_UNINSTRUMENTED]
+        # Populate the mapping from Bazel project subdirectory names to build directories.
+        # This is used for generating compilation commands. We do not use ASAN/TSAN builds for this.
+        self.bazel_path_mapping = {}
+        for dep in self.dependencies:
+            if dep.bazel_project_subdir_name is not None:
+                build_root = self.fs_layout.get_build_dir_for_dependency(
+                    dep, dep.build_group.default_build_type())
+                self.bazel_path_mapping[dep.bazel_project_subdir_name] = build_root
+
+        self.build_one_build_type(BuildType.COMMON)
+        build_types = [BuildType.UNINSTRUMENTED]
 
         if (is_linux() and
                 self.compiler_choice.is_clang() and
                 not self.args.skip_sanitizers and
-                not using_linuxbrew()):
+                not using_linuxbrew() and
+                # With --postprocess-compile-commands-only, we don't need to build ASAN/TSAN.
+                not self.args.postprocess_compile_commands_only):
             # We only support ASAN/TSAN builds on Clang, when not using Linuxbrew.
             if not self.args.skip_asan:
-                build_types.append(BUILD_TYPE_ASAN)
+                build_types.append(BuildType.ASAN)
             if not self.args.skip_tsan:
-                build_types.append(BUILD_TYPE_TSAN)
+                build_types.append(BuildType.TSAN)
         log(f"Full list of build types: {build_types}")
 
         for build_type in build_types:
@@ -448,22 +468,19 @@ class Builder(BuilderInterface):
         with open(os.path.join(YB_THIRDPARTY_DIR, 'fossa-deps.json'), 'w') as output_file:
             json.dump(fossa_config_deps, output_file, indent=2)
 
-    def get_build_types(self) -> List[str]:
-        return list(BUILD_TYPES)
-
     def prepare_out_dirs(self) -> None:
-        build_types = self.get_build_types()
         dirs = [
-            os.path.join(self.fs_layout.tp_installed_dir, build_type) for build_type in build_types
+            os.path.join(self.fs_layout.tp_installed_dir, build_type.dir_name())
+            for build_type in BuildType
         ]
         libcxx_dirs = [os.path.join(dir_path, 'libcxx') for dir_path in dirs]
         for dir_path in dirs + libcxx_dirs:
             if self.args.verbose:
                 log("Preparing output directory %s", dir_path)
-            mkdir_if_missing(os.path.join(dir_path, 'bin'))
+            util.mkdir_p(os.path.join(dir_path, 'bin'))
             lib_dir = os.path.join(dir_path, 'lib')
-            mkdir_if_missing(lib_dir)
-            mkdir_if_missing(os.path.join(dir_path, 'include'))
+            util.mkdir_p(lib_dir)
+            util.mkdir_p(os.path.join(dir_path, 'include'))
             # On some systems, autotools installs libraries to lib64 rather than lib. Fix this by
             # setting up lib64 as a symlink to lib. We have to do this step first to handle cases
             # where one third-party library depends on another.
@@ -498,11 +515,12 @@ class Builder(BuilderInterface):
         self.libs = []
 
         self.add_linuxbrew_flags()
-        for include_dir_component in set([BUILD_TYPE_COMMON, self.build_type]):
-            self.add_include_path(os.path.join(
-                self.fs_layout.tp_installed_dir, include_dir_component, 'include'))
-            self.add_lib_dir_and_rpath(os.path.join(
-                self.fs_layout.tp_installed_dir, include_dir_component, 'lib'))
+        for build_type in set([BuildType.COMMON, self.build_type]):
+            build_type_parent_dir = os.path.join(
+                self.fs_layout.tp_installed_dir, build_type.dir_name())
+
+            self.add_include_path(os.path.join(build_type_parent_dir, 'include'))
+            self.add_lib_dir_and_rpath(os.path.join(build_type_parent_dir, 'lib'))
 
         self.compiler_flags += ['-fno-omit-frame-pointer', '-fPIC', '-O3', '-Wall']
         if is_linux():
@@ -536,11 +554,11 @@ class Builder(BuilderInterface):
 
         self.cxx_flags.append('-frtti')
 
-        if self.build_type == BUILD_TYPE_ASAN:
+        if self.build_type == BuildType.ASAN:
             self.compiler_flags += ASAN_COMPILER_FLAGS
             self.ld_flags += ASAN_LD_FLAGS
 
-        if self.build_type == BUILD_TYPE_TSAN:
+        if self.build_type == BuildType.TSAN:
             self.compiler_flags += TSAN_COMPILER_FLAGS
 
     def add_linuxbrew_flags(self) -> None:
@@ -573,7 +591,8 @@ class Builder(BuilderInterface):
 
     def log_prefix(self, dep: Dependency) -> str:
         detail_components = self.compiler_choice.get_build_type_components(
-                lto_type=self.lto_type, with_arch=False) + [self.build_type]
+                lto_type=self.lto_type, with_arch=False
+            ) + [self.build_type.dir_name()]
         return '{} ({})'.format(dep.name, ', '.join(detail_components))
 
     def check_current_dir(self) -> None:
@@ -743,10 +762,10 @@ class Builder(BuilderInterface):
 
             for command_item in compile_commands:
                 command_args = command_item['command'].split()
-                if self.build_type == BUILD_TYPE_ASAN:
+                if self.build_type == BuildType.ASAN:
                     assert_list_contains(command_args, '-fsanitize=address')
                     assert_list_contains(command_args, '-fsanitize=undefined')
-                if self.build_type == BUILD_TYPE_TSAN:
+                if self.build_type == BuildType.TSAN:
                     assert_list_contains(command_args, '-fsanitize=thread')
 
         if shared_and_static:
@@ -755,7 +774,7 @@ class Builder(BuilderInterface):
                 ('OFF', 'static')
             ):
                 build_dir = os.path.join(os.getcwd(), subdir_name)
-                mkdir_if_missing(build_dir)
+                util.mkdir_p(build_dir)
                 build_shared_libs_cmake_arg = '-DBUILD_SHARED_LIBS=%s' % build_shared_libs_value
                 log("Building dependency '%s' for build type '%s' with option: %s",
                     dep.name, self.build_type, build_shared_libs_cmake_arg)
@@ -790,13 +809,36 @@ class Builder(BuilderInterface):
         build_command += ["--action_env", f"BAZEL_LINKOPTS={bazel_linkopts}"]
 
         # Need to explicitly pass environment variables which we want to be available.
-        env_vars_to_copy = ["PATH", "CC", "CXX", "YB_THIRDPARTY_REAL_C_COMPILER",
-                            "YB_THIRDPARTY_REAL_CXX_COMPILER", "YB_THIRDPARTY_USE_CCACHE"]
+        env_vars_to_copy = [
+            "CC",
+            "CXX",
+            "PATH",
+            "YB_BAZEL_BUILD_DIR",
+            "YB_THIRDPARTY_REAL_C_COMPILER",
+            "YB_THIRDPARTY_REAL_CXX_COMPILER",
+            "YB_THIRDPARTY_USE_CCACHE",
+            compile_commands.TMP_DIR_ENV_VAR_NAME,
+        ]
         for env_var in env_vars_to_copy:
             if env_var not in os.environ:
                 log(f"Environment variable {env_var} not found. Not passing it to Bazel.")
                 continue
             build_command += ["--action_env", f"{env_var}={os.environ[env_var]}"]
+
+        build_command.append("--verbose_failures")
+
+        build_script_path = 'yb_build_with_bazel.sh'
+        with open(build_script_path, 'w') as build_script_file:
+            build_script_file.write('\n'.join([
+                '#!/usr/bin/env bash',
+                'set -euxo pipefail',
+                'cd "$( dirname "$0" )"',
+                '. "./%s"' % DEPENDENCY_ENV_FILE_NAME,
+                'for target in ' + shlex_join(targets) + '; do',
+                '  ' + shlex_join(build_command) + ' "$target"',
+                'done',
+            ]))
+        os.chmod(build_script_path, 0o755)
 
         for target in targets:
             self.log_output(log_prefix, build_command + [target])
@@ -845,8 +887,8 @@ class Builder(BuilderInterface):
                 'In the future, we will track down where it is coming from.')
             os.remove(spurious_a_out_path)
 
-    def build_one_build_type(self, build_type: str) -> None:
-        if (build_type != BUILD_TYPE_COMMON and
+    def build_one_build_type(self, build_type: BuildType) -> None:
+        if (build_type != BuildType.COMMON and
                 self.args.build_type is not None and
                 build_type != self.args.build_type):
             log("Skipping build type %s because build type %s is specified in the arguments",
@@ -854,9 +896,26 @@ class Builder(BuilderInterface):
             return
 
         self.set_build_type(build_type)
-        build_group = (
-            BUILD_GROUP_COMMON if build_type == BUILD_TYPE_COMMON else BUILD_GROUP_INSTRUMENTED
-        )
+        build_group = (BuildGroup.COMMON if build_type == BuildType.COMMON
+                       else BuildGroup.POTENTIALLY_INSTRUMENTED)
+
+        dependencies_matching_group = [
+            dep for dep in self.selected_dependencies if dep.build_group == build_group
+        ]
+        for dep in dependencies_matching_group:
+            self.perform_pre_build_steps(dep)
+
+        for dep in dependencies_matching_group:
+            should_build = dep.should_build(self)
+            should_rebuild = self.should_rebuild_dependency(dep)
+            if should_build and should_rebuild:
+                self.build_dependency(dep, only_process_flags=False)
+                self.check_spurious_a_out_file()
+            else:
+                self.build_dependency(dep, only_process_flags=True)
+                log(f"Skipped dependency {dep.name}: "
+                    f"should_build={should_build}, "
+                    f"should_rebuild={should_rebuild}.")
 
         for dep in self.selected_dependencies:
             if build_group == dep.build_group:
@@ -873,9 +932,9 @@ class Builder(BuilderInterface):
                         f"should_rebuild={should_rebuild}.")
 
     def get_install_prefix(self) -> str:
-        return os.path.join(self.fs_layout.tp_installed_dir, self.build_type)
+        return os.path.join(self.fs_layout.tp_installed_dir, self.build_type.dir_name())
 
-    def set_build_type(self, build_type: str) -> None:
+    def set_build_type(self, build_type: BuildType) -> None:
         self.build_type = build_type
         self.prefix = self.get_install_prefix()
         self.prefix_bin = os.path.join(self.prefix, 'bin')
@@ -946,7 +1005,7 @@ class Builder(BuilderInterface):
                 '-isystem', os.path.join(linuxbrew_dir, 'include')
             ]
 
-        if self.build_type == BUILD_TYPE_COMMON:
+        if self.build_type == BuildType.COMMON:
             self.preprocessor_flags.extend(clang_linuxbrew_isystem_flags)
             return
 
@@ -959,7 +1018,7 @@ class Builder(BuilderInterface):
         log("Dependency name: %s, is_libcxxabi: %s, is_libcxx: %s",
             dep.name, is_libcxxabi, is_libcxx)
 
-        if self.build_type == BUILD_TYPE_ASAN:
+        if self.build_type == BuildType.ASAN:
             if is_libcxxabi or is_libcxx_with_abi:
                 # To avoid an infinite loop in UBSAN.
                 # https://monorail-prod.appspot.com/p/chromium/issues/detail?id=609786
@@ -1006,16 +1065,17 @@ class Builder(BuilderInterface):
             llvm_major_version = self.compiler_choice.get_llvm_major_version()
             assert llvm_major_version is not None
             if (llvm_major_version >= 14 and
-                    dep.build_group != BUILD_GROUP_COMMON and
+                    dep.build_group != BuildGroup.COMMON and
                     dep.name != 'crcutil'):
                 self.compiler_flags += ['-mllvm', '-asan-use-private-alias=1']
 
-        if self.build_type == BUILD_TYPE_TSAN and llvm_major_version >= 13:
+        if self.build_type == BuildType.TSAN and llvm_major_version >= 13:
             self.executable_only_ld_flags.extend(['-fsanitize=thread'])
 
         self.ld_flags += ['-lunwind']
 
-        libcxx_installed_include, libcxx_installed_lib = self.get_libcxx_dirs(self.build_type)
+        libcxx_installed_include, libcxx_installed_lib = self.get_libcxx_dirs(
+            self.build_type.dir_name())
         log("libc++ include directory: %s", libcxx_installed_include)
         log("libc++ library directory: %s", libcxx_installed_lib)
 
@@ -1113,17 +1173,47 @@ class Builder(BuilderInterface):
         colored_log(YELLOW_COLOR, "Building %s (%s)", dep.name, self.build_type)
         colored_log(YELLOW_COLOR, SEPARATOR)
 
-        log("Downloading %s", dep)
-        self.download_manager.download_dependency(
-            dep=dep,
-            src_path=self.fs_layout.get_source_path(dep),
-            archive_path=self.fs_layout.get_archive_path(dep))
+        src_path, src_path_type = self.fs_layout.get_source_path_with_type(dep)
+
+        def do_default_download() -> None:
+            self.download_manager.download_dependency(
+                dep=dep,
+                src_path=src_path,
+                archive_path=self.fs_layout.get_archive_path(dep))
+
+        if src_path_type == file_system_layout.SourcePathType.DEFAULT:
+            log("Downloading %s", dep)
+            do_default_download()
+        elif src_path_type == file_system_layout.SourcePathType.DEV_REPO:
+            if os.path.exists(src_path):
+                log("Using existing source directory (development repo) %s", src_path)
+            elif (dep.github_org_name and
+                  dep.github_repo_name and
+                  dep.github_ref and
+                  len(dep.patches) == 0):
+                git_url = 'git@github.com:{}/{}.git'.format(
+                    dep.github_org_name, dep.github_repo_name)
+                git_util.git_clone(git_url, dep.github_ref, src_path,
+                                   depth=constants.GIT_CLONE_DEPTH)
+            else:
+                log("Dependency %s does not have a Git URL and/or has patches (%d patches), doing "
+                    "regular archive download to %s instead a Git clone",
+                    dep.name, len(dep.patches), src_path)
+                do_default_download()
+        else:
+            raise ValueError("Unhandled source path type: %s for %s. Source path: %s" % (
+                src_path_type, dep.name, src_path))
 
         self.fossa_deps.append({
             "name": dep.name,
             "version": dep.version,
             "url": dep.download_url
         })
+
+    def get_clang_toolchain_dir(self) -> Optional[str]:
+        if self.toolchain and self.compiler_choice.is_clang():
+            return self.toolchain.toolchain_root
+        return None
 
     def build_dependency(self, dep: Dependency, only_process_flags: bool = False) -> None:
         """
@@ -1145,11 +1235,13 @@ class Builder(BuilderInterface):
         self.init_flags(dep)
 
         # This is needed at least for glog to be able to find gflags.
-        self.add_rpath(os.path.join(self.fs_layout.tp_installed_dir, self.build_type, 'lib'))
+        self.add_rpath(
+            os.path.join(self.fs_layout.tp_installed_dir, self.build_type.dir_name(), 'lib'))
 
-        if self.build_type != BUILD_TYPE_COMMON:
+        if self.build_type != BuildType.COMMON:
             # Needed to find libunwind for Clang 10 when using compiler-rt.
-            self.add_rpath(os.path.join(self.fs_layout.tp_installed_dir, BUILD_TYPE_COMMON, 'lib'))
+            self.add_rpath(os.path.join(
+                self.fs_layout.tp_installed_dir, BuildType.COMMON.dir_name(), 'lib'))
 
         if only_process_flags:
             log("Skipping the build of dependecy %s", dep.name)
@@ -1211,7 +1303,7 @@ class Builder(BuilderInterface):
         for k, v in env_vars.items():
             log("Setting environment variable %s to: %s" % (k, v))
 
-        if self.build_type == BUILD_TYPE_ASAN:
+        if self.build_type == BuildType.ASAN:
             # To avoid errors similar to:
             # https://gist.githubusercontent.com/mbautin/4b8eec566f54bcc35706dcd97cab1a95/raw
             #
@@ -1224,11 +1316,38 @@ class Builder(BuilderInterface):
             # create some programs that have memory leaks and the configure process would fail.
             env_vars["ASAN_OPTIONS"] = ':'.join(["detect_odr_violation=0", "detect_leaks=0"])
 
-        with PushDir(self.create_build_dir_and_prepare(dep)):
-            with EnvVarContext(**env_vars):
-                write_env_vars(DEPENDENCY_ENV_FILE_NAME)
-                log("PATH=%s" % os.getenv('PATH'))
-                dep.build(self)
+        compile_commands_tmp_dir = None
+
+        clang_toolchain_dir = self.get_clang_toolchain_dir()
+
+        try:
+            if self.args.compile_commands and self.build_type.is_sanitizer():
+                compile_commands_tmp_dir = compile_commands.get_compile_commands_tmp_dir_path(
+                    dep.name)
+                env_vars[compile_commands.TMP_DIR_ENV_VAR_NAME] = compile_commands_tmp_dir
+                util.mkdir_p(compile_commands_tmp_dir)
+
+            build_dir = self.create_build_dir_and_prepare(dep)
+            if self.args.postprocess_compile_commands_only:
+                log("Only post-processing compile_commands.json in %s, skipping build", build_dir)
+                compile_commands.postprocess_compile_commands(
+                    build_dir, self.bazel_path_mapping, clang_toolchain_dir)
+                return
+
+            with PushDir(build_dir):
+                with EnvVarContext(**env_vars):
+                    write_env_vars(DEPENDENCY_ENV_FILE_NAME)
+                    log("PATH=%s" % os.getenv('PATH'))
+                    dep.build(self)
+            if compile_commands_tmp_dir is not None:
+                compile_commands.aggregate_compile_commands(
+                    compile_commands_tmp_dir, build_dir, self.bazel_path_mapping,
+                    clang_toolchain_dir)
+        finally:
+            if compile_commands_tmp_dir is not None:
+                log("Deleting %s", compile_commands_tmp_dir)
+                subprocess.check_call(['rm', '-rf', compile_commands_tmp_dir])
+
         self.save_build_stamp_for_dependency(dep)
         log("")
         log("Finished building %s (%s)", dep.name, self.build_type)
@@ -1239,6 +1358,12 @@ class Builder(BuilderInterface):
     # component. The result is returned in should_rebuild_component_rv variable, which should have
     # been made local by the caller.
     def should_rebuild_dependency(self, dep: Dependency) -> bool:
+        dep_name_and_build_type_str = "%s (%s)" % (dep.name, self.build_type)
+        if self.args.ignore_build_stamps:
+            log("Ignoring build stamps (--ignore-build-stamps specified), will rebuild: %s",
+                dep_name_and_build_type_str)
+            return True
+
         stamp_path = self.fs_layout.get_build_stamp_path_for_dependency(dep, self.build_type)
         old_build_stamp = None
         if os.path.exists(stamp_path):
@@ -1246,8 +1371,6 @@ class Builder(BuilderInterface):
                 old_build_stamp = inp.read()
 
         new_build_stamp = self.get_build_stamp_for_dependency(dep)
-
-        dep_name_and_build_type_str = "%s (%s)" % (dep.name, self.build_type)
 
         if dep.dir_name is not None:
             src_dir = self.fs_layout.get_source_path(dep)
@@ -1333,7 +1456,12 @@ class Builder(BuilderInterface):
         if self.args.delete_build_dir:
             log("Deleting directory %s (--delete-build-dir specified)", build_dir)
             subprocess.check_call(['rm', '-rf', build_dir])
-        mkdir_if_missing(build_dir)
+        util.mkdir_p(build_dir)
+
+        # Write the source path to a file in the build directory. We use this during processing of
+        # compilation database files to map file paths in the build directory back to the source
+        # directory.
+        util.write_file(os.path.join(build_dir, constants.SRC_PATH_FILE_NAME), src_dir + '\n')
 
         if dep.copy_sources:
             if dep.shared_and_static:
@@ -1358,7 +1486,7 @@ class Builder(BuilderInterface):
         Distinguishes between build types that are potentially used in production releases from
         build types that are only used in testing (e.g. ASAN+UBSAN, TSAN).
         """
-        return self.build_type in [BUILD_TYPE_COMMON, BUILD_TYPE_UNINSTRUMENTED]
+        return self.build_type in [BuildType.COMMON, BuildType.UNINSTRUMENTED]
 
     def cmake_build_type_for_test_only_dependencies(self) -> str:
         return 'Release' if self.is_release_build() else 'Debug'

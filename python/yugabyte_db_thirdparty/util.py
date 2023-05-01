@@ -11,14 +11,15 @@
 # under the License.
 #
 
-import os
+import datetime
 import hashlib
+import json
+import logging
+import os
+import pathlib
+import random
 import shutil
 import subprocess
-import datetime
-import random
-import subprocess
-import logging
 
 from yugabyte_db_thirdparty.custom_logging import log, fatal
 from yugabyte_db_thirdparty.string_util import normalize_cmd_args, shlex_join
@@ -58,7 +59,7 @@ def assert_dir_exists(dir_path: str) -> None:
 
 def compute_file_hash(hash: Any, filename: str, block_size: int = 65536) -> str:
     """
-    Compute the hash sun of a file by updating the existing hash object.
+    Compute the hash sum of a file by updating the existing hash object.
     """
     # TODO: use a more precise argument type for hash.
     with open(filename, "rb") as f:
@@ -111,13 +112,8 @@ def remove_path(path: str) -> None:
         os.remove(path)
 
 
-def mkdir_if_missing(path: str) -> None:
-    if os.path.exists(path):
-        if not os.path.isdir(path):
-            fatal("Trying to create dir {}, but file with the same path already exists"
-                  .format(path))
-        return
-    os.makedirs(path)
+def mkdir_p(path: str) -> None:
+    pathlib.Path(path).mkdir(parents=True, exist_ok=True)
 
 
 def does_file_start_with_string(file_path: str, s: str) -> bool:
@@ -205,9 +201,19 @@ def read_file(file_path: str) -> str:
         return input_file.read()
 
 
+def read_json_file(file_path: str) -> Any:
+    return json.loads(read_file(file_path))
+
+
 def write_file(file_path: str, data: str) -> None:
     with open(file_path, 'w') as output_file:
         output_file.write(data)
+
+
+def write_json_file(file_path: str, data: Any) -> None:
+    with open(file_path, 'w') as output_file:
+        json.dump(data, output_file, indent=2)
+        output_file.write('\n')
 
 
 def add_path_entry(new_path_entry: str) -> None:
@@ -299,7 +305,8 @@ def create_symlink(src: str, dst: str, src_must_exist: bool = False) -> None:
             current_target = os.readlink(dst)
             if current_target == src:
                 return
-            raise IOError(f"Symbolic link '{dst}' already exists and does not point to '{src}'.")
+            raise IOError(f"Symbolic link '{dst}' already exists and does not point to '{src}'. "
+                          f"It points to {current_target} instead.")
         else:
             raise IOError(f"File already exists and is not a symlink: '{dst}'")
     create_symlink_and_log(src, dst)
@@ -370,3 +377,14 @@ def capture_all_output(
                 f"Command {cmd_line_str} returned exit code {ex.returncode}.")
         out_bytes = ex.stdout
     return out_bytes.decode('utf-8').splitlines()
+
+
+def join_paths_safe(base_path: str, rel_path: Optional[str]) -> str:
+    while base_path.endswith('/') and base_path != '/':
+        base_path = base_path[:-1]
+
+    if rel_path is None:
+        return base_path
+    if rel_path == '.':
+        return base_path
+    return os.path.join(base_path, rel_path)

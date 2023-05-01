@@ -27,7 +27,7 @@ class CryptBlowfishDependency(Dependency):
             # The original project did not have any versions, so we created our own versions.
             version='1.3.2',
             url_pattern='https://github.com/yugabyte/crypt_blowfish/archive/refs/tags/v{0}.tar.gz',
-            build_group=BUILD_GROUP_INSTRUMENTED)
+            build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = True
 
     def get_lib_name(self, suffix: str) -> str:
@@ -38,7 +38,7 @@ class CryptBlowfishDependency(Dependency):
         builder.log_output(log_prefix, ['make', 'clean'])
         builder.log_output(log_prefix, ['make'])
         crypt_blowfish_include_dir = os.path.join(builder.prefix_include, 'crypt_blowfish')
-        mkdir_if_missing(crypt_blowfish_include_dir)
+        mkdir_p(crypt_blowfish_include_dir)
         # Copy over all the headers into a generic include/ directory.
         subprocess.check_call('rsync -av *.h {}'.format(crypt_blowfish_include_dir), shell=True)
         for suffix in ('a', builder.shared_lib_suffix):
