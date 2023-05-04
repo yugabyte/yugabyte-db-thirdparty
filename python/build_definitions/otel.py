@@ -21,14 +21,17 @@ class OtelDependency(Dependency):
         super(OtelDependency, self).__init__(
             name='opentelemetry-cpp',
             version='1.9.0',
-            url_pattern='https://github.com/open-telemetry/opentelemetry-cpp/archive/refs/tags/v{0}.tar.gz',
+            url_pattern='https://github.com/open-telemetry/opentelemetry-cpp/' \
+                        + 'archive/refs/tags/v{0}.tar.gz',
             build_group=BUILD_GROUP_INSTRUMENTED)
         # Patch fixes the following error with current protobuf installation
-        # [opentelemetry-cpp (clang15, uninstrumented)] Missing value for flag: --experimental_allow_proto3_optional
+        # Missing value for flag: --experimental_allow_proto3_optional
         self.patches = ['otel_cpp_remove_experimental_allow_proto3_optional.patch']
         self.copy_sources = False
 
     def build(self, builder: BuilderInterface) -> None:
+        installed_common_dir = os.path.join(builder.fs_layout.tp_installed_common_dir, "lib")
+        src_dir = os.path.join(builder.fs_layout.tp_src_dir, "opentelemetry-proto-0.1.2")
         builder.build_with_cmake(self,
                                  ['-DCMAKE_POSITION_INDEPENDENT_CODE=ON',
                                   '-DCMAKE_BUILD_TYPE=Release',
@@ -38,5 +41,5 @@ class OtelDependency(Dependency):
                                   '-DWITH_OTLP=ON',
                                   '-DWITH_OTLP_HTTP=ON',
                                   '-DWITH_BENCHMARK=OFF',
-                                  "-DCMAKE_PREFIX_PATH={path}".format(path=os.path.join(builder.fs_layout.tp_installed_common_dir, "lib")),
-                                  "-DOTELCPP_PROTO_PATH={path}".format(path=os.path.join(builder.fs_layout.tp_src_dir, "opentelemetry-proto-0.1.2"))])
+                                  "-DCMAKE_PREFIX_PATH={path}".format(path=installed_common_dir),
+                                  "-DOTELCPP_PROTO_PATH={path}".format(path=src_dir)])
