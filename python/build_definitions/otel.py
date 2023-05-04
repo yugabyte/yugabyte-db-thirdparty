@@ -20,9 +20,12 @@ class OtelDependency(Dependency):
     def __init__(self) -> None:
         super(OtelDependency, self).__init__(
             name='opentelemetry-cpp',
-            version='1.8.2.v1',
-            url_pattern='https://github.com/vrajat/opentelemetry-cpp/archive/refs/tags/v{0}.tar.gz',
+            version='1.9.0',
+            url_pattern='https://github.com/open-telemetry/opentelemetry-cpp/archive/refs/tags/v{0}.tar.gz',
             build_group=BUILD_GROUP_INSTRUMENTED)
+        # Patch fixes the following error with current protobuf installation
+        # [opentelemetry-cpp (clang15, uninstrumented)] Missing value for flag: --experimental_allow_proto3_optional
+        self.patches = ['otel_cpp_remove_experimental_allow_proto3_optional.patch']
         self.copy_sources = False
 
     def build(self, builder: BuilderInterface) -> None:
