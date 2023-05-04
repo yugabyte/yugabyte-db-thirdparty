@@ -1,0 +1,22 @@
+diff --git a/cmake/opentelemetry-proto.cmake b/cmake/opentelemetry-proto.cmake
+index a21c0f16..ab74987c 100644
+--- a/cmake/opentelemetry-proto.cmake
++++ b/cmake/opentelemetry-proto.cmake
+@@ -191,7 +191,7 @@ if(WITH_OTLP_GRPC)
+            ${METRICS_SERVICE_GRPC_PB_H_FILE}
+            ${METRICS_SERVICE_GRPC_PB_CPP_FILE}
+     COMMAND
+-      ${PROTOBUF_PROTOC_EXECUTABLE} ARGS "--experimental_allow_proto3_optional"
++      ${PROTOBUF_PROTOC_EXECUTABLE} ARGS
+       "--proto_path=${PROTO_PATH}" ${PROTOBUF_INCLUDE_FLAGS}
+       "--cpp_out=${GENERATED_PROTOBUF_PATH}"
+       "--grpc_out=generate_mock_code=true:${GENERATED_PROTOBUF_PATH}"
+@@ -217,7 +217,7 @@ else()
+            ${METRICS_SERVICE_PB_H_FILE}
+            ${METRICS_SERVICE_PB_CPP_FILE}
+     COMMAND
+-      ${PROTOBUF_PROTOC_EXECUTABLE} ARGS "--experimental_allow_proto3_optional"
++      ${PROTOBUF_PROTOC_EXECUTABLE} ARGS
+       "--proto_path=${PROTO_PATH}" ${PROTOBUF_INCLUDE_FLAGS}
+       "--cpp_out=${GENERATED_PROTOBUF_PATH}" ${COMMON_PROTO} ${RESOURCE_PROTO}
+       ${TRACE_PROTO} ${LOGS_PROTO} ${METRICS_PROTO} ${TRACE_SERVICE_PROTO}

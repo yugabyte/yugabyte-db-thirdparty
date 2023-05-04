@@ -19,9 +19,10 @@ class OtelProtoDependency(Dependency):
     def __init__(self) -> None:
         super(OtelProtoDependency, self).__init__(
             name='opentelemetry-proto',
-            version='0.1.2',
-            url_pattern='https://github.com/vrajat/opentelemetry-proto/archive/refs/tags/v{0}.tar.gz',
+            version='0.19.0',
+            url_pattern='https://github.com/open-telemetry/opentelemetry-proto/archive/refs/tags/v{0}.tar.gz',
             build_group=BUILD_GROUP_INSTRUMENTED)
+        self.patches = ['otel_proto_remove_optional_keyword.patch']
         self.copy_sources = False
 
     def build(self, builder: BuilderInterface) -> None:

@@ -1,0 +1,13 @@
+diff --git a/opentelemetry/proto/metrics/v1/metrics.proto b/opentelemetry/proto/metrics/v1/metrics.proto
+index bae18bb..7a647ae 100644
+--- a/opentelemetry/proto/metrics/v1/metrics.proto
++++ b/opentelemetry/proto/metrics/v1/metrics.proto
+@@ -414,7 +414,7 @@ message HistogramDataPoint {
+   // Negative events *can* be recorded, but sum should not be filled out when
+   // doing so.  This is specifically to enforce compatibility w/ OpenMetrics,
+   // see: https://github.com/OpenObservability/OpenMetrics/blob/main/specification/OpenMetrics.md#histogram
+-  optional double sum = 5;
++  double sum = 5;
+ 
+   // bucket_counts is an optional field contains the count values of histogram
+   // for each bucket.
