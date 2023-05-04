@@ -21,7 +21,7 @@ class OtelDependency(Dependency):
         super(OtelDependency, self).__init__(
             name='opentelemetry-cpp',
             version='1.9.0',
-            url_pattern='https://github.com/open-telemetry/opentelemetry-cpp/' \
+            url_pattern='https://github.com/open-telemetry/opentelemetry-cpp/'
                         + 'archive/refs/tags/v{0}.tar.gz',
             build_group=BUILD_GROUP_INSTRUMENTED)
         # Patch fixes the following error with current protobuf installation
