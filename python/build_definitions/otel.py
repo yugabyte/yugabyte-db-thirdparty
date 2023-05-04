@@ -17,6 +17,8 @@ from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
 
 class OtelDependency(Dependency):
+    opentelemetry_proto_version = 'opentelemetry-proto-0.19.0'
+
     def __init__(self) -> None:
         super(OtelDependency, self).__init__(
             name='opentelemetry-cpp',
@@ -31,7 +33,7 @@ class OtelDependency(Dependency):
 
     def build(self, builder: BuilderInterface) -> None:
         installed_common_dir = os.path.join(builder.fs_layout.tp_installed_common_dir, "lib")
-        src_dir = os.path.join(builder.fs_layout.tp_src_dir, "opentelemetry-proto-0.1.2")
+        src_dir = os.path.join(builder.fs_layout.tp_src_dir, OtelDependency.opentelemetry_proto_version)
         builder.build_with_cmake(self,
                                  ['-DCMAKE_POSITION_INDEPENDENT_CODE=ON',
                                   '-DCMAKE_BUILD_TYPE=Release',
