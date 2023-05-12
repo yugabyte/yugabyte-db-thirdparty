@@ -32,7 +32,7 @@ class OtelDependency(Dependency):
         self.copy_sources = False
 
     def build(self, builder: BuilderInterface) -> None:
-        installed_common_dir = os.path.join(builder.fs_layout.tp_installed_common_dir, "lib")
+        installed_common_dir = builder.fs_layout.tp_installed_common_dir
         src_dir = os.path.join(builder.fs_layout.tp_src_dir,
                                OtelDependency.opentelemetry_proto_version)
         builder.build_with_cmake(self,
