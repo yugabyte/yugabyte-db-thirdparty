@@ -1,0 +1,47 @@
+diff --git a/exporters/ostream/CMakeLists.txt b/exporters/ostream/CMakeLists.txt
+index af24e9f1..3d018944 100644
+--- a/exporters/ostream/CMakeLists.txt
++++ b/exporters/ostream/CMakeLists.txt
+@@ -49,7 +49,7 @@ target_include_directories(
+   opentelemetry_exporter_ostream_metrics
+   PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>")
+ target_link_libraries(opentelemetry_exporter_ostream_metrics
+-                      PUBLIC opentelemetry_metrics)
++                      PUBLIC opentelemetry_metrics opentelemetry_resources)
+ 
+ if(OPENTELEMETRY_INSTALL)
+   install(
+diff --git a/exporters/otlp/CMakeLists.txt b/exporters/otlp/CMakeLists.txt
+index 386bfcd9..a877948f 100644
+--- a/exporters/otlp/CMakeLists.txt
++++ b/exporters/otlp/CMakeLists.txt
+@@ -114,7 +114,7 @@ if(WITH_OTLP_HTTP)
+   target_link_libraries(
+     opentelemetry_exporter_otlp_http_client
+     PUBLIC opentelemetry_sdk opentelemetry_proto opentelemetry_http_client_curl
+-           nlohmann_json::nlohmann_json)
++           nlohmann_json::nlohmann_json opentelemetry_common)
+   if(nlohmann_json_clone)
+     add_dependencies(opentelemetry_exporter_otlp_http_client
+                      nlohmann_json::nlohmann_json)
+diff --git a/ext/src/http/client/curl/CMakeLists.txt b/ext/src/http/client/curl/CMakeLists.txt
+index 7e2507bd..1236808f 100644
+--- a/ext/src/http/client/curl/CMakeLists.txt
++++ b/ext/src/http/client/curl/CMakeLists.txt
+@@ -14,14 +14,14 @@ if(TARGET CURL::libcurl)
+   target_link_libraries(
+     opentelemetry_http_client_curl
+     PUBLIC opentelemetry_ext
+-    PRIVATE CURL::libcurl)
++    PRIVATE CURL::libcurl opentelemetry_common)
+ else()
+   target_include_directories(opentelemetry_http_client_curl
+                              INTERFACE "${CURL_INCLUDE_DIRS}")
+   target_link_libraries(
+     opentelemetry_http_client_curl
+     PUBLIC opentelemetry_ext
+-    PRIVATE ${CURL_LIBRARIES})
++    PRIVATE ${CURL_LIBRARIES} opentelemetry_common)
+ endif()
+ 
+ if(OPENTELEMETRY_INSTALL)

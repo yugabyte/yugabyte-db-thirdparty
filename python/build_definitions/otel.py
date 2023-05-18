@@ -28,7 +28,8 @@ class OtelDependency(Dependency):
             build_group=BUILD_GROUP_INSTRUMENTED)
         # Patch fixes the following error with current protobuf installation
         # Missing value for flag: --experimental_allow_proto3_optional
-        self.patches = ['otel_cpp_remove_experimental_allow_proto3_optional.patch']
+        self.patches = ['otel_cpp_remove_experimental_allow_proto3_optional.patch',
+                        'add_macOS_missing_dependencies.patch']
         self.copy_sources = False
 
     def build(self, builder: BuilderInterface) -> None:
