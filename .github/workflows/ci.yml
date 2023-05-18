@@ -177,7 +177,7 @@ jobs:
           # ---------------------------------------------------------------------------------------
 
           - name: macos-x86_64
-            os: macos-11.7
+            os: macos-11
             docker_image:
             build_thirdparty_args:
 
