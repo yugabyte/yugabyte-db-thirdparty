@@ -12,6 +12,6 @@ rm -rf .mypy_cache
 codecheck --verbose "$@"
 
 if [[ $OSTYPE == darwin* && $( uname -m ) == "x86_64" ]]; then
-  pip install pyright
+  pip install pyright==1.1.309
   pyright
 fi

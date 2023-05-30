@@ -1,0 +1,48 @@
+diff --git a/opentelemetry/proto/metrics/v1/metrics.proto b/opentelemetry/proto/metrics/v1/metrics.proto
+index 38f3da7..7cc92eb 100644
+--- a/opentelemetry/proto/metrics/v1/metrics.proto
++++ b/opentelemetry/proto/metrics/v1/metrics.proto
+@@ -414,7 +414,7 @@ message HistogramDataPoint {
+   // Negative events *can* be recorded, but sum should not be filled out when
+   // doing so.  This is specifically to enforce compatibility w/ OpenMetrics,
+   // see: https://github.com/OpenObservability/OpenMetrics/blob/main/specification/OpenMetrics.md#histogram
+-  optional double sum = 5;
++  double sum = 5;
+ 
+   // bucket_counts is an optional field contains the count values of histogram
+   // for each bucket.
+@@ -449,10 +449,10 @@ message HistogramDataPoint {
+   uint32 flags = 10;
+ 
+   // min is the minimum value over (start_time, end_time].
+-  optional double min = 11;
++  double min = 11;
+ 
+   // max is the maximum value over (start_time, end_time].
+-  optional double max = 12;
++  double max = 12;
+ }
+ 
+ // ExponentialHistogramDataPoint is a single data point in a timeseries that describes the
+@@ -493,7 +493,7 @@ message ExponentialHistogramDataPoint {
+   // Negative events *can* be recorded, but sum should not be filled out when
+   // doing so.  This is specifically to enforce compatibility w/ OpenMetrics,
+   // see: https://github.com/OpenObservability/OpenMetrics/blob/main/specification/OpenMetrics.md#histogram
+-  optional double sum = 5;
++  double sum = 5;
+   
+   // scale describes the resolution of the histogram.  Boundaries are
+   // located at powers of the base, where:
+@@ -557,10 +557,10 @@ message ExponentialHistogramDataPoint {
+   repeated Exemplar exemplars = 11;
+ 
+   // min is the minimum value over (start_time, end_time].
+-  optional double min = 12;
++  double min = 12;
+ 
+   // max is the maximum value over (start_time, end_time].
+-  optional double max = 13;
++  double max = 13;
+ }
+ 
+ // SummaryDataPoint is a single data point in a timeseries that describes the
