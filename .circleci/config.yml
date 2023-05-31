@@ -14,6 +14,32 @@
 version: 2.1
 
 jobs:
+  mac_build:
+    parameters:
+      archive_name_suffix:
+        type: string
+      build_thirdparty_args:
+        type: string
+        default: ""
+
+    macos:
+      # macos version 12.6
+      xcode: 14.2.0
+    # M1 / ARM
+    resource_class: macos.m1.large.gen1
+
+    steps:
+      - checkout
+      - run:
+          name: Build YugabyteDB third-party dependencies
+          command: |
+            export YB_TARGET_ARCH=arm64
+            export PATH=/opt/homebrew/bin:$PATH
+            export YB_BUILD_THIRDPARTY_ARGS="<< parameters.build_thirdparty_args >>"
+            export YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX="<< parameters.archive_name_suffix >>"
+            .github/workflows/macos_build.sh
+
+
   build:
     parameters:
       archive_name_suffix:
@@ -76,4 +102,6 @@ workflows:
             --toolchain=llvm16
             --expected-major-compiler-version=16
             --skip-sanitizers
-            --lto=full
+
+      - mac_build:
+          archive_name_suffix: macos-arm64
