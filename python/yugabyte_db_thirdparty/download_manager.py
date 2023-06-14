@@ -307,7 +307,7 @@ class DownloadManager:
                 src_path, 'patchmarker-version{}-{}patches'.format(
                     dep.patch_version, len(dep.patches)))
         log("Patch marker file: %s", patch_marker_file_path)
-        if os.path.exists(patch_marker_file_path):
+        if os.path.exists(patch_marker_file_path) and not dep.local_archive:
             log("Patch marker file %s already exists, skipping download", patch_marker_file_path)
             return
 
@@ -319,6 +319,7 @@ class DownloadManager:
             mkdir_if_missing(src_path)
         elif dep.local_archive:
             log("Copying from local archive at %s to %s", dep.local_archive, src_path)
+            shutil.rmtree(src_path, ignore_errors=True)
             shutil.copytree(dep.local_archive, src_path)
         else:
             download_url = dep.download_url
