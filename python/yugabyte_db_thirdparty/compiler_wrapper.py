@@ -31,7 +31,7 @@ from yugabyte_db_thirdparty.util import mkdir_p
 from yugabyte_db_thirdparty import compile_commands
 
 
-C_CXX_SUFFIXES = ('.c', '.cc', '.cxx')
+C_CXX_SUFFIXES = ('.c', '.cc', '.cxx', '.cpp')
 
 
 def cmd_join_one_arg_per_line(cmd_args: List[str]) -> str:
