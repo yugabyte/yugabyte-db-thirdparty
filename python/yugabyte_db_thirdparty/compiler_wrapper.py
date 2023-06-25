@@ -157,7 +157,7 @@ class CompilerWrapper:
                     )
                     generate_compile_command_file = False
 
-            # Perform preprocessing only to ensure we are only using include files from allowed
+            # Perform preprocessing to ensure we are only using include files from allowed
             # directories.
             pp_args = [self.real_compiler_path] + with_updated_output_path(
                 self.compiler_args, pp_output_path)

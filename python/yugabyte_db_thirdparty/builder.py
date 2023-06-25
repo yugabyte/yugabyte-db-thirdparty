@@ -172,7 +172,7 @@ class Builder(BuilderInterface):
     lto_type: Optional[str]
     selected_dependencies: List[Dependency]
 
-    # Mapping from e.g. com_google_tcmalloc or com_google_absl to the corresponiding build
+    # Mapping from e.g. com_google_tcmalloc or com_google_absl to the corresponding build
     # directories.
     bazel_path_mapping: Dict[str, str]
 
