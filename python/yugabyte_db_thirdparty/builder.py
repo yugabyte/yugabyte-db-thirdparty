@@ -1321,7 +1321,7 @@ class Builder(BuilderInterface):
         clang_toolchain_dir = self.get_clang_toolchain_dir()
 
         try:
-            if self.args.compile_commands and self.build_type.is_sanitizer():
+            if self.args.compile_commands and not self.build_type.is_sanitizer():
                 compile_commands_tmp_dir = compile_commands.get_compile_commands_tmp_dir_path(
                     dep.name)
                 env_vars[compile_commands.TMP_DIR_ENV_VAR_NAME] = compile_commands_tmp_dir

@@ -341,7 +341,8 @@ def create_vscode_settings(
     util.mkdir_p(vscode_dir)
     settings_json_path = os.path.join(vscode_dir, 'settings.json')
 
-    if not os.path.exists(settings_json_path) and clang_toolchain_dir is not None:
+    if (not os.path.exists(settings_json_path) or
+            util.is_empty_json_file(settings_json_path)) and clang_toolchain_dir is not None:
         log("Creating VSCode settings file at %s", settings_json_path)
         settings = {
             'clangd.path': os.path.join(clang_toolchain_dir, 'bin', 'clangd'),
@@ -354,7 +355,8 @@ def create_vscode_settings(
         }
         util.write_json_file(settings_json_path, settings)
     else:
-        log("VSCode settings file already exists: %s, skipping", settings_json_path)
+        log("VSCode settings file already exists and is not empty: %s, not overwriting",
+            settings_json_path)
 
     if clang_toolchain_dir is not None:
         clangd_index_stderr_path = os.path.join(compile_commands_subdir_path, 'clangd-indexer.log')

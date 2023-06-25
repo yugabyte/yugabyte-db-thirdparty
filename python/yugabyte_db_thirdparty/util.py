@@ -388,3 +388,16 @@ def join_paths_safe(base_path: str, rel_path: Optional[str]) -> str:
     if rel_path == '.':
         return base_path
     return os.path.join(base_path, rel_path)
+
+
+def is_empty_json_file(file_path: str) -> bool:
+    if not os.path.exists(file_path) or not os.path.isfile(file_path):
+        return False
+    content = read_file(file_path).strip()
+    if content in ['{}', '[]']:
+        return True
+    try:
+        parsed_json = json.loads(content)
+        return json.dumps(parsed_json) in ['{}', '[]']
+    except json.decoder.JSONDecodeError as ex:
+        return False
