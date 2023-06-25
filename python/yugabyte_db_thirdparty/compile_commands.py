@@ -102,7 +102,8 @@ def aggregate_compile_commands(
         tmp_dir: str,
         build_dir: str,
         bazel_path_mapping: Dict[str, str],
-        clang_toolchain_dir: Optional[str]) -> None:
+        clang_toolchain_dir: Optional[str],
+        src_dir: str) -> None:
     """
     Aggregate individual compilation command files into a single compile_commands.json file in the
     given directory.
@@ -153,7 +154,7 @@ def aggregate_compile_commands(
     for compile_command_path in compile_command_paths:
         os.remove(compile_command_path)
 
-    postprocess_compile_commands(build_dir, bazel_path_mapping, clang_toolchain_dir)
+    postprocess_compile_commands(build_dir, bazel_path_mapping, clang_toolchain_dir, src_dir)
 
 
 def map_build_dir_to_source_dir(
@@ -303,7 +304,8 @@ def rewrite_compile_command(
 def postprocess_compile_commands(
         build_dir: str,
         bazel_path_mapping: Dict[str, str],
-        clang_toolchain_dir: Optional[str]) -> None:
+        clang_toolchain_dir: Optional[str],
+        src_dir: str) -> None:
     compile_commands_path_raw = get_final_compile_commands_path(build_dir, raw=True)
     if not os.path.exists(compile_commands_path_raw):
         log("File not found: %s, skipping", compile_commands_path_raw)
@@ -325,28 +327,34 @@ def postprocess_compile_commands(
 
     util.write_json_file(compile_commands_path, new_compile_commands)
 
-    create_vscode_settings(build_dir, clang_toolchain_dir)
+    create_vscode_settings(build_dir, clang_toolchain_dir, src_dir)
 
 
-def create_vscode_settings(build_dir: str, clang_toolchain_dir: Optional[str]) -> None:
-    vscode_dir = os.path.join(build_dir, '.vscode')
-    util.mkdir_p(vscode_dir)
-    settings_json_path = os.path.join(vscode_dir, 'settings.json')
+def create_vscode_settings(
+        build_dir: str, clang_toolchain_dir: Optional[str], src_dir: str) -> None:
     compile_commands_subdir_path = os.path.join(build_dir, COMPILE_COMMANDS_SUBDIR)
     compile_commands_path = os.path.join(compile_commands_subdir_path, 'compile_commands.json')
     clangd_index_rel_path = os.path.join(COMPILE_COMMANDS_SUBDIR, 'clangd_index.binary')
     clangd_index_path = os.path.join(build_dir, clangd_index_rel_path)
+
+    vscode_dir = os.path.join(src_dir, '.vscode')
+    util.mkdir_p(vscode_dir)
+    settings_json_path = os.path.join(vscode_dir, 'settings.json')
+
     if not os.path.exists(settings_json_path) and clang_toolchain_dir is not None:
+        log("Creating VSCode settings file at %s", settings_json_path)
         settings = {
             'clangd.path': os.path.join(clang_toolchain_dir, 'bin', 'clangd'),
             'clangd.arguments': [
                 "--header-insertion=never",
-                "--compile-commands-dir=${workspaceFolder}/%s" % COMPILE_COMMANDS_SUBDIR,
-                "--index-file=${workspaceFolder}/%s" % clangd_index_rel_path,
+                "--compile-commands-dir=%s" % compile_commands_subdir_path,
+                "--index-file=%s" % clangd_index_path,
                 "--background-index=false",
             ]
         }
         util.write_json_file(settings_json_path, settings)
+    else:
+        log("VSCode settings file already exists: %s, skipping", settings_json_path)
 
     if clang_toolchain_dir is not None:
         clangd_index_stderr_path = os.path.join(compile_commands_subdir_path, 'clangd-indexer.log')

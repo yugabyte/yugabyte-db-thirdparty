@@ -1327,11 +1327,12 @@ class Builder(BuilderInterface):
                 env_vars[compile_commands.TMP_DIR_ENV_VAR_NAME] = compile_commands_tmp_dir
                 util.mkdir_p(compile_commands_tmp_dir)
 
+            src_dir = self.fs_layout.get_source_path(dep)
             build_dir = self.create_build_dir_and_prepare(dep)
             if self.args.postprocess_compile_commands_only:
                 log("Only post-processing compile_commands.json in %s, skipping build", build_dir)
                 compile_commands.postprocess_compile_commands(
-                    build_dir, self.bazel_path_mapping, clang_toolchain_dir)
+                    build_dir, self.bazel_path_mapping, clang_toolchain_dir, src_dir)
                 return
 
             with PushDir(build_dir):
@@ -1342,7 +1343,7 @@ class Builder(BuilderInterface):
             if compile_commands_tmp_dir is not None:
                 compile_commands.aggregate_compile_commands(
                     compile_commands_tmp_dir, build_dir, self.bazel_path_mapping,
-                    clang_toolchain_dir)
+                    clang_toolchain_dir, src_dir)
         finally:
             if compile_commands_tmp_dir is not None:
                 log("Deleting %s", compile_commands_tmp_dir)

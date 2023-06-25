@@ -237,7 +237,7 @@ def parse_cmd_line_args() -> argparse.Namespace:
         action='store_true')
 
     parser.add_argument(
-        '--postprocess-compile-commands-only', '--fix-ccmds-only',
+        '--postprocess-compile-commands-only', '--postprocess-ccmds-only',
         help='Perform a fix-up of the compilation commands database (compile_commands.json) in '
              'every build directory without performing the build. Useful during debugging. This '
              'fix-up step is also performed as part of the build if --compile-commands is '
