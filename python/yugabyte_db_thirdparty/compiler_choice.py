@@ -14,17 +14,11 @@
 import os
 from typing import Optional, Tuple, List
 
-from build_definitions import (
-    BUILD_TYPE_ASAN,
-    BUILD_TYPE_TSAN,
-    BUILD_TYPE_UNINSTRUMENTED
-)
 from yugabyte_db_thirdparty.custom_logging import log, fatal
-from sys_detection import is_linux, is_macos
+from sys_detection import is_linux
 from yugabyte_db_thirdparty.util import (
     which_must_exist,
     YB_THIRDPARTY_DIR,
-    add_path_entry,
     extract_major_version,
 )
 from yugabyte_db_thirdparty.devtoolset import validate_devtoolset_compiler_path
@@ -61,7 +55,6 @@ class CompilerChoice:
             compiler_prefix: Optional[str],
             compiler_suffix: str,
             devtoolset: Optional[int],
-            use_compiler_wrapper: bool,
             use_ccache: bool,
             expected_major_compiler_version: Optional[int]) -> None:
         assert compiler_family in ['gcc', 'clang']
@@ -69,7 +62,6 @@ class CompilerChoice:
         self.compiler_prefix = compiler_prefix
         self.compiler_suffix = compiler_suffix
         self.devtoolset = devtoolset
-        self.use_compiler_wrapper = use_compiler_wrapper
         self.use_ccache = use_ccache
 
         self.cc = None
@@ -86,6 +78,9 @@ class CompilerChoice:
 
         self.find_compiler()
         self.identify_compiler_version()
+
+        # We set this directly later.
+        self.use_compiler_wrapper = False
 
     def find_compiler(self) -> None:
         compilers: Tuple[str, str]
@@ -183,8 +178,9 @@ class CompilerChoice:
     def is_linux_clang(self) -> bool:
         return is_linux() and self.is_clang()
 
-    def set_compiler(self, use_compiler_wrapper: bool) -> None:
-        self.use_compiler_wrapper = use_compiler_wrapper
+    def set_compiler(self, use_compiler_wrapper: Optional[bool] = None) -> None:
+        if use_compiler_wrapper is not None:
+            self.use_compiler_wrapper = use_compiler_wrapper
 
         self.find_compiler()
 

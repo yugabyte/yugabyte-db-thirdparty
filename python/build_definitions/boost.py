@@ -47,7 +47,7 @@ class BoostDependency(Dependency):
             # URL grabbed from https://www.boost.org/users/history/version_1_77_0.html
             url_pattern='https://boostorg.jfrog.io/artifactory/main/release/{}/source/'
                         'boost_{}.tar.bz2'.format(self.VERSION_STR, self.VERSION_STR_UNDERSCORES),
-            build_group=BUILD_GROUP_INSTRUMENTED,
+            build_group=BuildGroup.POTENTIALLY_INSTRUMENTED,
             license='Boost Software License 1.0')
         self.dir = '{}_{}'.format(self.name, self.underscored_version)
         self.copy_sources = True

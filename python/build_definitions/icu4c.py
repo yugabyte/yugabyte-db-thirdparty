@@ -24,7 +24,7 @@ class Icu4cDependency(Dependency):
     VERSION_WITH_UNDERSCORE = '%d_%d' % (VERSION_MAJOR, VERSION_MINOR)
     VERSION_WITH_DASH = '%d-%d' % (VERSION_MAJOR, VERSION_MINOR)
     CUSTOM_URL_PATTERN = \
-        'http://github.com/unicode-org/icu/releases/download/release-%s/icu4c-%s-src.tgz'
+        'https://github.com/unicode-org/icu/releases/download/release-%s/icu4c-%s-src.tgz'
 
     def __init__(self) -> None:
         super(Icu4cDependency, self).__init__(
@@ -33,12 +33,12 @@ class Icu4cDependency(Dependency):
             url_pattern=Icu4cDependency.CUSTOM_URL_PATTERN % (
                 Icu4cDependency.VERSION_WITH_DASH,
                 Icu4cDependency.VERSION_WITH_UNDERSCORE),
-            build_group=BUILD_GROUP_INSTRUMENTED)
+            build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.patches = ['icu4c-remove-undef-strict-ansi.patch']
         self.copy_sources = True
 
     def get_additional_ld_flags(self, builder: BuilderInterface) -> List[str]:
-        if builder.compiler_choice.is_linux_clang() and builder.build_type == BUILD_TYPE_ASAN:
+        if builder.compiler_choice.is_linux_clang() and builder.build_type == BuildType.ASAN:
             # Needed to find dlsym.
             return ['-ldl']
         return []
@@ -117,7 +117,7 @@ class Icu4cDependency(Dependency):
         if (is_linux() and
                 llvm_major_version is not None and
                 llvm_major_version >= 14 and
-                builder.build_type == BUILD_TYPE_ASAN):
+                builder.build_type == BuildType.ASAN):
             post_configure_action = self._copy_res_files_from_uninstrumented
 
         builder.build_with_configure(

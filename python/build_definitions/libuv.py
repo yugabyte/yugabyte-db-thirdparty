@@ -21,7 +21,7 @@ class LibUvDependency(Dependency):
             name='libuv',
             version='1.23.0',
             url_pattern='https://github.com/libuv/libuv/archive/v{0}.tar.gz',
-            build_group=BUILD_GROUP_INSTRUMENTED)
+            build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = True
 
     def build(self, builder: BuilderInterface) -> None:

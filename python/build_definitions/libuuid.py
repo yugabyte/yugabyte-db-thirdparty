@@ -21,7 +21,7 @@ class LibUuidDependency(Dependency):
             name='libuuid',
             version='1.0.3',
             url_pattern='https://github.com/yugabyte/libuuid/archive/libuuid-{0}.tar.gz',
-            build_group=BUILD_GROUP_COMMON)
+            build_group=BuildGroup.COMMON)
         self.copy_sources = True
 
     def get_additional_compiler_flags(self, builder: BuilderInterface) -> List[str]:

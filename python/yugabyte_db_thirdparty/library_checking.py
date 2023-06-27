@@ -33,7 +33,7 @@ from yugabyte_db_thirdparty.macos import get_min_supported_macos_version
 from yugabyte_db_thirdparty.file_system_layout import FileSystemLayout
 from yugabyte_db_thirdparty.compiler_choice import CompilerChoice
 
-from build_definitions import BUILD_TYPES
+from build_definitions import BuildType
 
 
 IGNORED_EXTENSIONS = (
@@ -216,7 +216,8 @@ class LibTestBase:
         # Files to examine are much reduced if we look only at bin and lib directories.
         dir_pattern = re.compile('^(lib|libcxx|[s]bin)$')
         installed_dirs_per_build_type = [
-                os.path.join(self.tp_installed_dir, build_type) for build_type in BUILD_TYPES]
+                os.path.join(self.tp_installed_dir, build_type.dir_name())
+                for build_type in BuildType]
 
         self.files_to_check = []
         for installed_dir_for_one_build_type in installed_dirs_per_build_type:

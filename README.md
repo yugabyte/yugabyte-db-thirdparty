@@ -1,12 +1,12 @@
 # yugabyte-db-thirdparty
 
-This repository contains Python-based automation to build and package third-party dependencies that are needed to build YugabyteDB. We package these dependencies as GitHub releases so that they can be downloaded by YugabyteDB CI/CD systems without having to rebuild them every time. Here is an example of how to build yugabyte-db-thirdparty and then YugabyteDB with Clang 15.
+This repository contains Python-based automation to build and package third-party dependencies that are needed to build YugabyteDB. We package these dependencies as GitHub releases so that they can be downloaded by YugabyteDB CI/CD systems without having to rebuild them every time. Here is an example of how to build yugabyte-db-thirdparty and then YugabyteDB with Clang 16.
 
 ```bash
 cd ~/code
 git clone https://github.com/yugabyte/yugabyte-db-thirdparty.git
 cd yugabyte-db-thirdparty
-./build_thirdparty.sh --toolchain=llvm15
+./build_thirdparty.sh --toolchain=llvm16
 ```
 
 To use your local changes to yugabyte-db-thirdparty in a YugabyteDB build:
@@ -16,7 +16,7 @@ cd ~/code
 git clone https://github.com/yugabyte/yugabyte-db.git
 cd yugabyte-db
 export YB_THIRDPARTY_DIR=~/code/yugabyte-db-thirdparty
-./yb_build.sh --clang15
+./yb_build.sh --clang16
 ```
 
 The [ci.yml](https://github.com/yugabyte/yugabyte-db-thirdparty/blob/master/.github/workflows/ci.yml) GitHub Actions workflow file contains multiple operating system and compiler configurations that we build and test regularly. Take a look at the command lines used in that file to get an idea of various usable combinations of parameters to the `build_thirdparty.sh` script.
@@ -28,14 +28,14 @@ The third-party dependencies themselves are described, each in its own Python fi
 To modify some dependency (e.g. glog):
 * Look at the corresponding python file in build_definitions, e.g. https://github.com/yugabyte/yugabyte-db-thirdparty/blob/master/python/build_definitions/glog.py, to see where it is pulling the dependency from. Usually it is a GitHub repo, either the open-source upstream repo or our own fork.
 * In case of glog, it is https://github.com/yugabyte/glog. Fork that repo on GitHub, to e.g. https://github.com/yourgithubusername/glog. Clone your fork of the repo and make all the necessary changes in your local checkout.
-* To test locally, pass `local_archive` pointing to your clone path (`local_archive` is only meant for testing and should not be submitted in your PR):
+* To test locally, pass `local_archive` pointing to your clone path. `local_archive` is only meant for testing and should not be submitted in your PR. It will copy the code from your local clone path to the dependency's source directory inside `src` at build time.
 ```python
         super(GLogDependency, self).__init__(
             name='glog',
             version='0.4.0-yb-1',
             url_pattern='https://github.com/yugabyte/glog/archive/v{0}.tar.gz',
             local_archive='/path/to/glog',
-            build_group=BUILD_GROUP_INSTRUMENTED)
+            build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
 ```
 * When you are done with your changes to the dependency, e.g. glog, get them checked into our fork, i.e. yugabyte/glog on GitHub, and create the next "official" Yugabyte tag for that dependency, e.g. 0.4.0-yb-2 (we usually add a `-yb-N` suffix to the upstream version).
 * Reference the updated tag from the version field in the dependency's python file as shown below. **Remember to remove `local_archive`.**
@@ -44,15 +44,36 @@ To modify some dependency (e.g. glog):
             name='glog',
             version='0.4.0-yb-2', # Note the updated tag
             url_pattern='https://github.com/yugabyte/glog/archive/v{0}.tar.gz',
-            build_group=BUILD_GROUP_INSTRUMENTED)
+            build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
 ```
 
 * Rebuild thirdparty (`--add-checksum` so it would auto-add the checksum for your archive):
 
 ```
-./build_thirdparty.sh --toolchain=llvm15 --add-checksum
+./build_thirdparty.sh --toolchain=llvm16 --add-checksum
 ```
 * Create a PR in yugabyte-db-thirdparty with a descriptive commit message.
+
+## Working on a third-party dependency C/C++ codebase using using Visual Studio Code and Clangd
+
+It is possible to generate compile_commands.json and fully index the codebase of a dependency using the clangd-indexer tool. Also, instead of using `local_archive`, there is a `--dev-repo` flag that specifies a local repository for a particular third-party dependency.
+
+To generate the compilation commands and the Clangd index for one dependency, e.g. TCMalloc in this case:
+
+```
+./build_thirdparty.sh --toolchain=llvm16 --dev-repo tcmalloc=$HOME/code/tcmalloc \
+    --compile-commands --skip-sanitizers --ignore-build-stamp --delete-build-dir \
+    tcmalloc
+```
+
+In the output, look for lines such as the following:
+```
+Generated the compilation commands file at .../build/uninstrumented/tcmalloc-e116a66-yb-4/yb_compile_commands/compile_commands.json
+Creating VSCode settings file at $HOME/code/tcmalloc/.vscode/settings.json
+Generated clangd index in 10 seconds at .../build/uninstrumented/tcmalloc-e116a66-yb-4/yb_compile_commands/clangd_index.binary, see .../build/uninstrumented/tcmalloc-e116a66-yb-4/yb_compile_commands/clangd-indexer.log for details
+```
+
+Note that the compilation commands (compilation database) file is generated in a subdirectory of the build directory, and the Visual Studio Code workspace-specific settings.json file is generated in the source directory.
 
 ## Ensuring a clean build
 By default, we don't use separate directories for different "build types" in yugabyte-db-thirdparty unlike we do in YugabyteDB. Therefore, when changing to a different compiler family, compiler version, compiler flags, etc., it would be safest to remove build output before rebuilding:
@@ -103,8 +124,8 @@ mkdir -p ~/logs
 ### Linux aarch64
 
 ```
-export YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX=almalinux8-aarch64-clang15
-export YB_BUILD_THIRDPARTY_EXTRA_ARGS="--toolchain=llvm15 --expected-major-compiler-version=15"
+export YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX=almalinux8-aarch64-clang16
+export YB_BUILD_THIRDPARTY_EXTRA_ARGS="--toolchain=llvm16 --expected-major-compiler-version=15"
 rm -rf venv
 ./clean_thirdparty.sh --all
 mkdir -p ~/logs
@@ -114,8 +135,8 @@ mkdir -p ~/logs
 ### Amazon Linux 2 aarch64
 
 ```
-export YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX=amzn2-aarch64-clang15
-export YB_BUILD_THIRDPARTY_EXTRA_ARGS="--toolchain=llvm15 --expected-major-compiler-version=15"
+export YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX=amzn2-aarch64-clang16
+export YB_BUILD_THIRDPARTY_EXTRA_ARGS="--toolchain=llvm16 --expected-major-compiler-version=15"
 rm -rf venv
 ./clean_thirdparty.sh --all
 mkdir -p ~/logs
@@ -173,7 +194,7 @@ index c875c40f..febe635e 100644
      branches:
        - master
 +      - 2.17.3
- 
+
      paths-ignore:
        - README.md
 ```
@@ -186,5 +207,3 @@ For example, see the following commits for yugabyte-db-thirdparty branches creat
 - [`66b10387c67b82073ab79444a6ac721ad11672ac`](https://github.com/yugabyte/yugabyte-db-thirdparty/commit/66b10387c67b82073ab79444a6ac721ad11672ac) (2.14)
 - [`b703b42e2bac6749482f87705d10fb6c4467f9bf`](https://github.com/yugabyte/yugabyte-db-thirdparty/commit/b703b42e2bac6749482f87705d10fb6c4467f9bf) (2.17.3)
 - [`50d0076b8165b8771d2c876f40d85335f43d1419`](https://github.com/yugabyte/yugabyte-db-thirdparty/commit/50d0076b8165b8771d2c876f40d85335f43d1419) (2.18)
-
-

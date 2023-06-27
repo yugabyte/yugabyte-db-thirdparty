@@ -24,7 +24,7 @@ class GoogleTestDependency(Dependency):
             name='googletest',
             version='1.12.1',
             url_pattern='https://github.com/google/googletest/archive/release-{0}.tar.gz',
-            build_group=BUILD_GROUP_INSTRUMENTED)
+            build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.dir = "googletest-release-{}".format(self.version)
         self.copy_sources = False
 
@@ -54,7 +54,7 @@ class GoogleTestDependency(Dependency):
     def do_build(self, builder: BuilderInterface, mode: str) -> None:
         assert mode in ['shared', 'static']
         build_dir = os.path.join(os.getcwd(), mode)
-        mkdir_if_missing(build_dir)
+        mkdir_p(build_dir)
         cmake_opts = ['-DCMAKE_BUILD_TYPE=Debug',
                       '-DBUILD_SHARED_LIBS={}'.format('ON' if mode == 'shared' else 'OFF')]
         if is_macos():

@@ -22,7 +22,7 @@ class OpenLDAPDependency(Dependency):
               'openldap',
               '2_4_54',
               'https://github.com/yugabyte/openldap/archive/OPENLDAP_REL_ENG_{}.tar.gz',
-              BUILD_GROUP_COMMON)
+              BuildGroup.COMMON)
         self.copy_sources = True
         self.patch_version = 1
         self.patches = ['openldap-do-not-build-docs.patch']

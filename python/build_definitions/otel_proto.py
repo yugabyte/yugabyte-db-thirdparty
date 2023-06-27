@@ -22,7 +22,7 @@ class OtelProtoDependency(Dependency):
             version='0.19.0',
             url_pattern='https://github.com/open-telemetry/opentelemetry-proto/'
                         + 'archive/refs/tags/v{0}.tar.gz',
-            build_group=BUILD_GROUP_INSTRUMENTED)
+            build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.patches = ['otel_proto_remove_optional_keyword.patch']
         self.copy_sources = False
 

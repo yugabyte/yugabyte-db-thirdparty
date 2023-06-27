@@ -23,7 +23,7 @@ class FlexDependency(Dependency):
             name='flex',
             version='2.6.3',
             url_pattern='https://github.com/westes/flex/releases/download/v{0}/flex-{0}.tar.gz',
-            build_group=BUILD_GROUP_COMMON)
+            build_group=BuildGroup.COMMON)
         self.copy_sources = True
 
     def build(self, builder: BuilderInterface) -> None:

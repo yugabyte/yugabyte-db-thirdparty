@@ -23,14 +23,14 @@ class LibEditDependency(Dependency):
               name='libedit',
               version='20191231-3.1',
               url_pattern='https://github.com/yugabyte/libedit/archive/libedit-{}.tar.gz',
-              build_group=BUILD_GROUP_INSTRUMENTED)
+              build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = True
 
     def get_additional_compiler_flags(self, builder: BuilderInterface) -> List[str]:
         flags = ['-I%s' % os.path.join(builder.prefix_include, 'ncurses')]
         llvm_major_version = builder.compiler_choice.get_llvm_major_version()
         if (builder.compiler_choice.is_linux_clang() and
-                builder.build_type == BUILD_TYPE_ASAN and
+                builder.build_type == BuildType.ASAN and
                 llvm_major_version is not None and
                 llvm_major_version >= 16):
             flags.append('-Wno-error=implicit-function-declaration')

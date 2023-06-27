@@ -24,7 +24,7 @@ class SqueaselDependency(Dependency):
             name='squeasel',
             version='d83cf6d9af0e2c98c16467a6a035ae0d7ca21cb1-yb-4',
             url_pattern='https://github.com/yugabyte/squeasel/archive/squeasel-{0}.tar.gz',
-            build_group=BUILD_GROUP_COMMON)
+            build_group=BuildGroup.COMMON)
         self.copy_sources = True
         self.patches = ['squeasel_bound_addrs_ipv6.patch']
         self.patch_version = 1

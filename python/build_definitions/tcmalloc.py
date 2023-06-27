@@ -23,8 +23,9 @@ class TCMallocDependency(Dependency):
             name='tcmalloc',
             version='e116a66-yb-4',
             url_pattern='https://github.com/yugabyte/tcmalloc/archive/{0}.tar.gz',
-            build_group=BUILD_GROUP_INSTRUMENTED)
+            build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = True
+        self.bazel_project_subdir_name = 'com_google_tcmalloc'
 
     def build(self, builder: BuilderInterface) -> None:
         log_prefix = builder.log_prefix(self)

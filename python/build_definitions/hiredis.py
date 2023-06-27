@@ -23,7 +23,7 @@ class HiRedisDependency(Dependency):
             name='hiredis',
             version='0.13.3',
             url_pattern="https://github.com/redis/hiredis/archive/v{0}.zip",
-            build_group=BUILD_GROUP_COMMON)
+            build_group=BuildGroup.COMMON)
         self.copy_sources = True
 
     def build(self, builder: BuilderInterface) -> None:

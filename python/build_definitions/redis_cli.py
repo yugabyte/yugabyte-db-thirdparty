@@ -23,7 +23,7 @@ class RedisCliDependency(Dependency):
             name='redis_cli',
             version='4.0.1',
             url_pattern='https://github.com/YugaByte/redis/archive/{0}.tar.gz',
-            build_group=BUILD_GROUP_COMMON)
+            build_group=BuildGroup.COMMON)
         self.dir = 'redis-{}'.format(self.version)
         self.copy_sources = True
 

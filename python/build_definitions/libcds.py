@@ -21,7 +21,7 @@ class LibCDSDependency(Dependency):
             name='libcds',
             version='2.3.3',
             url_pattern='https://github.com/khizmax/libcds/archive/v{0}.tar.gz',
-            build_group=BUILD_GROUP_INSTRUMENTED)
+            build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = False
 
     def build(self, builder: BuilderInterface) -> None:

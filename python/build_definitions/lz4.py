@@ -21,7 +21,7 @@ class LZ4Dependency(Dependency):
             name='lz4',
             version='r130',
             url_pattern='https://github.com/lz4/lz4/archive/{0}.tar.gz',
-            build_group=BUILD_GROUP_COMMON)
+            build_group=BuildGroup.COMMON)
         self.copy_sources = False
         self.patch_version = 1
         self.patches = ['lz4-0001-Fix-cmake-build-to-use-gnu-flags-on-clang.patch']

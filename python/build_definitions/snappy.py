@@ -23,7 +23,7 @@ class SnappyDependency(Dependency):
             name='snappy',
             version='1.1.9-yb-3',
             url_pattern='https://github.com/yugabyte/snappy/archive/refs/tags/v{0}.tar.gz',
-            build_group=BUILD_GROUP_INSTRUMENTED)
+            build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
 
     def build(self, builder: BuilderInterface) -> None:
         builder.build_with_cmake(

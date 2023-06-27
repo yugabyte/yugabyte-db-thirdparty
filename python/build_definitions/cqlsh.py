@@ -23,7 +23,7 @@ class CQLShDependency(Dependency):
             name='cqlsh',
             version='3.10-yb-17',
             url_pattern='https://github.com/YugaByte/cqlsh/archive/v{0}.tar.gz',
-            build_group=BUILD_GROUP_COMMON)
+            build_group=BuildGroup.COMMON)
         self.copy_sources = True
 
     def build(self, builder: BuilderInterface) -> None:
@@ -34,5 +34,5 @@ class CQLShDependency(Dependency):
     def sync(self, builder: BuilderInterface, subdir: str) -> None:
         log_prefix = builder.log_prefix(self)
         out_dir = os.path.join(builder.prefix, 'cqlsh', subdir)
-        mkdir_if_missing(out_dir)
+        mkdir_p(out_dir)
         builder.log_output(log_prefix, ['rsync', '-av', subdir + '/', out_dir + '/'])

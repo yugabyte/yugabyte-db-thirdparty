@@ -21,11 +21,11 @@ class LibBacktraceDependency(Dependency):
             name='libbacktrace',
             version='8602fda64e78f1f46563220f2ee9f7e70819c51d',
             url_pattern='https://github.com/yugabyte/libbacktrace/archive/{0}.zip',
-            build_group=BUILD_GROUP_INSTRUMENTED)
+            build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = True
 
     def get_compiler_wrapper_ld_flags_to_remove(self, builder: BuilderInterface) -> Set[str]:
-        if builder.build_type == BUILD_TYPE_ASAN:
+        if builder.build_type == BuildType.ASAN:
             # This is needed so that the configure script does not decide that some functions,
             # e.g. getexecname, are available while they are really not.
             return {

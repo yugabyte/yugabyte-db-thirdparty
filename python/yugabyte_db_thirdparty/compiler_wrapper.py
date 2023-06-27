@@ -16,14 +16,22 @@ import sys
 import os
 import shlex
 import subprocess
+import json
 
-from typing import List, Set
+from copy import deepcopy
+
+from typing import List, Set, Optional
 
 from yugabyte_db_thirdparty.util import shlex_join, is_shared_library_name
 from yugabyte_db_thirdparty.constants import (
     COMPILER_WRAPPER_ENV_VAR_NAME_LD_FLAGS_TO_APPEND,
     COMPILER_WRAPPER_ENV_VAR_NAME_LD_FLAGS_TO_REMOVE,
 )
+from yugabyte_db_thirdparty.util import mkdir_p
+from yugabyte_db_thirdparty import compile_commands
+
+
+C_CXX_SUFFIXES = ('.c', '.cc', '.cxx', '.cpp')
 
 
 def cmd_join_one_arg_per_line(cmd_args: List[str]) -> str:
@@ -34,6 +42,24 @@ def cmd_join_one_arg_per_line(cmd_args: List[str]) -> str:
         '    ' + ' \\\n    '.join(cmd_args[1:]) + ' \\',
         ')'
     ])
+
+
+def with_updated_output_path(args: List[str], new_output_path: str) -> List[str]:
+    """
+    Updates the output path in the given compiler argument list and returns the new list.
+
+    >>> with_updated_output_path(['g++', '-o', 'foo.o', 'foo.cc'], 'bar.o')
+    ['g++', '-o', 'bar.o', 'foo.cc']
+    """
+    new_args = deepcopy(args)
+    output_replaced = False
+    for i in range(1, len(new_args)):
+        if new_args[i - 1] == '-o':
+            new_args[i] = new_output_path
+            assert not output_replaced, (
+                "Multiple output files specified: %s" % shlex_join(args))
+            output_replaced = True
+    return new_args
 
 
 class CompilerWrapper:
@@ -108,22 +134,35 @@ class CompilerWrapper:
             cmd_args = [arg for arg in cmd_args if arg not in ld_flags_to_remove]
 
         if len(output_files) == 1 and output_files[0].endswith('.o'):
-            pp_output_path = None
-            # Perform preprocessing only to ensure we are using the correct include directories.
-            pp_args = [self.real_compiler_path]
-            out_file_arg_follows = False
-            assembly_input = False
-            for arg in self.compiler_args:
-                if arg.endswith('.s'):
-                    assembly_input = True
-                if out_file_arg_follows:
-                    assert pp_output_path is None
-                    pp_output_path = arg + '.pp'
-                    pp_args.append(pp_output_path)
-                else:
-                    pp_args.append(arg)
-                out_file_arg_follows = arg == '-o'
-            if not assembly_input:
+            output_path = output_files[0]
+            pp_output_path = output_path + 'pp'
+            is_assembly_input = any([arg.endswith('.s') for arg in self.compiler_args])
+
+            compile_commands_tmp_dir = compile_commands.get_tmp_dir_env_var()
+            generate_compile_command_file = bool(compile_commands_tmp_dir) and not is_assembly_input
+
+            input_file_candidates = []
+            if generate_compile_command_file:
+                input_file_candidates = [
+                    arg for arg in self.compiler_args if (
+                        arg.endswith(C_CXX_SUFFIXES) and
+                        os.path.exists(arg)
+                    )
+                ]
+                if len(input_file_candidates) != 1:
+                    sys.stderr.write(
+                        f"Could not determine input file name for compiler invocation, will omit "
+                        f"from compile commands. Input file candidates: {input_file_candidates}, "
+                        f"command line: {self._get_compiler_command_str()}"
+                    )
+                    generate_compile_command_file = False
+
+            # Perform preprocessing to ensure we are only using include files from allowed
+            # directories.
+            pp_args = [self.real_compiler_path] + with_updated_output_path(
+                self.compiler_args, pp_output_path)
+
+            if not is_assembly_input:
                 pp_args.append('-E')
                 subprocess.check_call(pp_args)
                 assert pp_output_path is not None
@@ -152,6 +191,23 @@ class CompilerWrapper:
                                 "Compiler invocation: %s" % (
                                     included_file,
                                     self._get_compiler_command_str()))
+
+            if generate_compile_command_file:
+                assert compile_commands_tmp_dir is not None
+                compile_command_path = compile_commands.get_compile_command_path_for_output_file(
+                    compile_commands_tmp_dir, output_path)
+                mkdir_p(os.path.dirname(compile_command_path))
+                assert len(input_file_candidates) == 1, \
+                    "Expected exactly one input file candidate, got: %s" % input_file_candidates
+                input_path = os.path.abspath(input_file_candidates[0])
+                arguments = [self.real_compiler_path] + self.compiler_args
+
+                with open(compile_command_path, 'w') as compile_command_file:
+                    json.dump(dict(
+                        directory=os.getcwd(),
+                        file=input_path,
+                        arguments=arguments
+                    ), compile_command_file)
 
         cmd_str = '( cd %s; %s )' % (shlex.quote(os.getcwd()), shlex_join(cmd_args))
 
