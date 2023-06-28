@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-GIT_HEAD_COMMIT_MESSAGE=$(  git log --format=%B -n 1 )
+GIT_HEAD_COMMIT_MESSAGE=$( git log --format=%B -n 1 --no-merges )
 echo "GIT head commit message: $GIT_HEAD_COMMIT_MESSAGE"
 
 # A quick way to filter build types in the commit message.
