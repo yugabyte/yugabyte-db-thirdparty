@@ -3,7 +3,7 @@
 set -euo pipefail
 
 readonly CI_BUILD_TYPES_KEYWORD="CI build types:"
-readonly GIT_HEAD_COMMIT_MESSAGE=$( git log --format=%B -n 1 --no-merges )
+GIT_HEAD_COMMIT_MESSAGE=$( git log --format=%B -n 1 --no-merges )
 
 echo "Git HEAD commit message: $GIT_HEAD_COMMIT_MESSAGE"
 
