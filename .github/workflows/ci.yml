@@ -224,7 +224,7 @@ jobs:
                     *"CI build types:"*"$YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX"* ]]; then
             echo "GitHub HEAD commit message does not specify a build type filter, or the filter" \
                  "matches build type: $YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX"
-            if [[ $OSTYPE == darwin* ]]; then
+            if false && [[ $OSTYPE == darwin* ]]; then
               ./.github/workflows/macos_build.sh
             else
               ./.github/workflows/linux_build.sh
