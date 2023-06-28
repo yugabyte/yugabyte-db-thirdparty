@@ -217,11 +217,11 @@ jobs:
 
       - name: Build
         run: |
-          echo "GitHub HEAD commit message: ${GITHUB_HEAD_COMMIT_MESSAGE}"
+          GIT_HEAD_COMMIT_MESSAGE=$(  git log --format=%B -n 1 )
           # A quick way to filter build types in the commit message.
-          if [[ $GITHUB_HEAD_COMMIT_MESSAGE != *"CI build types:"* ||
-                $GITHUB_HEAD_COMMIT_MESSAGE == \
-                  *"CI build types:"*"$YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX"* ]]; then
+          if [[ $GIT_HEAD_COMMIT_MESSAGE != *"CI build types:"* ||
+                $GIT_HEAD_COMMIT_MESSAGE == \
+                    *"CI build types:"*"$YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX"* ]]; then
             echo "GitHub HEAD commit message does not specify a build type filter, or the filter" \
                  "matches build type: $YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX"
             if [[ $OSTYPE == darwin* ]]; then
@@ -238,7 +238,6 @@ jobs:
           YB_BUILD_THIRDPARTY_ARGS: ${{ matrix.build_thirdparty_args }}
           GITHUB_TOKEN: ${{ secrets.CUSTOM_GITHUB_TOKEN }}
           SNYK_TOKEN: ${{ secrets.SNYK_AUTH_TOKEN }}
-          GITHUB_HEAD_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
 
       - uses: actions/upload-artifact@v2
         with:
