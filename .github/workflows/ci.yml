@@ -173,6 +173,25 @@ jobs:
               --lto=full
 
           # ---------------------------------------------------------------------------------------
+          # AlmaLinux 9
+          # ---------------------------------------------------------------------------------------
+
+          # Clang/LLVM 16
+          - name: almalinux9-x86_64-clang16
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_almalinux9_x86_64:v2023-04-07T00_19_48
+            build_thirdparty_args: >-
+              --toolchain=llvm16
+              --expected-major-compiler-version=16
+
+          - name: almalinux9-x86_64-gcc12
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_almalinux9_x86_64:v2023-04-07T00_19_48
+            build_thirdparty_args: >-
+              --devtoolset=12
+              --expected-major-compiler-version=12
+
+          # ---------------------------------------------------------------------------------------
           # macOS
           # ---------------------------------------------------------------------------------------
 
@@ -197,12 +216,7 @@ jobs:
           fetch-depth: 0
 
       - name: Build
-        run: |
-          if [[ $OSTYPE == darwin* ]]; then
-            ./.github/workflows/macos_build.sh
-          else
-            ./.github/workflows/linux_build.sh
-          fi
+        run: .github/workflows/github_actions_build.sh
         env:
           YB_DOCKER_IMAGE: ${{ matrix.docker_image }}
           YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX: ${{ matrix.name }}

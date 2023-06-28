@@ -36,7 +36,7 @@ jobs:
             export YB_DOCKER_IMAGE="<< parameters.docker_image >>"
             export YB_BUILD_THIRDPARTY_ARGS="<< parameters.build_thirdparty_args >>"
             export YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX="<< parameters.archive_name_suffix >>"
-            .github/workflows/linux_build.sh
+            .github/workflows/github_actions_build.sh
 
 workflows:
   build-release:
