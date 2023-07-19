@@ -1,5 +1,5 @@
 #
-# Copyright (c) YugaByte, Inc.
+# Copyright (c) YugabyteDB, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
 # in compliance with the License. You may obtain a copy of the License at
@@ -22,6 +22,7 @@ class JwtCppDependency(Dependency):
             'jwt_cpp',
             '0.6.0',
             'https://github.com/Thalhammer/jwt-cpp/archive/refs/tags/v{0}.tar.gz',
+            # Does not require ASAN/TSAN instrumentation since this is a header-only library.
             BuildGroup.COMMON)
         self.copy_sources = False
 
