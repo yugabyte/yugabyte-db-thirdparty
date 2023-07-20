@@ -14,7 +14,7 @@
 
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
-# Dummy change to trigger CI.
+
 class CurlDependency(Dependency):
     def __init__(self) -> None:
         super(CurlDependency, self).__init__(
@@ -29,6 +29,7 @@ class CurlDependency(Dependency):
                              'pop3', 'imap', 'smtp', 'gopher', 'manual', 'librtmp', 'ipv6']
         extra_args = ['--disable-' + feature for feature in disabled_features]
 
+        # Hopefully a comment here won't fail pycodestyle.
         extra_args.append('--with-ssl=%s' % builder.get_openssl_dir())
         extra_args.append('--with-zlib=%s' % builder.get_openssl_dir())
         extra_args += [
