@@ -29,6 +29,7 @@ class CurlDependency(Dependency):
                              'pop3', 'imap', 'smtp', 'gopher', 'manual', 'librtmp', 'ipv6']
         extra_args = ['--disable-' + feature for feature in disabled_features]
 
+        # Hopefully a comment here won't fail pycodestyle.
         extra_args.append('--with-ssl=%s' % builder.get_openssl_dir())
         extra_args.append('--with-zlib=%s' % builder.get_openssl_dir())
         extra_args += [
