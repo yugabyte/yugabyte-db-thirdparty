@@ -14,7 +14,7 @@
 
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
-
+# Dummy change to trigger CI.
 class CurlDependency(Dependency):
     def __init__(self) -> None:
         super(CurlDependency, self).__init__(
