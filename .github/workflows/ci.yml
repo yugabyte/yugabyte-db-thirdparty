@@ -215,6 +215,19 @@ jobs:
           # in test code.
           fetch-depth: 0
 
+      - name: Install OpenSSL 3.0 (macOS only)
+        if: matrix.os == 'macos-11'
+        run: |
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          brew install openssl@3
+          echo 'export PATH="/usr/local/opt/openssl@3/bin:$PATH"' >> $GITHUB_ENV
+          echo 'export LDFLAGS="-L/usr/local/opt/openssl@3/lib"' >> $GITHUB_ENV
+          echo 'export CPPFLAGS="-I/usr/local/opt/openssl@3/include"' >> $GITHUB_ENV
+
+      - name: Check OpenSSL Version (macOS only)
+        if: matrix.os == 'macos-11'
+        run: openssl version
+
       - name: Build
         run: .github/workflows/github_actions_build.sh
         env:
