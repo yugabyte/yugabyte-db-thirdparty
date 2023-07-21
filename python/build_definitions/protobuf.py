@@ -33,6 +33,12 @@ class ProtobufDependency(Dependency):
                 version='1.7.0',
                 url_pattern='https://github.com/google/googlemock/archive/release-{0}.zip',
                 dir_name='gmock'
+            ),
+            ExtraDownload(
+                name='gtest',
+                version='1.7.0',
+                url_pattern='https://github.com/google/googletest/archive/release-{0}.zip',
+                dir_name='gmock/gtest'
             )
         ]
 
