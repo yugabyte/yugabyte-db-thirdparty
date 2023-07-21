@@ -19,7 +19,7 @@ class CurlDependency(Dependency):
     def __init__(self) -> None:
         super(CurlDependency, self).__init__(
             name='curl',
-            version='8.1.2',
+            version='7.86.0',
             url_pattern="https://curl.haxx.se/download/curl-{0}.tar.gz",
             build_group=BuildGroup.COMMON)
         self.copy_sources = True
