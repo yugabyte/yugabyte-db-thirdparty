@@ -14,6 +14,7 @@
 
 import os
 import sys
+from build_definitions import ExtraDownload
 
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
@@ -26,6 +27,20 @@ class ProtobufDependency(Dependency):
             'https://github.com/yugabyte/protobuf/archive/refs/tags/v{0}.tar.gz',
             BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = True
+        self.extra_downloads = [
+            ExtraDownload(
+                name='gmock',
+                version='1.7.0',
+                url_pattern='https://github.com/google/googlemock/archive/release-{0}.zip',
+                dir_name='gmock'
+            ),
+            ExtraDownload(
+                name='gtest',
+                version='1.7.0',
+                url_pattern='https://github.com/google/googletest/archive/release-{0}.zip',
+                dir_name='gmock/gtest'
+            )
+        ]
 
     def build(self, builder: BuilderInterface) -> None:
         builder.build_with_configure(

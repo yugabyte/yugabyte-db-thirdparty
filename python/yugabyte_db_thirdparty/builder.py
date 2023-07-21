@@ -324,6 +324,7 @@ class Builder(BuilderInterface):
             'openldap',
             'redis_cli',
             'wyhash',
+            'jwt_cpp',
         ])
         for dep in self.dependencies:
             if dep.build_group != BuildGroup.COMMON:
