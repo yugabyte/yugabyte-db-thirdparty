@@ -324,6 +324,13 @@ jobs:
             build_thirdparty_args:
 
     steps:
+      - name: Increase disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+
       - name: Clone repository
         uses: actions/checkout@v2
         with:
