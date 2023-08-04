@@ -114,7 +114,7 @@ class Dependency:
         compiler wrapper command line.
         """
         llvm_major_version: Optional[int] = builder.compiler_choice.get_llvm_major_version()
-        if (is_linux and
+        if (is_linux() and
                 llvm_major_version is not None and
                 llvm_major_version >= 12 and
                 builder.lto_type is not None):
