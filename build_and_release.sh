@@ -155,7 +155,16 @@ fi
 
 original_repo_dir=$PWD
 git_sha1=$( git rev-parse HEAD )
-tag=v$( date +%Y%m%d%H%M%S )-${git_sha1:0:10}
+branch_file_path="$YB_THIRDPARTY_DIR/branch.txt"
+branch_name=""
+if [[ -f ${branch_file_path} ]]; then
+  branch_name=$(<"${branch_file_path}")
+fi
+tag=v
+if [[ -n ${branch_name} ]]; then
+  tag+="${branch_name}-"
+fi
+tag+=$( date +%Y%m%d%H%M%S )-${git_sha1:0:10}
 
 archive_dir_name=yugabyte-db-thirdparty-$tag
 if [[ -z ${YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX:-} ]]; then
