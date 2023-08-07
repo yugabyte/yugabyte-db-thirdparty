@@ -372,8 +372,9 @@ class Builder(BuilderInterface):
                 ['libunistring', 'gettext'] if is_macos() else []
             ) + [
                 'ncurses',
+                'abseil',
             ] + (
-                [] if is_macos() else ['libkeyutils', 'libverto', 'abseil', 'tcmalloc']
+                [] if is_macos() else ['libkeyutils', 'libverto', 'tcmalloc']
             ) + [
                 'libedit',
                 'icu4c',
@@ -859,6 +860,10 @@ class Builder(BuilderInterface):
         # prevents overwriting when building thirdparty multiple times.
         self.log_output(log_prefix, ['chmod', '755' if is_shared else '644', src_path])
         self.log_output(log_prefix, ['cp', src_path, dest_path])
+
+        # Fix library's path referring to itself (LC_ID_DYLIB).
+        if is_shared and is_macos():
+          self.log_output(log_prefix, ['install_name_tool', '-id', dest_path, dest_path])
 
     def validate_build_output(self) -> None:
         if is_macos():
