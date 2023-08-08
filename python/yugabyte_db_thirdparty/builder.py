@@ -863,7 +863,7 @@ class Builder(BuilderInterface):
 
         # Fix library's path referring to itself (LC_ID_DYLIB).
         if is_shared and is_macos():
-          self.log_output(log_prefix, ['install_name_tool', '-id', dest_path, dest_path])
+            self.log_output(log_prefix, ['install_name_tool', '-id', dest_path, dest_path])
 
     def validate_build_output(self) -> None:
         if is_macos():
