@@ -124,9 +124,10 @@ def get_toolchain_url(toolchain_type: str) -> str:
     local_sys_conf = sys_detection.local_sys_conf()
     major_llvm_version = int(toolchain_type[4:])
     llvm_installer = LlvmInstaller(
+        major_llvm_version=major_llvm_version,
         short_os_name_and_version=local_sys_conf.short_os_name_and_version(),
         architecture=local_sys_conf.architecture)
-    return llvm_installer.get_llvm_url(major_llvm_version=major_llvm_version)
+    return llvm_installer.get_llvm_url()
 
 
 def ensure_toolchain_installed(
