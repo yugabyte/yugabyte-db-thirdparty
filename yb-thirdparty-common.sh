@@ -52,7 +52,7 @@ activate_virtualenv() {
   (
     set -x
     cd "$YB_THIRDPARTY_DIR"
-    pip3 install --quiet -r requirements.txt
+    pip3 install --quiet -r requirements_frozen.txt
   )
 }
 
