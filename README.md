@@ -52,7 +52,19 @@ To modify some dependency (e.g. glog):
 ```
 ./build_thirdparty.sh --toolchain=llvm16 --add-checksum
 ```
-* Create a PR in yugabyte-db-thirdparty with a descriptive commit message.
+
+* You can test your changes from yugabyte-db by setting the environment variable `YB_THIRDPARTY_DIR` to point to your local copy of yugabyte-db-thirdparty:
+```
+export YB_THIRDPARTY_DIR=~/code/yugabyte-db-thirdparty
+```
+
+* Once you have tested your changes, create a PR in yugabyte-db-thirdparty with a descriptive commit message.
+
+## Integrating changes into yugabyte-db
+If `YB_THIRDPARTY_DIR` is not set, yugabyte-db uses `thirdparty_archives.yml` to decide which thirdparty archive to use for each build. You can easily update this list using thirdparty_tool.py. From the yugabyte-db root:
+```
+./build-support/thirdparty_tool --update
+``` 
 
 ## Working on a third-party dependency C/C++ codebase using using Visual Studio Code and Clangd
 
