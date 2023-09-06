@@ -167,7 +167,7 @@ class LibCxxWithAbiDependency(LlvmLibCxxDependencyBase):
 
     def get_additional_cmake_args(self, builder: BuilderInterface) -> List[str]:
         args = ['-DLLVM_ENABLE_RUNTIMES=libcxx;libcxxabi']
-        if builder.build_type == BuildType.TSAN:
+        if builder.build_type in [BuildType.ASAN, BuildType.TSAN]:
             local_sys_conf = sys_detection.local_sys_conf()
             if local_sys_conf.is_redhat_family() and int(local_sys_conf.short_os_version()) == 7:
                 # On CentOS 7, we want to prevent libcxxabi build system from deciding that the
