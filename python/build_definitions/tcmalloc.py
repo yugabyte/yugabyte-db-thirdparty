@@ -18,17 +18,41 @@ import os
 
 
 class TCMallocDependency(Dependency):
+    abseil_src_dir_name: str
+
     def __init__(self) -> None:
         super(TCMallocDependency, self).__init__(
             name='tcmalloc',
-            version='e116a66-yb-4',
+            version='e116a66-yb-5',
             url_pattern='https://github.com/yugabyte/tcmalloc/archive/{0}.tar.gz',
             build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = True
         self.bazel_project_subdir_name = 'com_google_tcmalloc'
 
+    def update_workspace_file(self) -> None:
+        workspace_file_path = os.path.join(os.getcwd(), 'WORKSPACE')
+        with open(workspace_file_path) as workspace_file:
+            lines = [line.rstrip() for line in workspace_file.readlines()]
+        found = False
+        for i in range(len(lines) - 2):
+            if (lines[i].strip() == 'local_repository(' and
+                    lines[i + 1].strip() == 'name = "com_google_absl",'):
+                lines[i + 2] = '    path = "../%s",' % self.abseil_src_dir_name
+                found = True
+                break
+        if not found:
+            raise ValueError(
+                "Could not update Abseil source path in %s" % workspace_file_path)
+        log("Successfully updated Abseil source directory in %s", workspace_file_path)
+        with open(workspace_file_path, 'w') as workspace_file:
+            workspace_file.write('\n'.join(lines) + '\n')
+
+    def set_abseil_source_dir_basename(self, abseil_src_dir_name: str) -> None:
+        self.abseil_src_dir_name = abseil_src_dir_name
+
     def build(self, builder: BuilderInterface) -> None:
         log_prefix = builder.log_prefix(self)
+        self.update_workspace_file()
         builder.build_with_bazel(dep=self,
                                  targets=["tcmalloc:tcmalloc_shared", "tcmalloc:tcmalloc_static"])
 

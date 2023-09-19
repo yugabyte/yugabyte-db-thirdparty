@@ -169,6 +169,9 @@ class Builder(BuilderInterface):
     toolchain: Optional[Toolchain]
     remote_build: bool
 
+    dependencies: List[Dependency]
+    dependencies_by_name: Dict[str, Dependency]
+
     lto_type: Optional[str]
     selected_dependencies: List[Dependency]
 
@@ -187,6 +190,9 @@ class Builder(BuilderInterface):
         self.toolchain = None
         self.fossa_deps = []
         self.lto_type = None
+
+        self.dependencies = []
+        self.dependencies_by_name = {}
 
     def install_toolchains(self) -> None:
         toolchains = ensure_toolchains_installed(
@@ -394,6 +400,14 @@ class Builder(BuilderInterface):
                 'otel_proto',
                 'otel'
             ])
+        for dep in self.dependencies:
+            if dep.name in self.dependencies_by_name:
+                raise ValueError("Duplicate dependency: %s" % dep.name)
+            self.dependencies_by_name[dep.name] = dep
+        abseil_dep = self.dependencies_by_name.get('abseil')
+        if abseil_dep is not None:
+            self.dependencies_by_name['tcmalloc'].set_abseil_source_dir_basename(
+                abseil_dep.get_source_dir_basename())
 
     def select_dependencies_to_build(self) -> None:
         self.selected_dependencies = []
