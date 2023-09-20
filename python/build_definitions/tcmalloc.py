@@ -30,6 +30,10 @@ class TCMallocDependency(Dependency):
         self.bazel_project_subdir_name = 'com_google_tcmalloc'
 
     def update_workspace_file(self) -> None:
+        """
+        The tcmalloc codebase has a WORKSPACE file that has a reference to the Abseil source
+        directory. Here, we make sure it refers to the correct location of Abseil source code.
+        """
         workspace_file_path = os.path.join(os.getcwd(), 'WORKSPACE')
         with open(workspace_file_path) as workspace_file:
             lines = [line.rstrip() for line in workspace_file.readlines()]
