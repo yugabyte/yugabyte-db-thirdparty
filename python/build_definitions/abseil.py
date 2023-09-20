@@ -20,7 +20,7 @@ class AbseilDependency(Dependency):
     def __init__(self) -> None:
         super(AbseilDependency, self).__init__(
             name='abseil',
-            version='0064d9d-yb-2',
+            version='0064d9d-yb-3',
             url_pattern='https://github.com/yugabyte/abseil-cpp/archive/refs/tags/'
                         '{0}.tar.gz',
             build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)

@@ -23,7 +23,7 @@ import re
 
 from re import Pattern
 
-from typing import Optional, List, Set, Tuple, Dict, Any, Callable
+from typing import Optional, List, Set, Tuple, Dict, Any, Callable, cast
 
 from sys_detection import is_macos, is_linux
 from pathlib import Path
@@ -34,6 +34,9 @@ from build_definitions import (
     get_build_def_module,
     get_deps_from_module_names,
 )
+
+from build_definitions.tcmalloc import TCMallocDependency
+
 from yugabyte_db_thirdparty.builder_helpers import (
     format_cmake_args_for_log,
     get_make_parallelism,
@@ -169,6 +172,9 @@ class Builder(BuilderInterface):
     toolchain: Optional[Toolchain]
     remote_build: bool
 
+    dependencies: List[Dependency]
+    dependencies_by_name: Dict[str, Dependency]
+
     lto_type: Optional[str]
     selected_dependencies: List[Dependency]
 
@@ -187,6 +193,9 @@ class Builder(BuilderInterface):
         self.toolchain = None
         self.fossa_deps = []
         self.lto_type = None
+
+        self.dependencies = []
+        self.dependencies_by_name = {}
 
     def install_toolchains(self) -> None:
         toolchains = ensure_toolchains_installed(
@@ -394,6 +403,14 @@ class Builder(BuilderInterface):
                 'otel_proto',
                 'otel'
             ])
+        for dep in self.dependencies:
+            if dep.name in self.dependencies_by_name:
+                raise ValueError("Duplicate dependency: %s" % dep.name)
+            self.dependencies_by_name[dep.name] = dep
+        abseil_dep = self.dependencies_by_name.get('abseil')
+        if abseil_dep is not None:
+            tcmalloc_dep = cast(TCMallocDependency, self.dependencies_by_name['tcmalloc'])
+            tcmalloc_dep.set_abseil_source_dir_basename(abseil_dep.get_source_dir_basename())
 
     def select_dependencies_to_build(self) -> None:
         self.selected_dependencies = []
