@@ -8,6 +8,7 @@ export YB_SKIP_UPLOAD=${SKIP_UPLOAD:-}
 echo "Building in directory: $checkout_dir"
 docker run -t \
   --cap-add=SYS_PTRACE \
+  -u root \
   -e GITHUB_TOKEN \
   -e SNYK_TOKEN \
   -e YB_BUILD_THIRDPARTY_ARGS \
