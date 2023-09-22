@@ -699,7 +699,7 @@ class Builder(BuilderInterface):
             targets: List[str] = []) -> None:
         log_prefix = self.log_prefix(dep)
         if should_clean:
-            self.log_output(log_prefix, ['bazel', 'clean', '--expunge'])
+            log_output(log_prefix, ['bazel', 'clean', '--expunge'])
 
         # Need to remove the space after isystem so replacing the space separators with colons
         # works properly.
@@ -724,7 +724,7 @@ class Builder(BuilderInterface):
             build_command += ["--action_env", f"{env_var}={os.environ[env_var]}"]
 
         for target in targets:
-            self.log_output(log_prefix, build_command + [target])
+            log_output(log_prefix, build_command + [target])
 
     def install_bazel_build_output(
             self,
@@ -739,8 +739,8 @@ class Builder(BuilderInterface):
 
         # Fix permissions on libraries. Bazel builds write-protected files by default, which
         # prevents overwriting when building thirdparty multiple times.
-        self.log_output(log_prefix, ['chmod', '755' if is_shared else '644', src_path])
-        self.log_output(log_prefix, ['cp', src_path, dest_path])
+        log_output(log_prefix, ['chmod', '755' if is_shared else '644', src_path])
+        log_output(log_prefix, ['cp', src_path, dest_path])
 
     def validate_build_output(self) -> None:
         if is_macos():
