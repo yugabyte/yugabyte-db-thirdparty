@@ -915,8 +915,9 @@ class Builder(BuilderInterface):
             log("Adding special compiler/linker flags for Clang 10+ for dependencies other than "
                 "libc++")
             self.ld_flags += ['-stdlib=libc++', '-lc++', '-lc++abi']
-            # TODO(asrivastava): We might not need libc++ in cxxflags but removing it causes certain
-            # builds to fail.
+
+            # TODO(asrivastava): We get a warning that stdlib=libc++ is unused for compilation in
+            # some dependencies (abseil, protobuf, gperftools). Should it be used there?
             self.cxx_flags += ['-stdlib=libc++', '-nostdinc++']
             self.preprocessor_flags.extend(['-isystem', libcxx_installed_include])
             self.prepend_lib_dir_and_rpath(libcxx_installed_lib)
