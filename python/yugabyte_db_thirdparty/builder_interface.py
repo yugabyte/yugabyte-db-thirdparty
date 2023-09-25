@@ -69,6 +69,23 @@ class BuilderInterface:
             shared_and_static: bool = False) -> None:
         raise NotImplementedError()
 
+    def build_with_bazel(
+            self,
+            dep: 'Dependency',
+            verbose_output: bool = False,
+            should_clean: bool = False,
+            targets: List[str] = []) -> None:
+        raise NotImplementedError()
+
+    def install_bazel_build_output(
+            self,
+            dep: 'Dependency',
+            src_file: str,
+            dest_file: str,
+            src_folder: str,
+            is_shared: bool) -> None:
+        raise NotImplementedError()
+
     def log_prefix(self, dep: 'Dependency') -> str:
         raise NotImplementedError()
 
