@@ -52,7 +52,7 @@ activate_virtualenv() {
   (
     set -x
     cd "$YB_THIRDPARTY_DIR"
-    pip3 install --quiet -r requirements.txt
+    pip3 install --quiet -r requirements_frozen.txt
   )
 }
 
@@ -75,7 +75,6 @@ ensure_correct_mac_architecture() {
   fi
   if [[ $YB_TARGET_ARCH != "x86_64" && $YB_TARGET_ARCH != "arm64" ]]; then
     fatal "Invalid value of YB_TARGET_ARCH on macOS (expected x86_64 or arm64): $YB_TARGET_ARCH"
-    exit 1
   fi
   export YB_TARGET_ARCH
   local actual_arch
