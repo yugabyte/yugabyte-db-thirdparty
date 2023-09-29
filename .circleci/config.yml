@@ -1,0 +1,135 @@
+# Copyright (c) Yugabyte, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+# in compliance with the License. You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software distributed under the License
+# is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+# or implied. See the License for the specific language governing permissions and limitations
+# under the License.
+#
+
+version: 2.1
+
+jobs:
+  build:
+    parameters:
+      archive_name_suffix:
+        type: string
+      docker_image:
+        type: string
+      build_thirdparty_args:
+        type: string
+        default: ""
+
+    machine:
+      image: ubuntu-2004:current
+      resource_class: arm.large
+
+    steps:
+      - checkout
+      - run:
+          name: Build YugabyteDB third-party dependencies
+          command: |
+            export YB_DOCKER_IMAGE="<< parameters.docker_image >>"
+            export YB_BUILD_THIRDPARTY_ARGS="<< parameters.build_thirdparty_args >>"
+            export YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX="<< parameters.archive_name_suffix >>"
+            .github/workflows/linux_build.sh
+
+workflows:
+  build-release:
+    jobs:
+      # TODO: find a way to assign different names to each build.
+      # As specified below, they are named build-1, build-2, etc.
+
+      # ===========================================================================================
+      # Clang 12 ==================================================================================
+      # ===========================================================================================
+
+      - build:
+          archive_name_suffix: almalinux8-aarch64-clang12
+          docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2022-10-13T18_13_02
+          build_thirdparty_args: >-
+            --toolchain=llvm12
+            --expected-major-compiler-version=12
+            --skip-sanitizers
+
+      - build:
+          archive_name_suffix: almalinux8-aarch64-clang12-thin-lto
+          docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2022-10-13T18_13_02
+          build_thirdparty_args: >-
+            --toolchain=llvm12
+            --expected-major-compiler-version=12
+            --skip-sanitizers
+            --lto=thin
+
+      - build:
+          archive_name_suffix: almalinux8-aarch64-clang12-full-lto
+          docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2022-10-13T18_13_02
+          build_thirdparty_args: >-
+            --toolchain=llvm12
+            --expected-major-compiler-version=12
+            --skip-sanitizers
+            --lto=full
+
+      # ===========================================================================================
+      # Clang 13 ==================================================================================
+      # ===========================================================================================
+
+      - build:
+          archive_name_suffix: almalinux8-aarch64-clang12
+          docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2022-10-13T18_13_02
+          build_thirdparty_args: >-
+            --toolchain=llvm13
+            --expected-major-compiler-version=13
+            --skip-sanitizers
+
+      - build:
+          archive_name_suffix: almalinux8-aarch64-clang12-thin-lto
+          docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2022-10-13T18_13_02
+          build_thirdparty_args: >-
+            --toolchain=llvm13
+            --expected-major-compiler-version=13
+            --skip-sanitizers
+            --lto=thin
+
+      - build:
+          archive_name_suffix: almalinux8-aarch64-clang12-full-lto
+          docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2022-10-13T18_13_02
+          build_thirdparty_args: >-
+            --toolchain=llvm13
+            --expected-major-compiler-version=13
+            --skip-sanitizers
+            --lto=full
+
+      # ===========================================================================================
+      # Clang 14 ==================================================================================
+      # ===========================================================================================
+
+      - build:
+          archive_name_suffix: almalinux8-aarch64-clang14
+          docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2022-10-13T18_13_02
+          build_thirdparty_args: >-
+            --toolchain=llvm14
+            --expected-major-compiler-version=14
+            --skip-sanitizers
+
+      - build:
+          archive_name_suffix: almalinux8-aarch64-clang14-thin-lto
+          docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2022-10-13T18_13_02
+          build_thirdparty_args: >-
+            --toolchain=llvm14
+            --expected-major-compiler-version=14
+            --skip-sanitizers
+            --lto=thin
+
+      - build:
+          archive_name_suffix: almalinux8-aarch64-clang14-full-lto
+          docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2022-10-13T18_13_02
+          build_thirdparty_args: >-
+            --toolchain=llvm14
+            --expected-major-compiler-version=14
+            --skip-sanitizers
+            --lto=full
