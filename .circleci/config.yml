@@ -79,7 +79,7 @@ workflows:
       # ===========================================================================================
 
       - build:
-          archive_name_suffix: almalinux8-aarch64-clang12
+          archive_name_suffix: almalinux8-aarch64-clang13
           docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2022-10-13T18_13_02
           build_thirdparty_args: >-
             --toolchain=llvm13
@@ -87,7 +87,7 @@ workflows:
             --skip-sanitizers
 
       - build:
-          archive_name_suffix: almalinux8-aarch64-clang12-thin-lto
+          archive_name_suffix: almalinux8-aarch64-clang13-thin-lto
           docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2022-10-13T18_13_02
           build_thirdparty_args: >-
             --toolchain=llvm13
@@ -96,7 +96,7 @@ workflows:
             --lto=thin
 
       - build:
-          archive_name_suffix: almalinux8-aarch64-clang12-full-lto
+          archive_name_suffix: almalinux8-aarch64-clang13-full-lto
           docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2022-10-13T18_13_02
           build_thirdparty_args: >-
             --toolchain=llvm13
