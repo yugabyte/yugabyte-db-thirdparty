@@ -23,7 +23,7 @@ class ZLibDependency(Dependency):
         super(ZLibDependency, self).__init__(
             name='zlib',
             version='1.2.13-yb-1',
-            url_pattern='https://github.com/yugabyte/zlib/archive/refs/tags/v{}.tar.gz',
+            url_pattern='https://github.com/yugabyte/zlib/archive/refs/tags/v{0}.tar.gz',
             build_group=BuildGroup.COMMON)
         self.copy_sources = True
 
