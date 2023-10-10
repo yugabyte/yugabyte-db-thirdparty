@@ -15,22 +15,22 @@
 #
 
 import build_definitions
-import time
+import glob
+import itertools
 import platform
+import time
 
 from build_definitions import *  # noqa
+
 from yugabyte_db_thirdparty.arch import verify_arch
 from yugabyte_db_thirdparty.builder import Builder
-from yugabyte_db_thirdparty.custom_logging import (
-    log_separator,
-    heading,
-    configure_logging,
-)
+from yugabyte_db_thirdparty.clang_util import get_clang_library_dir
+from yugabyte_db_thirdparty.custom_logging import log_separator, heading, configure_logging
+from yugabyte_db_thirdparty.library_checking import get_lib_tester
 from yugabyte_db_thirdparty.packager import Packager
 from yugabyte_db_thirdparty.remote_build import build_remotely
-from yugabyte_db_thirdparty.library_checking import get_lib_tester
-from yugabyte_db_thirdparty.clang_util import get_clang_library_dir
 from yugabyte_db_thirdparty.snyk import run_snyk_scan
+from yugabyte_db_thirdparty.util import log_and_run_cmd, YB_THIRDPARTY_DIR
 
 
 import_submodules(build_definitions)
@@ -85,6 +85,14 @@ def main() -> None:
         log("Libraries checked in %.1f sec", time.time() - lib_checking_start_time_sec)
 
     if builder.args.create_package or builder.args.upload_as_tag:
+        if builder.args.cleanup_before_packaging:
+            log("Cleaning up disk space before packaging")
+            log_and_run_cmd(
+                ['rm', '-rf'] + list(itertools.chain.from_iterable([
+                    glob.glob(os.path.join(YB_THIRDPARTY_DIR, subdir_name, '*'))
+                    for subdir_name in ['download', 'src', 'build']
+                ])))
+
         packaging_and_upload_start_time_sec = time.time()
 
         packager = Packager()
