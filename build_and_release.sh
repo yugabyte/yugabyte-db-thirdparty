@@ -232,7 +232,7 @@ else
 fi
 
 # We intentionally don't escape variables here so they get split into multiple arguments.
-build_thirdparty_cmd_str="./build_thirdparty.sh --concise-output"
+build_thirdparty_cmd_str="./build_thirdparty.sh --concise-output --cleanup-before-packaging"
 
 if [[ -n ${YB_BUILD_THIRDPARTY_ARGS:-} ]]; then
   build_thirdparty_cmd_str+=" $YB_BUILD_THIRDPARTY_ARGS"
@@ -242,17 +242,20 @@ if [[ -n ${YB_BUILD_THIRDPARTY_EXTRA_ARGS:-} ]]; then
   build_thirdparty_cmd_str+=" $YB_BUILD_THIRDPARTY_EXTRA_ARGS"
 fi
 
+# Intentially not quoting $build_thirdparty_cmd_str.
+# shellcheck disable=SC2206
+build_thirdparty_cmd_args=( $build_thirdparty_cmd_str )
+
+if [[ -z ${YB_SKIP_UPLOAD:-} ]]; then
+  build_thirdparty_cmd_args+=( --upload-as-tag "$tag" )
+fi
+
 (
   if [[ -n ${YB_LINUXBREW_DIR:-} ]]; then
     export PATH=$YB_LINUXBREW_DIR/bin:$PATH
   fi
   set -x
-
-  if [[ -z ${YB_SKIP_UPLOAD:-} ]]; then
-    time $build_thirdparty_cmd_str --upload-as-tag "$tag"
-  else
-    time $build_thirdparty_cmd_str
-  fi
+  "${build_thirdparty_cmd_args[@]}"
 )
 
 for file_to_copy in archive.tar.gz archive.tar.gz.sha256; do

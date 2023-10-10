@@ -103,7 +103,8 @@ def main() -> None:
             if github_token is not None and github_token.strip():
                 packager.upload_package(builder.args.upload_as_tag)
             else:
-                log("GITHUB_TOKEN is not set, not uploading the release package")
+                log("GITHUB_TOKEN is not set, not uploading the release package despite " +
+                    "--upload-as-tag being specified")
 
         log("Time taken for packaging/upload %.1f sec",
             time.time() - packaging_and_upload_start_time_sec)
