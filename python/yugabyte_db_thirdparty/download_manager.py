@@ -271,7 +271,7 @@ class DownloadManager:
                                     compute_file_sha256(file_path),
                                     expected_checksum))
                             if attempt_index <= MAX_REDOWNLOAD_ATTEMPTS_AFTER_WRONG_CHECKSUM:
-                                error_msg += "Will delete and re-download."
+                                error_msg += " Will delete and re-download."
                                 remove_path(file_path)
                                 log(error_msg)
                                 continue

@@ -14,7 +14,7 @@
 version: 2.1
 
 jobs:
-  build:
+  aarch64:
     parameters:
       archive_name_suffix:
         type: string
@@ -44,36 +44,36 @@ workflows:
       # TODO: find a way to assign different names to each build.
       # As specified below, they are named build-1, build-2, etc.
 
-      - build:
-          archive_name_suffix: centos7-aarch64-clang15
-          docker_image: yugabyteci/yb_build_infra_centos7_aarch64:v2022-10-13T18_12_26
+      - aarch64:
+          archive_name_suffix: centos7-aarch64-clang16
+          docker_image: yugabyteci/yb_build_infra_centos7_aarch64:v2023-09-21T03_29_29
           build_thirdparty_args: >-
-            --toolchain=llvm15
-            --expected-major-compiler-version=15
+            --toolchain=llvm16
+            --expected-major-compiler-version=16
             --skip-sanitizers
 
-      - build:
-          archive_name_suffix: centos7-aarch64-clang15-full-lto
-          docker_image: yugabyteci/yb_build_infra_centos7_aarch64:v2022-10-13T18_12_26
+      - aarch64:
+          archive_name_suffix: centos7-aarch64-clang16-full-lto
+          docker_image: yugabyteci/yb_build_infra_centos7_aarch64:v2023-09-21T03_29_29
           build_thirdparty_args: >-
-            --toolchain=llvm15
-            --expected-major-compiler-version=15
+            --toolchain=llvm16
+            --expected-major-compiler-version=16
             --skip-sanitizers
             --lto=full
 
-      - build:
-          archive_name_suffix: centos7-aarch64-clang16
-          docker_image: yugabyteci/yb_build_infra_centos7_aarch64:v2022-10-13T18_12_26
+      - aarch64:
+          archive_name_suffix: centos7-aarch64-clang17
+          docker_image: yugabyteci/yb_build_infra_centos7_aarch64:v2023-09-21T03_29_29
           build_thirdparty_args: >-
-            --toolchain=llvm16
-            --expected-major-compiler-version=16
+            --toolchain=llvm17
+            --expected-major-compiler-version=17
             --skip-sanitizers
 
-      - build:
-          archive_name_suffix: centos7-aarch64-clang16-full-lto
-          docker_image: yugabyteci/yb_build_infra_centos7_aarch64:v2022-10-13T18_12_26
+      - aarch64:
+          archive_name_suffix: centos7-aarch64-clang17-full-lto
+          docker_image: yugabyteci/yb_build_infra_centos7_aarch64:v2023-09-21T03_29_29
           build_thirdparty_args: >-
-            --toolchain=llvm16
-            --expected-major-compiler-version=16
+            --toolchain=llvm17
+            --expected-major-compiler-version=17
             --skip-sanitizers
             --lto=full

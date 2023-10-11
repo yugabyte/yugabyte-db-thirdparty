@@ -35,3 +35,5 @@ archive.tar.gz.sha256
 # TODO: figure out where this file comes from.
 a.out
 fossa-deps.json
+*.tmp
+*.tmp.*
