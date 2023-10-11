@@ -21,6 +21,10 @@ class LlvmPartDependencyBase(Dependency):
     def __init__(self, name: str, build_group: BuildGroup, version: str) -> None:
         assert name.startswith('llvm_'), f'Invalid name: {name}'
         github_org = 'yugabyte' if '-yb-' in version else 'llvm'
+        if version == '17.0.2-yb-1':
+            # Pick up a version that has a libunwind build workaround but in a cleaner way than the
+            # patch that we add at the end of this constructor (just enable the ASM language).
+            version = '17.0.2-yb-2'
         super(LlvmPartDependencyBase, self).__init__(
             name=name,
             version=version,

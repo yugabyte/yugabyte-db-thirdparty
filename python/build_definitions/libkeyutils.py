@@ -36,3 +36,11 @@ class LibKeyUtilsDependency(Dependency):
             glob.glob('*.so') +
             glob.glob('*.so.*') +
             [builder.prefix_lib])
+
+    def get_additional_ld_flags(self, builder: 'BuilderInterface') -> List[str]:
+        flags = []
+        if (builder.compiler_choice.is_clang() and
+                builder.compiler_choice.is_llvm_major_version_at_least(17)):
+            # Workaround for https://github.com/madler/zlib/issues/856
+            flags.append('-Wl,--undefined-version')
+        return flags
