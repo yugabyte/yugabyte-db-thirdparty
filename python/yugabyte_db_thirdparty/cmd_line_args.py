@@ -167,7 +167,8 @@ def parse_cmd_line_args() -> argparse.Namespace:
     parser.add_argument(
         '--cleanup-before-packaging',
         help='To try to avoid running out of disk space in a CI/CD environment, remove unnecessary '
-             'files (src, build, download directories) before creating a package.')
+             'files (src, build, download directories) before creating a package.',
+        action='store_true')
 
     parser.add_argument(
         '--expected-major-compiler-version',
