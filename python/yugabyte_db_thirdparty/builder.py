@@ -79,6 +79,7 @@ from yugabyte_db_thirdparty.util import (
     YB_THIRDPARTY_DIR,
     add_path_entry,
     shlex_join,
+    which_executable,
 )
 from yugabyte_db_thirdparty.file_system_layout import FileSystemLayout
 from yugabyte_db_thirdparty import file_system_layout
@@ -381,8 +382,9 @@ class Builder(BuilderInterface):
                 ['libunistring', 'gettext'] if is_macos() else []
             ) + [
                 'ncurses',
+                'abseil',
             ] + (
-                [] if is_macos() else ['libkeyutils', 'libverto', 'abseil', 'tcmalloc']
+                [] if is_macos() else ['libkeyutils', 'libverto', 'tcmalloc']
             ) + [
                 'libedit',
                 'icu4c',
@@ -810,8 +812,17 @@ class Builder(BuilderInterface):
             should_clean: bool = True,
             targets: List[str] = []) -> None:
         log_prefix = self.log_prefix(dep)
+        bazel_path = which_executable('bazel')
+        if not bazel_path:
+            bazel_path = which_executable('bazelisk')
+            if not bazel_path:
+                raise IOError("Could not find bazel or bazelisk executable")
+            log("Using bazelisk wrapper instead of bazel: %s", bazel_path)
+        bazel_version = subprocess.check_call([bazel_path, '--version'])
+        log("Bazel version: %s", bazel_version)
+
         if should_clean:
-            self.log_output(log_prefix, ['bazel', 'clean', '--expunge'])
+            self.log_output(log_prefix, [bazel_path, 'clean', '--expunge'])
 
         # Need to remove the space after isystem so replacing the space separators with colons
         # works properly.
@@ -820,7 +831,7 @@ class Builder(BuilderInterface):
         bazel_linkopts = os.environ["LDFLAGS"].replace(" ", ":")
 
         # Build without curses for more readable build output.
-        build_command = ["bazel", "build", "--curses=no"]
+        build_command = [bazel_path, "build", "--curses=no"]
         if verbose_output:
             build_command.append("--subcommands")
         build_command += ["--action_env", f"BAZEL_CXXOPTS={bazel_cxxopts}"]
@@ -876,6 +887,10 @@ class Builder(BuilderInterface):
         # prevents overwriting when building thirdparty multiple times.
         self.log_output(log_prefix, ['chmod', '755' if is_shared else '644', src_path])
         self.log_output(log_prefix, ['cp', src_path, dest_path])
+
+        # Fix library's path referring to itself (LC_ID_DYLIB).
+        if is_shared and is_macos():
+            self.log_output(log_prefix, ['install_name_tool', '-id', dest_path, dest_path])
 
     def validate_build_output(self) -> None:
         if is_macos():
