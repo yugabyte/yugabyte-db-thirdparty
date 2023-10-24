@@ -38,6 +38,12 @@ class OpenSSLDependency(Dependency):
             url_pattern='https://www.openssl.org/source/openssl-{0}.tar.gz',
             build_group=BuildGroup.COMMON)
         self.copy_sources = True
+        # Patch fixes the following error on kernel versions < 4.1.0:
+        # ld.lld: error: version script assignment of 'global' to symbol 'bind_engine' failed:
+        # symbol not defined
+        # ld.lld: error: version script assignment of 'global' to symbol 'v_check' failed:
+        # symbol not defined
+        self.patches = ['openssl-fix-afalg-link-on-centos7.patch']
 
     def build(self, builder: BuilderInterface) -> None:
         common_configure_options = ['shared', 'no-tests']
