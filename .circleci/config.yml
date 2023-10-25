@@ -46,7 +46,7 @@ workflows:
 
       - aarch64:
           archive_name_suffix: centos7-aarch64-clang16
-          docker_image: yugabyteci/yb_build_infra_centos7_aarch64:v2023-09-21T03_29_29
+          docker_image: yugabyteci/yb_build_infra_centos7_aarch64:v2023-10-25T03_32_55
           build_thirdparty_args: >-
             --toolchain=llvm16
             --expected-major-compiler-version=16
@@ -54,7 +54,7 @@ workflows:
 
       - aarch64:
           archive_name_suffix: centos7-aarch64-clang16-full-lto
-          docker_image: yugabyteci/yb_build_infra_centos7_aarch64:v2023-09-21T03_29_29
+          docker_image: yugabyteci/yb_build_infra_centos7_aarch64:v2023-10-25T03_32_55
           build_thirdparty_args: >-
             --toolchain=llvm16
             --expected-major-compiler-version=16
@@ -63,7 +63,7 @@ workflows:
 
       - aarch64:
           archive_name_suffix: centos7-aarch64-clang17
-          docker_image: yugabyteci/yb_build_infra_centos7_aarch64:v2023-09-21T03_29_29
+          docker_image: yugabyteci/yb_build_infra_centos7_aarch64:v2023-10-25T03_32_55
           build_thirdparty_args: >-
             --toolchain=llvm17
             --expected-major-compiler-version=17
@@ -71,7 +71,7 @@ workflows:
 
       - aarch64:
           archive_name_suffix: centos7-aarch64-clang17-full-lto
-          docker_image: yugabyteci/yb_build_infra_centos7_aarch64:v2023-09-21T03_29_29
+          docker_image: yugabyteci/yb_build_infra_centos7_aarch64:v2023-10-25T03_32_55
           build_thirdparty_args: >-
             --toolchain=llvm17
             --expected-major-compiler-version=17
