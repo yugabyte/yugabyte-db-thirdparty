@@ -47,6 +47,7 @@ jobs:
           # ---------------------------------------------------------------------------------------
           # CentOS 7
           # ---------------------------------------------------------------------------------------
+          # GCC 11
           - name: centos7-x86_64-gcc11
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_centos7_x86_64:v2023-10-25T03_33_02
@@ -142,21 +143,6 @@ jobs:
               --toolchain=llvm16
               --expected-major-compiler-version=16
 
-          - name: almalinux8-x86_64-clang16-linuxbrew
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2023-10-25T03_33_01
-            build_thirdparty_args: >-
-              --toolchain=llvm16_linuxbrew
-              --expected-major-compiler-version=16
-
-          - name: almalinux8-x86_64-clang16-linuxbrew-full-lto
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2023-10-25T03_33_01
-            build_thirdparty_args: >-
-              --toolchain=llvm16_linuxbrew
-              --expected-major-compiler-version=16
-              --lto=full
-
           # Clang/LLVM 17
           - name: almalinux8-x86_64-clang17
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
@@ -164,21 +150,6 @@ jobs:
             build_thirdparty_args: >-
               --toolchain=llvm17
               --expected-major-compiler-version=17
-
-          - name: almalinux8-x86_64-clang17-linuxbrew
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2023-10-25T03_33_01
-            build_thirdparty_args: >-
-              --toolchain=llvm17_linuxbrew
-              --expected-major-compiler-version=17
-
-          - name: almalinux8-x86_64-clang17-linuxbrew-full-lto
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2023-10-25T03_33_01
-            build_thirdparty_args: >-
-              --toolchain=llvm17_linuxbrew
-              --expected-major-compiler-version=17
-              --lto=full
 
           # ---------------------------------------------------------------------------------------
           # Ubuntu 23.04
