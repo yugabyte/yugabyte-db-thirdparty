@@ -133,9 +133,14 @@ class CompilerWrapper:
                     COMPILER_WRAPPER_ENV_VAR_NAME_LD_FLAGS_TO_REMOVE, '').strip().split())
             cmd_args = [arg for arg in cmd_args if arg not in ld_flags_to_remove]
 
-        if len(output_files) == 1 and output_files[0].endswith('.o'):
+        if (len(output_files) == 1 and
+                output_files[0].endswith('.o') and
+                # Protobuf build produces a file named libprotobuf.15.dylib-master.o out of multiple
+                # .o files.
+                not output_files[0].endswith('-master.o')):
+
             output_path = output_files[0]
-            pp_output_path = output_path + 'pp'
+            pp_output_path = output_path + '.pp'  # "pp" for "preprocessed"
             is_assembly_input = any([arg.endswith('.s') for arg in self.compiler_args])
 
             compile_commands_tmp_dir = compile_commands.get_tmp_dir_env_var()
@@ -166,7 +171,10 @@ class CompilerWrapper:
                 pp_args.append('-E')
                 subprocess.check_call(pp_args)
                 assert pp_output_path is not None
-                assert os.path.isfile(pp_output_path)
+                assert os.path.isfile(pp_output_path), (
+                    f"Preprocessed output file does not exist: {pp_output_path}. "
+                    f"Preprocessing command arguments: {shlex_join(pp_args)}."
+                )
 
                 # Collect included files from preprocessor output.
                 # https://gcc.gnu.org/onlinedocs/cpp/Preprocessor-Output.html

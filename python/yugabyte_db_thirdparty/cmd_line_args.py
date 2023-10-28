@@ -258,7 +258,7 @@ def parse_cmd_line_args() -> argparse.Namespace:
     parser.add_argument(
         '--dev-repo',
         help='Specify "development mode" local repository paths for some dependencies. E.g. '
-             '--dev-repo- tcmalloc=~/code/tcmalloc. These development repository paths are '
+             '--dev-repo tcmalloc=~/code/tcmalloc. These development repository paths are '
              'created automatically if not present.',
         nargs='+')
 

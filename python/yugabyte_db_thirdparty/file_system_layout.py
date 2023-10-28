@@ -161,7 +161,11 @@ class FileSystemLayout:
         return os.path.join(self.tp_build_dir, 'llvm-tools')
 
     def add_dev_repo_mapping(self, mapping_str: str) -> None:
-        dep_name, repo_dir = mapping_str.split('=')
+        components = mapping_str.split('=', 1)
+        if len(components) != 2:
+            raise ValueError(
+                f"Expected a dev repo mapping to be of the form name=directory, got: {mapping_str}")
+        dep_name, repo_dir = components
         if dep_name in self.dev_repo_mappings:
             raise ValueError(
                 f"Duplicate development repository directory mapping for dependency {dep_name}: "
