@@ -166,6 +166,7 @@ class FileSystemLayout:
             raise ValueError(
                 f"Expected a dev repo mapping to be of the form name=directory, got: {mapping_str}")
         dep_name, repo_dir = components
+        repo_dir = os.path.expanduser(repo_dir)
         if dep_name in self.dev_repo_mappings:
             raise ValueError(
                 f"Duplicate development repository directory mapping for dependency {dep_name}: "

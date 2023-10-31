@@ -24,7 +24,7 @@ class GLogDependency(Dependency):
         super(GLogDependency, self).__init__(
             name='glog',
             # version='0.4.0-yb-7',
-            version='6be46659edc8b0a8635896f6f0a87b7a3a1fda7f',
+            version='cbea3ba60a378d9d55cef9f57a2bd82aae1ba6fa',
             url_pattern='https://github.com/yugabyte/glog/archive/{0}.tar.gz',
             build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.patch_version = 1
