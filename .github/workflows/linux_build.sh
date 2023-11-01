@@ -19,6 +19,14 @@ docker run -t \
     set -euo pipefail
     cd /opt/yb-build/thirdparty/checkout
     # To avoid the "unsafe repository owned by someone else" git error:
-    chown -R "$(whoami)" "$PWD"
+    if ! chown -R "$(whoami)" "$PWD"; then
+      set +e
+      ls -l /opt
+      ls -l /opt/yb-build
+      ls -l /opt/yb-build/thirdparty
+      ls -l /opt/yb-build/thirdparty/checkout
+      set -e
+      exit 1
+    done
     ./build_and_release.sh
   '
