@@ -34,7 +34,7 @@ class OpenSSLDependency(Dependency):
     def __init__(self) -> None:
         super(OpenSSLDependency, self).__init__(
             name='openssl',
-            version='3.1.3',
+            version='3.0.8',
             url_pattern='https://www.openssl.org/source/openssl-{0}.tar.gz',
             build_group=BuildGroup.COMMON)
         self.copy_sources = True
