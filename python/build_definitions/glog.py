@@ -23,9 +23,8 @@ class GLogDependency(Dependency):
     def __init__(self) -> None:
         super(GLogDependency, self).__init__(
             name='glog',
-            # version='0.4.0-yb-7',
-            version='cbea3ba60a378d9d55cef9f57a2bd82aae1ba6fa',
-            url_pattern='https://github.com/yugabyte/glog/archive/{0}.tar.gz',
+            version='0.4.0-yb-8',
+            url_pattern='https://github.com/yugabyte/glog/archive/v{0}.tar.gz',
             build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.patch_version = 1
         self.patch_strip = 0
