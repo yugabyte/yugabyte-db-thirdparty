@@ -27,6 +27,6 @@ docker run -t \
       ls -l /opt/yb-build/thirdparty/checkout
       set -e
       exit 1
-    done
+    fi
     ./build_and_release.sh
   '
