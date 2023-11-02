@@ -104,6 +104,7 @@ class DownloadManager:
         if os.path.exists(tmp_out_dir):
             raise IOError("Just-generated unique directory name already exists: %s" % tmp_out_dir)
         os.makedirs(tmp_out_dir)
+        assert os.path.isdir(tmp_out_dir), f"Failed to create directory {tmp_out_dir}"
 
         archive_extension = None
         for ext in ARCHIVE_TYPES:
