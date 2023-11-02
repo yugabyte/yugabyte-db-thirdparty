@@ -137,7 +137,7 @@ class CompilerWrapper:
                 output_files[0].endswith('.o') and
                 # Protobuf build produces a file named libprotobuf.15.dylib-master.o out of multiple
                 # .o files.
-                not output_files[0].endswith('-master.o')):
+                not output_files[0].endswith('.dylib-master.o')):
 
             output_path = output_files[0]
             pp_output_path = output_path + '.pp'  # "pp" for "preprocessed"
