@@ -1,4 +1,4 @@
-fname: ci
+name: ci
 
 on:
   push:
@@ -103,7 +103,7 @@ jobs:
             build_thirdparty_args: >-
               --toolchain=llvm16
               --expected-major-compiler-version=16
-            upload: true
+            upload: false
 
           # ---------------------------------------------------------------------------------------
           # Ubuntu 22.04
