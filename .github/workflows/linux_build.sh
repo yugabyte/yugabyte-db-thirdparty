@@ -7,6 +7,7 @@ checkout_dir=$PWD
 echo "Building in directory: $checkout_dir"
 docker run -t \
   --cap-add=SYS_PTRACE \
+  -u root \
   -e GITHUB_TOKEN \
   -e YB_BUILD_THIRDPARTY_ARGS \
   -e YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX \
