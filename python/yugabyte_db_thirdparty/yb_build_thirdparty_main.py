@@ -17,7 +17,6 @@
 import build_definitions
 import glob
 import itertools
-import platform
 import time
 
 from build_definitions import *  # noqa
