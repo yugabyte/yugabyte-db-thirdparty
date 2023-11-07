@@ -54,6 +54,7 @@ jobs:
             build_thirdparty_args: >-
               --devtoolset=11
               --expected-major-compiler-version=11
+            upload: true
 
           # Clang 16
           - name: centos7-x86_64-clang16
@@ -62,6 +63,7 @@ jobs:
             build_thirdparty_args: >-
               --toolchain=llvm16
               --expected-major-compiler-version=16
+            upload: true
 
           - name: centos7-x86_64-clang16-full-lto
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
@@ -70,6 +72,8 @@ jobs:
               --toolchain=llvm16
               --expected-major-compiler-version=16
               --lto=full
+              --skip-sanitizers
+            upload: true
 
           # Clang 17
           - name: centos7-x86_64-clang17
@@ -78,6 +82,7 @@ jobs:
             build_thirdparty_args: >-
               --toolchain=llvm17
               --expected-major-compiler-version=17
+            upload: true
 
           - name: centos7-x86_64-clang17-full-lto
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
@@ -86,6 +91,8 @@ jobs:
               --toolchain=llvm17
               --expected-major-compiler-version=17
               --lto=full
+              --skip-sanitizers
+            upload: true
 
           # ---------------------------------------------------------------------------------------
           # Ubuntu 20.04
@@ -96,6 +103,7 @@ jobs:
             build_thirdparty_args: >-
               --toolchain=llvm16
               --expected-major-compiler-version=16
+            upload: true
 
           # ---------------------------------------------------------------------------------------
           # Ubuntu 22.04
@@ -109,6 +117,8 @@ jobs:
               --compiler-family=gcc
               --compiler-suffix=-11
               --expected-major-compiler-version=11
+            # We can use the CentOS 7 GCC 11 build on Ubuntu 22.04, no need to upload.
+            upload: false
 
           - name: ubuntu2204-x86_64-clang16
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
@@ -116,6 +126,7 @@ jobs:
             build_thirdparty_args: >-
               --toolchain=llvm16
               --expected-major-compiler-version=16
+            upload: true
 
           - name: ubuntu2204-x86_64-clang17
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
@@ -123,6 +134,8 @@ jobs:
             build_thirdparty_args: >-
               --toolchain=llvm17
               --expected-major-compiler-version=17
+            # We can use the CentOS 7 Clang 17 build on Ubuntu 22.04, no need to upload.
+            upload: true
 
           # ---------------------------------------------------------------------------------------
           # AlmaLinux 8
@@ -134,6 +147,8 @@ jobs:
             build_thirdparty_args: >-
               --devtoolset=11
               --expected-major-compiler-version=11
+            # We can use the CentOS 7 GCC 11 build on AlmaLinux 8.
+            upload: false
 
           # Clang/LLVM 16
           - name: almalinux8-x86_64-clang16
@@ -142,6 +157,7 @@ jobs:
             build_thirdparty_args: >-
               --toolchain=llvm16
               --expected-major-compiler-version=16
+            upload: true
 
           # Clang/LLVM 17
           - name: almalinux8-x86_64-clang17
@@ -150,6 +166,7 @@ jobs:
             build_thirdparty_args: >-
               --toolchain=llvm17
               --expected-major-compiler-version=17
+            upload: true
 
           # ---------------------------------------------------------------------------------------
           # Ubuntu 23.04
@@ -163,6 +180,7 @@ jobs:
               --compiler-suffix=-13
               --compiler-family=gcc
               --expected-major-compiler-version=13
+            upload: true
 
           # ---------------------------------------------------------------------------------------
           # AlmaLinux 9
@@ -174,6 +192,7 @@ jobs:
             build_thirdparty_args: >-
               --devtoolset=12
               --expected-major-compiler-version=12
+            upload: true
 
           - name: almalinux9-x86_64-clang16
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
@@ -181,6 +200,7 @@ jobs:
             build_thirdparty_args: >-
               --toolchain=llvm16
               --expected-major-compiler-version=16
+            upload: true
 
           - name: almalinux9-x86_64-clang17
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
@@ -188,6 +208,7 @@ jobs:
             build_thirdparty_args: >-
               --toolchain=llvm17
               --expected-major-compiler-version=17
+            upload: true
 
           # ---------------------------------------------------------------------------------------
           # macOS
@@ -197,6 +218,7 @@ jobs:
             os: macos-12
             docker_image:
             build_thirdparty_args:
+            upload: true
 
     steps:
       - name: Increase disk space
@@ -216,11 +238,12 @@ jobs:
       - name: Build
         run: .github/workflows/github_actions_build.sh
         env:
-          YB_DOCKER_IMAGE: ${{ matrix.docker_image }}
-          YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX: ${{ matrix.name }}
-          YB_BUILD_THIRDPARTY_ARGS: ${{ matrix.build_thirdparty_args }}
           GITHUB_TOKEN: ${{ secrets.CUSTOM_GITHUB_TOKEN }}
           SNYK_TOKEN: ${{ secrets.SNYK_AUTH_TOKEN }}
+          YB_BUILD_THIRDPARTY_ARGS: ${{ matrix.build_thirdparty_args }}
+          YB_DOCKER_IMAGE: ${{ matrix.docker_image }}
+          YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX: ${{ matrix.name }}
+          YB_UPLOAD_THIRDPARTY_ARCHIVE: ${{ matrix.upload }}
 
       - uses: actions/upload-artifact@v2
         with:

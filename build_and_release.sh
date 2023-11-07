@@ -229,6 +229,7 @@ if [[ -n ${GITHUB_TOKEN:-} &&
   ( set -x; hub issue -L 0 )
 else
   log "GITHUB_TOKEN length is ${#GITHUB_TOKEN} characters (not 40), considering it as unset."
+  GITHUB_TOKEN=""
 fi
 
 # We intentionally don't escape variables here so they get split into multiple arguments.
@@ -246,8 +247,10 @@ fi
 # shellcheck disable=SC2206
 build_thirdparty_cmd_args=( $build_thirdparty_cmd_str )
 
-if [[ -z ${YB_SKIP_UPLOAD:-} ]]; then
+if [[ -n $GITHUB_TOKEN && ${YB_UPLOAD_THIRDPARTY_ARCHIVE:-} == "true" ]]; then
   build_thirdparty_cmd_args+=( --upload-as-tag "$tag" )
+else
+  echo "To enable package upload, set YB_UPLOAD_THIRDPARTY_ARCHIVE to true and set GITHUB_TOKEN."
 fi
 
 (
