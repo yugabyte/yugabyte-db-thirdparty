@@ -360,7 +360,7 @@ def capture_all_output(
         cmd_line_str = shlex_join(args)
         if ex.returncode not in allowed_exit_codes:
             error_msg = f"Unexpected exit code {ex.returncode} from: {cmd_line_str} " \
-                        f"(expected one of { set(sorted(allowed_exit_codes | {0})) })"
+                        f"(expected one of {set(sorted(allowed_exit_codes | {0}))})"
             log(error_msg)
             log("Output from %s (stdout/stderr combined):", cmd_line_str)
             log(ex.stdout.decode('utf-8'))
