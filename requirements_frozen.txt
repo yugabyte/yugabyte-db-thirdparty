@@ -13,7 +13,7 @@ packaging==23.1
 pycodestyle==2.10.0
 requests==2.30.0
 ruamel.yaml==0.17.26
-ruamel.yaml.clib==0.2.7
+ruamel.yaml.clib==0.2.8
 sys-detection==1.3.0
 tomli==2.0.1
 typing-extensions==4.5.0
