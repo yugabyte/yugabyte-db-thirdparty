@@ -1,0 +1,27 @@
+diff --git a/engines/e_afalg.c b/engines/e_afalg.c
+index 2c08cbb..f362d94 100644
+--- a/engines/e_afalg.c
++++ b/engines/e_afalg.c
+@@ -34,10 +34,22 @@
+ #  warning "AFALG ENGINE requires Kernel Headers >= 4.1.0"
+ #  warning "Skipping Compilation of AFALG engine"
+ # endif
++# ifndef OPENSSL_NO_DYNAMIC_ENGINE
++OPENSSL_EXPORT
++    int bind_engine(ENGINE *e, const char *id, const dynamic_fns *fns);
++OPENSSL_EXPORT
++    int bind_engine(ENGINE *e, const char *id, const dynamic_fns *fns)
++{
++    return 0;
++}
++
++IMPLEMENT_DYNAMIC_CHECK_FN()
++# else
+ void engine_load_afalg_int(void);
+ void engine_load_afalg_int(void)
+ {
+ }
++# endif
+ #else
+ 
+ # include <linux/if_alg.h>
