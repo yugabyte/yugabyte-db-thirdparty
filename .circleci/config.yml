@@ -50,7 +50,7 @@ workflows:
 
       - build:
           archive_name_suffix: almalinux8-aarch64-clang12
-          docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2022-10-13T18_13_02
+          docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2023-10-25T03_32_54
           build_thirdparty_args: >-
             --toolchain=llvm12
             --expected-major-compiler-version=12
@@ -58,7 +58,7 @@ workflows:
 
       - build:
           archive_name_suffix: almalinux8-aarch64-clang12-thin-lto
-          docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2022-10-13T18_13_02
+          docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2023-10-25T03_32_54
           build_thirdparty_args: >-
             --toolchain=llvm12
             --expected-major-compiler-version=12
@@ -67,7 +67,7 @@ workflows:
 
       - build:
           archive_name_suffix: almalinux8-aarch64-clang12-full-lto
-          docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2022-10-13T18_13_02
+          docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2023-10-25T03_32_54
           build_thirdparty_args: >-
             --toolchain=llvm12
             --expected-major-compiler-version=12
@@ -80,7 +80,7 @@ workflows:
 
       - build:
           archive_name_suffix: almalinux8-aarch64-clang13
-          docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2022-10-13T18_13_02
+          docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2023-10-25T03_32_54
           build_thirdparty_args: >-
             --toolchain=llvm13
             --expected-major-compiler-version=13
@@ -88,7 +88,7 @@ workflows:
 
       - build:
           archive_name_suffix: almalinux8-aarch64-clang13-thin-lto
-          docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2022-10-13T18_13_02
+          docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2023-10-25T03_32_54
           build_thirdparty_args: >-
             --toolchain=llvm13
             --expected-major-compiler-version=13
@@ -97,7 +97,7 @@ workflows:
 
       - build:
           archive_name_suffix: almalinux8-aarch64-clang13-full-lto
-          docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2022-10-13T18_13_02
+          docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2023-10-25T03_32_54
           build_thirdparty_args: >-
             --toolchain=llvm13
             --expected-major-compiler-version=13
@@ -110,7 +110,7 @@ workflows:
 
       - build:
           archive_name_suffix: almalinux8-aarch64-clang14
-          docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2022-10-13T18_13_02
+          docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2023-10-25T03_32_54
           build_thirdparty_args: >-
             --toolchain=llvm14
             --expected-major-compiler-version=14
@@ -118,7 +118,7 @@ workflows:
 
       - build:
           archive_name_suffix: almalinux8-aarch64-clang14-thin-lto
-          docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2022-10-13T18_13_02
+          docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2023-10-25T03_32_54
           build_thirdparty_args: >-
             --toolchain=llvm14
             --expected-major-compiler-version=14
@@ -127,7 +127,7 @@ workflows:
 
       - build:
           archive_name_suffix: almalinux8-aarch64-clang14-full-lto
-          docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2022-10-13T18_13_02
+          docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2023-10-25T03_32_54
           build_thirdparty_args: >-
             --toolchain=llvm14
             --expected-major-compiler-version=14
