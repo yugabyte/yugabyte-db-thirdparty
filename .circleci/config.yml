@@ -46,7 +46,7 @@ workflows:
 
       - build:
           archive_name_suffix: centos7-aarch64-clang15
-          docker_image: yugabyteci/yb_build_infra_centos7_aarch64:v2022-10-13T18_12_26
+          docker_image: yugabyteci/yb_build_infra_centos7_aarch64:v2023-10-25T03_32_55
           build_thirdparty_args: >-
             --toolchain=llvm15
             --expected-major-compiler-version=15
@@ -54,7 +54,7 @@ workflows:
 
       - build:
           archive_name_suffix: centos7-aarch64-clang15-full-lto
-          docker_image: yugabyteci/yb_build_infra_centos7_aarch64:v2022-10-13T18_12_26
+          docker_image: yugabyteci/yb_build_infra_centos7_aarch64:v2023-10-25T03_32_55
           build_thirdparty_args: >-
             --toolchain=llvm15
             --expected-major-compiler-version=15
