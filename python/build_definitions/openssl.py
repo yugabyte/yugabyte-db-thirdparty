@@ -46,7 +46,7 @@ class OpenSSLDependency(Dependency):
         self.patches = ['openssl-fix-afalg-link-on-centos7.patch']
 
     def build(self, builder: BuilderInterface) -> None:
-        common_configure_options = ['shared', 'no-tests']
+        common_configure_options = ['shared', 'no-tests', 'enable-fips']
         install_path = os.path.join(
             builder.fs_layout.tp_installed_common_dir, "lib")
         if is_macos_arm64_build():
@@ -59,7 +59,7 @@ class OpenSSLDependency(Dependency):
             dep=self,
             configure_cmd=configure_cmd,
             # https://bit.ly/openssl_install_without_manpages
-            install=['install_sw']
+            install=['install_sw', 'install_fips']
         )
 
     def use_cppflags_env_var(self) -> bool:
