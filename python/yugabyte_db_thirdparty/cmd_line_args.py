@@ -283,8 +283,9 @@ def parse_cmd_line_args() -> argparse.Namespace:
             'environment variables, YB_THIRDPARTY_REMOTE_BUILD_SERVER and '
             'YB_THIRDPARTY_REMOTE_BUILD_DIR.')
     if args.remote_build_dir is not None:
-        assert os.path.isabs(args.remote_build_dir), (
-            'Remote build directory path must be an absolute path: %s' % args.remote_build_dir)
+        assert os.path.isabs(args.remote_build_dir) or args.remote_build_dir.startswith('~/'), (
+            'Remote build directory path must be an absolute path or start with ~/: %s' %
+                args.remote_build_dir)
 
     is_remote_build = args.remote_build_server is not None
 

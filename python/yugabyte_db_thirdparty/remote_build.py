@@ -71,7 +71,7 @@ def copy_code_to(dest_dir: str) -> None:
 def build_remotely(remote_server: str, remote_build_code_path: str) -> None:
     assert remote_server is not None
     assert remote_build_code_path is not None
-    assert remote_build_code_path.startswith('/')
+    assert os.path.isabs(remote_build_code_path) or remote_build_code_path.startswith('~/')
 
     def run_ssh_cmd(ssh_args: List[str]) -> None:
         log_and_run_cmd(['ssh', remote_server] + ssh_args)
