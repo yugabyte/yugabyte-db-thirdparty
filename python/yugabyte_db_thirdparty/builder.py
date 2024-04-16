@@ -401,7 +401,8 @@ class Builder(BuilderInterface):
                 'krb5',
                 'hdrhistogram',
                 'otel_proto',
-                'otel'
+                'otel',
+                'diskann',
             ])
         for dep in self.dependencies:
             if dep.name in self.dependencies_by_name:
