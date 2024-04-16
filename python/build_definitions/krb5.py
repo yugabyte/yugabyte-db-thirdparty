@@ -76,6 +76,6 @@ class Krb5Dependency(Dependency):
                 builder.build_with_configure(
                     dep=self,
                     src_subdir_name='src',
-                    extra_args=extra_args,
+                    extra_configure_args=extra_args,
                 )
                 log(f"Finished building krb5 with {linking_type} linking in {os.getcwd()}")

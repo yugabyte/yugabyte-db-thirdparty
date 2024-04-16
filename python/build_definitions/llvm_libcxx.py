@@ -79,7 +79,7 @@ class LlvmLibCxxDependencyBase(LlvmPartDependencyBase):
 
         builder.build_with_cmake(
             self,
-            extra_args=args,
+            extra_cmake_args=args,
             src_subdir_name=self.get_source_subdir_name(),
             use_ninja_if_available=True)
 

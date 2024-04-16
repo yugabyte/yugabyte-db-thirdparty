@@ -25,8 +25,13 @@ from datetime import datetime
 
 from typing import Optional, DefaultDict, Tuple, List, Dict, cast, Union, Any, Set, Callable
 
-from yugabyte_db_thirdparty import util, constants
+from yugabyte_db_thirdparty import (
+    util,
+    file_util,
+    constants,
+)
 from yugabyte_db_thirdparty.custom_logging import log
+from yugabyte_db_thirdparty.file_util import mkdir_p
 
 
 COMPILE_COMMAND_FILE_SUFFIX = '.compile_command.json'
@@ -127,7 +132,7 @@ def aggregate_compile_commands(
         with open(compile_command_path, 'r') as compile_command_file:
             compile_commands.append(json.load(compile_command_file))
 
-    util.mkdir_p(compile_commands_dir)
+    file_util.mkdir_p(compile_commands_dir)
 
     existing_compile_commands: List[Dict[str, Union[str, List[str]]]] = []
 
@@ -338,7 +343,7 @@ def create_vscode_settings(
     clangd_index_path = os.path.join(build_dir, clangd_index_rel_path)
 
     vscode_dir = os.path.join(src_dir, '.vscode')
-    util.mkdir_p(vscode_dir)
+    mkdir_p(vscode_dir)
     settings_json_path = os.path.join(vscode_dir, 'settings.json')
 
     if (not os.path.exists(settings_json_path) or

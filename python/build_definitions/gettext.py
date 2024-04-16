@@ -34,7 +34,7 @@ class GetTextDependency(Dependency):
     def build(self, builder: BuilderInterface) -> None:
         builder.build_with_configure(
             dep=self,
-            extra_args=[
+            extra_configure_args=[
                 '--with-included-gettext',
                 '--disable-java',
                 '--disable-csharp',

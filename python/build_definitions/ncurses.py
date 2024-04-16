@@ -27,7 +27,7 @@ class NCursesDependency(Dependency):
 
     def build(self, builder: BuilderInterface) -> None:
         extra_args = ['--with-shared', '--with-default-terminfo-dir=/usr/share/terminfo']
-        builder.build_with_configure(dep=self, extra_args=extra_args)
+        builder.build_with_configure(dep=self, extra_configure_args=extra_args)
 
     def get_additional_leading_ld_flags(self, builder: 'BuilderInterface') -> List[str]:
         flags = super().get_additional_leading_ld_flags(builder)

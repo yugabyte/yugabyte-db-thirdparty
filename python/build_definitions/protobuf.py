@@ -45,6 +45,8 @@ class ProtobufDependency(Dependency):
     def build(self, builder: BuilderInterface) -> None:
         builder.build_with_configure(
             dep=self,
-            extra_args=['--with-pic', '--enable-shared', '--enable-static', '--without-js'],
+            extra_configure_args=[
+                '--with-pic', '--enable-shared', '--enable-static', '--without-js'
+            ],
             run_autogen=True
         )

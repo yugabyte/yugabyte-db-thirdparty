@@ -19,7 +19,7 @@ import platform
 from typing import Optional
 
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
-from yugabyte_db_thirdparty.util import EnvVarContext
+from yugabyte_db_thirdparty.env_helpers import EnvVarContext
 
 from yugabyte_db_thirdparty import constants
 
@@ -71,7 +71,7 @@ class BoostDependency(Dependency):
         if llvm_major_version is not None and llvm_major_version >= 14:
             env_var_overrides['PATH'] = '%s:%s' % ('/bin', os.environ['PATH'])
 
-        with EnvVarContext(**env_var_overrides):
+        with EnvVarContext(env_var_overrides):
             builder.log_output(log_prefix, [
                 './bootstrap.sh',
                 '--prefix={}'.format(prefix),

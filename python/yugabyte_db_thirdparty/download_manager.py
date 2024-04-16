@@ -30,13 +30,13 @@ from yugabyte_db_thirdparty.string_util import shlex_join
 from yugabyte_db_thirdparty.util import (
     PushDir,
     compute_file_sha256,
-    mkdir_p,
     remove_path,
     YB_THIRDPARTY_DIR,
     which_must_exist,
     get_temporal_randomized_file_name_suffix,
     read_file
 )
+from yugabyte_db_thirdparty.file_util import mkdir_p
 from yugabyte_db_thirdparty.constants import ADD_CHECKSUM_ARG
 
 
@@ -45,6 +45,14 @@ MAX_REDOWNLOAD_ATTEMPTS_AFTER_WRONG_CHECKSUM = 3
 INITIAL_DOWNLOAD_RETRY_SLEEP_TIME_SEC = 1.0
 DOWNLOAD_RETRY_SLEEP_INCREASE_SEC = 0.5
 ALTERNATIVE_URL_PREFIX = 'https://downloads.yugabyte.com/yugabyte-db-thirdparty/'
+
+
+def is_downloaded_file_not_found(downloaded_file_path: str) -> bool:
+    if not os.path.exists(downloaded_file_path):
+        return False
+    with open(downloaded_file_path, 'rb') as input_file:
+        byte_array = input_file.read(14)
+    return byte_array == b'404: Not Found'
 
 
 class DownloadManager:
@@ -258,6 +266,10 @@ class DownloadManager:
                         effective_url]
                     log("Running command: %s", shlex_join(curl_cmd_line))
                     subprocess.check_call(curl_cmd_line)
+
+                    if is_downloaded_file_not_found(file_path):
+                        os.remove(file_path)
+                        raise ValueError(f"Could not download {self.curl_path}: not found")
 
                     if verify_checksum:
                         if expected_checksum is None:
