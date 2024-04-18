@@ -45,7 +45,10 @@ from yugabyte_db_thirdparty.builder_helpers import (
     PLACEHOLDER_RPATH,
 )
 from yugabyte_db_thirdparty.builder_helpers import is_ninja_available
+
 from yugabyte_db_thirdparty.builder_interface import BuilderInterface
+from yugabyte_db_thirdparty import builder_interface
+
 from yugabyte_db_thirdparty.cmd_line_args import parse_cmd_line_args
 from yugabyte_db_thirdparty.compiler_choice import CompilerChoice
 from yugabyte_db_thirdparty.custom_logging import (
@@ -382,7 +385,7 @@ class Builder(BuilderInterface):
             ) + [
                 'ncurses',
             ] + (
-                [] if is_macos() else ['libkeyutils', 'libverto', 'abseil', 'tcmalloc']
+                [] if is_macos() else ['libkeyutils', 'libverto', 'libaio', 'abseil', 'tcmalloc']
             ) + [
                 'libedit',
                 'icu4c',
@@ -622,16 +625,43 @@ class Builder(BuilderInterface):
                     "Dependency build is not allowed to run with the current directory being "
                     f"the top-level directory of yugabyte-db-thirdparty: {YB_THIRDPARTY_DIR}")
 
+    def build_with_make(
+            self,
+            dep: Dependency,
+            extra_make_args: List[str] = [],
+            install_targets: List[str] = builder_interface.DEFAULT_INSTALL_TARGETS,
+            specify_prefix: bool = False,
+            prefix_var: str = builder_interface.DEFAULT_MAKE_PREFIX_VAR) -> None:
+        """
+        Build the given dependency using the its corresponding Unix Makefile.
+        """
+        self.check_current_dir()
+        log_prefix = self.log_prefix(dep)
+        make_cmd_line = ['make', '-j{}'.format(get_make_parallelism())]
+        prefix_args = []
+        if specify_prefix:
+            prefix_args = [f'{prefix_var}={self.prefix}']
+        make_cmd_line.extend(extra_make_args)
+        self.log_output(log_prefix, make_cmd_line + prefix_args)
+        if install_targets:
+            self.log_output(log_prefix, ['make'] + install_targets + prefix_args)
+
+        self.validate_build_output()
+
     def build_with_configure(
             self,
             dep: Dependency,
-            extra_args: List[str] = [],
-            configure_cmd: List[str] = ['./configure'],
-            install: List[str] = ['install'],
+            extra_configure_args: List[str] = [],
+            extra_make_args: List[str] = [],
+            configure_cmd: List[str] = builder_interface.DEFAULT_CONFIGURE_CMD,
+            install_targets: List[str] = builder_interface.DEFAULT_INSTALL_TARGETS,
             run_autogen: bool = False,
             autoconf: bool = False,
             src_subdir_name: Optional[str] = None,
             post_configure_action: Optional[Callable] = None) -> None:
+        """
+        :param src_subdir_name: subdirectory name to run the build in.
+        """
         self.check_current_dir()
         log_prefix = self.log_prefix(dep)
         dir_for_build = os.getcwd()
@@ -647,7 +677,9 @@ class Builder(BuilderInterface):
                     self.log_output(log_prefix, ['autoreconf', '-i'])
 
                 configure_args = (
-                    configure_cmd.copy() + ['--prefix={}'.format(self.prefix)] + extra_args
+                    configure_cmd.copy() +
+                    ['--prefix={}'.format(self.prefix)] +
+                    extra_configure_args
                 )
                 configure_args = get_arch_switch_cmd_prefix() + configure_args
                 self.log_output(
@@ -677,11 +709,10 @@ class Builder(BuilderInterface):
             if post_configure_action:
                 post_configure_action()
 
-            self.log_output(log_prefix, ['make', '-j{}'.format(get_make_parallelism())])
-            if install:
-                self.log_output(log_prefix, ['make'] + install)
-
-            self.validate_build_output()
+            self.build_with_make(
+                dep=dep,
+                extra_make_args=extra_make_args,
+                install_targets=install_targets)
 
     def log_output(
             self,
@@ -703,7 +734,7 @@ class Builder(BuilderInterface):
             src_subdir_name: Optional[str] = None,
             extra_build_tool_args: List[str] = [],
             should_install: bool = True,
-            install_targets: List[str] = ['install'],
+            install_targets: List[str] = builder_interface.DEFAULT_INSTALL_TARGETS,
             shared_and_static: bool = False) -> None:
         self.check_current_dir()
         build_tool = 'make'

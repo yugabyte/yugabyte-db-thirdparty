@@ -21,6 +21,13 @@ if TYPE_CHECKING:
     from .compiler_choice import CompilerChoice
 
 
+DEFAULT_INSTALL_TARGETS = ['install']
+DEFAULT_CONFIGURE_CMD = ['./configure']
+
+# Could be a custom variable name in some cases, e.g. "DESTDIR".
+DEFAULT_MAKE_PREFIX_VAR = 'PREFIX'
+
+
 class BuilderInterface:
     """
     The Builder interface exposed to Dependency instances.
@@ -47,12 +54,22 @@ class BuilderInterface:
     fs_layout: FileSystemLayout
     lto_type: Optional[str]
 
+    def build_with_make(
+            self,
+            dep: 'Dependency',
+            extra_make_args: List[str] = [],
+            install_targets: List[str] = DEFAULT_INSTALL_TARGETS,
+            specify_prefix: bool = False,
+            prefix_var: str = DEFAULT_MAKE_PREFIX_VAR) -> None:
+        raise NotImplementedError()
+
     def build_with_configure(
             self,
             dep: 'Dependency',
-            extra_args: List[str] = [],
-            configure_cmd: List[str] = ['./configure'],
-            install: List[str] = ['install'],
+            extra_configure_args: List[str] = [],
+            extra_make_args: List[str] = [],
+            configure_cmd: List[str] = DEFAULT_CONFIGURE_CMD,
+            install_targets: List[str] = DEFAULT_INSTALL_TARGETS,
             run_autogen: bool = False,
             autoconf: bool = False,
             src_subdir_name: Optional[str] = None,

@@ -13,8 +13,10 @@
 #
 
 import os
+from typing import List
 
-from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
+from yugabyte_db_thirdparty.build_definition_helpers import *
+from yugabyte_db_thirdparty.builder_interface import BuilderInterface  # noqa
 
 
 INTEL_ONEAPI_COMPILER_DIR = '/opt/intel/oneapi/2024.1/opt/compiler'
@@ -34,6 +36,8 @@ class DiskANNDependency(Dependency):
         return [
             f"-I{os.path.join(INTEL_ONEAPI_COMPILER_DIR, 'include')}",
             f"-I{os.path.join(INTEL_ONEAPI_RUNTIME_DIR, 'include')}",
+            # TODO: ideally, the -L flags below should be linker flags. However, FindOpenMP
+            # does not correctly pass them to the linker command line in that case.
             f"-L{os.path.join(INTEL_ONEAPI_COMPILER_DIR, 'lib')}",
             f"-L{os.path.join(INTEL_ONEAPI_RUNTIME_DIR, 'lib')}",
             "-fopenmp=libiomp5"
@@ -41,6 +45,12 @@ class DiskANNDependency(Dependency):
 
     def get_additional_ld_flags(self, builder: BuilderInterface) -> List[str]:
         return [
+            # We need to link with the libaio library. It is surprising that DiskANN's
+            # CMakeLists.txt does not specify this dependency.
+            '-laio',
+            # TODO: specify this rpath automatically.
+            '-Wl,-rpath=/opt/intel/oneapi/mkl/2024.1/lib',
+            '-Wl,-rpath=/opt/intel/oneapi/compiler/2024.1/lib',
         ]
 
     def get_compiler_wrapper_ld_flags_to_remove(self, builder: BuilderInterface) -> Set[str]:
@@ -48,7 +58,7 @@ class DiskANNDependency(Dependency):
         TODO: is there a better way to prevent FindOpenMP from using -fopenmp=libomp while also
         using -fopenmp=libiomp5, when checking for OpenMP installation path?
         """
-        return ["-fopenmp=libomp"]
+        return {"-fopenmp=libomp"}
 
     def build(self, builder: BuilderInterface) -> None:
         builder.build_with_cmake(

@@ -57,8 +57,10 @@ class OpenLDAPDependency(Dependency):
 
         builder.build_with_configure(
             dep=self,
-            extra_args=['--disable-' + feature for feature in disabled_features] +
-                       ['--with-cyrus-sasl=no'])
+            extra_configure_args=[
+                '--disable-' + feature for feature in disabled_features
+            ] + ['--with-cyrus-sasl=no']
+        )
 
     def use_cppflags_env_var(self) -> bool:
         return True

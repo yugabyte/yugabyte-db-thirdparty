@@ -104,7 +104,7 @@ class Icu4cDependency(Dependency):
         return super().get_cxx_version(builder)
 
     def build(self, builder: BuilderInterface) -> None:
-        configure_extra_args = [
+        extra_configure_args = [
             '--disable-samples',
             '--disable-tests',
             '--disable-layout',
@@ -123,7 +123,7 @@ class Icu4cDependency(Dependency):
         builder.build_with_configure(
             dep=self,
             src_subdir_name='source',
-            extra_args=configure_extra_args,
+            extra_configure_args=extra_configure_args,
             post_configure_action=post_configure_action
         )
 

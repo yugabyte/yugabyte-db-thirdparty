@@ -30,4 +30,4 @@ class LibVertoDependency(Dependency):
     def build(self, builder: BuilderInterface) -> None:
         builder.build_with_configure(
             dep=self,
-            extra_args=['--without-glib', '--without-libevent', '--with-libev'])
+            extra_configure_args=['--without-glib', '--without-libevent', '--with-libev'])
