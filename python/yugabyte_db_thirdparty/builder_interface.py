@@ -20,12 +20,38 @@ if TYPE_CHECKING:
     from .dependency import Dependency
     from .compiler_choice import CompilerChoice
 
+# Some of the default arguments below are shared between different methods.
 
-DEFAULT_INSTALL_TARGETS = ['install']
-DEFAULT_CONFIGURE_CMD = ['./configure']
+# -------------------------------------------------------------------------------------------------
+# Default arguments for build_with_make
+# -------------------------------------------------------------------------------------------------
+
+DEFAULT_EXTRA_MAKE_ARGS: List[str] = []
+DEFAULT_INSTALL_TARGETS: List[str] = ['install']
+DEFAULT_MAKE_SPECIFY_PREFIX = False
 
 # Could be a custom variable name in some cases, e.g. "DESTDIR".
 DEFAULT_MAKE_PREFIX_VAR = 'PREFIX'
+
+# -------------------------------------------------------------------------------------------------
+# Default arguments for build_with_configure
+# -------------------------------------------------------------------------------------------------
+
+DEFAULT_EXTRA_CONFIGURE_ARGS: List[str] = []
+DEFAULT_CONFIGURE_CMD: List[str] = ['./configure']
+DEFAULT_RUN_AUTOGEN = False
+DEFAULT_RUN_AUTORECONF = False
+DEFAULT_SRC_SUBDIR_NAME: Optional[str] = None
+
+# -------------------------------------------------------------------------------------------------
+# Default arguments for build_with_cmake
+# -------------------------------------------------------------------------------------------------
+
+DEFAULT_EXTRA_CMAKE_ARGS: List[str] = []
+DEFAULT_USE_NINJA_IF_AVAILABLE = True
+DEFAULT_EXTRA_MAKE_OR_NINJA_ARGS: List[str] = []
+DEFAULT_CMAKE_SHOULD_INSTALL = True
+DEFAULT_CMAKE_BUILD_SHARED_AND_STATIC = False
 
 
 class BuilderInterface:
@@ -54,38 +80,41 @@ class BuilderInterface:
     fs_layout: FileSystemLayout
     lto_type: Optional[str]
 
+    # For the build_with_... functions below, please make sure their signatures match those in
+    # builder.py, and that all default arguments are specified as DEFAULT_... constants defined
+    # in this module.
+
     def build_with_make(
             self,
             dep: 'Dependency',
-            extra_make_args: List[str] = [],
+            extra_make_args: List[str] = DEFAULT_EXTRA_MAKE_ARGS,
             install_targets: List[str] = DEFAULT_INSTALL_TARGETS,
-            specify_prefix: bool = False,
+            specify_prefix: bool = DEFAULT_MAKE_SPECIFY_PREFIX,
             prefix_var: str = DEFAULT_MAKE_PREFIX_VAR) -> None:
         raise NotImplementedError()
 
     def build_with_configure(
             self,
             dep: 'Dependency',
-            extra_configure_args: List[str] = [],
-            extra_make_args: List[str] = [],
+            extra_configure_args: List[str] = DEFAULT_EXTRA_CONFIGURE_ARGS,
+            extra_make_args: List[str] = DEFAULT_EXTRA_MAKE_ARGS,
             configure_cmd: List[str] = DEFAULT_CONFIGURE_CMD,
             install_targets: List[str] = DEFAULT_INSTALL_TARGETS,
-            run_autogen: bool = False,
-            autoconf: bool = False,
-            src_subdir_name: Optional[str] = None,
+            run_autogen: bool = DEFAULT_RUN_AUTOGEN,
+            run_autoreconf: bool = DEFAULT_RUN_AUTORECONF,
+            src_subdir_name: Optional[str] = DEFAULT_SRC_SUBDIR_NAME,
             post_configure_action: Optional[Callable] = None) -> None:
         raise NotImplementedError()
 
     def build_with_cmake(
             self,
             dep: 'Dependency',
-            extra_args: List[str] = [],
-            use_ninja_if_available: bool = False,
-            src_subdir_name: Optional[str] = None,
-            extra_build_tool_args: List[str] = [],
-            should_install: bool = True,
-            install_targets: List[str] = [],
-            shared_and_static: bool = False) -> None:
+            extra_cmake_args: List[str] = DEFAULT_EXTRA_CMAKE_ARGS,
+            use_ninja_if_available: bool = DEFAULT_USE_NINJA_IF_AVAILABLE,
+            src_subdir_name: Optional[str] = DEFAULT_SRC_SUBDIR_NAME,
+            extra_build_tool_args: List[str] = DEFAULT_EXTRA_MAKE_OR_NINJA_ARGS,
+            should_install: bool = DEFAULT_CMAKE_SHOULD_INSTALL,
+            shared_and_static: bool = DEFAULT_CMAKE_BUILD_SHARED_AND_STATIC) -> None:
         raise NotImplementedError()
 
     def build_with_bazel(

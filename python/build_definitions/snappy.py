@@ -28,7 +28,7 @@ class SnappyDependency(Dependency):
     def build(self, builder: BuilderInterface) -> None:
         builder.build_with_cmake(
             dep=self,
-            extra_args=[
+            extra_cmake_args=[
                 '-DSNAPPY_BUILD_TESTS=OFF',
                 '-DSNAPPY_BUILD_BENCHMARKS=OFF',
             ],

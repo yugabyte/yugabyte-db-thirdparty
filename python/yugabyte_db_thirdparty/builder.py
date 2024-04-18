@@ -628,9 +628,9 @@ class Builder(BuilderInterface):
     def build_with_make(
             self,
             dep: Dependency,
-            extra_make_args: List[str] = [],
+            extra_make_args: List[str] = builder_interface.DEFAULT_EXTRA_MAKE_ARGS,
             install_targets: List[str] = builder_interface.DEFAULT_INSTALL_TARGETS,
-            specify_prefix: bool = False,
+            specify_prefix: bool = builder_interface.DEFAULT_MAKE_SPECIFY_PREFIX,
             prefix_var: str = builder_interface.DEFAULT_MAKE_PREFIX_VAR) -> None:
         """
         Build the given dependency using the its corresponding Unix Makefile.
@@ -651,14 +651,15 @@ class Builder(BuilderInterface):
     def build_with_configure(
             self,
             dep: Dependency,
-            extra_configure_args: List[str] = [],
-            extra_make_args: List[str] = [],
+            extra_configure_args: List[str] = builder_interface.DEFAULT_EXTRA_CONFIGURE_ARGS,
+            extra_make_args: List[str] = builder_interface.DEFAULT_EXTRA_MAKE_ARGS,
             configure_cmd: List[str] = builder_interface.DEFAULT_CONFIGURE_CMD,
             install_targets: List[str] = builder_interface.DEFAULT_INSTALL_TARGETS,
-            run_autogen: bool = False,
-            autoconf: bool = False,
-            src_subdir_name: Optional[str] = None,
-            post_configure_action: Optional[Callable] = None) -> None:
+            run_autogen: bool = builder_interface.DEFAULT_RUN_AUTOGEN,
+            run_autoreconf: bool = builder_interface.DEFAULT_RUN_AUTORECONF,
+            src_subdir_name: Optional[str] = builder_interface.DEFAULT_SRC_SUBDIR_NAME,
+            post_configure_action: Optional[Callable] = None
+            ) -> None:
         """
         :param src_subdir_name: subdirectory name to run the build in.
         """
@@ -673,7 +674,7 @@ class Builder(BuilderInterface):
             try:
                 if run_autogen:
                     self.log_output(log_prefix, ['./autogen.sh'])
-                if autoconf:
+                if run_autoreconf:
                     self.log_output(log_prefix, ['autoreconf', '-i'])
 
                 configure_args = (
@@ -729,13 +730,13 @@ class Builder(BuilderInterface):
     def build_with_cmake(
             self,
             dep: Dependency,
-            extra_args: List[str] = [],
-            use_ninja_if_available: bool = True,
-            src_subdir_name: Optional[str] = None,
-            extra_build_tool_args: List[str] = [],
-            should_install: bool = True,
-            install_targets: List[str] = builder_interface.DEFAULT_INSTALL_TARGETS,
-            shared_and_static: bool = False) -> None:
+            extra_cmake_args: List[str] = builder_interface.DEFAULT_EXTRA_CMAKE_ARGS,
+            use_ninja_if_available: bool = builder_interface.DEFAULT_USE_NINJA_IF_AVAILABLE,
+            src_subdir_name: Optional[str] = builder_interface.DEFAULT_SRC_SUBDIR_NAME,
+            extra_build_tool_args: List[str] = builder_interface.DEFAULT_EXTRA_MAKE_OR_NINJA_ARGS,
+            should_install: bool = builder_interface.DEFAULT_CMAKE_SHOULD_INSTALL,
+            shared_and_static: bool = builder_interface.DEFAULT_CMAKE_BUILD_SHARED_AND_STATIC
+            ) -> None:
         self.check_current_dir()
         build_tool = 'make'
         if use_ninja_if_available:
@@ -758,8 +759,8 @@ class Builder(BuilderInterface):
         if build_tool == 'ninja':
             args += ['-G', 'Ninja']
         args += self.get_common_cmake_flag_args(dep)
-        if extra_args is not None:
-            args += extra_args
+        if extra_cmake_args is not None:
+            args += extra_cmake_args
         args += dep.get_additional_cmake_args(self)
 
         if shared_and_static and any(arg.startswith('-DBUILD_SHARED_LIBS=') for arg in args):
@@ -805,7 +806,11 @@ class Builder(BuilderInterface):
             self.log_output(log_prefix, build_tool_cmd)
 
             if should_install:
-                self.log_output(log_prefix, [build_tool] + install_targets)
+                # We can add a make_or_ninja_install_targets argument to this method if we need to
+                # customize the target below.
+                self.log_output(
+                    log_prefix,
+                    [build_tool] + builder_interface.DEFAULT_INSTALL_TARGETS)
 
             with open('compile_commands.json') as compile_commands_file:
                 compile_commands = json.load(compile_commands_file)
