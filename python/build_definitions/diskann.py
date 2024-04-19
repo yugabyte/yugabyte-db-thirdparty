@@ -87,6 +87,5 @@ class DiskANNDependency(Dependency):
                 # a custom subdirectory of it.
                 '-DCMAKE_SYSTEM_PREFIX_PATH=' + builder.prefix,
                 '-DOMP_PATH=' + self.openmp_lib_dir,
-            ],
-            shared_and_static=True
+            ]
         )

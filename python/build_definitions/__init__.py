@@ -133,3 +133,34 @@ def get_dependency_by_submodule_name(module_name: str) -> 'Dependency':
 
 def get_deps_from_module_names(module_names: List[str]) -> List['Dependency']:
     return [get_dependency_by_submodule_name(module_name) for module_name in module_names]
+
+
+COMMON_DEPENDENCY_MODULE_NAMES = [
+    # Avoiding a name collision with the standard zlib module, hence "zlib_dependency".
+    'zlib_dependency',
+    'lz4',
+    'openssl',
+    'libev',
+    'rapidjson',
+    'squeasel',
+    'curl',
+    'hiredis',
+    'cqlsh',
+    'flex',
+    'bison',
+    'openldap',
+    'redis_cli',
+    'wyhash',
+    'jwt_cpp',
+]
+
+
+def ensure_build_group(dependencies: List['Dependency'], expected_group: BuildGroup) -> None:
+    for dep in dependencies:
+        if dep.build_group != expected_group:
+            all_dep_names: List[str] = list(set([dep.name for dep in dependencies]))
+            all_dep_names_str = ', '.join(all_dep_names)
+            raise ValueError(
+                f"Expected the given list of dependencies to be in the group {expected_group} "
+                f"build group, found: {dep.build_group} for dependency {dep.name}. All "
+                f"dependency names subjected to this requirement: {all_dep_names_str}.")

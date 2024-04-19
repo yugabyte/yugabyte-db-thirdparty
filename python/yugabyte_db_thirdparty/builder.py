@@ -36,6 +36,7 @@ from build_definitions import (
 )
 
 from build_definitions.tcmalloc import TCMallocDependency
+import build_definitions
 
 from yugabyte_db_thirdparty.builder_helpers import (
     format_cmake_args_for_log,
@@ -320,29 +321,10 @@ class Builder(BuilderInterface):
         # We have to use get_build_def_module to access submodules of build_definitions,
         # otherwise MyPy gets confused.
 
-        self.dependencies = get_deps_from_module_names([
-            # Avoiding a name collision with the standard zlib module, hence "zlib_dependency".
-            'zlib_dependency',
-            'lz4',
-            'openssl',
-            'libev',
-            'rapidjson',
-            'squeasel',
-            'curl',
-            'hiredis',
-            'cqlsh',
-            'flex',
-            'bison',
-            'openldap',
-            'redis_cli',
-            'wyhash',
-            'jwt_cpp',
-        ])
-        for dep in self.dependencies:
-            if dep.build_group != BuildGroup.COMMON:
-                raise ValueError(
-                    "Expected the initial group of dependencies to all be in the common build "
-                    f"group, found: {dep.build_group} for dependency {dep.name}")
+        self.dependencies = get_deps_from_module_names(
+            build_definitions.COMMON_DEPENDENCY_MODULE_NAMES)
+
+        build_definitions.ensure_build_group(self.dependencies, BuildGroup.COMMON)
 
         if is_linux():
             self.dependencies += [
