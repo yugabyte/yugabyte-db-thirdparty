@@ -25,7 +25,7 @@ from yugabyte_db_thirdparty.util import (
     copy_file_and_log
 )
 from yugabyte_db_thirdparty.arch import is_macos_arm64_build
-from yugabyte_db_thirdparty.rpath_fixes import fix_shared_library_references
+from yugabyte_db_thirdparty.rpath_util import fix_shared_library_references
 
 from build_definitions import (
     BuildGroup,

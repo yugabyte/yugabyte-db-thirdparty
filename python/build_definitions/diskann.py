@@ -17,10 +17,14 @@ from typing import List
 
 from yugabyte_db_thirdparty.build_definition_helpers import *
 from yugabyte_db_thirdparty.builder_interface import BuilderInterface  # noqa
+from yugabyte_db_thirdparty.intel_oneapi import find_intel_oneapi
+from yugabyte_db_thirdparty.rpath_util import get_rpath_flag
 
 
 INTEL_ONEAPI_COMPILER_DIR = '/opt/intel/oneapi/2024.1/opt/compiler'
 INTEL_ONEAPI_RUNTIME_DIR = '/opt/intel/oneapi/2024.1'
+
+OPENMP_FLAG = '-fopenmp=libiomp5'
 
 
 class DiskANNDependency(Dependency):
@@ -31,26 +35,32 @@ class DiskANNDependency(Dependency):
             url_pattern='https://github.com/yugabyte/diskann/archive/v{0}.tar.gz',
             build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = False
+        self.oneapi_installation = find_intel_oneapi()
+
+        self.intel_mkl_lib_dir = self.oneapi_installation.get_mkl_lib_dir()
+        self.intel_mkl_include_dir = self.oneapi_installation.get_mkl_include_dir()
+        self.openmp_lib_dir = self.oneapi_installation.get_openmp_lib_dir()
+        self.openmp_include_dir = self.oneapi_installation.get_openmp_include_dir()
 
     def get_additional_compiler_flags(self, builder: BuilderInterface) -> List[str]:
         return [
-            f"-I{os.path.join(INTEL_ONEAPI_COMPILER_DIR, 'include')}",
-            f"-I{os.path.join(INTEL_ONEAPI_RUNTIME_DIR, 'include')}",
-            # TODO: ideally, the -L flags below should be linker flags. However, FindOpenMP
-            # does not correctly pass them to the linker command line in that case.
-            f"-L{os.path.join(INTEL_ONEAPI_COMPILER_DIR, 'lib')}",
-            f"-L{os.path.join(INTEL_ONEAPI_RUNTIME_DIR, 'lib')}",
-            "-fopenmp=libiomp5"
+            "-I" + self.openmp_include_dir,
+            "-I" + self.intel_mkl_include_dir,
+            # TODO: ideally, the -L flags below should be linker flags. However, the FindOpenMP
+            # CMake module does not correctly pass them to the linker command line in that case.
+            "-L" + self.openmp_lib_dir,
+            "-L" + self.intel_mkl_lib_dir,
+            OPENMP_FLAG
         ]
 
     def get_additional_ld_flags(self, builder: BuilderInterface) -> List[str]:
         return [
             # We need to link with the libaio library. It is surprising that DiskANN's
-            # CMakeLists.txt does not specify this dependency.
+            # CMakeLists.txt itself does not specify this dependency.
             '-laio',
             # TODO: specify this rpath automatically.
-            '-Wl,-rpath=/opt/intel/oneapi/mkl/2024.1/lib',
-            '-Wl,-rpath=/opt/intel/oneapi/compiler/2024.1/lib',
+            get_rpath_flag(self.openmp_lib_dir),
+            get_rpath_flag(self.intel_mkl_lib_dir),
         ]
 
     def get_compiler_wrapper_ld_flags_to_remove(self, builder: BuilderInterface) -> Set[str]:
@@ -60,18 +70,23 @@ class DiskANNDependency(Dependency):
         """
         return {"-fopenmp=libomp"}
 
+    def get_install_prefix(self, builder: BuilderInterface) -> str:
+        """
+        We install DiskANN into a non-standard directory because it comes with a large number of
+        tools that we don't want to mix with the rest of the contents of the installed/.../bin
+        directories.
+        """
+        return os.path.join(builder.prefix, 'diskann')
+
     def build(self, builder: BuilderInterface) -> None:
         builder.build_with_cmake(
             self,
             extra_cmake_args=[
                 '-DCMAKE_BUILD_TYPE=Release',
-                '-DBUILD_SHARED_LIBS=ON',
-                '-DOMP_PATH=/opt/intel/oneapi/compiler/2024.1/lib',
-                '-DOpenMP_CXX_FLAGS=-fopenmp=libiomp5',
-                '-DOpenMP_C_FLAGS=-fopenmp=libiomp5',
-                # DiskANN tries to search the following paths by default:
-                # "/opt/intel/oneapi/compiler/latest/linux/compiler/lib/intel64_lin/libiomp5.so;/usr/lib/x86_64-linux-gnu/libiomp5.so;/opt/intel/lib/intel64_lin/libiomp5.so
-                # TODO: automatically find the right directory within /opt/intel/oneapi
-                # TODO: check if we are given a compatible version of oneapi
-            ]
+                # Still search for libraries in the default prefix path, but install DiskANN into
+                # a custom subdirectory of it.
+                '-DCMAKE_SYSTEM_PREFIX_PATH=' + builder.prefix,
+                '-DOMP_PATH=' + self.openmp_lib_dir,
+            ],
+            shared_and_static=True
         )

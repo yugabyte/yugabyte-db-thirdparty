@@ -40,7 +40,6 @@ from build_definitions.tcmalloc import TCMallocDependency
 from yugabyte_db_thirdparty.builder_helpers import (
     format_cmake_args_for_log,
     get_make_parallelism,
-    get_rpath_flag,
     log_and_set_env_var_to_list,
     PLACEHOLDER_RPATH,
 )
@@ -102,6 +101,7 @@ from yugabyte_db_thirdparty import (
     constants,
     git_util,
 )
+from yugabyte_db_thirdparty.rpath_util import get_rpath_flag
 
 # -------------------------------------------------------------------------------------------------
 
@@ -611,10 +611,10 @@ class Builder(BuilderInterface):
         self.ld_flags.insert(0, get_rpath_flag(path))
         self.additional_allowed_shared_lib_paths.add(path)
 
-    def log_prefix(self, dep: Dependency) -> str:
+    def log_prefix(self, dep: Dependency, extra_components: List[str] = []) -> str:
         detail_components = self.compiler_choice.get_build_type_components(
                 lto_type=self.lto_type, with_arch=False
-            ) + [self.build_type.dir_name()]
+            ) + [self.build_type.dir_name()] + extra_components
         return '{} ({})'.format(dep.name, ', '.join(detail_components))
 
     def check_current_dir(self) -> None:
@@ -746,7 +746,6 @@ class Builder(BuilderInterface):
                 build_tool = 'ninja'
 
         log("Building dependency %s using CMake. Build tool: %s", dep, build_tool)
-        log_prefix = self.log_prefix(dep)
 
         remove_path('CMakeCache.txt')
         remove_path('CMakeFiles')
@@ -772,7 +771,9 @@ class Builder(BuilderInterface):
             # TODO: a better approach for setting CMake arguments from multiple places.
             args.append('-DBUILD_SHARED_LIBS=ON')
 
-        def do_build_with_cmake(additional_cmake_args: List[str] = []) -> None:
+        def do_build_with_cmake(
+                extra_log_prefix_components: List[str] = [],
+                additional_cmake_args: List[str] = []) -> None:
             final_cmake_args = args + additional_cmake_args
             log("CMake command line (one argument per line):\n%s" %
                 format_cmake_args_for_log(final_cmake_args))
@@ -798,18 +799,19 @@ class Builder(BuilderInterface):
                      stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IWGRP |
                      stat.S_IROTH)
 
-            self.log_output(log_prefix, final_cmake_args)
+            custom_log_prefix = self.log_prefix(dep, extra_log_prefix_components)
+            self.log_output(custom_log_prefix, final_cmake_args)
 
             if build_tool == 'ninja':
                 dep.postprocess_ninja_build_file(self, 'build.ninja')
 
-            self.log_output(log_prefix, build_tool_cmd)
+            self.log_output(custom_log_prefix, build_tool_cmd)
 
             if should_install:
                 # We can add a make_or_ninja_install_targets argument to this method if we need to
                 # customize the target below.
                 self.log_output(
-                    log_prefix,
+                    custom_log_prefix,
                     [build_tool] + builder_interface.DEFAULT_INSTALL_TARGETS)
 
             with open('compile_commands.json') as compile_commands_file:
@@ -834,7 +836,10 @@ class Builder(BuilderInterface):
                 log("Building dependency '%s' for build type '%s' with option: %s",
                     dep.name, self.build_type, build_shared_libs_cmake_arg)
                 with PushDir(build_dir):
-                    do_build_with_cmake([build_shared_libs_cmake_arg])
+                    do_build_with_cmake(
+                        # Include "shared" or "static" in the log prefix.
+                        extra_log_prefix_components=[subdir_name],
+                        additional_cmake_args=[build_shared_libs_cmake_arg])
                     self.validate_build_output()
         else:
             do_build_with_cmake()

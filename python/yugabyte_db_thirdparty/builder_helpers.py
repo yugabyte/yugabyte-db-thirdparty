@@ -43,13 +43,6 @@ def is_ninja_available() -> bool:
     return g_is_ninja_available
 
 
-def get_rpath_flag(path: str) -> str:
-    """
-    Get the linker flag needed to add the given RPATH to the generated executable or library.
-    """
-    return "-Wl,-rpath,{}".format(path)
-
-
 def sanitize_flags_line_for_log(line: str) -> str:
     return line.replace(PLACEHOLDER_RPATH, PLACEHOLDER_RPATH_FOR_LOG)
 

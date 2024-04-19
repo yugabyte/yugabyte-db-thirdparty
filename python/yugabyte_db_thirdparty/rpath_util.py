@@ -74,3 +74,10 @@ def fix_shared_library_references(
                         '@loader_path/' + dependency_name,
                         lib
                     ])
+
+
+def get_rpath_flag(path: str) -> str:
+    """
+    Get the linker flag needed to add the given RPATH to the generated executable or library.
+    """
+    return "-Wl,-rpath,{}".format(path)
