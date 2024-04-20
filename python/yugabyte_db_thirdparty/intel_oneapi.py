@@ -19,6 +19,8 @@ import os
 
 from typing import Set, Optional
 
+from yugabyte_db_thirdparty import ldd_util
+
 
 ONEAPI_BASE_DIR = '/opt/intel/oneapi'
 
@@ -101,6 +103,22 @@ class IntelOneAPIInstallation:
             /opt/intel/oneapi/compiler/2024.1/lib/libiomp5.so
         """
         return self.check_if_dir_exists(os.path.join(self.get_compiler_prefix(), 'lib'))
+
+    def scan_for_needed_libs(self, dep_install_dir: str) -> None:
+        """
+        Scans the given directory, which could be an installation directory of a third-party
+        dependency, for executables and shared libraries that depend on shared libraries belonging
+        to Intel oneAPI. Mark those dependee shared libraries for later copying to the installed
+        directory so that the third-party archive would be usable on a system that does not have
+        Intel oneAPI installed in /opt/intel.
+        """
+        for root, dirs, files in os.walk(dep_install_dir):
+            for file_name in files:
+                file_path = os.path.join(root, file_name)
+                if ldd_util.should_use_ldd_on_file(file_path):
+                    ldd_result = ldd_util.run_ldd(file_path)
+                    if ldd_result.not_a_dynamic_executable():
+                        continue
 
 
 oneapi_installation: Optional[IntelOneAPIInstallation] = None

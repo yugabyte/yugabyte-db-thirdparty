@@ -10,6 +10,8 @@
 # or implied. See the License for the specific language governing permissions and limitations
 # under the License.
 
+import os
+
 from typing import List
 
 from yugabyte_db_thirdparty.util import capture_all_output
@@ -31,6 +33,29 @@ class LddResult:
         Checks if the output says that this is not a dynamic executable.
         """
         return any(['not a dynamic executable' in line for line in self.output_lines])
+
+
+def is_elf_file(file_path: str) -> bool:
+    with open(file_path, 'rb') as file:
+        # Read the first 4 bytes of the file
+        header = file.read(4)
+        # Check if the bytes match the ELF magic number
+        return header == b'\x7fELF'
+
+
+def should_use_ldd_on_file(file_path: str) -> bool:
+    """
+    Checks if it makes sense to use ldd on the given file. In addition to other criteria, returns
+    true for any executable file, even if it might turn out to be a script.
+    """
+    if not os.path.exists(file_path) or not os.path.isfile(file_path):
+        return False
+    return (
+        os.access(file_path, os.X_OK) or
+        file_path.endswith('.so') or
+        '.so.' in os.path.basename(file_path) or
+        is_elf_file(file_path)
+    )
 
 
 def run_ldd(file_path: str) -> LddResult:
