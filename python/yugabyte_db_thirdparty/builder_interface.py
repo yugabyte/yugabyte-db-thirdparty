@@ -168,3 +168,10 @@ class BuilderInterface:
             args: List[Any],
             disallowed_pattern: Optional[Pattern] = None) -> None:
         raise NotImplementedError()
+
+    def copy_include_files(
+            self,
+            dep: 'Dependency',
+            rel_src_include_path: str,
+            dest_include_path: str) -> None:
+        raise NotImplementedError()

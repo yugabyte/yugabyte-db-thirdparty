@@ -28,12 +28,7 @@ class RapidJsonDependency(Dependency):
         self.copy_sources = False
 
     def build(self, builder: BuilderInterface) -> None:
-        log_prefix = builder.log_prefix(self)
-        builder.log_output(
-            log_prefix,
-            [
-                'rsync', '-av', '--delete',
-                os.path.join(builder.fs_layout.get_source_path(self), 'include', 'rapidjson/'),
-                os.path.join(builder.prefix_include, 'rapidjson')
-            ]
-        )
+        builder.copy_include_files(
+            dep=self,
+            rel_src_include_path='include/rapidjson',
+            dest_include_path='rapidjson')

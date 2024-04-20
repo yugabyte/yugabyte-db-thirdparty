@@ -31,7 +31,7 @@ class DiskANNDependency(Dependency):
     def __init__(self) -> None:
         super(DiskANNDependency, self).__init__(
             name='diskann',
-            version='0.7.0-yb-2',
+            version='0.7.0-yb-4',
             url_pattern='https://github.com/yugabyte/diskann/archive/v{0}.tar.gz',
             build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = False
@@ -89,3 +89,7 @@ class DiskANNDependency(Dependency):
                 '-DOMP_PATH=' + self.openmp_lib_dir,
             ]
         )
+        builder.copy_include_files(
+            dep=self,
+            rel_src_include_path='include',
+            dest_include_path=os.path.join(self.get_install_prefix(builder), 'include'))

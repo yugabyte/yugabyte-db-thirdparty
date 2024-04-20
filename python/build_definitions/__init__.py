@@ -21,6 +21,8 @@ import pkgutil
 
 from typing import Any, List, Dict, Union, TYPE_CHECKING
 
+from sys_detection import is_macos, is_linux
+
 from yugabyte_db_thirdparty.custom_logging import log
 from yugabyte_db_thirdparty.archive_handling import make_archive_name
 
@@ -164,3 +166,44 @@ def ensure_build_group(dependencies: List['Dependency'], expected_group: BuildGr
                 f"Expected the given list of dependencies to be in the group {expected_group} "
                 f"build group, found: {dep.build_group} for dependency {dep.name}. All "
                 f"dependency names subjected to this requirement: {all_dep_names_str}.")
+
+
+def get_final_dependency_module_names() -> List[str]:
+    """
+    Returns the list of module names that are added to the end of the list.
+    """
+    dep_names: List[str] = []
+
+    if is_macos():
+        # On macOS, flex, bison, and krb5 depend on gettext, and we don't want to use gettext from
+        # Homebrew. libunistring is required by gettext.
+        dep_names.extend(['libunistring', 'gettext'])
+
+    dep_names.append('ncurses')
+
+    if is_linux():
+        dep_names.extend(['libkeyutils', 'libverto', 'libaio', 'abseil', 'tcmalloc'])
+
+    dep_names.extend([
+        'libedit',
+        'icu4c',
+        'protobuf',
+        'crypt_blowfish',
+        'boost',
+        'gflags',
+        'glog',
+        'gperftools',
+        'googletest',
+        'snappy',
+        'crcutil',
+        'libcds',
+        'libuv',
+        'cassandra_cpp_driver',
+        'krb5',
+        'hdrhistogram',
+        'otel_proto',
+        'otel',
+        'diskann',
+    ])
+
+    return dep_names

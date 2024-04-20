@@ -359,36 +359,8 @@ class Builder(BuilderInterface):
             self.dependencies.append(get_build_def_module('libbacktrace').LibBacktraceDependency())
 
         self.dependencies += get_deps_from_module_names(
-            # On macOS, flex, bison, and krb5 depend on gettext, and we don't want to use gettext
-            # from Homebrew.
-            # libunistring is required by gettext.
-            (
-                ['libunistring', 'gettext'] if is_macos() else []
-            ) + [
-                'ncurses',
-            ] + (
-                [] if is_macos() else ['libkeyutils', 'libverto', 'libaio', 'abseil', 'tcmalloc']
-            ) + [
-                'libedit',
-                'icu4c',
-                'protobuf',
-                'crypt_blowfish',
-                'boost',
-                'gflags',
-                'glog',
-                'gperftools',
-                'googletest',
-                'snappy',
-                'crcutil',
-                'libcds',
-                'libuv',
-                'cassandra_cpp_driver',
-                'krb5',
-                'hdrhistogram',
-                'otel_proto',
-                'otel',
-                'diskann',
-            ])
+            build_definitions.get_final_dependency_module_names())
+
         for dep in self.dependencies:
             if dep.name in self.dependencies_by_name:
                 raise ValueError("Duplicate dependency: %s" % dep.name)
@@ -1568,3 +1540,42 @@ class Builder(BuilderInterface):
             '-DOPENSSL_LIBRARIES=%s;%s' % (openssl_crypto_library, openssl_ssl_library)
         ]
         return openssl_options
+
+    def copy_include_files(
+            self,
+            dep: Dependency,
+            rel_src_include_path: str,
+            dest_include_path: str) -> None:
+        """
+        Copies the include files of the given dependency from the given path relative to the
+        dependency's source directory to the given output path. It is assumed that the
+        desination directory is exclusive to this particular installation step, and all other files
+        are deleted from that directory via rsync's --delete argument.
+
+        :param rel_src_include_path: path to copy from, relative to the dependency's source
+            directory
+        :param dest_include_path: path to copy to, either absolute, or relative to the
+            installed/include directory
+        :param dest_relative_to_include_dir: whether rel_dest_include_path is considered to be
+            relative to the installed include directory (True by default).
+        """
+        copy_from_dir = os.path.join(self.fs_layout.get_source_path(dep), rel_src_include_path)
+        if not copy_from_dir.endswith('/'):
+            # Ensure the copy-from directory ends with a slash so that its contents are copied,
+            # and not the directory itself.
+            copy_from_dir += '/'
+
+        dir_must_exist = copy_from_dir[:-1]
+        if not os.path.exists(dir_must_exist):
+            raise IOError(f"Directory {dir_must_exist} does not exist, cannot copy include files")
+
+        if os.path.isabs(dest_include_path):
+            copy_to_dir = dest_include_path
+        else:
+            copy_to_dir = os.path.join(self.prefix_include, dest_include_path)
+
+        log("Copying include files from %s to %s", copy_from_dir, copy_to_dir)
+        self.log_output(
+            self.log_prefix(dep),
+            ['rsync', '-av', '--delete', copy_from_dir, copy_to_dir]
+        )
