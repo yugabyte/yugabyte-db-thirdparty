@@ -32,6 +32,7 @@ from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR, capture_all_output, s
 from yugabyte_db_thirdparty.macos import get_min_supported_macos_version
 from yugabyte_db_thirdparty.file_system_layout import FileSystemLayout
 from yugabyte_db_thirdparty.compiler_choice import CompilerChoice
+from yugabyte_db_thirdparty.ldd_util import run_ldd, LddResult
 
 from build_definitions import BuildType
 
@@ -56,9 +57,6 @@ IGNORED_DIR_SUFFIXES = (
     '/include/c++/v1/experimental',
     '/include/c++/v1/ext',
 )
-
-# We pass some environment variables to ldd.
-LDD_ENV = {'LC_ALL': 'en_US.UTF-8'}
 
 ALLOWED_SYSTEM_LIBRARIES = (
     # These libraries are part of glibc.
@@ -427,13 +425,8 @@ class LibTestLinux(LibTestBase):
             # reports "libc++.so.1 => not found".
             additional_allowed_pattern = LIBCXX_NOT_FOUND
 
-        # After we potentially removed some of the
-        ldd_output_lines: List[str] = capture_all_output(
-            ['ldd', file_path],
-            env=LDD_ENV,
-            allowed_exit_codes={1})
-
-        if any(['not a dynamic executable' in line for line in ldd_output_lines]):
+        ldd_result = run_ldd(file_path)
+        if ldd_result.not_a_dynamic_executable():
             return True
 
         success = True
@@ -445,6 +438,7 @@ class LibTestLinux(LibTestBase):
             # across different Linux distributions.
             additional_allowed_libraries.append('libgcc_s')
 
+        ldd_output_lines = ldd_result.output_lines
         for line in ldd_output_lines:
             match = SYSTEM_LIBRARY_RE.search(line.strip())
             if match:
