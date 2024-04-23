@@ -15,11 +15,14 @@ Utilities for finding and using an Intel OneAPI installation. Because Intel OneA
 disk space, we copy only the necesary files from it to the thirdparty installed directory.
 """
 
+import glob
 import os
+import shutil
 
 from typing import Set, Optional
 
 from yugabyte_db_thirdparty import ldd_util
+from yugabyte_db_thirdparty.custom_logging import log
 
 
 ONEAPI_BASE_DIR = '/opt/intel/oneapi'
@@ -104,13 +107,12 @@ class IntelOneAPIInstallation:
         """
         return self.check_if_dir_exists(os.path.join(self.get_compiler_prefix(), 'lib'))
 
-    def scan_for_needed_libs(self, dep_install_dir: str) -> None:
+    def copy_needed_libraries(self, dep_install_dir: str, dest_lib_dir: str) -> None:
         """
         Scans the given directory, which could be an installation directory of a third-party
         dependency, for executables and shared libraries that depend on shared libraries belonging
-        to Intel oneAPI. Mark those dependee shared libraries for later copying to the installed
-        directory so that the third-party archive would be usable on a system that does not have
-        Intel oneAPI installed in /opt/intel.
+        to Intel oneAPI. Copies the needed libraries, including the corresponding static libraries
+        and symlinks, to the specified destination directory.
         """
         for root, dirs, files in os.walk(dep_install_dir):
             for file_name in files:
@@ -119,6 +121,23 @@ class IntelOneAPIInstallation:
                     ldd_result = ldd_util.run_ldd(file_path)
                     if ldd_result.not_a_dynamic_executable():
                         continue
+                    for full_path in list(ldd_result.resolved_dependencies):
+                        if not full_path.startswith(ONEAPI_BASE_DIR + '/'):
+                            continue
+                        path_prefix = ldd_util.remove_shared_lib_suffix(full_path)
+                        for lib_path in glob.glob(path_prefix + '.*'):
+                            dest_path = os.path.join(dest_lib_dir, os.path.basename(lib_path))
+                            if not os.path.exists(dest_path):
+                                if os.path.islink(lib_path):
+                                    link_target = os.readlink(lib_path)
+                                    assert '/' not in link_target, \
+                                        f"Expected symlink target {link_target} of {lib_path} " \
+                                        f"to be a file name only."
+                                    log(f"Symlinking {dest_path} -> {link_target}")
+                                    os.symlink(link_target, dest_path)
+                                else:
+                                    log(f"Copying {lib_path} to {dest_path}")
+                                    shutil.copy(lib_path, dest_path)
 
 
 oneapi_installation: Optional[IntelOneAPIInstallation] = None

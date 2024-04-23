@@ -27,4 +27,4 @@ class LibAIODependency(Dependency):
         self.copy_sources = True
 
     def build(self, builder: BuilderInterface) -> None:
-        builder.build_with_make(dep=self, specify_prefix=True, prefix_var='DESTDIR')
+        builder.build_with_make(dep=self, specify_prefix=True, prefix_var='prefix')

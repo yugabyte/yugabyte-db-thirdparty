@@ -203,7 +203,10 @@ def get_final_dependency_module_names() -> List[str]:
         'hdrhistogram',
         'otel_proto',
         'otel',
-        'diskann',
     ])
+
+    if is_linux():
+        # TODO: can we build DiskANN on macOS? Particularly, arm64?
+        dep_names.extend('diskann')
 
     return dep_names

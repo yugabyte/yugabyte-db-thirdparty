@@ -79,6 +79,7 @@ class DiskANNDependency(Dependency):
         return os.path.join(builder.prefix, 'diskann')
 
     def build(self, builder: BuilderInterface) -> None:
+        install_prefix = self.get_install_prefix(builder)
         builder.build_with_cmake(
             self,
             extra_cmake_args=[
@@ -92,4 +93,7 @@ class DiskANNDependency(Dependency):
         builder.copy_include_files(
             dep=self,
             rel_src_include_path='include',
-            dest_include_path=os.path.join(self.get_install_prefix(builder), 'include'))
+            dest_include_path=os.path.join(install_prefix, 'include'))
+
+        installed_common_lib_dir = os.path.join(builder.fs_layout.tp_installed_common_dir, 'lib')
+        self.oneapi_installation.copy_needed_libraries(install_prefix, installed_common_lib_dir)

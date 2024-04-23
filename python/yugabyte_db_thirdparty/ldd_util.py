@@ -11,28 +11,47 @@
 # under the License.
 
 import os
+import re
 
-from typing import List
+from typing import List, Optional, Set
 
 from yugabyte_db_thirdparty.util import capture_all_output
 
 
 LDD_ENV = {'LC_ALL': 'en_US.UTF-8'}
 
+RESOLVED_DEPENDENCY_RE = re.compile(r'^(\S*) => (\S*) [(]0x[0-9a-f]+[)]$')
+
+SHARED_LIB_SUFFIX_RE = re.compile(r'^(.*)[.]so([.\d]+)?$')
+
 
 class LddResult:
     file_path: str
     output_lines: List[str]
+    _resolved_dependencies: Optional[Set[str]]
 
     def __init__(self, file_path: str, output_lines: List[str]) -> None:
         self.file_path = file_path
         self.output_lines = output_lines
+        self._resolved_dependencies = None
 
     def not_a_dynamic_executable(self) -> bool:
         """
         Checks if the output says that this is not a dynamic executable.
         """
         return any(['not a dynamic executable' in line for line in self.output_lines])
+
+    @property
+    def resolved_dependencies(self) -> Set[str]:
+        if self._resolved_dependencies is not None:
+            return self._resolved_dependencies
+        result: Set[str] = set()
+        for line in self.output_lines:
+            match = RESOLVED_DEPENDENCY_RE.match(line.strip())
+            if match:
+                result.add(match.group(2))
+        self._resolved_dependencies = result
+        return result
 
 
 def is_elf_file(file_path: str) -> bool:
@@ -65,3 +84,15 @@ def run_ldd(file_path: str) -> LddResult:
             ['ldd', file_path],
             env=LDD_ENV,
             allowed_exit_codes={1}))
+
+
+def remove_shared_lib_suffix(shared_lib_path: str) -> str:
+    """
+    >>> remove_shared_lib_suffix('/opt/intel/oneapi/mkl/2024.1/lib/libmkl_intel_ilp64.so')
+    '/opt/intel/oneapi/mkl/2024.1/lib/libmkl_intel_ilp64'
+    >>> remove_shared_lib_suffix('libmkl_intel_thread.so.2')
+    'libmkl_intel_thread'
+    """
+    match = SHARED_LIB_SUFFIX_RE.match(shared_lib_path)
+    assert match, f"Unknown shared library name format: {os.path.basename(shared_lib_path)}"
+    return match.group(1)
