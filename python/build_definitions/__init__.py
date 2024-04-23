@@ -207,6 +207,6 @@ def get_final_dependency_module_names() -> List[str]:
 
     if is_linux():
         # TODO: can we build DiskANN on macOS? Particularly, arm64?
-        dep_names.extend('diskann')
+        dep_names.append('diskann')
 
     return dep_names
