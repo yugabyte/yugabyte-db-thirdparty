@@ -156,8 +156,55 @@ class CompilerWrapper:
                             included_file,
                             self._get_compiler_command_str()))
 
-    def handle_compilation_command(self) -> None:
-        pass
+    def handle_compilation_command(self, output_files: List[str]) -> None:
+        if (len(output_files) != 1 or
+                not output_files[0].endswith('.o') or
+                # Protobuf build produces a file named libprotobuf.15.dylib-master.o out of multiple
+                # .o files.
+                output_files[0].endswith('.dylib-master.o')):
+            return
+
+        output_path = output_files[0]
+        is_assembly_input = any([arg.endswith('.s') for arg in self.compiler_args])
+
+        compile_commands_tmp_dir = compile_commands.get_tmp_dir_env_var()
+        generate_compile_command_file = bool(compile_commands_tmp_dir) and not is_assembly_input
+
+        input_file_candidates = []
+        if generate_compile_command_file:
+            input_file_candidates = [
+                arg for arg in self.compiler_args if (
+                    arg.endswith(C_CXX_SUFFIXES) and
+                    os.path.exists(arg)
+                )
+            ]
+            if len(input_file_candidates) != 1:
+                sys.stderr.write(
+                    f"Could not determine input file name for compiler invocation, will omit "
+                    f"from compile commands. Input file candidates: {input_file_candidates}, "
+                    f"command line: {self._get_compiler_command_str()}"
+                )
+                generate_compile_command_file = False
+
+        if not is_assembly_input:
+            self.run_preprocessor(output_path)
+
+        if generate_compile_command_file:
+            assert compile_commands_tmp_dir is not None
+            compile_command_path = compile_commands.get_compile_command_path_for_output_file(
+                compile_commands_tmp_dir, output_path)
+            mkdir_p(os.path.dirname(compile_command_path))
+            assert len(input_file_candidates) == 1, \
+                "Expected exactly one input file candidate, got: %s" % input_file_candidates
+            input_path = os.path.abspath(input_file_candidates[0])
+            arguments = [self.real_compiler_path] + self.compiler_args
+
+            with open(compile_command_path, 'w') as compile_command_file:
+                json.dump(dict(
+                    directory=os.getcwd(),
+                    file=input_path,
+                    arguments=arguments
+                ), compile_command_file)
 
     def run(self) -> None:
         verbose: bool = os.environ.get('YB_THIRDPARTY_VERBOSE') == '1'
@@ -189,53 +236,7 @@ class CompilerWrapper:
                     COMPILER_WRAPPER_ENV_VAR_NAME_LD_FLAGS_TO_REMOVE, '').strip().split())
             cmd_args = [arg for arg in cmd_args if arg not in ld_flags_to_remove]
 
-        if (len(output_files) == 1 and
-                output_files[0].endswith('.o') and
-                # Protobuf build produces a file named libprotobuf.15.dylib-master.o out of multiple
-                # .o files.
-                not output_files[0].endswith('.dylib-master.o')):
-
-            output_path = output_files[0]
-            is_assembly_input = any([arg.endswith('.s') for arg in self.compiler_args])
-
-            compile_commands_tmp_dir = compile_commands.get_tmp_dir_env_var()
-            generate_compile_command_file = bool(compile_commands_tmp_dir) and not is_assembly_input
-
-            input_file_candidates = []
-            if generate_compile_command_file:
-                input_file_candidates = [
-                    arg for arg in self.compiler_args if (
-                        arg.endswith(C_CXX_SUFFIXES) and
-                        os.path.exists(arg)
-                    )
-                ]
-                if len(input_file_candidates) != 1:
-                    sys.stderr.write(
-                        f"Could not determine input file name for compiler invocation, will omit "
-                        f"from compile commands. Input file candidates: {input_file_candidates}, "
-                        f"command line: {self._get_compiler_command_str()}"
-                    )
-                    generate_compile_command_file = False
-
-            if not is_assembly_input:
-                self.run_preprocessor(output_path)
-
-            if generate_compile_command_file:
-                assert compile_commands_tmp_dir is not None
-                compile_command_path = compile_commands.get_compile_command_path_for_output_file(
-                    compile_commands_tmp_dir, output_path)
-                mkdir_p(os.path.dirname(compile_command_path))
-                assert len(input_file_candidates) == 1, \
-                    "Expected exactly one input file candidate, got: %s" % input_file_candidates
-                input_path = os.path.abspath(input_file_candidates[0])
-                arguments = [self.real_compiler_path] + self.compiler_args
-
-                with open(compile_command_path, 'w') as compile_command_file:
-                    json.dump(dict(
-                        directory=os.getcwd(),
-                        file=input_path,
-                        arguments=arguments
-                    ), compile_command_file)
+        self.handle_compilation_command(output_files)
 
         cmd_str = '( cd %s; %s )' % (shlex.quote(os.getcwd()), shlex_join(cmd_args))
 
