@@ -103,6 +103,62 @@ class CompilerWrapper:
     def _get_compiler_command_str(self) -> str:
         return shlex_join(self._get_compiler_path_and_args())
 
+    def run_preprocessor(
+            self,
+            output_path: str) -> None:
+        """
+        Run the preprocessor and parse preprocessor output. As part of this output, we see all
+        absolute header paths actually used. This allows us to:
+        - Collect the headers from a certain library, such as Intel oneAPI, so that we can copy only
+          the required subset of those headers to our installation directory. The entire oneAPI
+          installation could be over 14 GB, which is prohibitive for Docker images and third-party
+          archives.
+        - Disallow using headers from certain directories, e.g. system directories when building
+          with Linuxbrew glibc.
+
+        :param output_path: the output path of the compilation command
+        """
+        pp_output_path = output_path + '.pp'  # "pp" for "preprocessed"
+
+        # Perform preprocessing to ensure we are only using include files from allowed directories.
+        pp_args = [self.real_compiler_path] + with_updated_output_path(
+            self.compiler_args, pp_output_path)
+
+        pp_args.append('-E')
+        subprocess.check_call(pp_args)
+        assert pp_output_path is not None
+        assert os.path.isfile(pp_output_path), (
+            f"Preprocessed output file does not exist: {pp_output_path}. "
+            f"Preprocessing command arguments: {shlex_join(pp_args)}."
+        )
+
+        # Collect included files from preprocessor output.
+        # https://gcc.gnu.org/onlinedocs/cpp/Preprocessor-Output.html
+        included_files = set()
+        with open(pp_output_path) as pp_output_file:
+            for line in pp_output_file:
+                if line.startswith('# 1 "'):
+                    line = line[5:].rstrip()
+                    if line.startswith('<'):
+                        continue
+                    quote_pos = line.find('"')
+                    if quote_pos < 0:
+                        continue
+                    included_files.add(line[:quote_pos])
+        real_included_files = set(os.path.realpath(p) for p in included_files)
+
+        for disallowed_dir in self.disallowed_include_dirs:
+            for included_file in real_included_files:
+                if included_file.startswith(disallowed_dir + '/'):
+                    raise ValueError(
+                        "File from a disallowed directory included: %s. "
+                        "Compiler invocation: %s" % (
+                            included_file,
+                            self._get_compiler_command_str()))
+
+    def handle_compilation_command(self) -> None:
+        pass
+
     def run(self) -> None:
         verbose: bool = os.environ.get('YB_THIRDPARTY_VERBOSE') == '1'
 
@@ -140,7 +196,6 @@ class CompilerWrapper:
                 not output_files[0].endswith('.dylib-master.o')):
 
             output_path = output_files[0]
-            pp_output_path = output_path + '.pp'  # "pp" for "preprocessed"
             is_assembly_input = any([arg.endswith('.s') for arg in self.compiler_args])
 
             compile_commands_tmp_dir = compile_commands.get_tmp_dir_env_var()
@@ -162,43 +217,8 @@ class CompilerWrapper:
                     )
                     generate_compile_command_file = False
 
-            # Perform preprocessing to ensure we are only using include files from allowed
-            # directories.
-            pp_args = [self.real_compiler_path] + with_updated_output_path(
-                self.compiler_args, pp_output_path)
-
             if not is_assembly_input:
-                pp_args.append('-E')
-                subprocess.check_call(pp_args)
-                assert pp_output_path is not None
-                assert os.path.isfile(pp_output_path), (
-                    f"Preprocessed output file does not exist: {pp_output_path}. "
-                    f"Preprocessing command arguments: {shlex_join(pp_args)}."
-                )
-
-                # Collect included files from preprocessor output.
-                # https://gcc.gnu.org/onlinedocs/cpp/Preprocessor-Output.html
-                included_files = set()
-                with open(pp_output_path) as pp_output_file:
-                    for line in pp_output_file:
-                        if line.startswith('# 1 "'):
-                            line = line[5:].rstrip()
-                            if line.startswith('<'):
-                                continue
-                            quote_pos = line.find('"')
-                            if quote_pos < 0:
-                                continue
-                            included_files.add(line[:quote_pos])
-                real_included_files = set(os.path.realpath(p) for p in included_files)
-
-                for disallowed_dir in self.disallowed_include_dirs:
-                    for included_file in real_included_files:
-                        if included_file.startswith(disallowed_dir + '/'):
-                            raise ValueError(
-                                "File from a disallowed directory included: %s. "
-                                "Compiler invocation: %s" % (
-                                    included_file,
-                                    self._get_compiler_command_str()))
+                self.run_preprocessor(output_path)
 
             if generate_compile_command_file:
                 assert compile_commands_tmp_dir is not None
