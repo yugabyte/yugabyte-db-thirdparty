@@ -30,13 +30,13 @@ from yugabyte_db_thirdparty.string_util import shlex_join
 from yugabyte_db_thirdparty.util import (
     PushDir,
     compute_file_sha256,
-    mkdir_p,
     remove_path,
     YB_THIRDPARTY_DIR,
     which_must_exist,
     get_temporal_randomized_file_name_suffix,
     read_file
 )
+from yugabyte_db_thirdparty.file_util import mkdir_p
 from yugabyte_db_thirdparty.constants import ADD_CHECKSUM_ARG
 
 

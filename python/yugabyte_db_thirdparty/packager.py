@@ -39,9 +39,12 @@ class Packager:
     archive_checksum_path: str
     git_sha1: str
 
-    def __init__(self) -> None:
-        self.build_dir_parent = os.path.dirname(YB_THIRDPARTY_DIR)
-        self.archive_dir_name = os.path.basename(YB_THIRDPARTY_DIR)
+    def __init__(
+            self,
+            build_dir_parent: str = os.path.dirname(YB_THIRDPARTY_DIR),
+            archive_dir_name: str = os.path.basename(YB_THIRDPARTY_DIR)) -> None:
+        self.build_dir_parent = build_dir_parent
+        self.archive_dir_name = archive_dir_name
         self.archive_tarball_name = self.archive_dir_name + ARCHIVE_SUFFIX
         self.archive_tarball_path = os.path.join(self.build_dir_parent, self.archive_tarball_name)
         self.archive_checksum_path = self.archive_tarball_path + CHECKSUM_SUFFIX

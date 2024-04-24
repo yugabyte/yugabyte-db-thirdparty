@@ -99,6 +99,7 @@ from yugabyte_db_thirdparty.constants import (
 from yugabyte_db_thirdparty import (
     compile_commands,
     constants,
+    file_util,
     git_util,
 )
 from yugabyte_db_thirdparty.rpath_util import get_rpath_flag
@@ -453,10 +454,10 @@ class Builder(BuilderInterface):
         for dir_path in dirs + libcxx_dirs:
             if self.args.verbose:
                 log("Preparing output directory %s", dir_path)
-            util.mkdir_p(os.path.join(dir_path, 'bin'))
+            file_util.mkdir_p(os.path.join(dir_path, 'bin'))
             lib_dir = os.path.join(dir_path, 'lib')
-            util.mkdir_p(lib_dir)
-            util.mkdir_p(os.path.join(dir_path, 'include'))
+            file_util.mkdir_p(lib_dir)
+            file_util.mkdir_p(os.path.join(dir_path, 'include'))
             # On some systems, autotools installs libraries to lib64 rather than lib. Fix this by
             # setting up lib64 as a symlink to lib. We have to do this step first to handle cases
             # where one third-party library depends on another.
@@ -785,7 +786,7 @@ class Builder(BuilderInterface):
                 ('OFF', 'static')
             ):
                 build_dir = os.path.join(os.getcwd(), subdir_name)
-                util.mkdir_p(build_dir)
+                file_util.mkdir_p(build_dir)
                 build_shared_libs_cmake_arg = '-DBUILD_SHARED_LIBS=%s' % build_shared_libs_value
                 log("Building dependency '%s' for build type '%s' with option: %s",
                     dep.name, self.build_type, build_shared_libs_cmake_arg)
@@ -1339,7 +1340,7 @@ class Builder(BuilderInterface):
                 compile_commands_tmp_dir = compile_commands.get_compile_commands_tmp_dir_path(
                     dep.name)
                 env_vars[compile_commands.TMP_DIR_ENV_VAR_NAME] = compile_commands_tmp_dir
-                util.mkdir_p(compile_commands_tmp_dir)
+                file_util.mkdir_p(compile_commands_tmp_dir)
 
             src_dir = self.fs_layout.get_source_path(dep)
             build_dir = self.create_build_dir_and_prepare(dep)
@@ -1471,7 +1472,7 @@ class Builder(BuilderInterface):
         if self.args.delete_build_dir:
             log("Deleting directory %s (--delete-build-dir specified)", build_dir)
             subprocess.check_call(['rm', '-rf', build_dir])
-        util.mkdir_p(build_dir)
+        file_util.mkdir_p(build_dir)
 
         # Write the source path to a file in the build directory. We use this during processing of
         # compilation database files to map file paths in the build directory back to the source

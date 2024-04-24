@@ -18,12 +18,15 @@ disk space, we copy only the necesary files from it to the thirdparty installed 
 import glob
 import os
 import shutil
+import tempfile
 
 from typing import Set, Optional
 
-from yugabyte_db_thirdparty import ldd_util
 from yugabyte_db_thirdparty.custom_logging import log
-
+from yugabyte_db_thirdparty import (
+    ldd_util,
+    file_util,
+)
 
 ONEAPI_DEFAULT_BASE_DIR = '/opt/intel/oneapi'
 
@@ -40,7 +43,7 @@ class IntelOneAPIInstallation:
 
     # We collect all the paths from the oneAPI installation actually used by our build process.
     # This is used for repackaging the useful subset of files into a smaller-size package.
-    paths_to_package: Set[str]
+    paths_to_be_packaged: Set[str]
 
     def __init__(self, base_dir: str, version: str) -> None:
         self.version = version
@@ -51,7 +54,7 @@ class IntelOneAPIInstallation:
         self.get_mkl_prefix()
         self.get_compiler_prefix()
 
-        self.paths_to_package = set()
+        self.paths_to_be_packaged = set()
 
     def check_if_dir_exists(self, dir_path: str, must_be_prefix: bool = False) -> str:
         """
@@ -124,10 +127,9 @@ class IntelOneAPIInstallation:
         assert os.path.isabs(absolute_path), f'Expected an absolute path, got: {absolute_path}'
         return absolute_path.startswith(self.base_dir + '/')
 
-    def add_path_to_package(self, path: str) -> None:
-        if not _package_build_mode_enabled:
-            return
-        self.paths_to_package.add(path)
+    def add_path_to_be_packaged(self, path: str) -> None:
+        assert not os.path.isabs(path)
+        self.paths_to_be_packaged.add(path)
 
     def copy_needed_libraries(self, dep_install_dir: str, dest_lib_dir: str) -> None:
         """
@@ -148,7 +150,8 @@ class IntelOneAPIInstallation:
                             continue
                         path_prefix = ldd_util.remove_shared_lib_suffix(full_path)
                         for path_to_copy in glob.glob(path_prefix + '.*'):
-                            self.add_path_to_package(path_to_copy)
+                            self.add_path_to_be_packaged(
+                                os.path.relpath(path_to_copy, self.base_dir))
                             dest_path = os.path.join(dest_lib_dir, os.path.basename(path_to_copy))
                             if not os.path.exists(dest_path):
                                 if os.path.islink(path_to_copy):
@@ -161,6 +164,42 @@ class IntelOneAPIInstallation:
                                 else:
                                     log(f"Copying {path_to_copy} to {dest_path}")
                                     shutil.copy(path_to_copy, dest_path)
+
+    def remember_paths_to_package_from_tag_dir(self, tag_dir: str) -> None:
+        assert os.path.isabs(tag_dir)
+        for root, dirs, files in os.walk(tag_dir):
+            for file_name in files:
+                file_path = os.path.join(root, file_name)
+                rel_path = os.path.relpath(file_path, tag_dir)
+                self.add_path_to_be_packaged(rel_path)
+
+    def create_package(self) -> None:
+        tmp_dir = tempfile.mkdtemp(prefix='intel_oneapi_package_')
+        try:
+            self.do_create_package(tmp_dir)
+        finally:
+            pass
+        #shutil.rmtree(tmp_dir)
+
+    def do_create_package(self, tmp_dir: str) -> None:
+        package_name = 'yb-intel-oneapi-123123'
+        package_dir = os.path.join(tmp_dir, package_name)
+        os.mkdir(package_dir)
+        log("Creating package in directory %s", package_dir)
+        for rel_path in sorted(self.paths_to_be_packaged):
+            print("Path: %s" % rel_path)
+            file_util.create_intermediate_dirs_for_rel_path(package_dir, rel_path)
+            full_path = os.path.join(self.base_dir, rel_path)
+            assert os.path.exists(full_path)
+            target_path = os.path.join(package_dir, rel_path)
+            if os.path.isfile(full_path):
+                shutil.copy(full_path, target_path)
+            elif os.path.islink(full_path):
+                pass
+            else:
+                raise IOError(f"Not sure what to do with file {full_path} during packaging")
+
+
 
 
 _oneapi_installation: Optional[IntelOneAPIInstallation] = None
@@ -190,3 +229,7 @@ def find_intel_oneapi() -> IntelOneAPIInstallation:
 def enable_package_build_mode() -> None:
     global _package_build_mode_enabled
     _package_build_mode_enabled = True
+
+
+def is_package_build_mode_enabled() -> bool:
+    return _package_build_mode_enabled

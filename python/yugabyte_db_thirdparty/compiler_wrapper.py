@@ -29,7 +29,7 @@ from yugabyte_db_thirdparty.constants import (
     COMPILER_WRAPPER_ENV_VAR_NAME_TRACK_INCLUDES_IN_SUBDIRS_OF,
     COMPILER_WRAPPER_ENV_VAR_NAME_SAVE_USED_INCLUDE_TAGS_IN_DIR,
 )
-from yugabyte_db_thirdparty.util import mkdir_p
+from yugabyte_db_thirdparty import file_util
 from yugabyte_db_thirdparty.env_helpers import get_env_var_name_and_value_str
 from yugabyte_db_thirdparty import compile_commands
 
@@ -116,11 +116,20 @@ class CompilerWrapper:
 
         if self.track_includes_in_subdirs_of:
             assert self.save_used_include_tags_in_dir is not None  # Needed by MyPy.
-            if not os.path.isdir(self.save_used_include_tags_in_dir):
-                raise ValueError(
-                    "Directory specified by the " +
-                    COMPILER_WRAPPER_ENV_VAR_NAME_SAVE_USED_INCLUDE_TAGS_IN_DIR +
-                    " environment variable does not exist: " + self.save_used_include_tags_in_dir)
+
+            for env_var_name, env_var_value in (
+                    (COMPILER_WRAPPER_ENV_VAR_NAME_TRACK_INCLUDES_IN_SUBDIRS_OF,
+                     self.track_includes_in_subdirs_of),
+                    (COMPILER_WRAPPER_ENV_VAR_NAME_SAVE_USED_INCLUDE_TAGS_IN_DIR,
+                     self.save_used_include_tags_in_dir)):
+
+                assert os.path.isabs(env_var_value), \
+                    "Expected an absolute path for the value of the environment variable " + \
+                    env_var_name + ", got: " + env_var_value
+
+                assert os.path.isdir(env_var_value), \
+                    "Directory specified by the " + env_var_name + " environment variable " + \
+                    "does not exist: " + self.save_used_include_tags_in_dir
 
     def _is_permitted_arg(self, arg: str) -> bool:
         if not arg.startswith('-I'):
@@ -201,20 +210,18 @@ class CompilerWrapper:
                             self._get_compiler_command_str()))
 
         if self.track_includes_in_subdirs_of is not None:
+            include_file_abs_path_prefix = self.track_includes_in_subdirs_of + '/'
             for include_file_path in real_included_files:
-                if include_file_path.startswith(self.track_includes_in_subdirs_of + '/'):
-                    assert os.path.isabs(include_file_path)
+                if include_file_path.startswith(include_file_abs_path_prefix):
+                    include_file_rel_path = include_file_path[len(include_file_abs_path_prefix):]
 
-                    cur_dir = self.save_used_include_tags_in_dir
-                    assert cur_dir is not None
+                    assert self.save_used_include_tags_in_dir is not None
 
-                    for component in os.path.split(include_file_path)[:-1]:
-                        if component.startswith('/'):
-                            component = component[1:]
-                        assert component
-                        cur_dir = os.path.join(cur_dir, component)
-                        mkdir_p(cur_dir)
-                    tag_file_path = os.path.join(cur_dir, os.path.basename(include_file_path))
+                    tag_file_dir = file_util.create_intermediate_dirs_for_rel_path(
+                        self.save_used_include_tags_in_dir, include_file_rel_path)
+
+                    tag_file_path = os.path.join(
+                        tag_file_dir, os.path.basename(include_file_rel_path))
                     if os.path.islink(include_file_path):
                         symlink_target = os.readlink(include_file_path)
                         assert not os.path.isabs(symlink_target), \

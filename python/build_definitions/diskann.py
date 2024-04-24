@@ -24,10 +24,10 @@ from yugabyte_db_thirdparty.constants import (
     COMPILER_WRAPPER_ENV_VAR_NAME_TRACK_INCLUDES_IN_SUBDIRS_OF,
     COMPILER_WRAPPER_ENV_VAR_NAME_SAVE_USED_INCLUDE_TAGS_IN_DIR
 )
-from yugabyte_db_thirdparty import util
-
-INTEL_ONEAPI_COMPILER_DIR = '/opt/intel/oneapi/2024.1/opt/compiler'
-INTEL_ONEAPI_RUNTIME_DIR = '/opt/intel/oneapi/2024.1'
+from yugabyte_db_thirdparty import (
+    util,
+    intel_oneapi,
+)
 
 OPENMP_FLAG = '-fopenmp=libiomp5'
 
@@ -86,28 +86,94 @@ class DiskANNDependency(Dependency):
     def build(self, builder: BuilderInterface) -> None:
         install_prefix = self.get_install_prefix(builder)
 
-        used_include_tags_dir = util.create_preferably_in_mem_tmp_dir(
-            prefix='used_include_tags_',
-            suffix='_' + util.get_temporal_randomized_file_name_suffix(),
-            delete_at_exit=True)
         # We must use the dictionary syntax of EnvVarContext constructor below, because the
         # environment variable name is specified as an expression (constant).
-        with EnvVarContext({
-                COMPILER_WRAPPER_ENV_VAR_NAME_TRACK_INCLUDES_IN_SUBDIRS_OF: '/opt/intel/oneapi',
-                COMPILER_WRAPPER_ENV_VAR_NAME_SAVE_USED_INCLUDE_TAGS_IN_DIR: used_include_tags_dir
-                }):
-            if not os.getenv(COMPILER_WRAPPER_ENV_VAR_NAME_TRACK_INCLUDES_IN_SUBDIRS_OF):
-                raise ValueError("Boom")
-            builder.build_with_cmake(
-                self,
-                extra_cmake_args=[
-                    '-DCMAKE_BUILD_TYPE=Release',
-                    # Still search for libraries in the default prefix path, but install DiskANN
-                    # into a custom subdirectory of it.
-                    '-DCMAKE_SYSTEM_PREFIX_PATH=' + builder.prefix,
-                    '-DOMP_PATH=' + self.openmp_lib_dir,
-                ]
-            )
+        env_vars = {}
+        used_include_tags_dir: Optional[str] = None
+        if intel_oneapi.is_package_build_mode_enabled():
+            used_include_tags_dir = util.create_preferably_in_mem_tmp_dir(
+                prefix='used_include_tags_',
+                suffix='_' + util.get_temporal_randomized_file_name_suffix(),
+                delete_at_exit=False)  # TODO: set to True
+            env_vars[COMPILER_WRAPPER_ENV_VAR_NAME_TRACK_INCLUDES_IN_SUBDIRS_OF] = \
+                intel_oneapi.ONEAPI_DEFAULT_BASE_DIR
+            env_vars[COMPILER_WRAPPER_ENV_VAR_NAME_SAVE_USED_INCLUDE_TAGS_IN_DIR] = \
+                used_include_tags_dir
+        with EnvVarContext(env_vars):
+            if False:
+                builder.build_with_cmake(
+                    self,
+                    extra_cmake_args=[
+                        '-DCMAKE_BUILD_TYPE=Release',
+                        # Still search for libraries in the default prefix path, but install DiskANN
+                        # into a custom subdirectory of it.
+                        '-DCMAKE_SYSTEM_PREFIX_PATH=' + builder.prefix,
+                        '-DOMP_PATH=' + self.openmp_lib_dir,
+                    ]
+                )
+        # TESTING ONLY
+        path_list = """
+./mkl
+./mkl/2024.1
+./mkl/2024.1/include
+./mkl/2024.1/include/mkl_poisson.h
+./mkl/2024.1/include/mkl_vsl_functions.h
+./mkl/2024.1/include/mkl_rci.h
+./mkl/2024.1/include/mkl_df_defines.h
+./mkl/2024.1/include/mkl_service.h
+./mkl/2024.1/include/mkl_vsl_defines.h
+./mkl/2024.1/include/mkl_df.h
+./mkl/2024.1/include/mkl_vml_defines.h
+./mkl/2024.1/include/mkl_df_types.h
+./mkl/2024.1/include/mkl_lapacke.h
+./mkl/2024.1/include/mkl_dss.h
+./mkl/2024.1/include/mkl_df_functions.h
+./mkl/2024.1/include/mkl_blas.h
+./mkl/2024.1/include/mkl_trig_transforms.h
+./mkl/2024.1/include/mkl_compact.h
+./mkl/2024.1/include/mkl_vsl.h
+./mkl/2024.1/include/mkl_sparse_handle.h
+./mkl/2024.1/include/mkl_dfti.h
+./mkl/2024.1/include/mkl_types.h
+./mkl/2024.1/include/mkl_cblas.h
+./mkl/2024.1/include/mkl_vsl_functions_64.h
+./mkl/2024.1/include/mkl_blas_64.h
+./mkl/2024.1/include/mkl_direct_call.h
+./mkl/2024.1/include/mkl.h
+./mkl/2024.1/include/mkl_vml_types.h
+./mkl/2024.1/include/mkl_cblas_64.h
+./mkl/2024.1/include/mkl_trans_names.h
+./mkl/2024.1/include/mkl_vml.h
+./mkl/2024.1/include/mkl_trans.h
+./mkl/2024.1/include/mkl_sparse_qr.h
+./mkl/2024.1/include/mkl_version.h
+./mkl/2024.1/include/mkl_spblas.h
+./mkl/2024.1/include/mkl_lapack.h
+./mkl/2024.1/include/mkl_solvers_ee.h
+./mkl/2024.1/include/mkl_vsl_types.h
+./mkl/2024.1/include/mkl_pardiso.h
+./mkl/2024.1/include/mkl_vml_functions.h
+./compiler
+./compiler/2024.1
+./compiler/2024.1/opt
+./compiler/2024.1/opt/compiler
+./compiler/2024.1/opt/compiler/include
+./compiler/2024.1/opt/compiler/include/complex
+./compiler/2024.1/opt/compiler/include/math.h
+./compiler/2024.1/opt/compiler/include/limits.h
+./compiler/2024.1/opt/compiler/include/omp.h
+""".split("\n")
+        for rel_path in path_list:
+            rel_path = rel_path.strip()
+            p = os.path.abspath(os.path.join(
+                intel_oneapi.ONEAPI_DEFAULT_BASE_DIR,
+                rel_path
+            ))
+            if os.path.exists(p) and not os.path.isdir(p):
+                self.oneapi_installation.add_path_to_be_packaged(os.path.relpath(
+                    p, intel_oneapi.ONEAPI_DEFAULT_BASE_DIR))
+
+
         builder.copy_include_files(
             dep=self,
             rel_src_include_path='include',
@@ -115,3 +181,5 @@ class DiskANNDependency(Dependency):
 
         installed_common_lib_dir = os.path.join(builder.fs_layout.tp_installed_common_dir, 'lib')
         self.oneapi_installation.copy_needed_libraries(install_prefix, installed_common_lib_dir)
+        if used_include_tags_dir is not None:
+            self.oneapi_installation.remember_paths_to_package_from_tag_dir(used_include_tags_dir)

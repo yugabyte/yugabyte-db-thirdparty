@@ -1,4 +1,4 @@
-# Copyright (c) Yugabyte, Inc.
+# Copyright (c) YugabyteDB, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
 # in compliance with the License. You may obtain a copy of the License at
@@ -9,7 +9,6 @@
 # is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
 # or implied. See the License for the specific language governing permissions and limitations
 # under the License.
-#
 
 import atexit
 import datetime
@@ -17,7 +16,6 @@ import hashlib
 import json
 import logging
 import os
-import pathlib
 import random
 import shutil
 import subprocess
@@ -114,10 +112,6 @@ def remove_path(path: str) -> None:
         subprocess.check_call(['rm', '-rf', path])
     else:
         os.remove(path)
-
-
-def mkdir_p(path: str) -> None:
-    pathlib.Path(path).mkdir(parents=True, exist_ok=True)
 
 
 def does_file_start_with_string(file_path: str, s: str) -> bool:

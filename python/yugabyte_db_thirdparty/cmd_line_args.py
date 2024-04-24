@@ -268,7 +268,8 @@ def parse_cmd_line_args() -> argparse.Namespace:
              "This is needed to avoid installing Intel oneAPI on all hosts and in all Docker "
              "images that are used to build YugabyteDB's third-party dependencies. This "
              "assumes that Intel oneAPI is already installed in /opt/intel, which has to be done "
-             "manually.")
+             "manually.",
+        action='store_true')
 
     args = parser.parse_args()
 

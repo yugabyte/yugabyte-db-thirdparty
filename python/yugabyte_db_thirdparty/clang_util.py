@@ -17,7 +17,8 @@ import platform
 
 from typing import Optional, List, Tuple
 from yugabyte_db_thirdparty.string_util import shlex_join
-from yugabyte_db_thirdparty.util import mkdir_p, create_symlink
+from yugabyte_db_thirdparty.util import create_symlink
+from yugabyte_db_thirdparty.file_util import mkdir_p
 from yugabyte_db_thirdparty.custom_logging import log
 
 LIBRARY_DIRS_PREFIX = 'libraries: ='

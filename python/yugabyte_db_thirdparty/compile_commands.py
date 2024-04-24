@@ -25,7 +25,11 @@ from datetime import datetime
 
 from typing import Optional, DefaultDict, Tuple, List, Dict, cast, Union, Any, Set, Callable
 
-from yugabyte_db_thirdparty import util, constants
+from yugabyte_db_thirdparty import (
+    util,
+    file_util,
+    constants,
+)
 from yugabyte_db_thirdparty.custom_logging import log
 
 
@@ -127,7 +131,7 @@ def aggregate_compile_commands(
         with open(compile_command_path, 'r') as compile_command_file:
             compile_commands.append(json.load(compile_command_file))
 
-    util.mkdir_p(compile_commands_dir)
+    file_util.mkdir_p(compile_commands_dir)
 
     existing_compile_commands: List[Dict[str, Union[str, List[str]]]] = []
 

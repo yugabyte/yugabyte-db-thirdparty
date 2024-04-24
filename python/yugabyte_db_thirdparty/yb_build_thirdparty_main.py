@@ -123,7 +123,10 @@ class BuilderTool:
             builder.run()
             log("Build finished in %.1f sec", time.time() - start_time_sec)
 
-        if not args.download_extract_only:
+        if args.package_intel_oneapi:
+            intel_oneapi.find_intel_oneapi().create_package()
+
+        if False and not args.download_extract_only:
             self.check_libraries()
 
         if args.create_package or args.upload_as_tag:
@@ -135,7 +138,7 @@ class BuilderTool:
 
 def adjust_environment() -> None:
     for env_var_name in ENV_VARS_TO_AUTO_UNSET:
-        env_helpers.unset_env_var_if_set(env_var_name)
+        env_helpers.unset_env_var_if_set_and_log(env_var_name)
 
     if 'YB_BUILD_THIRDPARTY_DUMP_ENV' in os.environ:
         env_helpers.dump_env_vars_to_log(sys.argv[0])
