@@ -75,7 +75,6 @@ from yugabyte_db_thirdparty import util
 from yugabyte_db_thirdparty.util import (
     assert_dir_exists,
     assert_list_contains,
-    EnvVarContext,
     PushDir,
     read_file,
     remove_path,
@@ -103,6 +102,7 @@ from yugabyte_db_thirdparty import (
     git_util,
 )
 from yugabyte_db_thirdparty.rpath_util import get_rpath_flag
+from yugabyte_db_thirdparty.env_helpers import EnvVarContext
 
 # -------------------------------------------------------------------------------------------------
 
@@ -1350,7 +1350,7 @@ class Builder(BuilderInterface):
                 return
 
             with PushDir(build_dir):
-                with EnvVarContext(**env_vars):
+                with EnvVarContext(env_vars):
                     write_env_vars(DEPENDENCY_ENV_FILE_NAME)
                     log("PATH=%s" % os.getenv('PATH'))
                     dep.build(self)

@@ -11,6 +11,7 @@
 # under the License.
 #
 
+import atexit
 import datetime
 import hashlib
 import json
@@ -20,6 +21,9 @@ import pathlib
 import random
 import shutil
 import subprocess
+import tempfile
+
+from sys_detection import is_linux
 
 from yugabyte_db_thirdparty.custom_logging import log, fatal
 from yugabyte_db_thirdparty.string_util import normalize_cmd_args, shlex_join
@@ -159,41 +163,6 @@ def which_must_exist(cmd_name: str) -> str:
 def copy_file_and_log(src_path: str, dst_path: str) -> None:
     log(f"Copying file {os.path.abspath(src_path)} to {os.path.abspath(dst_path)}")
     shutil.copyfile(src_path, dst_path)
-
-
-def dict_set_or_del(d: Any, k: Any, v: Any) -> None:
-    """
-    Set the value of the given key in a dictionary to the given value, or delete it if the value
-    is None.
-    """
-    if v is None:
-        if k in d:
-            del d[k]
-    else:
-        d[k] = v
-
-
-class EnvVarContext:
-    """
-    Sets the given environment variables and restores them on exit. A None value means the variable
-    is undefined.
-    """
-
-    env_vars: Dict[str, Optional[str]]
-    saved_env_vars: Dict[str, Optional[str]]
-
-    def __init__(self, **env_vars: Any) -> None:
-        self.env_vars = env_vars
-
-    def __enter__(self) -> None:
-        self.saved_env_vars = {}
-        for env_var_name, new_value in self.env_vars.items():
-            self.saved_env_vars[env_var_name] = os.environ.get(env_var_name)
-            dict_set_or_del(os.environ, env_var_name, new_value)
-
-    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
-        for env_var_name, saved_value in self.saved_env_vars.items():
-            dict_set_or_del(os.environ, env_var_name, saved_value)
 
 
 def read_file(file_path: str) -> str:
@@ -402,3 +371,29 @@ def is_empty_json_file(file_path: str) -> bool:
         return json.dumps(parsed_json) in ['{}', '[]']
     except json.decoder.JSONDecodeError as ex:
         return False
+
+
+def create_in_mem_tmp_dir(
+        suffix: Optional[str] = None,
+        prefix: Optional[str] = None,
+        delete_at_exit: bool = False) -> str:
+    """
+    Creates a temporary directory inside a base directory that is likely to be backed by an
+    in-memory filesystem.
+    """
+    tmp_dir_base_candidates = []
+    if is_linux():
+        tmp_dir_base_candidates.append('/dev/shm')
+    tmp_dir_base_candidates.append('/tmp')
+    for base_candidate in tmp_dir_base_candidates:
+        if os.path.isdir(base_candidate):
+            tmp_dir_path = tempfile.mkdtemp(
+                suffix=suffix, prefix=prefix, dir=base_candidate)
+            if delete_at_exit:
+                def do_delete_at_exit() -> None:
+                    shutil.rmtree(tmp_dir_path)
+                atexit.register(do_delete_at_exit)
+            return tmp_dir_path
+    raise IOError(
+        "Could not find a suitable base directory to create a temporary subdirectory. "
+        "Considered: {', '.join(tmp_dir_base_candidates)}")

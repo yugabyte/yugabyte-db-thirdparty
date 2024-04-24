@@ -26,8 +26,11 @@ from yugabyte_db_thirdparty.util import shlex_join, is_shared_library_name
 from yugabyte_db_thirdparty.constants import (
     COMPILER_WRAPPER_ENV_VAR_NAME_LD_FLAGS_TO_APPEND,
     COMPILER_WRAPPER_ENV_VAR_NAME_LD_FLAGS_TO_REMOVE,
+    COMPILER_WRAPPER_ENV_VAR_NAME_TRACK_INCLUDES_IN_SUBDIRS_OF,
+    COMPILER_WRAPPER_ENV_VAR_NAME_SAVE_USED_INCLUDE_TAGS_IN_DIR,
 )
 from yugabyte_db_thirdparty.util import mkdir_p
+from yugabyte_db_thirdparty.env_helpers import get_env_var_name_and_value_str
 from yugabyte_db_thirdparty import compile_commands
 
 
@@ -70,6 +73,9 @@ class CompilerWrapper:
     compiler_args: List[str]
     disallowed_include_dirs: List[str]
 
+    track_includes_in_subdirs_of: Optional[str]
+    save_used_include_tags_in_dir: Optional[str]
+
     def __init__(self, is_cxx: bool) -> None:
         self.is_cxx = is_cxx
         self.args = sys.argv
@@ -85,6 +91,36 @@ class CompilerWrapper:
         if disallowed_include_dirs_colon_separated:
             self.disallowed_include_dirs = disallowed_include_dirs_colon_separated.split(':')
         self.compiler_args = self._filter_args(sys.argv[1:])
+
+        self.track_includes_in_subdirs_of = os.getenv(
+            COMPILER_WRAPPER_ENV_VAR_NAME_TRACK_INCLUDES_IN_SUBDIRS_OF)
+
+        # For each include file under the "tracked" directory (above), we will create a
+        # corresponding "tag file" in a directory tree rooted under this directory. We will use
+        # those tag files to copy the needed include files into the thirdparty installed directory
+        # as well as into our pre-packaged Intel oneAPI archive.
+        self.save_used_include_tags_in_dir = os.getenv(
+            COMPILER_WRAPPER_ENV_VAR_NAME_SAVE_USED_INCLUDE_TAGS_IN_DIR)
+
+        if ((self.track_includes_in_subdirs_of is None) !=
+                (self.save_used_include_tags_in_dir is None)):
+            raise ValueError(
+                'Expected the following two environment variables to be set or unset at the same '
+                'time: ' +
+                ', '.join([
+                    get_env_var_name_and_value_str(
+                        COMPILER_WRAPPER_ENV_VAR_NAME_TRACK_INCLUDES_IN_SUBDIRS_OF),
+                    get_env_var_name_and_value_str(
+                        COMPILER_WRAPPER_ENV_VAR_NAME_SAVE_USED_INCLUDE_TAGS_IN_DIR),
+                ]))
+
+        if self.track_includes_in_subdirs_of:
+            assert self.save_used_include_tags_in_dir is not None  # Needed by MyPy.
+            if not os.path.isdir(self.save_used_include_tags_in_dir):
+                raise ValueError(
+                    "Directory specified by the " +
+                    COMPILER_WRAPPER_ENV_VAR_NAME_SAVE_USED_INCLUDE_TAGS_IN_DIR +
+                    " environment variable does not exist: " + self.save_used_include_tags_in_dir)
 
     def _is_permitted_arg(self, arg: str) -> bool:
         if not arg.startswith('-I'):
@@ -113,6 +149,14 @@ class CompilerWrapper:
           the required subset of those headers to our installation directory. The entire oneAPI
           installation could be over 14 GB, which is prohibitive for Docker images and third-party
           archives.
+
+          E.g. the following command can be used to sum up all header file sizes in the Intel oneAPI
+          installation, and it results in ~72 MiB as of 2024. The parentheses and semicolon have to
+          be escaped with backslashes if you decide to run it.
+
+          find /opt/intel/oneapi ( -name "*.h" -or -name "*.hpp" ) -type f -exec ls -l {} ; |
+            awk '{S += $5} END {print S}
+
         - Disallow using headers from certain directories, e.g. system directories when building
           with Linuxbrew glibc.
 
@@ -155,6 +199,33 @@ class CompilerWrapper:
                         "Compiler invocation: %s" % (
                             included_file,
                             self._get_compiler_command_str()))
+
+        if self.track_includes_in_subdirs_of is not None:
+            for include_file_path in real_included_files:
+                if include_file_path.startswith(self.track_includes_in_subdirs_of + '/'):
+                    assert os.path.isabs(include_file_path)
+
+                    cur_dir = self.save_used_include_tags_in_dir
+                    assert cur_dir is not None
+
+                    for component in os.path.split(include_file_path)[:-1]:
+                        if component.startswith('/'):
+                            component = component[1:]
+                        assert component
+                        cur_dir = os.path.join(cur_dir, component)
+                        mkdir_p(cur_dir)
+                    tag_file_path = os.path.join(cur_dir, os.path.basename(include_file_path))
+                    if os.path.islink(include_file_path):
+                        symlink_target = os.readlink(include_file_path)
+                        assert not os.path.isabs(symlink_target), \
+                            f"Did not expect include file {include_file_path} to be a symbolic " \
+                            f"link to an absolute path: {symlink_target}"
+                        # The "tag file" will be symlink pointing to the same relative path.
+                        os.symlink(symlink_target, tag_file_path)
+                    else:
+                        # Write an empty file.
+                        with open(tag_file_path, 'w') as tag_file:
+                            pass
 
     def handle_compilation_command(self, output_files: List[str]) -> None:
         if (len(output_files) != 1 or

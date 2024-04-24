@@ -19,7 +19,12 @@ from yugabyte_db_thirdparty.build_definition_helpers import *
 from yugabyte_db_thirdparty.builder_interface import BuilderInterface  # noqa
 from yugabyte_db_thirdparty.intel_oneapi import find_intel_oneapi
 from yugabyte_db_thirdparty.rpath_util import get_rpath_flag
-
+from yugabyte_db_thirdparty.env_helpers import EnvVarContext
+from yugabyte_db_thirdparty.constants import (
+    COMPILER_WRAPPER_ENV_VAR_NAME_TRACK_INCLUDES_IN_SUBDIRS_OF,
+    COMPILER_WRAPPER_ENV_VAR_NAME_SAVE_USED_INCLUDE_TAGS_IN_DIR
+)
+from yugabyte_db_thirdparty import util
 
 INTEL_ONEAPI_COMPILER_DIR = '/opt/intel/oneapi/2024.1/opt/compiler'
 INTEL_ONEAPI_RUNTIME_DIR = '/opt/intel/oneapi/2024.1'
@@ -80,16 +85,29 @@ class DiskANNDependency(Dependency):
 
     def build(self, builder: BuilderInterface) -> None:
         install_prefix = self.get_install_prefix(builder)
-        builder.build_with_cmake(
-            self,
-            extra_cmake_args=[
-                '-DCMAKE_BUILD_TYPE=Release',
-                # Still search for libraries in the default prefix path, but install DiskANN into
-                # a custom subdirectory of it.
-                '-DCMAKE_SYSTEM_PREFIX_PATH=' + builder.prefix,
-                '-DOMP_PATH=' + self.openmp_lib_dir,
-            ]
-        )
+
+        used_include_tags_dir = util.create_in_mem_tmp_dir(
+            prefix='used_include_tags_',
+            suffix='_' + util.get_temporal_randomized_file_name_suffix(),
+            delete_at_exit=True)
+        # We must use the dictionary syntax of EnvVarContext constructor below, because the
+        # environment variable name is specified as an expression (constant).
+        with EnvVarContext({
+                COMPILER_WRAPPER_ENV_VAR_NAME_TRACK_INCLUDES_IN_SUBDIRS_OF: '/opt/intel/oneapi',
+                COMPILER_WRAPPER_ENV_VAR_NAME_SAVE_USED_INCLUDE_TAGS_IN_DIR: used_include_tags_dir
+                }):
+            if not os.getenv(COMPILER_WRAPPER_ENV_VAR_NAME_TRACK_INCLUDES_IN_SUBDIRS_OF):
+                raise ValueError("Boom")
+            builder.build_with_cmake(
+                self,
+                extra_cmake_args=[
+                    '-DCMAKE_BUILD_TYPE=Release',
+                    # Still search for libraries in the default prefix path, but install DiskANN
+                    # into a custom subdirectory of it.
+                    '-DCMAKE_SYSTEM_PREFIX_PATH=' + builder.prefix,
+                    '-DOMP_PATH=' + self.openmp_lib_dir,
+                ]
+            )
         builder.copy_include_files(
             dep=self,
             rel_src_include_path='include',

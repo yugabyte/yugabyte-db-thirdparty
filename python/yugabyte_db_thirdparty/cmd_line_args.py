@@ -262,6 +262,14 @@ def parse_cmd_line_args() -> argparse.Namespace:
              'created automatically if not present.',
         nargs='+')
 
+    parser.add_argument(
+        '--package-intel-oneapi',
+        help="Create a package of the needed subset of Intel oneAPI in /opt/yb-build/intel-oneapi. "
+             "This is needed to avoid installing Intel oneAPI on all hosts and in all Docker "
+             "images that are used to build YugabyteDB's third-party dependencies. This "
+             "assumes that Intel oneAPI is already installed in /opt/intel, which has to be done "
+             "manually.")
+
     args = parser.parse_args()
 
     # ---------------------------------------------------------------------------------------------
