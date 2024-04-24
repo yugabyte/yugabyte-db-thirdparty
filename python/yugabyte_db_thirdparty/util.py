@@ -373,27 +373,28 @@ def is_empty_json_file(file_path: str) -> bool:
         return False
 
 
-def create_in_mem_tmp_dir(
+def create_preferably_in_mem_tmp_dir(
         suffix: Optional[str] = None,
         prefix: Optional[str] = None,
         delete_at_exit: bool = False) -> str:
     """
-    Creates a temporary directory inside a base directory that is likely to be backed by an
-    in-memory filesystem.
+    Creates a temporary directory, preferring locations that are likely to be backed by an in-memory
+    file system.
     """
     tmp_dir_base_candidates = []
     if is_linux():
         tmp_dir_base_candidates.append('/dev/shm')
+    tmp_dir_base_candidates.append(tempfile.gettempdir())
     tmp_dir_base_candidates.append('/tmp')
     for base_candidate in tmp_dir_base_candidates:
-        if os.path.isdir(base_candidate):
-            tmp_dir_path = tempfile.mkdtemp(
-                suffix=suffix, prefix=prefix, dir=base_candidate)
-            if delete_at_exit:
-                def do_delete_at_exit() -> None:
-                    shutil.rmtree(tmp_dir_path)
-                atexit.register(do_delete_at_exit)
-            return tmp_dir_path
+        if not os.path.isdir(base_candidate) or not os.access(base_candidate, os.W_OK):
+            continue
+        tmp_dir_path = tempfile.mkdtemp(suffix=suffix, prefix=prefix, dir=base_candidate)
+        if delete_at_exit:
+            def do_delete_at_exit() -> None:
+                shutil.rmtree(tmp_dir_path)
+            atexit.register(do_delete_at_exit)
+        return tmp_dir_path
     raise IOError(
         "Could not find a suitable base directory to create a temporary subdirectory. "
         "Considered: {', '.join(tmp_dir_base_candidates)}")

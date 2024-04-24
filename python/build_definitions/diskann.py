@@ -86,7 +86,7 @@ class DiskANNDependency(Dependency):
     def build(self, builder: BuilderInterface) -> None:
         install_prefix = self.get_install_prefix(builder)
 
-        used_include_tags_dir = util.create_in_mem_tmp_dir(
+        used_include_tags_dir = util.create_preferably_in_mem_tmp_dir(
             prefix='used_include_tags_',
             suffix='_' + util.get_temporal_randomized_file_name_suffix(),
             delete_at_exit=True)

@@ -11,15 +11,16 @@
 # under the License.
 #
 
-
+import copy
 import os
 import shlex
-import copy
+import sys
 
-from typing import List, Optional, Set, Dict, Any, Mapping
+from typing import List, Optional, Set, Dict, Any, Mapping, Optional
 
 from yugabyte_db_thirdparty.devtoolset import DEVTOOLSET_ENV_VARS
 from yugabyte_db_thirdparty.string_util import split_into_word_set
+from yugabyte_db_thirdparty.custom_logging import log, heading, log_separator
 
 
 # A mechanism to save some environment variabls to a file in the dependency's build directory to
@@ -95,9 +96,8 @@ class EnvVarContext:
         ...     print(os.getenv('SHOULD_NOT_SET_THIS_VAR'))
         None
         """
-        env_vars = copy.deepcopy(env_vars)
-        env_vars.update(kwargs_env_vars)
-        self.env_vars = env_vars
+        self.env_vars = dict(copy.deepcopy(env_vars))
+        self.env_vars.update(kwargs_env_vars)
 
     def __enter__(self) -> None:
         self.saved_env_vars = {}
@@ -112,3 +112,20 @@ class EnvVarContext:
 
 def get_env_var_name_and_value_str(env_var_name: str) -> str:
     return f"{env_var_name}={os.getenv(env_var_name)}"
+
+
+def dump_env_vars_to_log(program_name: Optional[str] = None) -> None:
+    if program_name is not None:
+        heading('Environment of {}:'.format(program_name))
+    for key in os.environ:
+        log('{}={}'.format(key, os.environ[key]))
+    log_separator()
+
+
+def unset_env_var_if_set_and_log(name: str) -> None:
+    """
+    Unset certain environment variables that might interfere with the build, and log each one.
+    """
+    if name in os.environ:
+        log('Unsetting %s for third-party build (was set to "%s").', name, os.environ[name])
+        del os.environ[name]

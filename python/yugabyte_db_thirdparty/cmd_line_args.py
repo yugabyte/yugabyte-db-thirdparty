@@ -300,9 +300,13 @@ def parse_cmd_line_args() -> argparse.Namespace:
         if not local_sys_conf().is_redhat_family():
             raise ValueError("--devtoolset can only be used on Red Hat Enterprise Linux OS family")
 
-    if args.enforce_arch and platform.machine() != args.enforce_arch:
+    actual_arch = platform.machine()
+    if args.enforce_arch and actual_arch != args.enforce_arch:
         raise ValueError("Machine architecture is %s but we expect %s" % (
-            platform.machine(), args.enforce_arch))
+            actual_arch, args.enforce_arch))
+
+    if args.package_intel_oneapi and actual_arch != 'x86_64':
+        raise ValueError('--package-intel-oneapi is only valid on x86_64')
 
     if args.verbose:
         # This is used e.g. in compiler_wrapper.py.

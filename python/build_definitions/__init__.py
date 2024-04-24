@@ -62,12 +62,6 @@ class BuildGroup(enum.Enum):
         raise ValueError("Unknown build group: %s" % self)
 
 
-def unset_env_var_if_set(name: str) -> None:
-    if name in os.environ:
-        log('Unsetting %s for third-party build (was set to "%s").', name, os.environ[name])
-        del os.environ[name]
-
-
 def is_jenkins_user() -> bool:
     return os.environ['USER'] == "jenkins"
 
