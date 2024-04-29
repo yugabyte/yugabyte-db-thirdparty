@@ -12,6 +12,9 @@
 
 import os
 import pathlib
+import shutil
+
+from yugabyte_db_thirdparty.custom_logging import log
 
 
 def mkdir_p(path: str) -> None:
@@ -40,3 +43,32 @@ def create_intermediate_dirs_for_rel_path(
             print("Created directory %s" % cur_dir)
 
     return cur_dir
+
+
+def copy_simple_file_name_symlink(existing_link: str, dest_path: str) -> None:
+    """
+    Create a symbolic link at the destination path, pointing to the same relative path as the
+    specified existing link. The link target path is expected to be a file name, not an absolute
+    path or a relative path containing a directory.
+    """
+    assert os.path.islink(existing_link)
+    link_target = os.readlink(existing_link)
+    assert '/' not in link_target, \
+        f"Expected symlink target {link_target} of " \
+        f"{existing_link} to be a file name only."
+    log(f"Symlinking {dest_path} -> {link_target}")
+    os.symlink(link_target, dest_path)
+
+
+def copy_file_or_simple_symlink(path_to_copy: str, dest_path: str) -> None:
+    """
+    Copies the given file or symlink to the given destination path. If it is a symlink, it is
+    expected to be pointing to a file name within the same directory.
+    """
+    if os.path.islink(path_to_copy):
+        copy_simple_file_name_symlink(path_to_copy, dest_path)
+    elif os.path.isfile(path_to_copy):
+        log(f"Copying {path_to_copy} to {dest_path}")
+        shutil.copy(path_to_copy, dest_path)
+    else:
+        raise IOError(f"Unknown file type {path_to_copy}, cannot copy it to {dest_path}")

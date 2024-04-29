@@ -18,11 +18,14 @@ disk space, we copy only the necesary files from it to the thirdparty installed 
 import glob
 import os
 import shutil
+import subprocess
 import tempfile
+import time
 
 from typing import Set, Optional
 
 from yugabyte_db_thirdparty.custom_logging import log
+from yugabyte_db_thirdparty.util import shlex_join
 from yugabyte_db_thirdparty import (
     ldd_util,
     file_util,
@@ -154,16 +157,7 @@ class IntelOneAPIInstallation:
                                 os.path.relpath(path_to_copy, self.base_dir))
                             dest_path = os.path.join(dest_lib_dir, os.path.basename(path_to_copy))
                             if not os.path.exists(dest_path):
-                                if os.path.islink(path_to_copy):
-                                    link_target = os.readlink(path_to_copy)
-                                    assert '/' not in link_target, \
-                                        f"Expected symlink target {link_target} of " \
-                                        f"{path_to_copy} to be a file name only."
-                                    log(f"Symlinking {dest_path} -> {link_target}")
-                                    os.symlink(link_target, dest_path)
-                                else:
-                                    log(f"Copying {path_to_copy} to {dest_path}")
-                                    shutil.copy(path_to_copy, dest_path)
+                               file_util.copy_file_or_simple_symlink(path_to_copy, dest_path)
 
     def remember_paths_to_package_from_tag_dir(self, tag_dir: str) -> None:
         assert os.path.isabs(tag_dir)
@@ -179,27 +173,26 @@ class IntelOneAPIInstallation:
             self.do_create_package(tmp_dir)
         finally:
             pass
-        #shutil.rmtree(tmp_dir)
+            shutil.rmtree(tmp_dir)
 
     def do_create_package(self, tmp_dir: str) -> None:
-        package_name = 'yb-intel-oneapi-123123'
+        time_based_suffix = str(int(time.time()))
+        package_name = f'yb-intel-oneapi-v{self.version}-{time_based_suffix}'
         package_dir = os.path.join(tmp_dir, package_name)
         os.mkdir(package_dir)
         log("Creating package in directory %s", package_dir)
         for rel_path in sorted(self.paths_to_be_packaged):
-            print("Path: %s" % rel_path)
             file_util.create_intermediate_dirs_for_rel_path(package_dir, rel_path)
             full_path = os.path.join(self.base_dir, rel_path)
             assert os.path.exists(full_path)
-            target_path = os.path.join(package_dir, rel_path)
-            if os.path.isfile(full_path):
-                shutil.copy(full_path, target_path)
-            elif os.path.islink(full_path):
-                pass
-            else:
-                raise IOError(f"Not sure what to do with file {full_path} during packaging")
-
-
+            dest_path = os.path.join(package_dir, rel_path)
+            file_util.copy_file_or_simple_symlink(full_path, dest_path)
+        archive_name = package_name + '.tar.gz'
+        tar_cmd = ['tar', 'czf', archive_name, package_name]
+        archive_path = os.path.join(tmp_dir, archive_name)
+        log("Creating Intel oneAPI subset archive at %s using command: %s",
+            archive_path, shlex_join(tar_cmd))
+        subprocess.check_call(tar_cmd, cwd=tmp_dir)
 
 
 _oneapi_installation: Optional[IntelOneAPIInstallation] = None

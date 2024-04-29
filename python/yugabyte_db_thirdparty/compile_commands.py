@@ -31,6 +31,7 @@ from yugabyte_db_thirdparty import (
     constants,
 )
 from yugabyte_db_thirdparty.custom_logging import log
+from yugabyte_db_thirdparty.file_util import mkdir_p
 
 
 COMPILE_COMMAND_FILE_SUFFIX = '.compile_command.json'
@@ -342,7 +343,7 @@ def create_vscode_settings(
     clangd_index_path = os.path.join(build_dir, clangd_index_rel_path)
 
     vscode_dir = os.path.join(src_dir, '.vscode')
-    util.mkdir_p(vscode_dir)
+    mkdir_p(vscode_dir)
     settings_json_path = os.path.join(vscode_dir, 'settings.json')
 
     if (not os.path.exists(settings_json_path) or

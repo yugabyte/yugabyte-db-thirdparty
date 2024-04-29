@@ -173,7 +173,6 @@ class DiskANNDependency(Dependency):
                 self.oneapi_installation.add_path_to_be_packaged(os.path.relpath(
                     p, intel_oneapi.ONEAPI_DEFAULT_BASE_DIR))
 
-
         builder.copy_include_files(
             dep=self,
             rel_src_include_path='include',
@@ -181,5 +180,6 @@ class DiskANNDependency(Dependency):
 
         installed_common_lib_dir = os.path.join(builder.fs_layout.tp_installed_common_dir, 'lib')
         self.oneapi_installation.copy_needed_libraries(install_prefix, installed_common_lib_dir)
+
         if used_include_tags_dir is not None:
             self.oneapi_installation.remember_paths_to_package_from_tag_dir(used_include_tags_dir)

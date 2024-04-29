@@ -271,7 +271,7 @@ class CompilerWrapper:
             assert compile_commands_tmp_dir is not None
             compile_command_path = compile_commands.get_compile_command_path_for_output_file(
                 compile_commands_tmp_dir, output_path)
-            mkdir_p(os.path.dirname(compile_command_path))
+            file_util.mkdir_p(os.path.dirname(compile_command_path))
             assert len(input_file_candidates) == 1, \
                 "Expected exactly one input file candidate, got: %s" % input_file_candidates
             input_path = os.path.abspath(input_file_candidates[0])
