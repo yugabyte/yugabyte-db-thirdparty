@@ -157,7 +157,7 @@ class IntelOneAPIInstallation:
                                 os.path.relpath(path_to_copy, self.base_dir))
                             dest_path = os.path.join(dest_lib_dir, os.path.basename(path_to_copy))
                             if not os.path.exists(dest_path):
-                               file_util.copy_file_or_simple_symlink(path_to_copy, dest_path)
+                                file_util.copy_file_or_simple_symlink(path_to_copy, dest_path)
 
     def remember_paths_to_package_from_tag_dir(self, tag_dir: str) -> None:
         assert os.path.isabs(tag_dir)
