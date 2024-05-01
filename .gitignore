@@ -37,3 +37,4 @@ a.out
 fossa-deps.json
 *.tmp
 *.tmp.*
+yb-intel-oneapi*.tar.gz
