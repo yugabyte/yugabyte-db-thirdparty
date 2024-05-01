@@ -124,9 +124,9 @@ class BuilderTool:
             log("Build finished in %.1f sec", time.time() - start_time_sec)
 
         if args.package_intel_oneapi:
-            intel_oneapi.find_intel_oneapi().create_package()
+            intel_oneapi.find_intel_oneapi().create_package(dest_dir=os.getcwd())
 
-        if False and not args.download_extract_only:
+        if not args.download_extract_only:
             self.check_libraries()
 
         if args.create_package or args.upload_as_tag:

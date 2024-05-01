@@ -40,7 +40,6 @@ def create_intermediate_dirs_for_rel_path(
         cur_dir = os.path.join(cur_dir, component)
         if not os.path.isdir(cur_dir):
             os.mkdir(cur_dir)
-            print("Created directory %s" % cur_dir)
 
     return cur_dir
 

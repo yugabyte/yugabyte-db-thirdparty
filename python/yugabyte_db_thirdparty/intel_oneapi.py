@@ -134,12 +134,17 @@ class IntelOneAPIInstallation:
         assert not os.path.isabs(path)
         self.paths_to_be_packaged.add(path)
 
-    def copy_needed_libraries(self, dep_install_dir: str, dest_lib_dir: str) -> None:
+    def process_needed_libraries(self, dep_install_dir: str, dest_lib_dir: str) -> None:
         """
         Scans the given directory, which could be an installation directory of a third-party
         dependency, for executables and shared libraries that depend on shared libraries belonging
-        to Intel oneAPI. Copies the needed libraries, including the corresponding static libraries
-        and symlinks, to the specified destination directory.
+        to Intel oneAPI. For each shared library, also processes the corresponding static libraries
+        and any .dbg files, if applicable.
+
+        Has two modes of operation:
+        - If we are packaging Intel oneAPI, only remembers the library paths to be packaged.
+        - If we are not packging Intel oneAPI, copies the needed libraries to the specific
+          destination directory (usually the library directory).
         """
         for root, dirs, files in os.walk(dep_install_dir):
             for file_name in files:
@@ -156,7 +161,14 @@ class IntelOneAPIInstallation:
                             self.add_path_to_be_packaged(
                                 os.path.relpath(path_to_copy, self.base_dir))
                             dest_path = os.path.join(dest_lib_dir, os.path.basename(path_to_copy))
-                            if not os.path.exists(dest_path):
+
+                            # When building an Intel oneAPI package, it is important NOT to copy
+                            # any libraries to the given directory (in practice, it is the
+                            # installed/common directory), because on a re-run this will cause
+                            # ldd to pick up the copied versions of these libraries and may result
+                            # in building a partial Intel oneAPI package insufficient for our needs.
+                            if (not is_package_build_mode_enabled() and
+                                not os.path.exists(dest_path)):
                                 file_util.copy_file_or_simple_symlink(path_to_copy, dest_path)
 
     def remember_paths_to_package_from_tag_dir(self, tag_dir: str) -> None:
@@ -167,15 +179,23 @@ class IntelOneAPIInstallation:
                 rel_path = os.path.relpath(file_path, tag_dir)
                 self.add_path_to_be_packaged(rel_path)
 
-    def create_package(self) -> None:
+    def create_package(self, dest_dir: str) -> None:
         tmp_dir = tempfile.mkdtemp(prefix='intel_oneapi_package_')
         try:
-            self.do_create_package(tmp_dir)
+            self.do_create_package(tmp_dir, package_parent_dir=dest_dir)
         finally:
             pass
             shutil.rmtree(tmp_dir)
 
-    def do_create_package(self, tmp_dir: str) -> None:
+    def do_create_package(self, tmp_dir: str, package_parent_dir: str) -> None:
+        """
+        Package the files belonging to Intel oneAPI that we have identified as necessary for the
+        build of our third-party dependencies. The archive will be created in the given directory.
+        """
+        if not os.path.isdir(package_parent_dir):
+            raise IOError(
+                f"The parent directory {package_parent_dir} for creating the Intel oneAPI "
+                "package in does not exist")
         time_based_suffix = str(int(time.time()))
         package_name = f'yb-intel-oneapi-v{self.version}-{time_based_suffix}'
         package_dir = os.path.join(tmp_dir, package_name)
@@ -188,8 +208,8 @@ class IntelOneAPIInstallation:
             dest_path = os.path.join(package_dir, rel_path)
             file_util.copy_file_or_simple_symlink(full_path, dest_path)
         archive_name = package_name + '.tar.gz'
-        tar_cmd = ['tar', 'czf', archive_name, package_name]
-        archive_path = os.path.join(tmp_dir, archive_name)
+        archive_path = os.path.join(package_parent_dir, archive_name)
+        tar_cmd = ['tar', 'czf', archive_path, package_name]
         log("Creating Intel oneAPI subset archive at %s using command: %s",
             archive_path, shlex_join(tar_cmd))
         subprocess.check_call(tar_cmd, cwd=tmp_dir)

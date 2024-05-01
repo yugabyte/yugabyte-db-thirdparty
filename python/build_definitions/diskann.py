@@ -94,7 +94,7 @@ class DiskANNDependency(Dependency):
             used_include_tags_dir = util.create_preferably_in_mem_tmp_dir(
                 prefix='used_include_tags_',
                 suffix='_' + util.get_temporal_randomized_file_name_suffix(),
-                delete_at_exit=False)  # TODO: set to True
+                delete_at_exit=True)
             env_vars[COMPILER_WRAPPER_ENV_VAR_NAME_TRACK_INCLUDES_IN_SUBDIRS_OF] = \
                 intel_oneapi.ONEAPI_DEFAULT_BASE_DIR
             env_vars[COMPILER_WRAPPER_ENV_VAR_NAME_SAVE_USED_INCLUDE_TAGS_IN_DIR] = \
@@ -118,6 +118,6 @@ class DiskANNDependency(Dependency):
 
         installed_common_lib_dir = os.path.join(builder.fs_layout.tp_installed_common_dir, 'lib')
 
-        self.oneapi_installation.copy_needed_libraries(install_prefix, installed_common_lib_dir)
+        self.oneapi_installation.process_needed_libraries(install_prefix, installed_common_lib_dir)
         if used_include_tags_dir is not None:
             self.oneapi_installation.remember_paths_to_package_from_tag_dir(used_include_tags_dir)
