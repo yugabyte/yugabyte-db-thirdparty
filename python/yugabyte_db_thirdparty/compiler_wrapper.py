@@ -149,7 +149,6 @@ class CompilerWrapper:
     def _get_compiler_command_str(self) -> str:
         return shlex_join(self._get_compiler_path_and_args())
 
-<<<<<<< HEAD
     def check_cxx_standard_version_flags(self, cmd_args: List[str]) -> None:
         cxx_standard_version_set: Set[str] = compiler_flag_util.get_cxx_standard_version_set(
             cmd_args)
@@ -159,7 +158,7 @@ class CompilerWrapper:
                 f"The correct C++ standard {constants.CXX_STANDARD} is not among the "
                 f"specified flags: {cxx_standard_version_set}. "
                 f"Command line: {shlex_join(cmd_args)}.")
-=======
+
     def run_preprocessor(
             self,
             output_path: str) -> None:
