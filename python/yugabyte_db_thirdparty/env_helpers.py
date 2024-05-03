@@ -50,7 +50,7 @@ def write_env_vars(file_path: str) -> None:
         output_file.write(env_script)
 
 
-def is_bool_env_var_set(env_var_name: str) -> bool:
+def get_bool_env_var(env_var_name: str) -> bool:
     v = os.getenv(env_var_name)
     if v is None:
         return False

@@ -30,7 +30,6 @@ from compiler_identification import (
 )
 from packaging.version import parse as parse_version
 
-from yugabyte_db_thirdparty import constants
 
 LOWEST_GCC_VERSION_STR = '7.0.0'
 
