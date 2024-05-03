@@ -30,6 +30,7 @@ from compiler_identification import (
 )
 from packaging.version import parse as parse_version
 
+
 LOWEST_GCC_VERSION_STR = '7.0.0'
 
 

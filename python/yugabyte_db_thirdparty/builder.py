@@ -579,6 +579,12 @@ class Builder(BuilderInterface):
         if self.build_type == BuildType.TSAN:
             self.compiler_flags += TSAN_COMPILER_FLAGS
 
+        # It is very important that we build all dependencies with the same C++ standard, to avoid
+        # issues with handling exceptions. We are force-including this flag even though there are
+        # "proper" ways to specify the C++ standard for various build systems, e.g. CMake's
+        # CMAKE_CXX_STANDARD.
+        self.cxx_flags.append(f'-std=c++{constants.CXX_STANDARD}')
+
     def add_linuxbrew_flags(self) -> None:
         if using_linuxbrew():
             lib_dir = os.path.join(get_linuxbrew_dir(), 'lib')
@@ -621,6 +627,13 @@ class Builder(BuilderInterface):
                     "Dependency build is not allowed to run with the current directory being "
                     f"the top-level directory of yugabyte-db-thirdparty: {YB_THIRDPARTY_DIR}")
 
+    def create_configure_action_context(self) -> EnvVarContext:
+        """
+        Create a "context" for running a configure-like action (autogen, autoconf, configure,
+        CMake configure, etc.) This context should be usable with the "with" statement.
+        """
+        return EnvVarContext(YB_THIRDPARTY_CONFIGURING='1')
+
     def build_with_configure(
             self,
             dep: Dependency,
@@ -640,19 +653,20 @@ class Builder(BuilderInterface):
         with PushDir(dir_for_build):
             log("Building in %s using the configure tool", dir_for_build)
             try:
-                if run_autogen:
-                    self.log_output(log_prefix, ['./autogen.sh'])
-                if autoconf:
-                    self.log_output(log_prefix, ['autoreconf', '-i'])
+                with self.create_configure_action_context():
+                    if run_autogen:
+                        self.log_output(log_prefix, ['./autogen.sh'])
+                    if autoconf:
+                        self.log_output(log_prefix, ['autoreconf', '-i'])
 
-                configure_args = (
-                    configure_cmd.copy() + ['--prefix={}'.format(self.prefix)] + extra_args
-                )
-                configure_args = get_arch_switch_cmd_prefix() + configure_args
-                self.log_output(
-                    log_prefix,
-                    configure_args,
-                    disallowed_pattern=DISALLOWED_CONFIGURE_OUTPUT_RE)
+                    configure_args = (
+                        configure_cmd.copy() + ['--prefix={}'.format(self.prefix)] + extra_args
+                    )
+                    configure_args = get_arch_switch_cmd_prefix() + configure_args
+                    self.log_output(
+                        log_prefix,
+                        configure_args,
+                        disallowed_pattern=DISALLOWED_CONFIGURE_OUTPUT_RE)
             except Exception as ex:
                 log(f"The configure step failed. Looking for relevant files in {dir_for_build} "
                     f"to show.")
@@ -765,7 +779,8 @@ class Builder(BuilderInterface):
                      stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IWGRP |
                      stat.S_IROTH)
 
-            self.log_output(log_prefix, final_cmake_args)
+            with self.create_configure_action_context():
+                self.log_output(log_prefix, final_cmake_args)
 
             if build_tool == 'ninja':
                 dep.postprocess_ninja_build_file(self, 'build.ninja')
@@ -1142,8 +1157,7 @@ class Builder(BuilderInterface):
         # the YugabyteDB source tree.
         return (self.cxx_flags +
                 self.get_effective_compiler_flags(dep) +
-                dep.get_additional_cxx_flags(self) +
-                ['-std=c++{}'.format(dep.get_cxx_version(self))])
+                dep.get_additional_cxx_flags(self))
 
     def get_effective_c_flags(self, dep: Dependency) -> List[str]:
         return (self.c_flags +

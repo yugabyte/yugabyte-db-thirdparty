@@ -113,13 +113,6 @@ class Dependency:
     def get_additional_cxx_flags(self, builder: 'BuilderInterface') -> List[str]:
         return []
 
-    def get_cxx_version(self, builder: 'BuilderInterface') -> str:
-        if is_macos():
-            version = builder.compiler_choice.get_llvm_major_version()
-            if version and version < 13:
-                return '2a'
-        return '20'
-
     def get_additional_leading_ld_flags(self, builder: 'BuilderInterface') -> List[str]:
         """
         These flags are added in front of the linker command line.

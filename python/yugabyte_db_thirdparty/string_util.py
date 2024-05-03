@@ -66,3 +66,7 @@ def shlex_join(args: List[str], one_arg_per_line: bool = False) -> str:
     if one_arg_per_line:
         return ' \\\n  '.join(quoted_args)
     return ' '.join(quoted_args)
+
+
+def parse_bool(s: str) -> bool:
+    return s.strip().lower() not in ['', '0', 'false', 'no']

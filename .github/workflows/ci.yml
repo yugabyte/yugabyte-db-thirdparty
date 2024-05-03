@@ -55,22 +55,6 @@ jobs:
               --devtoolset=11
               --expected-major-compiler-version=11
 
-          # Clang 16
-          - name: centos7-x86_64-clang16
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_centos7_x86_64:v2023-10-25T03_33_02
-            build_thirdparty_args: >-
-              --toolchain=llvm16
-              --expected-major-compiler-version=16
-
-          - name: centos7-x86_64-clang16-full-lto
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_centos7_x86_64:v2023-10-25T03_33_02
-            build_thirdparty_args: >-
-              --toolchain=llvm16
-              --expected-major-compiler-version=16
-              --lto=full
-
           # Clang 17
           - name: centos7-x86_64-clang17
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
@@ -110,13 +94,6 @@ jobs:
               --compiler-suffix=-11
               --expected-major-compiler-version=11
 
-          - name: ubuntu2204-x86_64-clang16
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_ubuntu2204_x86_64:v2023-10-25T03_33_00
-            build_thirdparty_args: >-
-              --toolchain=llvm16
-              --expected-major-compiler-version=16
-
           - name: ubuntu2204-x86_64-clang17
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_ubuntu2204_x86_64:v2023-10-25T03_33_00
@@ -134,14 +111,6 @@ jobs:
             build_thirdparty_args: >-
               --devtoolset=11
               --expected-major-compiler-version=11
-
-          # Clang/LLVM 16
-          - name: almalinux8-x86_64-clang16
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2023-10-25T03_33_01
-            build_thirdparty_args: >-
-              --toolchain=llvm16
-              --expected-major-compiler-version=16
 
           # Clang/LLVM 17
           - name: almalinux8-x86_64-clang17
@@ -174,13 +143,6 @@ jobs:
             build_thirdparty_args: >-
               --devtoolset=12
               --expected-major-compiler-version=12
-
-          - name: almalinux9-x86_64-clang16
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_almalinux9_x86_64:v2023-10-25T03_33_02
-            build_thirdparty_args: >-
-              --toolchain=llvm16
-              --expected-major-compiler-version=16
 
           - name: almalinux9-x86_64-clang17
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
