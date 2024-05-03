@@ -16,7 +16,7 @@ import os
 import shlex
 
 from yugabyte_db_thirdparty.devtoolset import DEVTOOLSET_ENV_VARS
-from yugabyte_db_thirdparty.string_util import split_into_word_set
+from yugabyte_db_thirdparty.string_util import split_into_word_set, parse_bool
 
 
 # A mechanism to save some environment variabls to a file in the dependency's build directory to
@@ -48,3 +48,10 @@ def write_env_vars(file_path: str) -> None:
             env_script += 'export %s=%s\n' % (k, shlex.quote(v))
     with open(file_path, 'w') as output_file:
         output_file.write(env_script)
+
+
+def is_bool_env_var_set(env_var_name: str) -> bool:
+    v = os.getenv(env_var_name)
+    if v is None:
+        return False
+    return parse_bool(v)

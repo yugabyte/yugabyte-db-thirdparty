@@ -28,6 +28,7 @@ from yugabyte_db_thirdparty.constants import (
     COMPILER_WRAPPER_ENV_VAR_NAME_LD_FLAGS_TO_REMOVE,
 )
 from yugabyte_db_thirdparty.util import mkdir_p
+from yugabyte_db_thirdparty.env_helpers import is_bool_env_var_set
 from yugabyte_db_thirdparty import compile_commands, constants, compiler_flag_util
 
 
@@ -104,27 +105,25 @@ class CompilerWrapper:
         return shlex_join(self._get_compiler_path_and_args())
 
     def check_cxx_standard_version_flags(self, cmd_args: List[str]) -> None:
-        if not self.is_cxx:
-            return
-
         cxx_standard_version_set: Set[str] = compiler_flag_util.get_cxx_standard_version_set(
             cmd_args)
-        if str(constants.CXX_STANDARD) not in cxx_standard_version_set:
+        if not any(compiler_flag_util.is_correct_cxx_standard_version(v)
+                   for v in cxx_standard_version_set):
             raise ValueError(
                 f"The correct C++ standard {constants.CXX_STANDARD} is not among the "
-                f"specified flags: {cxx_standard_version_set}")
+                f"specified flags: {cxx_standard_version_set}. "
+                f"Command line: {shlex_join(cmd_args)}.")
 
         if len(cxx_standard_version_set) > 1:
-            sys.stderr.write(
-                f"Contradictory C++ standards specified: {sorted(cxx_standard_version_set)}, "
-                f"replacing with {constants.CXX_STANDARD} only")
+            error_msg = \
+                f"Contradictory C++ standards specified: {sorted(cxx_standard_version_set)}, " \
+                f"replacing with {constants.CXX_STANDARD} only"
             cmd_args[:] = compiler_flag_util.remove_incorrect_cxx_standard_flags(cmd_args)
             # We have made sure that the correct C++ standard is included in the arguments.
 
     def run(self) -> None:
-        verbose: bool = os.environ.get('YB_THIRDPARTY_VERBOSE') == '1'
-
-        use_ccache = os.getenv('YB_THIRDPARTY_USE_CCACHE') == '1'
+        verbose = is_bool_env_var_set('YB_THIRDPARTY_VERBOSE')
+        use_ccache = is_bool_env_var_set('YB_THIRDPARTY_USE_CCACHE')
 
         cmd_args: List[str]
         if use_ccache:
@@ -132,8 +131,6 @@ class CompilerWrapper:
             cmd_args = ['ccache', 'compiler'] + self.compiler_args
         else:
             cmd_args = self._get_compiler_path_and_args()
-
-        self.check_cxx_standard_version_flags(cmd_args)
 
         output_files = []
         for i in range(len(self.compiler_args) - 1):
@@ -143,6 +140,9 @@ class CompilerWrapper:
         is_linking = [
             is_shared_library_name(output_file_name) for output_file_name in output_files
         ]
+
+        if self.is_cxx and not is_linking and not is_bool_env_var_set('YB_THIRDPARTY_CONFIGURING'):
+            self.check_cxx_standard_version_flags(cmd_args)
 
         if is_linking:
             cmd_args.extend(
