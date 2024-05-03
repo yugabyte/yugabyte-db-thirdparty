@@ -21,6 +21,8 @@ from typing import Optional
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 from yugabyte_db_thirdparty.util import EnvVarContext
 
+from yugabyte_db_thirdparty import constants
+
 
 PROJECT_CONFIG = """
 libraries = {5} ;
@@ -102,7 +104,8 @@ class BoostDependency(Dependency):
                     ' '.join(['<linkflags>' + flag for flag in cxx_flags + builder.ld_flags]),
                     ' '.join(['--with-{}'.format(lib) for lib in libs])))
         # -q means stop at first error
-        build_cmd = ['./b2', 'install', 'cxxstd=20', 'toolset=%s' % boost_toolset, '-q']
+        build_cmd = ['./b2', 'install', f'cxxstd={constants.CXX_STANDARD}',
+                     'toolset=%s' % boost_toolset, '-q']
         if is_macos_arm64_build():
             build_cmd.append('instruction-set=arm64')
         builder.log_output(log_prefix, build_cmd)

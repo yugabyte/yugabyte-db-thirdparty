@@ -103,19 +103,20 @@ class CompilerWrapper:
     def _get_compiler_command_str(self) -> str:
         return shlex_join(self._get_compiler_path_and_args())
 
-    def check_cxx_standard_args(self, cmd_args: List[str]) -> None:
+    def check_cxx_standard_version_flags(self, cmd_args: List[str]) -> None:
         if not self.is_cxx:
             return
 
-        cxx_standard_args: Set[str] = compiler_flag_util.get_cxx_standard_flag_set(cmd_args)
-        if str(constants.CXX_STANDARD) not in cxx_standard_args:
+        cxx_standard_version_set: Set[str] = compiler_flag_util.get_cxx_standard_version_set(
+            cmd_args)
+        if str(constants.CXX_STANDARD) not in cxx_standard_version_set:
             raise ValueError(
                 f"The correct C++ standard {constants.CXX_STANDARD} is not among the "
-                f"specified flags: {cxx_standard_args}")
+                f"specified flags: {cxx_standard_version_set}")
 
-        if len(cxx_standard_args) > 1:
+        if len(cxx_standard_version_set) > 1:
             sys.stderr.write(
-                f"Contradictory C++ standards specified: {sorted(cxx_standard_args)}, "
+                f"Contradictory C++ standards specified: {sorted(cxx_standard_version_set)}, "
                 f"replacing with {constants.CXX_STANDARD} only")
             cmd_args[:] = compiler_flag_util.remove_incorrect_cxx_standard_flags(cmd_args)
             # We have made sure that the correct C++ standard is included in the arguments.
@@ -132,7 +133,7 @@ class CompilerWrapper:
         else:
             cmd_args = self._get_compiler_path_and_args()
 
-        self.check_cxx_standard_args(cmd_args)
+        self.check_cxx_standard_version_flags(cmd_args)
 
         output_files = []
         for i in range(len(self.compiler_args) - 1):
