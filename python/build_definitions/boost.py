@@ -102,7 +102,7 @@ class BoostDependency(Dependency):
                     ' '.join(['<linkflags>' + flag for flag in cxx_flags + builder.ld_flags]),
                     ' '.join(['--with-{}'.format(lib) for lib in libs])))
         # -q means stop at first error
-        build_cmd = ['./b2', 'install', 'cxxstd=14', 'toolset=%s' % boost_toolset, '-q']
+        build_cmd = ['./b2', 'install', 'cxxstd=20', 'toolset=%s' % boost_toolset, '-q']
         if is_macos_arm64_build():
             build_cmd.append('instruction-set=arm64')
         builder.log_output(log_prefix, build_cmd)

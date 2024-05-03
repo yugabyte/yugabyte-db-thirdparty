@@ -28,7 +28,7 @@ from yugabyte_db_thirdparty.constants import (
     COMPILER_WRAPPER_ENV_VAR_NAME_LD_FLAGS_TO_REMOVE,
 )
 from yugabyte_db_thirdparty.util import mkdir_p
-from yugabyte_db_thirdparty import compile_commands
+from yugabyte_db_thirdparty import compile_commands, constants, compiler_flag_util
 
 
 C_CXX_SUFFIXES = ('.c', '.cc', '.cxx', '.cpp')
@@ -103,6 +103,23 @@ class CompilerWrapper:
     def _get_compiler_command_str(self) -> str:
         return shlex_join(self._get_compiler_path_and_args())
 
+    def check_cxx_standard_args(self, cmd_args: List[str]) -> None:
+        if not self.is_cxx:
+            return
+
+        cxx_standard_args: Set[str] = compiler_flag_util.get_cxx_standard_flag_set(cmd_args)
+        if str(constants.CXX_STANDARD) not in cxx_standard_args:
+            raise ValueError(
+                f"The correct C++ standard {constants.CXX_STANDARD} is not among the "
+                f"specified flags: {cxx_standard_args}")
+
+        if len(cxx_standard_args) > 1:
+            sys.stderr.write(
+                f"Contradictory C++ standards specified: {sorted(cxx_standard_args)}, "
+                f"replacing with {constants.CXX_STANDARD} only")
+            cmd_args[:] = compiler_flag_util.remove_incorrect_cxx_standard_flags(cmd_args)
+            # We have made sure that the correct C++ standard is included in the arguments.
+
     def run(self) -> None:
         verbose: bool = os.environ.get('YB_THIRDPARTY_VERBOSE') == '1'
 
@@ -114,6 +131,8 @@ class CompilerWrapper:
             cmd_args = ['ccache', 'compiler'] + self.compiler_args
         else:
             cmd_args = self._get_compiler_path_and_args()
+
+        self.check_cxx_standard_args(cmd_args)
 
         output_files = []
         for i in range(len(self.compiler_args) - 1):

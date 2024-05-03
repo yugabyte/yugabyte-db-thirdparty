@@ -579,6 +579,14 @@ class Builder(BuilderInterface):
         if self.build_type == BuildType.TSAN:
             self.compiler_flags += TSAN_COMPILER_FLAGS
 
+        self.compiler_flags.append('-g')
+
+        # It is very important that we build all dependencies with the same C++ standard, to avoid
+        # issues with handling exceptions. We are force-including this flag even though there are
+        # "proper" ways to specify the C++ standard for various build systems, e.g. CMake's
+        # CMAKE_CXX_STANDARD.
+        self.cxx_flags.append(f'-std=c++{constants.CXX_STANDARD}')
+
     def add_linuxbrew_flags(self) -> None:
         if using_linuxbrew():
             lib_dir = os.path.join(get_linuxbrew_dir(), 'lib')
@@ -1143,7 +1151,7 @@ class Builder(BuilderInterface):
         return (self.cxx_flags +
                 self.get_effective_compiler_flags(dep) +
                 dep.get_additional_cxx_flags(self) +
-                ['-std=c++{}'.format(dep.get_cxx_version(self))])
+                ['-std=c++{}'.format(constants.CXX_STANDARD)])
 
     def get_effective_c_flags(self, dep: Dependency) -> List[str]:
         return (self.c_flags +
