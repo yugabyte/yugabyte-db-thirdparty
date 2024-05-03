@@ -168,7 +168,7 @@ class IntelOneAPIInstallation:
                             # ldd to pick up the copied versions of these libraries and may result
                             # in building a partial Intel oneAPI package insufficient for our needs.
                             if (not is_package_build_mode_enabled() and
-                                not os.path.exists(dest_path)):
+                                    not os.path.exists(dest_path)):
                                 file_util.copy_file_or_simple_symlink(path_to_copy, dest_path)
 
     def remember_paths_to_package_from_tag_dir(self, tag_dir: str) -> None:
