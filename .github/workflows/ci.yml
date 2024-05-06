@@ -5,11 +5,6 @@ on:
     branches:
       - master
       # Not all of these branches might exist.
-      - 2.4
-      - 2.6
-      - 2.8
-      - 2.10
-      - 2.12
       - 2.14
       - 2.16
       - 2.17.3
@@ -192,6 +187,19 @@ jobs:
             build_thirdparty_args: >-
               --devtoolset=12
               --expected-major-compiler-version=12
+
+          # ---------------------------------------------------------------------------------------
+          # AmazonLinux 2
+          # ---------------------------------------------------------------------------------------
+
+          # Clang/LLVM 17
+          - name: amazonlinux2-x86_64-clang17
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_aamazonlinux2_x86_64:v2024-04-25T17_54_47
+            build_thirdparty_args: >-
+              --toolchain=llvm17
+              --expected-major-compiler-version=17
+
 
           # ---------------------------------------------------------------------------------------
           # macOS
