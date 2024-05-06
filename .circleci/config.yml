@@ -52,7 +52,7 @@ workflows:
             --expected-major-compiler-version=16
             --skip-sanitizers
 
-      - build:
+      - aarch64:
           archive_name_suffix: centos7-aarch64-clang16
           docker_image: yugabyteci/yb_build_infra_centos7_aarch64:v2023-10-25T03_32_55
           build_thirdparty_args: >-
@@ -69,7 +69,7 @@ workflows:
             --skip-sanitizers
             --lto=full
 
-      - build:
+      - aarch64:
           archive_name_suffix: amazonlinux2-aarch64-clang17
           docker_image: yugabyteci/yb_build_infra_amazonlinux2_aarch64:v2024-04-25T17_55_13
           build_thirdparty_args: >-
@@ -85,7 +85,7 @@ workflows:
             --expected-major-compiler-version=17
             --skip-sanitizers
 
-      - build:
+      - aarch64:
           archive_name_suffix: amazonlinux2-aarch64-clang17-full-lto
           docker_image: yugabyteci/yb_build_infra_amazonlinux2_aarch64:v2024-04-25T17_55_13
           build_thirdparty_args: >-
