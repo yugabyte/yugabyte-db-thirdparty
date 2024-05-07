@@ -20,7 +20,6 @@ echo "Build type: $build_type"
 
 # A quick way to filter build types in the commit message.
 should_build=true
-set -x
 if [[ $GIT_HEAD_COMMIT_MESSAGE == *"$CI_BUILD_TYPES_KEYWORD"* ]]; then
 
   # The commit message includes a line such as the following:
@@ -45,18 +44,32 @@ if [[ $GIT_HEAD_COMMIT_MESSAGE == *"$CI_BUILD_TYPES_KEYWORD"* ]]; then
   set -e
 
   # Convert the build types to an array, trimming spaces manually
-  IFS=',' read -r -a build_type_patterns_array <<< "$build_types_str"
+  IFS=',' read -r -a build_type_patterns_tmp_array <<< "$build_types_str"
   build_type_patterns_array=()
+  for build_type_pattern in "${build_type_patterns_tmp_array[@]}"; do
+    build_type_patterns_array+=( "$build_type_pattern" )
+    if [[ $build_type_patterns_array == *linux* ]]; then
+      # "linux" should match all Linux flavors we use in the builds.
+      build_type_patterns_array+=(
+        "${build_type_pattern//linux/centos}"
+        "${build_type_pattern//linux/almalinux}"
+        "${build_type_pattern//linux/ubuntu}"
+      )
+    fi
+  done
   should_build=false
+
   for build_type_pattern in "${build_type_patterns_array[@]}"; do
     # Remove leading/trailing whitespace.
     build_type_pattern=${build_type_pattern#"${build_type_pattern%%[![:space:]]*}"}
     build_type_pattern=${build_type_pattern%"${build_type_pattern##*[![:space:]]}"}
     if [[ $build_type_pattern =~ ^[a-zA-Z0-9*-_]$ ]]; then
       if [[ "$build_type" == *$build_type_pattern* ]]; then
-        echo >&2 "Build type '$$build_type' matched pattern" \
+        echo >&2 "Build type '$build_type' matched pattern" \
                  "'$build_type_pattern', proceeding with the build."
         should_build=true
+      else
+        echo >&2 "Build type '$build_type' did not match pattern '$build_type_pattern'"
         break
       fi
     else
