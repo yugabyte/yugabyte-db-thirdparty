@@ -35,8 +35,9 @@ if [[ $GIT_HEAD_COMMIT_MESSAGE == *"$CI_BUILD_TYPES_KEYWORD"* ]]; then
   # command.
   set +e
   build_types_str=$(
-    grep -Eo "(?<=$CI_BUILD_TYPES_KEYWORD).*" <<< "$GIT_HEAD_COMMIT_MESSAGE"
+    grep -Eo "$CI_BUILD_TYPES_KEYWORD.*" <<< "$GIT_HEAD_COMMIT_MESSAGE"
   )
+  build_types_str=${build_types_str//${CI_BUILD_TYPES_KEYWORD}/ }
   if [[ -z "$build_types_str" ]]; then
     echo >&2 "Internal error: could not parse the build type patterns from the commit message."
     exit 1
