@@ -319,7 +319,9 @@ class Builder(BuilderInterface):
             lto_type=self.args.lto)
         self.populate_dependencies()
         self.select_dependencies_to_build()
-        self.compiler_choice.set_compiler(use_compiler_wrapper=False)
+
+        # Do not decide whether to use the compiler wrapper now.
+        self.compiler_choice.set_compiler(use_compiler_wrapper=None)
 
     def populate_dependencies(self) -> None:
         # We have to use get_build_def_module to access submodules of build_definitions,
