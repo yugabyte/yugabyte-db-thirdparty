@@ -6,13 +6,21 @@ readonly CI_BUILD_TYPES_KEYWORD="CI build types:"
 GIT_HEAD_COMMIT_MESSAGE=$( git log --format=%B -n 1 --no-merges )
 readonly GIT_HEAD_COMMIT_MESSAGE
 
-echo "Git HEAD commit message: $GIT_HEAD_COMMIT_MESSAGE"
+echo
+echo "--------------------------------------------------------------------------------------------"
+echo "Git HEAD commit message:"
+echo
+echo "$GIT_HEAD_COMMIT_MESSAGE"
+echo
+echo "--------------------------------------------------------------------------------------------"
+echo
 
 build_type=$YB_THIRDPARTY_ARCHIVE_NAME_SUFFIX
 echo "Build type: $build_type"
 
 # A quick way to filter build types in the commit message.
 should_build=true
+set -x
 if [[ $GIT_HEAD_COMMIT_MESSAGE == *"$CI_BUILD_TYPES_KEYWORD"* ]]; then
 
   # The commit message includes a line such as the following:
