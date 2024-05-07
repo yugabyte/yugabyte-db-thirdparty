@@ -71,6 +71,9 @@ if [[ $GIT_HEAD_COMMIT_MESSAGE == *"$CI_BUILD_TYPES_KEYWORD"* ]]; then
   for build_type_pattern in "${build_type_patterns_array[@]}"; do
     build_type_pattern="*${build_type_pattern}*"
     if [[ $build_type_pattern =~ ^[a-zA-Z0-9*-_]+$ ]]; then
+      # The absence of quotes around $build_type_pattern is intentional. We allow asterisk wildcard
+      # matching.
+      # shellcheck disable=SC2053
       if [[ "$build_type" == $build_type_pattern ]]; then
         echo >&2 "Build type '$build_type' matched pattern" \
                  "'$build_type_pattern', proceeding with the build."
