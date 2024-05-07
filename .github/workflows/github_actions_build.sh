@@ -35,7 +35,7 @@ if [[ $GIT_HEAD_COMMIT_MESSAGE == *"$CI_BUILD_TYPES_KEYWORD"* ]]; then
   # command.
   set +e
   build_types_str=$(
-    grep -oP "(?<=$CI_BUILD_TYPES_KEYWORD).*" <<< "$GIT_HEAD_COMMIT_MESSAGE"
+    grep -Eo "(?<=$CI_BUILD_TYPES_KEYWORD).*" <<< "$GIT_HEAD_COMMIT_MESSAGE"
   )
   if [[ -z "$build_types_str" ]]; then
     echo >&2 "Internal error: could not parse the build type patterns from the commit message."
@@ -47,6 +47,10 @@ if [[ $GIT_HEAD_COMMIT_MESSAGE == *"$CI_BUILD_TYPES_KEYWORD"* ]]; then
   IFS=',' read -r -a build_type_patterns_tmp_array <<< "$build_types_str"
   build_type_patterns_array=()
   for build_type_pattern in "${build_type_patterns_tmp_array[@]}"; do
+    # Remove leading/trailing whitespace.
+    build_type_pattern=${build_type_pattern#"${build_type_pattern%%[![:space:]]*}"}
+    build_type_pattern=${build_type_pattern%"${build_type_pattern##*[![:space:]]}"}
+
     build_type_patterns_array+=( "$build_type_pattern" )
     if [[ $build_type_pattern == *linux* ]]; then
       echo >&2 "Expanding pattern '$build_type_pattern' to match all Linux distributions."
@@ -57,14 +61,13 @@ if [[ $GIT_HEAD_COMMIT_MESSAGE == *"$CI_BUILD_TYPES_KEYWORD"* ]]; then
       )
     fi
   done
+
+  echo >&2 "Final list of build type patterns: {build_type_patterns_array[*]}"
+
   should_build=false
 
   pattern_parsing_error=false
   for build_type_pattern in "${build_type_patterns_array[@]}"; do
-    # Remove leading/trailing whitespace.
-    build_type_pattern=${build_type_pattern#"${build_type_pattern%%[![:space:]]*}"}
-    build_type_pattern=${build_type_pattern%"${build_type_pattern##*[![:space:]]}"}
-
     build_type_pattern="*${build_type_pattern}*"
     if [[ $build_type_pattern =~ ^[a-zA-Z0-9*-_]+$ ]]; then
       if [[ "$build_type" == *$build_type_pattern* ]]; then
