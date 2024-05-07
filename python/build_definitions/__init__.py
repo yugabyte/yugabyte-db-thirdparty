@@ -23,6 +23,8 @@ from typing import Any, List, Dict, Union, TYPE_CHECKING
 
 from sys_detection import is_macos, is_linux
 
+from yugabyte_db_thirdparty.arch import is_building_for_x86_64
+
 from yugabyte_db_thirdparty.custom_logging import log
 from yugabyte_db_thirdparty.archive_handling import make_archive_name
 
@@ -199,8 +201,8 @@ def get_final_dependency_module_names() -> List[str]:
         'otel',
     ])
 
-    if is_linux():
-        # TODO: can we build DiskANN on macOS? Particularly, arm64?
+    if is_linux() and is_building_for_x86_64():
+        # TODO: support macOS (any CPU) and Linux with aarch64.
         dep_names.append('diskann')
 
     return dep_names

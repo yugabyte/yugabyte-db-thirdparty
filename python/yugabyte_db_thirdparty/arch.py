@@ -49,6 +49,10 @@ def get_target_arch() -> str:
     return g_target_arch
 
 
+def is_building_for_x86_64() -> bool:
+    return get_target_arch() == 'x86_64'
+
+
 def verify_arch() -> None:
     target_arch = get_target_arch()
     actual_arch = platform.machine()

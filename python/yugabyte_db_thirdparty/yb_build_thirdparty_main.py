@@ -111,10 +111,10 @@ class BuilderTool:
         builder = self.builder
         args = builder.args
 
-        if args.package_intel_oneapi:
-            intel_oneapi.enable_package_build_mode()
-
         builder.finish_initialization()
+        if args.package_intel_oneapi:
+            intel_oneapi.enable_package_build_mode(
+                installed_common_dir=builder.fs_layout.tp_installed_common_dir)
 
         start_time_sec = time.time()
         if args.check_libs_only:

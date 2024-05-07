@@ -158,6 +158,12 @@ class CompilerWrapper:
                 f"The correct C++ standard {constants.CXX_STANDARD} is not among the "
                 f"specified flags: {cxx_standard_version_set}. "
                 f"Command line: {shlex_join(cmd_args)}.")
+        if len(cxx_standard_version_set) > 1:
+            error_msg = \
+                f"Contradictory C++ standards specified: {sorted(cxx_standard_version_set)}, " \
+                f"replacing with {constants.CXX_STANDARD} only"
+            cmd_args[:] = compiler_flag_util.remove_incorrect_cxx_standard_flags(cmd_args)
+            # We have made sure that the correct C++ standard is included in the arguments.
 
     def run_preprocessor(
             self,
@@ -294,17 +300,6 @@ class CompilerWrapper:
                     file=input_path,
                     arguments=arguments
                 ), compile_command_file)
-
-    def run(self) -> None:
-        verbose: bool = os.environ.get('YB_THIRDPARTY_VERBOSE') == '1'
->>>>>>> 5b5ef21 (Add DiskANN and upgrade llvm-installer)
-
-        if len(cxx_standard_version_set) > 1:
-            error_msg = \
-                f"Contradictory C++ standards specified: {sorted(cxx_standard_version_set)}, " \
-                f"replacing with {constants.CXX_STANDARD} only"
-            cmd_args[:] = compiler_flag_util.remove_incorrect_cxx_standard_flags(cmd_args)
-            # We have made sure that the correct C++ standard is included in the arguments.
 
     def run(self) -> None:
         verbose = get_bool_env_var('YB_THIRDPARTY_VERBOSE')

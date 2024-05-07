@@ -70,6 +70,7 @@ from yugabyte_db_thirdparty.arch import (
     get_target_arch,
     get_other_macos_arch,
     add_homebrew_to_path,
+    is_building_for_x86_64,
 )
 from yugabyte_db_thirdparty import util
 from yugabyte_db_thirdparty.util import (
@@ -104,6 +105,7 @@ from yugabyte_db_thirdparty import (
 )
 from yugabyte_db_thirdparty.rpath_util import get_rpath_flag
 from yugabyte_db_thirdparty.env_helpers import EnvVarContext
+from yugabyte_db_thirdparty import intel_oneapi
 
 # -------------------------------------------------------------------------------------------------
 
@@ -279,6 +281,7 @@ class Builder(BuilderInterface):
         self.download_manager = DownloadManager(
             should_add_checksum=self.args.add_checksum,
             download_dir=self.fs_layout.tp_download_dir)
+        intel_oneapi.set_download_manager(self.download_manager)
 
         compiler_family, compiler_prefix = self.determine_compiler_family_and_prefix()
 
@@ -406,7 +409,7 @@ class Builder(BuilderInterface):
                 add_path_entry(llvm_tool_dir)
 
     def run(self) -> None:
-        if is_macos() and get_target_arch() == 'x86_64':
+        if is_macos() and is_building_for_x86_64():
             os.environ['MACOSX_DEPLOYMENT_TARGET'] = get_min_supported_macos_version()
         if self.args.clean or self.args.clean_downloads:
             self.fs_layout.clean(self.selected_dependencies, self.args.clean_downloads)
@@ -655,7 +658,7 @@ class Builder(BuilderInterface):
                     self.log_output(
                         log_prefix,
                         configure_args,
-                    disallowed_pattern=DISALLOWED_CONFIGURE_OUTPUT_RE)
+                        disallowed_pattern=DISALLOWED_CONFIGURE_OUTPUT_RE)
             except Exception as ex:
                 log(f"The configure step failed. Looking for relevant files in {dir_for_build} "
                     f"to show.")
@@ -936,30 +939,17 @@ class Builder(BuilderInterface):
             self.perform_pre_build_steps(dep)
 
         for dep in dependencies_matching_group:
+            self.perform_pre_build_steps(dep)
             should_build = dep.should_build(self)
             should_rebuild = self.should_rebuild_dependency(dep)
-            if should_build and should_rebuild:
-                self.build_dependency(dep, only_process_flags=False)
-                self.check_spurious_a_out_file()
-            else:
-                self.build_dependency(dep, only_process_flags=True)
+            only_process_flags = not should_build or not should_rebuild
+            self.build_dependency(dep, only_process_flags=only_process_flags)
+            if only_process_flags:
                 log(f"Skipped dependency {dep.name}: "
                     f"should_build={should_build}, "
                     f"should_rebuild={should_rebuild}.")
-
-        for dep in self.selected_dependencies:
-            if build_group == dep.build_group:
-                self.perform_pre_build_steps(dep)
-                should_build = dep.should_build(self)
-                should_rebuild = self.should_rebuild_dependency(dep)
-                if should_build and should_rebuild:
-                    self.build_dependency(dep, only_process_flags=False)
-                    self.check_spurious_a_out_file()
-                else:
-                    self.build_dependency(dep, only_process_flags=True)
-                    log(f"Skipped dependency {dep.name}: "
-                        f"should_build={should_build}, "
-                        f"should_rebuild={should_rebuild}.")
+            else:
+                self.check_spurious_a_out_file()
 
     def get_install_prefix(self) -> str:
         return os.path.join(self.fs_layout.tp_installed_dir, self.build_type.dir_name())

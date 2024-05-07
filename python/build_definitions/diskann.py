@@ -42,10 +42,46 @@ class DiskANNDependency(Dependency):
         self.copy_sources = False
         self.oneapi_installation = find_intel_oneapi()
 
+        # Original directory: /opt/intel/oneapi/mkl/2024.1/lib (3+ GB size)
+        # YugabyteDB-packaged directory:
+        # /opt/yb-build/intel-oneapi/yb-intel-oneapi-v2024.1-1714789365/mkl/2024.1/lib (621 MB)
+        # Packaged libraries:
+        #   - libmkl_core.a (402 MB, the largest by far)
+        #   - libmkl_core.so
+        #   - libmkl_core.so.2
+        #   - libmkl_intel_ilp64.a
+        #   - libmkl_intel_ilp64.so
+        #   - libmkl_intel_ilp64.so.2
+        #   - libmkl_intel_thread.a
+        #   - libmkl_intel_thread.so
+        #   - libmkl_intel_thread.so.2
         self.intel_mkl_lib_dir = self.oneapi_installation.get_mkl_lib_dir()
+        log("intel_mkl_lib_dir: %s", self.intel_mkl_lib_dir)
+
+        # Original directory:
+        # /opt/intel/oneapi/mkl/2024.1/include (22 MB size)
+        #
+        # YugabyteDB-packaged directory:
+        # /opt/yb-build/intel-oneapi/yb-intel-oneapi-v2024.1-1714789365/mkl/2024.1/include (6 MB)
         self.intel_mkl_include_dir = self.oneapi_installation.get_mkl_include_dir()
+        log("intel_mkl_include_dir: %s", self.intel_mkl_include_dir)
+
+        # Original directory: /opt/intel/oneapi/compiler/2024.1/lib (1 GB+ size)
+        #
+        # YugabyteDB-packaged directory:
+        # /opt/yb-build/intel-oneapi/yb-intel-oneapi-v2024.1-1714789365/compiler/2024.1/lib
+        #
+        # In the YugabyteDB-packaged archive, this directory contains libraries:
+        # libiomp5.a  libiomp5.dbg  libiomp5.so
+        # (13 MB size)
         self.openmp_lib_dir = self.oneapi_installation.get_openmp_lib_dir()
+        log("openmp_lib_dir: %s", self.openmp_lib_dir)
+
+        # Original directory: /opt/intel/oneapi/compiler/2024.1/opt/compiler/include
+        # Possible path inside YugabyteDB-packaged Intel oneAPI directory:
+        # /opt/yb-build/intel-oneapi/yb-intel-oneapi-v2024.1-1714789365/compiler/2024.1/opt/compiler/include
         self.openmp_include_dir = self.oneapi_installation.get_openmp_include_dir()
+        log("openmp_include_dir: %s", self.openmp_include_dir)
 
     def get_additional_compiler_flags(self, builder: BuilderInterface) -> List[str]:
         return [
@@ -99,6 +135,7 @@ class DiskANNDependency(Dependency):
                 intel_oneapi.ONEAPI_DEFAULT_BASE_DIR
             env_vars[COMPILER_WRAPPER_ENV_VAR_NAME_SAVE_USED_INCLUDE_TAGS_IN_DIR] = \
                 used_include_tags_dir
+
         with EnvVarContext(env_vars):
             builder.build_with_cmake(
                 self,
