@@ -48,7 +48,7 @@ if [[ $GIT_HEAD_COMMIT_MESSAGE == *"$CI_BUILD_TYPES_KEYWORD"* ]]; then
   build_type_patterns_array=()
   for build_type_pattern in "${build_type_patterns_tmp_array[@]}"; do
     build_type_patterns_array+=( "$build_type_pattern" )
-    if [[ $build_type_patterns_array == *linux* ]]; then
+    if [[ $build_type_pattern == *linux* ]]; then
       # "linux" should match all Linux flavors we use in the builds.
       build_type_patterns_array+=(
         "${build_type_pattern//linux/centos}"
@@ -79,7 +79,7 @@ if [[ $GIT_HEAD_COMMIT_MESSAGE == *"$CI_BUILD_TYPES_KEYWORD"* ]]; then
       pattern_parsing_error=true
     fi
   done
-  if [[ $pattern_parsing_error == "true" ]; then
+  if [[ $pattern_parsing_error == "true" ]]; then
     exit 1
   fi
 fi
