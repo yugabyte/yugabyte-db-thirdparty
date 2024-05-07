@@ -77,7 +77,6 @@ if [[ $GIT_HEAD_COMMIT_MESSAGE == *"$CI_BUILD_TYPES_KEYWORD"* ]]; then
         should_build=true
       else
         echo >&2 "Build type '$build_type' did not match pattern '$build_type_pattern'"
-        break
       fi
     else
       echo >&2 "Warning: skipping invalid build type pattern '$build_type_pattern'. It must" \
