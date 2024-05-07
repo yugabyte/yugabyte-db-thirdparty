@@ -49,7 +49,7 @@ if [[ $GIT_HEAD_COMMIT_MESSAGE == *"$CI_BUILD_TYPES_KEYWORD"* ]]; then
   for build_type_pattern in "${build_type_patterns_tmp_array[@]}"; do
     build_type_patterns_array+=( "$build_type_pattern" )
     if [[ $build_type_pattern == *linux* ]]; then
-      # "linux" should match all Linux flavors we use in the builds.
+      echo >&2 "Expanding pattern '$build_type_pattern' to match all Linux distributions."
       build_type_patterns_array+=(
         "${build_type_pattern//linux/centos}"
         "${build_type_pattern//linux/almalinux}"
@@ -64,6 +64,8 @@ if [[ $GIT_HEAD_COMMIT_MESSAGE == *"$CI_BUILD_TYPES_KEYWORD"* ]]; then
     # Remove leading/trailing whitespace.
     build_type_pattern=${build_type_pattern#"${build_type_pattern%%[![:space:]]*}"}
     build_type_pattern=${build_type_pattern%"${build_type_pattern##*[![:space:]]}"}
+
+    build_type_pattern="*${build_type_pattern}*"
     if [[ $build_type_pattern =~ ^[a-zA-Z0-9*-_]+$ ]]; then
       if [[ "$build_type" == *$build_type_pattern* ]]; then
         echo >&2 "Build type '$build_type' matched pattern" \
