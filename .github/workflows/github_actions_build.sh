@@ -63,7 +63,7 @@ if [[ $GIT_HEAD_COMMIT_MESSAGE == *"$CI_BUILD_TYPES_KEYWORD"* ]]; then
     fi
   done
 
-  echo >&2 "Final list of build type patterns: {build_type_patterns_array[*]}"
+  echo >&2 "Final list of build type patterns: ${build_type_patterns_array[*]}"
 
   should_build=false
 
