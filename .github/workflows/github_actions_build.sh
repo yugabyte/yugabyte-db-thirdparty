@@ -32,10 +32,17 @@ if [[ $GIT_HEAD_COMMIT_MESSAGE == *"$CI_BUILD_TYPES_KEYWORD"* ]]; then
   # particular commit / pull request. The build jobs are still started for all build types, but they
   # finish very quickly if the build type is filtered out.
 
-  # Extract build types from the commit message
+  # Extract build types from the commit message. We always expect to get a match from this grep
+  # command.
+  set +e
   build_types_str=$(
-    grep -oP "(?<=$CI_BUILD_TYPES_KEYWORD: ).*" <<< "$GIT_HEAD_COMMIT_MESSAGE"
+    grep -oP "(?<=$CI_BUILD_TYPES_KEYWORD).*" <<< "$GIT_HEAD_COMMIT_MESSAGE"
   )
+  if [[ -z "$build_types_str" ]]; then
+    echo >&2 "Internal error: could not parse the build type patterns from the commit message."
+    exit 1
+  fi
+  set -e
 
   # Convert the build types to an array, trimming spaces manually
   IFS=',' read -r -a build_type_patterns_array <<< "$build_types_str"
