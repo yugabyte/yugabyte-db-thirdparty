@@ -59,11 +59,12 @@ if [[ $GIT_HEAD_COMMIT_MESSAGE == *"$CI_BUILD_TYPES_KEYWORD"* ]]; then
   done
   should_build=false
 
+  pattern_parsing_error=false
   for build_type_pattern in "${build_type_patterns_array[@]}"; do
     # Remove leading/trailing whitespace.
     build_type_pattern=${build_type_pattern#"${build_type_pattern%%[![:space:]]*}"}
     build_type_pattern=${build_type_pattern%"${build_type_pattern##*[![:space:]]}"}
-    if [[ $build_type_pattern =~ ^[a-zA-Z0-9*-_]$ ]]; then
+    if [[ $build_type_pattern =~ ^[a-zA-Z0-9*-_]+$ ]]; then
       if [[ "$build_type" == *$build_type_pattern* ]]; then
         echo >&2 "Build type '$build_type' matched pattern" \
                  "'$build_type_pattern', proceeding with the build."
@@ -75,8 +76,12 @@ if [[ $GIT_HEAD_COMMIT_MESSAGE == *"$CI_BUILD_TYPES_KEYWORD"* ]]; then
     else
       echo >&2 "Warning: skipping invalid build type pattern '$build_type_pattern'. It must" \
                "consist of letters, numbers, dashes, underscores, and asterisks."
+      pattern_parsing_error=true
     fi
   done
+  if [[ $pattern_parsing_error == "true" ]; then
+    exit 1
+  fi
 fi
 
 if [[ $should_build == "true" ]]; then
