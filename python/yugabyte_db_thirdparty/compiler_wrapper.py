@@ -130,7 +130,7 @@ class CompilerWrapper:
 
                 assert os.path.isdir(env_var_value), \
                     "Directory specified by the " + env_var_name + " environment variable " + \
-                    "does not exist: " + self.save_used_include_tags_in_dir
+                    "does not exist: " + env_var_value
 
     def _is_permitted_arg(self, arg: str) -> bool:
         if not arg.startswith('-I'):

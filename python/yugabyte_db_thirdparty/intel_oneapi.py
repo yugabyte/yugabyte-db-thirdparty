@@ -161,6 +161,7 @@ class IntelOneAPIInstallation:
         - If we are not packging Intel oneAPI, copies the needed libraries to the specific
           destination directory (usually the library directory).
         """
+        path_prefixes: Set[str] = set()
         for root, dirs, files in os.walk(dep_install_dir):
             for file_name in files:
                 file_path = os.path.join(root, file_name)
@@ -171,20 +172,44 @@ class IntelOneAPIInstallation:
                     for full_path in list(ldd_result.resolved_dependencies):
                         if not self.is_path_within_base_dir(full_path):
                             continue
-                        path_prefix = ldd_util.remove_shared_lib_suffix(full_path)
-                        for path_to_copy in glob.glob(path_prefix + '.*'):
-                            self.add_path_to_be_packaged(
-                                os.path.relpath(path_to_copy, self.base_dir))
-                            dest_path = os.path.join(dest_lib_dir, os.path.basename(path_to_copy))
+                        path_prefixes.add(ldd_util.remove_shared_lib_suffix(full_path))
 
-                            # When building an Intel oneAPI package, it is important NOT to copy
-                            # any libraries to the given directory (in practice, it is the
-                            # installed/common directory), because on a re-run this will cause
-                            # ldd to pick up the copied versions of these libraries and may result
-                            # in building a partial Intel oneAPI package insufficient for our needs.
-                            if (not is_package_build_mode_enabled() and
-                                    not os.path.exists(dest_path)):
-                                file_util.copy_file_or_simple_symlink(path_to_copy, dest_path)
+        additional_path_prefixes: Set[str] = set()
+        for path_prefix in path_prefixes:
+            if os.path.basename(path_prefix) == 'libmkl_core':
+                # Look for libmkl_def in the same directory. libmkl_def.so.2 is not directly
+                # referenced by compiled executables but is needed during DiskANN CMake
+                # configuration.
+                additional_path_prefixes.add(path_prefix[:-4] + 'def')
+        path_prefixes |= additional_path_prefixes
+
+        file_names_found: Set[str] = set()
+        for path_prefix in path_prefixes:
+            for path_to_copy in glob.glob(path_prefix + '.*'):
+                path_prefixes.add(path_prefix)
+                self.add_path_to_be_packaged(
+                    os.path.relpath(path_to_copy, self.base_dir))
+                file_name = os.path.basename(path_to_copy)
+                dest_path = os.path.join(dest_lib_dir, file_name)
+                file_names_found.add(file_name)
+
+                # When building an Intel oneAPI package, it is important NOT to copy
+                # any libraries to the given directory (in practice, it is the
+                # installed/common directory), because on a re-run this will cause
+                # ldd to pick up the copied versions of these libraries and may result
+                # in building a partial Intel oneAPI package insufficient for our needs.
+                if (not is_package_build_mode_enabled() and
+                        not os.path.exists(dest_path)):
+                    file_util.copy_file_or_simple_symlink(path_to_copy, dest_path)
+
+        mkl_def_library_found = False
+        for file_name in file_names_found:
+            if file_name.startswith('libmkl_def.'):
+                mkl_def_library_found = True
+        assert mkl_def_library_found, \
+            "Did not find the libmkl_def library. Expected to find it in the same directory " \
+            "as the libmkl_core library. File names to be packaged:\n    " + \
+            "\n    ".join(sorted(file_names_found))
 
     def remember_paths_to_package_from_tag_dir(self, tag_dir: str) -> None:
         assert os.path.isabs(tag_dir)
@@ -304,6 +329,13 @@ _package_build_mode_enabled = False
 
 
 def enable_package_build_mode(installed_common_dir: str) -> None:
+    assert _oneapi_installation is None, \
+        "Cannot enable Intel oneAPI package build mode once the oneAPI installation has been " \
+        "selected."
+    if not os.path.isdir(ONEAPI_DEFAULT_BASE_DIR):
+        raise IOError(
+            f"Intel oneAPI installation does not exist at {ONEAPI_DEFAULT_BASE_DIR}, "
+            "cannot use it to create a package of an Intel oneAPI subset.")
     unexpected_files = []
     for pattern in ['libiomp*', 'libmkl_*']:
         for file_path in glob.glob(os.path.join(installed_common_dir, 'lib', pattern)):

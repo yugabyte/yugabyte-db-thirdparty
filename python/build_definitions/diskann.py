@@ -17,7 +17,7 @@ from typing import List
 
 from yugabyte_db_thirdparty.build_definition_helpers import *
 from yugabyte_db_thirdparty.builder_interface import BuilderInterface  # noqa
-from yugabyte_db_thirdparty.intel_oneapi import find_intel_oneapi
+from yugabyte_db_thirdparty.intel_oneapi import find_intel_oneapi, IntelOneAPIInstallation
 from yugabyte_db_thirdparty.rpath_util import get_rpath_flag
 from yugabyte_db_thirdparty.env_helpers import EnvVarContext
 from yugabyte_db_thirdparty.constants import (
@@ -29,10 +29,13 @@ from yugabyte_db_thirdparty import (
     intel_oneapi,
 )
 
+
 OPENMP_FLAG = '-fopenmp=libiomp5'
 
 
 class DiskANNDependency(Dependency):
+    oneapi_installation: Optional[IntelOneAPIInstallation]
+
     def __init__(self) -> None:
         super(DiskANNDependency, self).__init__(
             name='diskann',
@@ -40,6 +43,12 @@ class DiskANNDependency(Dependency):
             url_pattern='https://github.com/yugabyte/diskann/archive/v{0}.tar.gz',
             build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = False
+        self.oneapi_installation = None
+
+    def configure_intel_oneapi(self) -> None:
+        if self.oneapi_installation is not None:
+            return
+
         self.oneapi_installation = find_intel_oneapi()
 
         # Original directory: /opt/intel/oneapi/mkl/2024.1/lib (3+ GB size)
@@ -84,6 +93,7 @@ class DiskANNDependency(Dependency):
         log("openmp_include_dir: %s", self.openmp_include_dir)
 
     def get_additional_compiler_flags(self, builder: BuilderInterface) -> List[str]:
+        self.configure_intel_oneapi()
         return [
             "-I" + self.openmp_include_dir,
             "-I" + self.intel_mkl_include_dir,
@@ -95,6 +105,7 @@ class DiskANNDependency(Dependency):
         ]
 
     def get_additional_ld_flags(self, builder: BuilderInterface) -> List[str]:
+        self.configure_intel_oneapi()
         return [
             # We need to link with the libaio library. It is surprising that DiskANN's
             # CMakeLists.txt itself does not specify this dependency.
@@ -120,6 +131,9 @@ class DiskANNDependency(Dependency):
         return os.path.join(builder.prefix, 'diskann')
 
     def build(self, builder: BuilderInterface) -> None:
+        self.configure_intel_oneapi()
+        assert self.oneapi_installation is not None
+
         install_prefix = self.get_install_prefix(builder)
 
         # We must use the dictionary syntax of EnvVarContext constructor below, because the
@@ -145,6 +159,10 @@ class DiskANNDependency(Dependency):
                     # into a custom subdirectory of it.
                     '-DCMAKE_SYSTEM_PREFIX_PATH=' + builder.prefix,
                     '-DOMP_PATH=' + self.openmp_lib_dir,
+                    # To avoid this message during CMake configuration:
+                    # Could not find Intel MKL in standard locations; use -DMKL_PATH to specify
+                    f'-DMKL_PATH={self.intel_mkl_lib_dir}',
+                    f'-DMKL_INCLUDE_PATH={self.intel_mkl_include_dir}',
                 ]
             )
 
