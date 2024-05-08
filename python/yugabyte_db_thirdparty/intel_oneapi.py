@@ -40,7 +40,8 @@ from yugabyte_db_thirdparty.string_util import one_per_line_indented
 # The default directory where Intel oneAPI is installed.
 ONEAPI_DEFAULT_BASE_DIR = '/opt/intel/oneapi'
 
-DEFAULT_PACKAGE_TAG = 'v2024.1-1714789365'
+# See https://github.com/yugabyte/yb-intel-oneapi-package/releases/ for the most recent tag.
+DEFAULT_PACKAGE_TAG = 'v2024.1-1715210296'
 
 # The directory where we install YugabyteDB-packaged Intel oneAPI directories.
 YB_INTEL_ONEAPI_PACKAGE_PARENT_DIR = '/opt/yb-build/intel-oneapi'
@@ -187,7 +188,8 @@ class IntelOneAPIInstallation:
         assert not os.path.isabs(path)
         self.paths_to_be_packaged.add(path)
 
-    def process_needed_libraries(self, dep_install_dir: str, dest_lib_dir: str) -> None:
+    def process_needed_libraries(
+            self, dep_install_dir: str, dest_lib_dir: str, rpaths_for_ldd: List[str]) -> None:
         """
         Scans the given directory, which could be an installation directory of a third-party
         dependency, for executables and shared libraries that depend on shared libraries belonging
@@ -200,7 +202,8 @@ class IntelOneAPIInstallation:
           destination directory.
 
         In both cases, before running ldd on an ELF file, removes the destination directory from
-        the RPATHs of the file, and adds it later.
+        the RPATHs of the file, and adds those in rpaths_for_ldd. Afterwards, the changes are
+        reversed.
         """
         path_prefixes: Set[str] = set()
         executables_and_libraries: List[str] = []
@@ -215,7 +218,7 @@ class IntelOneAPIInstallation:
 
         try:
             for file_path in executables_and_libraries:
-                rpath_util.remove_one_rpath(file_path, dest_lib_dir)
+                rpath_util.modify_rpaths(file_path, remove=dest_lib_dir, add_first=rpaths_for_ldd)
             for file_path in executables_and_libraries:
                 ldd_result = ldd_util.run_ldd(file_path)
                 for full_path in list(ldd_result.resolved_dependencies):
@@ -223,11 +226,13 @@ class IntelOneAPIInstallation:
                         path_prefixes.add(ldd_util.remove_shared_lib_suffix(full_path))
         finally:
             for file_path in executables_and_libraries:
-                rpath_util.add_one_rpath(file_path, dest_lib_dir, front=True)
+                rpath_util.modify_rpaths(file_path, remove=rpaths_for_ldd, add_first=dest_lib_dir)
         if not path_prefixes:
             raise AssertionError(
                 f"Did not find any dependencies of executables or shared libraries in the subtree "
                 f"of {dep_install_dir} that reside in {self.base_dir}")
+        log("Collected %d path prefixes in %s that are needed by YugabyteDB dependencies",
+            len(path_prefixes), self.base_dir)
 
         additional_path_prefixes: Set[str] = set()
         for path_prefix in path_prefixes:
@@ -249,13 +254,7 @@ class IntelOneAPIInstallation:
                 dest_path = os.path.join(dest_lib_dir, file_name)
                 file_names_found.add(file_name)
 
-                # When building an Intel oneAPI package, it is important NOT to copy any libraries
-                # to the given directory (in practice, it is the installed/common directory),
-                # because on a re-run this will cause ldd to pick up the copied versions of these
-                # libraries and may result in building a partial Intel oneAPI package insufficient
-                # for our needs.
-                if (not is_package_build_mode_enabled() and
-                        not os.path.exists(dest_path)):
+                if not os.path.exists(dest_path):
                     file_util.mkdir_p(os.path.dirname(dest_path))
                     file_util.copy_file_or_simple_symlink(path_to_copy, dest_path)
                     if (not os.path.islink(dest_path) and

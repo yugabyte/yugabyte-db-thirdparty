@@ -105,7 +105,8 @@ from yugabyte_db_thirdparty import (
 )
 from yugabyte_db_thirdparty.rpath_util import get_rpath_flag
 from yugabyte_db_thirdparty.env_helpers import EnvVarContext
-from yugabyte_db_thirdparty import intel_oneapi
+
+from yugabyte_db_thirdparty import intel_oneapi, dependency_selection
 
 # -------------------------------------------------------------------------------------------------
 
@@ -328,7 +329,7 @@ class Builder(BuilderInterface):
         # otherwise MyPy gets confused.
 
         self.dependencies = get_deps_from_module_names(
-            build_definitions.COMMON_DEPENDENCY_MODULE_NAMES)
+            dependency_selection.COMMON_DEPENDENCY_MODULE_NAMES)
 
         build_definitions.ensure_build_group(self.dependencies, BuildGroup.COMMON)
 
@@ -365,7 +366,7 @@ class Builder(BuilderInterface):
             self.dependencies.append(get_build_def_module('libbacktrace').LibBacktraceDependency())
 
         self.dependencies += get_deps_from_module_names(
-            build_definitions.get_final_dependency_module_names())
+            dependency_selection.get_final_dependency_module_names(self.compiler_choice))
 
         for dep in self.dependencies:
             if dep.name in self.dependencies_by_name:

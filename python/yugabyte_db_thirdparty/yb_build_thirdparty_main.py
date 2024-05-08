@@ -25,7 +25,7 @@ from build_definitions import *  # noqa
 from yugabyte_db_thirdparty.arch import verify_arch
 from yugabyte_db_thirdparty.builder import Builder
 from yugabyte_db_thirdparty.clang_util import get_clang_library_dir
-from yugabyte_db_thirdparty.custom_logging import log_separator, heading, configure_logging
+from yugabyte_db_thirdparty.custom_logging import log, configure_logging
 from yugabyte_db_thirdparty.library_checking import get_lib_tester
 from yugabyte_db_thirdparty.packager import Packager
 from yugabyte_db_thirdparty.remote_build import build_remotely

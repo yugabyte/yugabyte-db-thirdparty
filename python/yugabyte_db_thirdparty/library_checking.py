@@ -386,7 +386,6 @@ class LibTestLinux(LibTestBase):
             ))
 
     def check_libs_for_file(self, file_path: str) -> bool:
-        print(file_path)
         assert os.path.isabs(file_path), "Expected absolute path, got: %s" % file_path
         file_basename = os.path.basename(file_path)
         rel_path_to_installed_dir = os.path.relpath(

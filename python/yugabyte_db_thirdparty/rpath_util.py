@@ -16,7 +16,7 @@ import os
 import re
 import subprocess
 
-from typing import List, Set
+from typing import List, Set, Union
 
 from yugabyte_db_thirdparty.custom_logging import log
 from sys_detection import is_macos
@@ -138,19 +138,22 @@ def set_rpaths(file_path: str, rpath_list: List[str]) -> None:
             f"found {new_rpaths} when re-checked")
 
 
-def remove_one_rpath(file_path: str, rpath_to_remove: str) -> None:
-    rpath_to_remove = rpath_to_remove.strip()
-    rpaths = get_rpaths(file_path)
-    if rpath_to_remove in rpaths:
-        set_rpaths(file_path, [p for p in rpaths if p != rpath_to_remove])
+def normalize_path_list(paths: Union[str, List[str]]) -> List[str]:
+    if isinstance(paths, list):
+        return list(paths)
+    if isinstance(paths, str):
+        return [paths]
+    raise ValueError(f"Expected a string or a list of strings, got: {paths}")
 
 
-def add_one_rpath(file_path: str, rpath_to_add: str, front: bool = False) -> None:
-    rpath_to_add = rpath_to_add.strip()
-    rpaths = get_rpaths(file_path)
-    if rpath_to_add not in rpaths:
-        if front:
-            new_rpaths = [rpath_to_add] + rpaths
-        else:
-            new_rpaths = rpaths + [rpath_to_add]
+def modify_rpaths(
+        file_path: str,
+        remove: Union[str, List[str]] = [],
+        add_first: Union[str, List[str]] = [],
+        add_last: Union[str, List[str]] = []) -> None:
+    old_rpaths = get_rpaths(file_path)
+    set_to_remove = set(normalize_path_list(remove))
+    new_rpaths = [p for p in old_rpaths if p not in set_to_remove]
+    new_rpaths = normalize_path_list(add_first) + new_rpaths + normalize_path_list(add_last)
+    if new_rpaths != old_rpaths:
         set_rpaths(file_path, new_rpaths)

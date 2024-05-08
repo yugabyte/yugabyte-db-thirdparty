@@ -106,17 +106,20 @@ class DiskANNDependency(Dependency):
 
     def get_additional_ld_flags(self, builder: BuilderInterface) -> List[str]:
         self.configure_intel_oneapi()
+        rpaths = [
+            # This directory must be listed first so that the libraries copied to the
+            # installed/common/lib/intel-oneapi would be preferred.
+            self.get_intel_oneapi_installed_lib_dir(builder)
+        ] + self.get_intel_oneapi_lib_dirs() + [
+            # This is the directory that will contain the installed libdiskann.so library.
+            get_rpath_flag(os.path.join(self.get_install_prefix(builder), 'lib')),
+        ]
+
         return [
             # We need to link with the libaio library. It is surprising that DiskANN's
             # CMakeLists.txt itself does not specify this dependency.
             '-laio',
-            # This directory must be listed first so that the libraries copied to the
-            # installed/common/lib/intel-oneapi would be preferred.
-            get_rpath_flag(self.get_intel_oneapi_installed_lib_dir(builder)),
-            get_rpath_flag(self.openmp_lib_dir),
-            get_rpath_flag(self.intel_mkl_lib_dir),
-            get_rpath_flag(os.path.join(self.get_install_prefix(builder), 'lib')),
-        ]
+        ] + [get_rpath_flag(p) for p in rpaths]
 
     def get_compiler_wrapper_ld_flags_to_remove(self, builder: BuilderInterface) -> Set[str]:
         """
@@ -135,6 +138,9 @@ class DiskANNDependency(Dependency):
 
     def get_intel_oneapi_installed_lib_dir(self, builder: BuilderInterface) -> str:
         return os.path.join(builder.fs_layout.tp_installed_common_dir, 'lib', 'intel-oneapi')
+
+    def get_intel_oneapi_lib_dirs(self) -> List[str]:
+        return [self.openmp_lib_dir, self.intel_mkl_lib_dir]
 
     def build(self, builder: BuilderInterface) -> None:
         self.configure_intel_oneapi()
@@ -179,6 +185,7 @@ class DiskANNDependency(Dependency):
 
         lib_dest_dir = self.get_intel_oneapi_installed_lib_dir(builder)
 
-        self.oneapi_installation.process_needed_libraries(install_prefix, lib_dest_dir)
+        self.oneapi_installation.process_needed_libraries(
+            install_prefix, lib_dest_dir, rpaths_for_ldd=self.get_intel_oneapi_lib_dirs())
         if used_include_tags_dir is not None:
             self.oneapi_installation.remember_paths_to_package_from_tag_dir(used_include_tags_dir)
