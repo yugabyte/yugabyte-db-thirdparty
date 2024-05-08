@@ -23,7 +23,7 @@ import subprocess
 import tempfile
 import time
 
-from typing import Set, Optional
+from typing import Set, Optional, List
 
 from yugabyte_db_thirdparty.custom_logging import log
 from yugabyte_db_thirdparty.util import shlex_join, is_shared_library_name
@@ -198,27 +198,36 @@ class IntelOneAPIInstallation:
         - If we are packaging Intel oneAPI, only remembers the library paths to be packaged.
         - If we are not packging Intel oneAPI, copies the needed libraries to the specific
           destination directory.
+
+        In both cases, before running ldd on an ELF file, removes the destination directory from
+        the RPATHs of the file, and adds it later.
         """
         path_prefixes: Set[str] = set()
+        executables_and_libraries: List[str] = []
+
         for root, dirs, files in os.walk(dep_install_dir):
             for file_name in files:
                 file_path = os.path.join(root, file_name)
                 if ldd_util.should_use_ldd_on_file(file_path):
-                    log(file_path)
-                    try:
-                        rpath_util.remove_one_rpath(file_path, dest_lib_dir)
-                        ldd_result = ldd_util.run_ldd(file_path)
-                    finally:
-                        rpath_util.add_one_rpath(file_path, dest_lib_dir, front=True)
-                    if ldd_result.not_a_dynamic_executable():
-                        continue
-                    for full_path in list(ldd_result.resolved_dependencies):
-                        if not self.is_path_within_base_dir(full_path):
-                            continue
+                    ldd_result = ldd_util.run_ldd(file_path)
+                    if not ldd_result.not_a_dynamic_executable():
+                        executables_and_libraries.append(file_path)
+
+        try:
+            for file_path in executables_and_libraries:
+                rpath_util.remove_one_rpath(file_path, dest_lib_dir)
+            for file_path in executables_and_libraries:
+                ldd_result = ldd_util.run_ldd(file_path)
+                for full_path in list(ldd_result.resolved_dependencies):
+                    if self.is_path_within_base_dir(full_path):
                         path_prefixes.add(ldd_util.remove_shared_lib_suffix(full_path))
+        finally:
+            for file_path in executables_and_libraries:
+                rpath_util.add_one_rpath(file_path, dest_lib_dir, front=True)
         if not path_prefixes:
             raise AssertionError(
-                f"Did not find any shared libraries in the subtree of {dep_install_dir}")
+                f"Did not find any dependencies of executables or shared libraries in the subtree "
+                f"of {dep_install_dir} that reside in {self.base_dir}")
 
         additional_path_prefixes: Set[str] = set()
         for path_prefix in path_prefixes:

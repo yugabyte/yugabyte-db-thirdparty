@@ -110,10 +110,12 @@ class DiskANNDependency(Dependency):
             # We need to link with the libaio library. It is surprising that DiskANN's
             # CMakeLists.txt itself does not specify this dependency.
             '-laio',
+            # This directory must be listed first so that the libraries copied to the
+            # installed/common/lib/intel-oneapi would be preferred.
+            get_rpath_flag(self.get_intel_oneapi_installed_lib_dir(builder)),
             get_rpath_flag(self.openmp_lib_dir),
             get_rpath_flag(self.intel_mkl_lib_dir),
             get_rpath_flag(os.path.join(self.get_install_prefix(builder), 'lib')),
-            get_rpath_flag(self.get_intel_oneapi_installed_lib_dir(builder)),
         ]
 
     def get_compiler_wrapper_ld_flags_to_remove(self, builder: BuilderInterface) -> Set[str]:

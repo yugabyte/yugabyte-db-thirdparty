@@ -141,7 +141,7 @@ def set_rpaths(file_path: str, rpath_list: List[str]) -> None:
 def remove_one_rpath(file_path: str, rpath_to_remove: str) -> None:
     rpath_to_remove = rpath_to_remove.strip()
     rpaths = get_rpaths(file_path)
-    if remove_one_rpath in rpaths:
+    if rpath_to_remove in rpaths:
         set_rpaths(file_path, [p for p in rpaths if p != rpath_to_remove])
 
 
