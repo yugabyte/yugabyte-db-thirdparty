@@ -70,3 +70,8 @@ def shlex_join(args: List[str], one_arg_per_line: bool = False) -> str:
 
 def parse_bool(s: str) -> bool:
     return s.strip().lower() not in ['', '0', 'false', 'no']
+
+
+def one_per_line_indented(lines: List[str], num_spaces: int = 4) -> str:
+    indentation = ' ' * num_spaces
+    return indentation + ('\n' + indentation).join(lines)

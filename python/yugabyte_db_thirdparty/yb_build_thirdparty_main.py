@@ -115,6 +115,8 @@ class BuilderTool:
         if args.package_intel_oneapi:
             intel_oneapi.enable_package_build_mode(
                 installed_common_dir=builder.fs_layout.tp_installed_common_dir)
+        if args.intel_oneapi_base_dir:
+            intel_oneapi.find_intel_oneapi(base_dir=args.intel_oneapi_base_dir)
 
         start_time_sec = time.time()
         if args.check_libs_only:

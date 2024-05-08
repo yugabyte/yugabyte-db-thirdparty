@@ -11,12 +11,32 @@
 # under the License.
 #
 
-import os
 import glob
+import os
+import re
 import subprocess
 
-from sys_detection import is_macos
+from typing import List, Set
+
 from yugabyte_db_thirdparty.custom_logging import log
+from sys_detection import is_macos
+
+
+def get_readelf_rpath_regex_str(path_type: str) -> re.Pattern:
+    return re.compile(''.join([
+        '^.*[(]',
+        path_type.upper(),
+        '[)]',
+        r'\s+',
+        'Library ',
+        path_type.lower(),
+        ': ',
+        r'\[(.*)\]',
+    ]))
+
+
+READELF_LIBRARY_RUNPATH_LINE = get_readelf_rpath_regex_str('runpath')
+READELF_LIBRARY_RPATH_LINE = get_readelf_rpath_regex_str('rpath')
 
 
 def fix_shared_library_references(
@@ -81,3 +101,56 @@ def get_rpath_flag(path: str) -> str:
     Get the linker flag needed to add the given RPATH to the generated executable or library.
     """
     return "-Wl,-rpath,{}".format(path)
+
+
+def get_rpaths(file_path: str) -> List[str]:
+    candidate_runpaths: Set[str] = set()
+    candidate_rpaths_deprecated: Set[str] = set()
+    for line in subprocess.check_output(['readelf', '-d', file_path]).decode('utf-8').split('\n'):
+        line = line.strip()
+        m = READELF_LIBRARY_RUNPATH_LINE.match(line.strip())
+        if m:
+            candidate_runpaths.add(m.group(1))
+        m = READELF_LIBRARY_RPATH_LINE.match(line.strip())
+        if m:
+            candidate_rpaths_deprecated.add(m.group(1))
+    if candidate_rpaths_deprecated:
+        raise ValueError(
+            f"File {file_path} has the older RPATH attribute. Refusing to work with it.")
+
+    if not candidate_runpaths:
+        return []
+
+    if len(candidate_runpaths) > 1:
+        raise ValueError(
+            f"Contradictory RUNPATH values found for file {file_path}: {candidate_runpaths}")
+
+    runpaths = [item.strip() for item in list(candidate_runpaths)[0].split(':')]
+    return [item for item in runpaths if item]
+
+
+def set_rpaths(file_path: str, rpath_list: List[str]) -> None:
+    subprocess.check_call(['patchelf', '--set-rpath', ':'.join(rpath_list), file_path])
+    new_rpaths = get_rpaths(file_path)
+    if new_rpaths != rpath_list:
+        raise ValueError(
+            f"Failed to set RPATH on file {file_path} to {rpath_list} using patchelf: "
+            f"found {new_rpaths} when re-checked")
+
+
+def remove_one_rpath(file_path: str, rpath_to_remove: str) -> None:
+    rpath_to_remove = rpath_to_remove.strip()
+    rpaths = get_rpaths(file_path)
+    if remove_one_rpath in rpaths:
+        set_rpaths(file_path, [p for p in rpaths if p != rpath_to_remove])
+
+
+def add_one_rpath(file_path: str, rpath_to_add: str, front: bool = False) -> None:
+    rpath_to_add = rpath_to_add.strip()
+    rpaths = get_rpaths(file_path)
+    if rpath_to_add not in rpaths:
+        if front:
+            new_rpaths = [rpath_to_add] + rpaths
+        else:
+            new_rpaths = rpaths + [rpath_to_add]
+        set_rpaths(file_path, new_rpaths)

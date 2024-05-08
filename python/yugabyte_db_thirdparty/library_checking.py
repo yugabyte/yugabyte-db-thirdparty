@@ -50,6 +50,7 @@ IGNORED_EXTENSIONS = (
 IGNORED_FILE_NAMES = set([
     'LICENSE',
     'krb5-send-pr',
+    '.clang-format',
 ])
 
 IGNORED_DIR_SUFFIXES = (
@@ -91,6 +92,8 @@ def compile_re_list(re_list: List[str]) -> Any:
 
 
 def get_needed_libs(file_path: str) -> List[str]:
+    if file_path.endswith(IGNORED_EXTENSIONS) or os.path.basename(file_path) in IGNORED_FILE_NAMES:
+        return []
     return capture_all_output(
         ['patchelf', '--print-needed', file_path],
         allowed_exit_codes={1},
@@ -212,7 +215,8 @@ class LibTestBase:
             log("Extra allowed shared lib path: %s", allowed_shared_lib_path)
         test_pass = True
         # Files to examine are much reduced if we look only at bin and lib directories.
-        dir_pattern = re.compile('^(lib|libcxx|[s]bin)$')
+        # A special case is the DiskANN dependency, which has its own subdirectory.
+        dir_pattern = re.compile('^(lib|libcxx|[s]bin|diskann)$')
         installed_dirs_per_build_type = [
                 os.path.join(self.tp_installed_dir, build_type.dir_name())
                 for build_type in BuildType]
@@ -382,6 +386,7 @@ class LibTestLinux(LibTestBase):
             ))
 
     def check_libs_for_file(self, file_path: str) -> bool:
+        print(file_path)
         assert os.path.isabs(file_path), "Expected absolute path, got: %s" % file_path
         file_basename = os.path.basename(file_path)
         rel_path_to_installed_dir = os.path.relpath(

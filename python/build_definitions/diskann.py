@@ -110,9 +110,10 @@ class DiskANNDependency(Dependency):
             # We need to link with the libaio library. It is surprising that DiskANN's
             # CMakeLists.txt itself does not specify this dependency.
             '-laio',
-            # TODO: specify this rpath automatically.
             get_rpath_flag(self.openmp_lib_dir),
             get_rpath_flag(self.intel_mkl_lib_dir),
+            get_rpath_flag(os.path.join(self.get_install_prefix(builder), 'lib')),
+            get_rpath_flag(self.get_intel_oneapi_installed_lib_dir(builder)),
         ]
 
     def get_compiler_wrapper_ld_flags_to_remove(self, builder: BuilderInterface) -> Set[str]:
@@ -129,6 +130,9 @@ class DiskANNDependency(Dependency):
         directories.
         """
         return os.path.join(builder.prefix, 'diskann')
+
+    def get_intel_oneapi_installed_lib_dir(self, builder: BuilderInterface) -> str:
+        return os.path.join(builder.fs_layout.tp_installed_common_dir, 'lib', 'intel-oneapi')
 
     def build(self, builder: BuilderInterface) -> None:
         self.configure_intel_oneapi()
@@ -171,8 +175,8 @@ class DiskANNDependency(Dependency):
             rel_src_include_path='include',
             dest_include_path=os.path.join(install_prefix, 'include'))
 
-        installed_common_lib_dir = os.path.join(builder.fs_layout.tp_installed_common_dir, 'lib')
+        lib_dest_dir = self.get_intel_oneapi_installed_lib_dir(builder)
 
-        self.oneapi_installation.process_needed_libraries(install_prefix, installed_common_lib_dir)
+        self.oneapi_installation.process_needed_libraries(install_prefix, lib_dest_dir)
         if used_include_tags_dir is not None:
             self.oneapi_installation.remember_paths_to_package_from_tag_dir(used_include_tags_dir)

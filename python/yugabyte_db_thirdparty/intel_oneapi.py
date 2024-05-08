@@ -17,6 +17,7 @@ disk space, we copy only the necesary files from it to the thirdparty installed 
 
 import glob
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -29,14 +30,22 @@ from yugabyte_db_thirdparty.util import shlex_join, is_shared_library_name
 from yugabyte_db_thirdparty import (
     ldd_util,
     file_util,
+    rpath_util,
 )
 from yugabyte_db_thirdparty import download_manager
 from yugabyte_db_thirdparty.download_manager import DownloadManager
+from yugabyte_db_thirdparty.string_util import one_per_line_indented
 
 
+# The default directory where Intel oneAPI is installed.
 ONEAPI_DEFAULT_BASE_DIR = '/opt/intel/oneapi'
 
 DEFAULT_PACKAGE_TAG = 'v2024.1-1714789365'
+
+# The directory where we install YugabyteDB-packaged Intel oneAPI directories.
+YB_INTEL_ONEAPI_PACKAGE_PARENT_DIR = '/opt/yb-build/intel-oneapi'
+
+VERSION_RE = re.compile(r'^[\d.]+$')
 
 
 def get_package_url_by_tag(tag: str) -> str:
@@ -56,16 +65,45 @@ class IntelOneAPIInstallation:
     # This is used for repackaging the useful subset of files into a smaller-size package.
     paths_to_be_packaged: Set[str]
 
-    def __init__(self, base_dir: str, version: str) -> None:
-        self.version = version
+    def __init__(self, base_dir: str, version: Optional[str] = None) -> None:
         self.dirs_checked_for_existence = set()
         self.base_dir = base_dir
+        self.detect_version()
 
         # Validate that certain directories exist.
         self.get_mkl_prefix()
         self.get_compiler_prefix()
 
         self.paths_to_be_packaged = set()
+
+    def detect_version(self) -> None:
+        versions = set()
+        latest_versions = set()
+        for component_name in ['mkl', 'compiler']:
+            component_dir = os.path.join(self.base_dir, component_name)
+            latest_path = os.path.join(component_dir, 'latest')
+            if os.path.islink(latest_path):
+                version_str = os.readlink(latest_path)
+                if VERSION_RE.match(version_str):
+                    latest_versions.add(version_str)
+            for version_dir_path in glob.glob(os.path.join(component_dir, '*')):
+                if os.path.isdir(version_dir_path):
+                    version_str = os.path.basename(version_dir_path)
+                    if VERSION_RE.match(version_str):
+                        versions.add(version_str)
+        if latest_versions:
+            if len(latest_versions) == 1:
+                self.version = list(latest_versions)[0]
+                return
+            raise ValueError(
+                "The latest symlink in different directories specifies conflicting Intel oneAPI "
+                f"versions: {', '.join(sorted(latest_versions))}")
+
+        if len(versions) != 1:
+            raise ValueError(
+                f"Could not determine Intel oneAPI version in directory {self.base_dir}. "
+                f"Possible alternatives: {', '.join(sorted(versions))}")
+        self.version = list(versions)[0]
 
     def check_if_dir_exists(self, dir_path: str, must_be_prefix: bool = False) -> str:
         """
@@ -159,20 +197,28 @@ class IntelOneAPIInstallation:
         Has two modes of operation:
         - If we are packaging Intel oneAPI, only remembers the library paths to be packaged.
         - If we are not packging Intel oneAPI, copies the needed libraries to the specific
-          destination directory (usually the library directory).
+          destination directory.
         """
         path_prefixes: Set[str] = set()
         for root, dirs, files in os.walk(dep_install_dir):
             for file_name in files:
                 file_path = os.path.join(root, file_name)
                 if ldd_util.should_use_ldd_on_file(file_path):
-                    ldd_result = ldd_util.run_ldd(file_path)
+                    log(file_path)
+                    try:
+                        rpath_util.remove_one_rpath(file_path, dest_lib_dir)
+                        ldd_result = ldd_util.run_ldd(file_path)
+                    finally:
+                        rpath_util.add_one_rpath(file_path, dest_lib_dir, front=True)
                     if ldd_result.not_a_dynamic_executable():
                         continue
                     for full_path in list(ldd_result.resolved_dependencies):
                         if not self.is_path_within_base_dir(full_path):
                             continue
                         path_prefixes.add(ldd_util.remove_shared_lib_suffix(full_path))
+        if not path_prefixes:
+            raise AssertionError(
+                f"Did not find any shared libraries in the subtree of {dep_install_dir}")
 
         additional_path_prefixes: Set[str] = set()
         for path_prefix in path_prefixes:
@@ -184,7 +230,8 @@ class IntelOneAPIInstallation:
         path_prefixes |= additional_path_prefixes
 
         file_names_found: Set[str] = set()
-        for path_prefix in path_prefixes:
+        path_prefix_list = sorted(path_prefixes)
+        for path_prefix in path_prefix_list:
             for path_to_copy in glob.glob(path_prefix + '.*'):
                 path_prefixes.add(path_prefix)
                 self.add_path_to_be_packaged(
@@ -193,23 +240,36 @@ class IntelOneAPIInstallation:
                 dest_path = os.path.join(dest_lib_dir, file_name)
                 file_names_found.add(file_name)
 
-                # When building an Intel oneAPI package, it is important NOT to copy
-                # any libraries to the given directory (in practice, it is the
-                # installed/common directory), because on a re-run this will cause
-                # ldd to pick up the copied versions of these libraries and may result
-                # in building a partial Intel oneAPI package insufficient for our needs.
+                # When building an Intel oneAPI package, it is important NOT to copy any libraries
+                # to the given directory (in practice, it is the installed/common directory),
+                # because on a re-run this will cause ldd to pick up the copied versions of these
+                # libraries and may result in building a partial Intel oneAPI package insufficient
+                # for our needs.
                 if (not is_package_build_mode_enabled() and
                         not os.path.exists(dest_path)):
+                    file_util.mkdir_p(os.path.dirname(dest_path))
                     file_util.copy_file_or_simple_symlink(path_to_copy, dest_path)
+                    if (not os.path.islink(dest_path) and
+                            is_shared_library_name(dest_path) and
+                            os.path.basename(dest_path).startswith('libmkl_def.')):
+                        # The libmkl_def shared library will fail the library checking if we don't
+                        # give it a way to find other libraries in its directory.
+                        subprocess.check_call(['patchelf', '--set-rpath', '$ORIGIN', dest_path])
 
         mkl_def_library_found = False
         for file_name in file_names_found:
             if file_name.startswith('libmkl_def.'):
                 mkl_def_library_found = True
+
+        if not file_names_found:
+            raise AssertionError(
+                "Could not find any library files to copy by searching files with the following "
+                "path prefixes:\n" + one_per_line_indented(path_prefix_list))
+
         assert mkl_def_library_found, \
             "Did not find the libmkl_def library. Expected to find it in the same directory " \
-            "as the libmkl_core library. File names to be packaged:\n    " + \
-            "\n    ".join(sorted(file_names_found))
+            "as the libmkl_core library. File names to be packaged:\n" + \
+            one_per_line_indented(sorted(file_names_found))
 
     def remember_paths_to_package_from_tag_dir(self, tag_dir: str) -> None:
         assert os.path.isabs(tag_dir)
@@ -264,8 +324,9 @@ class IntelOneAPIInstallation:
                 "Either static or shared libraries are missing from the packaged Intel oneAPI "
                 "archive. This might happen because of a previous invocation of the build without "
                 "--package-intel-oneapi, that resulted in installation of libraries such as "
-                "libmkl_* and libiomp* into installed/common. Delete the installed directory "
-                "and rerun the build. "
+                "libmkl_* and libiomp* into installed/common. Another reason for this could be "
+                "a previously built diskann dependency. Delete the installed directory and rerun "
+                "the build. Also consider using --delete-build-dir and --ignore-build-stamp flags. "
                 f"shared_libraries_found={shared_libraries_found}, "
                 f"static_libraries_found={static_libraries_found}"
             )
@@ -288,8 +349,8 @@ def download_intel_oneapi() -> IntelOneAPIInstallation:
     """
     url = get_package_url_by_tag(DEFAULT_PACKAGE_TAG)
     assert _download_manager is not None
-    download_root = _download_manager.download_toolchain(url, '/opt/yb-build/intel-oneapi')
-    return IntelOneAPIInstallation(version='2024.1', base_dir=download_root)
+    download_root = _download_manager.download_toolchain(url, YB_INTEL_ONEAPI_PACKAGE_PARENT_DIR)
+    return IntelOneAPIInstallation(base_dir=download_root)
 
 
 def find_complete_intel_oneapi_installation() -> IntelOneAPIInstallation:
@@ -297,28 +358,26 @@ def find_complete_intel_oneapi_installation() -> IntelOneAPIInstallation:
     Find a complete Intel oneAPI installation that was installed using the official installation
     procedure. Used during manual packaging of Intel oneAPI.
     """
-
-    base_dir = ONEAPI_DEFAULT_BASE_DIR
-
-    latest_compiler_symlink_path = os.path.join(base_dir, 'compiler', 'latest')
-    if not os.path.exists(latest_compiler_symlink_path):
-        raise IOError(f"Path does not exist: {latest_compiler_symlink_path}")
-    if not os.path.islink(latest_compiler_symlink_path):
-        raise IOError(f"Path is not a symlink: {latest_compiler_symlink_path}")
-    oneapi_version = os.readlink(latest_compiler_symlink_path)
-    assert '/' not in oneapi_version, \
-        f"Expected the symlink {latest_compiler_symlink_path} to point to a directory named as " \
-        f"the Intel oneAPI directory name but found: {oneapi_version}"
-    return IntelOneAPIInstallation(version=oneapi_version, base_dir=base_dir)
+    return IntelOneAPIInstallation(base_dir=ONEAPI_DEFAULT_BASE_DIR)
 
 
-def find_intel_oneapi() -> IntelOneAPIInstallation:
+def find_intel_oneapi(base_dir: Optional[str] = None) -> IntelOneAPIInstallation:
     global _oneapi_installation
     if _oneapi_installation is not None:
+        if base_dir is not None and _oneapi_installation.base_dir != base_dir:
+            raise ValueError(
+                "Multiple different directories specified for Intel oneAPI: "
+                f"{_oneapi_installation.base_dir} vs. {base_dir}")
+
         return _oneapi_installation
 
     if is_package_build_mode_enabled():
+        assert base_dir is None, \
+            "Custom Intel oneAPI base directory cannot be specified in the Intel oneAPI " \
+            f"package building mode. Found: {base_dir}"
         _oneapi_installation = find_complete_intel_oneapi_installation()
+    elif base_dir is not None:
+        _oneapi_installation = IntelOneAPIInstallation(base_dir=base_dir)
     else:
         _oneapi_installation = download_intel_oneapi()
     log(f"Using Intel oneAPI installation at {_oneapi_installation.base_dir}")
@@ -346,8 +405,8 @@ def enable_package_build_mode(installed_common_dir: str) -> None:
             "Found Intel oneAPI libraries in the installed/common directory that will interfere "
             "with packaging all the necessary libraries when packging Intel oneAPI. Delete "
             "the installed directory and re-run the build from scratch with "
-            "--package-intel-oneapi. Unexpected files:\n    "
-            + '\n    '.join(sorted(unexpected_files)))
+            "--package-intel-oneapi. Unexpected files:\n" +
+            one_per_line_indented(sorted(unexpected_files)))
 
     global _package_build_mode_enabled
     _package_build_mode_enabled = True

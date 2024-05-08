@@ -608,7 +608,9 @@ class Builder(BuilderInterface):
         """
         Build the given dependency using the its corresponding Unix Makefile.
         """
-        self.check_current_dir()
+        if not self.prepare_for_build_tool_invocation(dep):
+            return
+
         log_prefix = self.log_prefix(dep)
         make_cmd_line = ['make', '-j{}'.format(get_make_parallelism())]
         prefix_args = []
@@ -620,6 +622,18 @@ class Builder(BuilderInterface):
             self.log_output(log_prefix, ['make'] + install_targets + prefix_args)
 
         self.validate_build_output()
+
+    def prepare_for_build_tool_invocation(self, dep: Dependency) -> bool:
+        """
+        Does common steps needed in the beginning of build_... functions. Returns true if the
+        calling function should continue its execution, and false if it should return.
+        """
+        self.check_current_dir()
+        if self.args.skip_build_invocations:
+            log("--skip-build-invocations specified, skipping invoking the build tool on "
+                f"dependency {dep.name}")
+            return False
+        return True
 
     def build_with_configure(
             self,
@@ -636,7 +650,8 @@ class Builder(BuilderInterface):
         """
         :param src_subdir_name: subdirectory name to run the build in.
         """
-        self.check_current_dir()
+        if not self.prepare_for_build_tool_invocation(dep):
+            return
         log_prefix = self.log_prefix(dep)
         dir_for_build = os.getcwd()
         if src_subdir_name:
@@ -711,7 +726,8 @@ class Builder(BuilderInterface):
             should_install: bool = builder_interface.DEFAULT_CMAKE_SHOULD_INSTALL,
             shared_and_static: bool = builder_interface.DEFAULT_CMAKE_BUILD_SHARED_AND_STATIC
             ) -> None:
-        self.check_current_dir()
+        if not self.prepare_for_build_tool_invocation(dep):
+            return
         build_tool = 'make'
         if use_ninja_if_available:
             ninja_available = is_ninja_available()
@@ -826,6 +842,8 @@ class Builder(BuilderInterface):
             verbose_output: bool = True,
             should_clean: bool = True,
             targets: List[str] = []) -> None:
+        if not self.prepare_for_build_tool_invocation(dep):
+            return
         log_prefix = self.log_prefix(dep)
         if should_clean:
             self.log_output(log_prefix, ['bazel', 'clean', '--expunge'])
@@ -1265,7 +1283,7 @@ class Builder(BuilderInterface):
                 self.fs_layout.tp_installed_dir, BuildType.COMMON.dir_name(), 'lib'))
 
         if only_process_flags:
-            log("Skipping the build of dependecy %s", dep.name)
+            log("Skipping the build of dependency %s (only_process_flags is set)", dep.name)
             return
 
         env_vars: Dict[str, Optional[str]] = {

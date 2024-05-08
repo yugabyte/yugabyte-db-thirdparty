@@ -27,6 +27,7 @@ from yugabyte_db_thirdparty.checksums import CHECKSUM_FILE_NAME
 from yugabyte_db_thirdparty.util import log
 from yugabyte_db_thirdparty.toolchain import TOOLCHAIN_TYPES
 from yugabyte_db_thirdparty.constants import ADD_CHECKSUM_ARG, ADD_CHECKSUM_ALTERNATE_ARG
+from yugabyte_db_thirdparty import intel_oneapi
 
 
 INCOMPATIBLE_ARGUMENTS: Dict[str, Set[str]] = {
@@ -264,11 +265,23 @@ def parse_cmd_line_args() -> argparse.Namespace:
 
     parser.add_argument(
         '--package-intel-oneapi',
-        help="Create a package of the needed subset of Intel oneAPI in /opt/yb-build/intel-oneapi. "
+        help="Create a package of the needed subset of Intel oneAPI. "
              "This is needed to avoid installing Intel oneAPI on all hosts and in all Docker "
              "images that are used to build YugabyteDB's third-party dependencies. This "
              "assumes that Intel oneAPI is already installed in /opt/intel, which has to be done "
              "manually.",
+        action='store_true')
+
+    parser.add_argument(
+        '--intel-oneapi-base-dir',
+        help="Explicitly specify the base directory where Intel oneAPI is installed. This is "
+             "usually a directory under /opt/yb-build/intel-oneapi.")
+
+    parser.add_argument(
+        '--skip-build-invocations',
+        help='Skip the invocations of the build tools such as CMake, configure, make, Ninja, etc. '
+             'This works by making functions such as build_with_... in builder do nothing. '
+             'Useful when testing pre- and post-processing.',
         action='store_true')
 
     args = parser.parse_args()
@@ -334,5 +347,15 @@ def parse_cmd_line_args() -> argparse.Namespace:
 
     if args.compile_commands:
         args.use_compiler_wrapper = True
+
+    if args.intel_oneapi_base_dir is not None:
+        if args.package_intel_oneapi:
+            raise ValueError(
+                "--package-intel-oneapi is not compatible with --intel-oneapi-base-dir")
+        if not args.intel_oneapi_base_dir.startswith(
+                intel_oneapi.YB_INTEL_ONEAPI_PACKAGE_PARENT_DIR + '/'):
+            raise ValueError(
+                "The directory specified by --intel-oneapi-base-dir must be a subdirectory of " +
+                intel_oneapi.YB_INTEL_ONEAPI_PACKAGE_PARENT_DIR)
 
     return args
