@@ -165,6 +165,12 @@ def parse_cmd_line_args() -> argparse.Namespace:
              'set, this is a no-op (with success exit code).')
 
     parser.add_argument(
+        '--cleanup-before-packaging',
+        help='To try to avoid running out of disk space in a CI/CD environment, remove unnecessary '
+             'files (src, build, download directories) before creating a package.',
+        action='store_true')
+
+    parser.add_argument(
         '--expected-major-compiler-version',
         type=int,
         help='Expect the major version of the compiler to be as specified')
