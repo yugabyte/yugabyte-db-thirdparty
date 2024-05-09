@@ -1394,7 +1394,9 @@ class Builder(BuilderInterface):
                     compile_commands_tmp_dir, build_dir, self.bazel_path_mapping,
                     clang_toolchain_dir, src_dir)
 
-            if self.args.delete_build_dir_after:
+            if self.args.delete_build_dir_after and dep.name != 'abseil':
+                # We cannot delete the Abseil build directory because it is necessary by the
+                # Google tcmalloc Bazel build.
                 log("Deleting build directory %s (--delete-build-dir-after specified)", build_dir)
                 remove_path(build_dir, should_log=True)
 
