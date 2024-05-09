@@ -20,7 +20,7 @@ from yugabyte_db_thirdparty.util import capture_all_output
 
 LDD_ENV = {'LC_ALL': 'en_US.UTF-8'}
 
-RESOLVED_DEPENDENCY_RE = re.compile(r'^(\S*) => (\S*) [(]0x[0-9a-f]+[)]$')
+RESOLVED_DEPENDENCY_RE = re.compile(r'^(\S+) => (\S+) [(]0x[0-9a-f]+[)]$')
 
 SHARED_LIB_SUFFIX_RE = re.compile(r'^(.*)[.]so([.\d]+)?$')
 

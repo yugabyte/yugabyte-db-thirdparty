@@ -181,7 +181,7 @@ class IntelOneAPIInstallation:
         return self.check_if_dir_exists(os.path.join(self.get_compiler_prefix(), 'lib'))
 
     def is_path_within_base_dir(self, absolute_path: str) -> bool:
-        assert os.path.isabs(absolute_path), f'Expected an absolute path, got: {absolute_path}'
+        assert os.path.isabs(absolute_path), f'Expected an absolute path, got: "{absolute_path}"'
         return absolute_path.startswith(self.base_dir + '/')
 
     def add_path_to_be_packaged(self, path: str) -> None:
