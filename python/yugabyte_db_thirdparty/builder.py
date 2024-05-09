@@ -1388,14 +1388,19 @@ class Builder(BuilderInterface):
                     write_env_vars(DEPENDENCY_ENV_FILE_NAME)
                     log("PATH=%s" % os.getenv('PATH'))
                     dep.build(self)
+
             if compile_commands_tmp_dir is not None:
                 compile_commands.aggregate_compile_commands(
                     compile_commands_tmp_dir, build_dir, self.bazel_path_mapping,
                     clang_toolchain_dir, src_dir)
+
+            if self.args.delete_build_dir_after:
+                log("Deleting build directory %s (--delete-build-dir-after specified)", build_dir)
+                remove_path(build_dir, should_log=True)
+
         finally:
             if compile_commands_tmp_dir is not None:
-                log("Deleting %s", compile_commands_tmp_dir)
-                subprocess.check_call(['rm', '-rf', compile_commands_tmp_dir])
+                remove_path(compile_commands_tmp_dir, should_log=True)
 
         self.save_build_stamp_for_dependency(dep)
         log("")
@@ -1504,7 +1509,7 @@ class Builder(BuilderInterface):
 
         if self.args.delete_build_dir:
             log("Deleting directory %s (--delete-build-dir specified)", build_dir)
-            subprocess.check_call(['rm', '-rf', build_dir])
+            remove_path(build_dir)
         file_util.mkdir_p(build_dir)
 
         # Write the source path to a file in the build directory. We use this during processing of

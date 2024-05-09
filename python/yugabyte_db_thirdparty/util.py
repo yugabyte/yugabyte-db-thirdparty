@@ -100,17 +100,25 @@ def replace_string_in_file(
     return num_modified_lines
 
 
-def remove_path(path: str) -> None:
+def remove_path(path: str, should_log: bool = False) -> None:
     if os.path.islink(path):
+        if should_log:
+            log("Deleting symbolic link %s", path)
         # Remove the link even if the path it is pointing to does not exist.
         os.unlink(path)
     if not os.path.exists(path):
+        if should_log:
+            log("Path %s does not exist, nothing to delete", path)
         return
     if os.path.isdir(path):
+        if should_log:
+            log("Deleting directory %s recursively", path)
         assert path != '/'
         # shutil.rmtree is very slow compared to rm -rf.
         subprocess.check_call(['rm', '-rf', path])
     else:
+        if should_log:
+            log("Deleting file %s", path)
         os.remove(path)
 
 

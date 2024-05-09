@@ -206,6 +206,12 @@ def parse_cmd_line_args() -> argparse.Namespace:
         action='store_true')
 
     parser.add_argument(
+        '--delete-build-dir-after', '--remove-build-dir-after',
+        help="Delete each dependency's build directory after the build is done. Used to save disk "
+             "space.",
+        action='store_true')
+
+    parser.add_argument(
         '--lto',
         help='Link time optimization (LTO) type. The "full" and "thin" LTO types are the '
              'according to the LLVM terminology (see '
