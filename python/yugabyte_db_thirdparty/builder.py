@@ -1394,9 +1394,12 @@ class Builder(BuilderInterface):
                     compile_commands_tmp_dir, build_dir, self.bazel_path_mapping,
                     clang_toolchain_dir, src_dir)
 
-            if self.args.delete_build_dir_after and dep.name != 'abseil':
+            if self.args.delete_build_dir_after and dep.name not in ('abseil', 'icu4c'):
                 # We cannot delete the Abseil build directory because it is necessary by the
                 # Google tcmalloc Bazel build.
+                #
+                # We also cannot delete icu4c because we use the results from uninstrumented icu4c
+                # build when building icu4c with ASAN.
                 log("Deleting build directory %s (--delete-build-dir-after specified)", build_dir)
                 remove_path(build_dir, should_log=True)
 
