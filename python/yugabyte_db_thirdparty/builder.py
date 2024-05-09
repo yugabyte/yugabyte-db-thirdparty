@@ -453,7 +453,7 @@ class Builder(BuilderInterface):
 
     def prepare_out_dirs(self) -> None:
         dirs = [
-            os.path.join(self.fs_layout.tp_installed_dir, build_type.dir_name())
+            os.path.join(self.fs_layout.tp_installed_dir, build_type.dir_name)
             for build_type in BuildType
         ]
         libcxx_dirs = [os.path.join(dir_path, 'libcxx') for dir_path in dirs]
@@ -500,7 +500,7 @@ class Builder(BuilderInterface):
         self.add_linuxbrew_flags()
         for build_type in set([BuildType.COMMON, self.build_type]):
             build_type_parent_dir = os.path.join(
-                self.fs_layout.tp_installed_dir, build_type.dir_name())
+                self.fs_layout.tp_installed_dir, build_type.dir_name)
 
             self.add_include_path(os.path.join(build_type_parent_dir, 'include'))
             self.add_lib_dir_and_rpath(os.path.join(build_type_parent_dir, 'lib'))
@@ -581,7 +581,7 @@ class Builder(BuilderInterface):
     def log_prefix(self, dep: Dependency, extra_components: List[str] = []) -> str:
         detail_components = self.compiler_choice.get_build_type_components(
                 lto_type=self.lto_type, with_arch=False
-            ) + [self.build_type.dir_name()] + extra_components
+            ) + [self.build_type.dir_name] + extra_components
         return '{} ({})'.format(dep.name, ', '.join(detail_components))
 
     def check_current_dir(self) -> None:
@@ -956,6 +956,14 @@ class Builder(BuilderInterface):
         dependencies_matching_group = [
             dep for dep in self.selected_dependencies if dep.build_group == build_group
         ]
+        if build_type.is_sanitizer:
+            # A temporary workaround to skip building DiskANN in ASAN/TSAN builds until we figure
+            # out the proper way to control how DiskANN uses or does not use tcmalloc.
+            dependencies_matching_group = [
+                dep for dep in dependencies_matching_group
+                if dep.name != 'diskann'
+            ]
+
         for dep in dependencies_matching_group:
             self.perform_pre_build_steps(dep)
 
@@ -973,7 +981,7 @@ class Builder(BuilderInterface):
                 self.check_spurious_a_out_file()
 
     def get_install_prefix(self) -> str:
-        return os.path.join(self.fs_layout.tp_installed_dir, self.build_type.dir_name())
+        return os.path.join(self.fs_layout.tp_installed_dir, self.build_type.dir_name)
 
     def set_build_type(self, build_type: BuildType) -> None:
         self.build_type = build_type
@@ -1116,7 +1124,7 @@ class Builder(BuilderInterface):
         self.ld_flags += ['-lunwind']
 
         libcxx_installed_include, libcxx_installed_lib = self.get_libcxx_dirs(
-            self.build_type.dir_name())
+            self.build_type.dir_name)
         log("libc++ include directory: %s", libcxx_installed_include)
         log("libc++ library directory: %s", libcxx_installed_lib)
 
@@ -1276,12 +1284,12 @@ class Builder(BuilderInterface):
 
         # This is needed at least for glog to be able to find gflags.
         self.add_rpath(
-            os.path.join(self.fs_layout.tp_installed_dir, self.build_type.dir_name(), 'lib'))
+            os.path.join(self.fs_layout.tp_installed_dir, self.build_type.dir_name, 'lib'))
 
         if self.build_type != BuildType.COMMON:
             # Needed to find libunwind for Clang 10 when using compiler-rt.
             self.add_rpath(os.path.join(
-                self.fs_layout.tp_installed_dir, BuildType.COMMON.dir_name(), 'lib'))
+                self.fs_layout.tp_installed_dir, BuildType.COMMON.dir_name, 'lib'))
 
         if only_process_flags:
             log("Skipping the build of dependency %s (only_process_flags is set)", dep.name)
@@ -1361,7 +1369,7 @@ class Builder(BuilderInterface):
         clang_toolchain_dir = self.get_clang_toolchain_dir()
 
         try:
-            if self.args.compile_commands and not self.build_type.is_sanitizer():
+            if self.args.compile_commands and not self.build_type.is_sanitizer:
                 compile_commands_tmp_dir = compile_commands.get_compile_commands_tmp_dir_path(
                     dep.name)
                 env_vars[compile_commands.TMP_DIR_ENV_VAR_NAME] = compile_commands_tmp_dir

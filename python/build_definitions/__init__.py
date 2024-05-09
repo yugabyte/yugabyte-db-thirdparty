@@ -36,9 +36,11 @@ class BuildType(enum.Enum):
     ASAN = enum.auto()  # AddressSanitizer and UndefinedBehaviorSanitizer.
     TSAN = enum.auto()  # ThreadSanitizer
 
+    @property
     def dir_name(self) -> str:
         return self.name.lower()
 
+    @property
     def is_sanitizer(self) -> bool:
         return self in (BuildType.ASAN, BuildType.TSAN)
 

@@ -218,7 +218,7 @@ class LibTestBase:
         # A special case is the DiskANN dependency, which has its own subdirectory.
         dir_pattern = re.compile('^(lib|libcxx|[s]bin|diskann)$')
         installed_dirs_per_build_type = [
-                os.path.join(self.tp_installed_dir, build_type.dir_name())
+                os.path.join(self.tp_installed_dir, build_type.dir_name)
                 for build_type in BuildType]
 
         self.files_to_check = []

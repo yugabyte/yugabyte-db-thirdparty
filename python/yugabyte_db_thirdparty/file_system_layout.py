@@ -83,7 +83,7 @@ class FileSystemLayout:
             self.tp_installed_dir = installed_parent_dir
 
         self.tp_installed_common_dir = os.path.join(
-            self.tp_installed_dir, BuildType.COMMON.dir_name())
+            self.tp_installed_dir, BuildType.COMMON.dir_name)
 
     def get_archive_path(self, dep: Dependency) -> Optional[str]:
         archive_name = dep.get_archive_name()
@@ -147,11 +147,11 @@ class FileSystemLayout:
 
     def get_build_stamp_path_for_dependency(self, dep: Dependency, build_type: BuildType) -> str:
         return os.path.join(self.tp_build_dir,
-                            build_type.dir_name(),
+                            build_type.dir_name,
                             '.build-stamp-{}'.format(dep.name))
 
     def get_build_dir_for_dependency(self, dep: Dependency, build_type: BuildType) -> str:
-        return os.path.join(self.tp_build_dir, build_type.dir_name(), dep.dir_name)
+        return os.path.join(self.tp_build_dir, build_type.dir_name, dep.dir_name)
 
     def get_llvm_tool_dir(self) -> str:
         """
