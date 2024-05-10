@@ -27,20 +27,8 @@ class JwtCppDependency(Dependency):
         self.copy_sources = False
 
     def build(self, builder: BuilderInterface) -> None:
-        log_prefix = builder.log_prefix(self)
-        builder.log_output(
-            log_prefix,
-            [
-                'rsync', '-av', '--delete',
-                os.path.join(builder.fs_layout.get_source_path(self), 'include', 'picojson/'),
-                os.path.join(builder.prefix_include, 'picojson')
-            ]
-        )
-        builder.log_output(
-            log_prefix,
-            [
-                'rsync', '-av', '--delete',
-                os.path.join(builder.fs_layout.get_source_path(self), 'include', 'jwt-cpp/'),
-                os.path.join(builder.prefix_include, 'jwt-cpp')
-            ]
-        )
+        for include_subdir_name in ['picojson', 'jwt-cpp']:
+            builder.copy_include_files(
+                dep=self,
+                rel_src_include_path=os.path.join('include', include_subdir_name),
+                dest_include_path=include_subdir_name)

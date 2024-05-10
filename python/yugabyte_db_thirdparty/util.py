@@ -1,4 +1,4 @@
-# Copyright (c) Yugabyte, Inc.
+# Copyright (c) YugabyteDB, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
 # in compliance with the License. You may obtain a copy of the License at
@@ -9,17 +9,19 @@
 # is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
 # or implied. See the License for the specific language governing permissions and limitations
 # under the License.
-#
 
+import atexit
 import datetime
 import hashlib
 import json
 import logging
 import os
-import pathlib
 import random
 import shutil
 import subprocess
+import tempfile
+
+from sys_detection import is_linux
 
 from yugabyte_db_thirdparty.custom_logging import log, fatal
 from yugabyte_db_thirdparty.string_util import normalize_cmd_args, shlex_join
@@ -98,22 +100,26 @@ def replace_string_in_file(
     return num_modified_lines
 
 
-def remove_path(path: str) -> None:
+def remove_path(path: str, should_log: bool = False) -> None:
     if os.path.islink(path):
+        if should_log:
+            log("Deleting symbolic link %s", path)
         # Remove the link even if the path it is pointing to does not exist.
         os.unlink(path)
     if not os.path.exists(path):
+        if should_log:
+            log("Path %s does not exist, nothing to delete", path)
         return
     if os.path.isdir(path):
+        if should_log:
+            log("Deleting directory %s recursively", path)
         assert path != '/'
         # shutil.rmtree is very slow compared to rm -rf.
         subprocess.check_call(['rm', '-rf', path])
     else:
+        if should_log:
+            log("Deleting file %s", path)
         os.remove(path)
-
-
-def mkdir_p(path: str) -> None:
-    pathlib.Path(path).mkdir(parents=True, exist_ok=True)
 
 
 def does_file_start_with_string(file_path: str, s: str) -> bool:
@@ -159,41 +165,6 @@ def which_must_exist(cmd_name: str) -> str:
 def copy_file_and_log(src_path: str, dst_path: str) -> None:
     log(f"Copying file {os.path.abspath(src_path)} to {os.path.abspath(dst_path)}")
     shutil.copyfile(src_path, dst_path)
-
-
-def dict_set_or_del(d: Any, k: Any, v: Any) -> None:
-    """
-    Set the value of the given key in a dictionary to the given value, or delete it if the value
-    is None.
-    """
-    if v is None:
-        if k in d:
-            del d[k]
-    else:
-        d[k] = v
-
-
-class EnvVarContext:
-    """
-    Sets the given environment variables and restores them on exit. A None value means the variable
-    is undefined.
-    """
-
-    env_vars: Dict[str, Optional[str]]
-    saved_env_vars: Dict[str, Optional[str]]
-
-    def __init__(self, **env_vars: Any) -> None:
-        self.env_vars = env_vars
-
-    def __enter__(self) -> None:
-        self.saved_env_vars = {}
-        for env_var_name, new_value in self.env_vars.items():
-            self.saved_env_vars[env_var_name] = os.environ.get(env_var_name)
-            dict_set_or_del(os.environ, env_var_name, new_value)
-
-    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
-        for env_var_name, saved_value in self.saved_env_vars.items():
-            dict_set_or_del(os.environ, env_var_name, saved_value)
 
 
 def read_file(file_path: str) -> str:
@@ -402,3 +373,30 @@ def is_empty_json_file(file_path: str) -> bool:
         return json.dumps(parsed_json) in ['{}', '[]']
     except json.decoder.JSONDecodeError as ex:
         return False
+
+
+def create_preferably_in_mem_tmp_dir(
+        suffix: Optional[str] = None,
+        prefix: Optional[str] = None,
+        delete_at_exit: bool = False) -> str:
+    """
+    Creates a temporary directory, preferring locations that are likely to be backed by an in-memory
+    file system.
+    """
+    tmp_dir_base_candidates = []
+    if is_linux():
+        tmp_dir_base_candidates.append('/dev/shm')
+    tmp_dir_base_candidates.append(tempfile.gettempdir())
+    tmp_dir_base_candidates.append('/tmp')
+    for base_candidate in tmp_dir_base_candidates:
+        if not os.path.isdir(base_candidate) or not os.access(base_candidate, os.W_OK):
+            continue
+        tmp_dir_path = tempfile.mkdtemp(suffix=suffix, prefix=prefix, dir=base_candidate)
+        if delete_at_exit:
+            def do_delete_at_exit() -> None:
+                shutil.rmtree(tmp_dir_path)
+            atexit.register(do_delete_at_exit)
+        return tmp_dir_path
+    raise IOError(
+        "Could not find a suitable base directory to create a temporary subdirectory. "
+        "Considered: {', '.join(tmp_dir_base_candidates)}")

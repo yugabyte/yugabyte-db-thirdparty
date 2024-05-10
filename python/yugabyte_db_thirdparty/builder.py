@@ -36,16 +36,19 @@ from build_definitions import (
 )
 
 from build_definitions.tcmalloc import TCMallocDependency
+import build_definitions
 
 from yugabyte_db_thirdparty.builder_helpers import (
     format_cmake_args_for_log,
     get_make_parallelism,
-    get_rpath_flag,
     log_and_set_env_var_to_list,
     PLACEHOLDER_RPATH,
 )
 from yugabyte_db_thirdparty.builder_helpers import is_ninja_available
+
 from yugabyte_db_thirdparty.builder_interface import BuilderInterface
+from yugabyte_db_thirdparty import builder_interface
+
 from yugabyte_db_thirdparty.cmd_line_args import parse_cmd_line_args
 from yugabyte_db_thirdparty.compiler_choice import CompilerChoice
 from yugabyte_db_thirdparty.custom_logging import (
@@ -67,12 +70,12 @@ from yugabyte_db_thirdparty.arch import (
     get_target_arch,
     get_other_macos_arch,
     add_homebrew_to_path,
+    is_building_for_x86_64,
 )
 from yugabyte_db_thirdparty import util
 from yugabyte_db_thirdparty.util import (
     assert_dir_exists,
     assert_list_contains,
-    EnvVarContext,
     PushDir,
     read_file,
     remove_path,
@@ -97,8 +100,13 @@ from yugabyte_db_thirdparty.constants import (
 from yugabyte_db_thirdparty import (
     compile_commands,
     constants,
+    file_util,
     git_util,
 )
+from yugabyte_db_thirdparty.rpath_util import get_rpath_flag
+from yugabyte_db_thirdparty.env_helpers import EnvVarContext
+
+from yugabyte_db_thirdparty import intel_oneapi, dependency_selection
 
 # -------------------------------------------------------------------------------------------------
 
@@ -274,6 +282,7 @@ class Builder(BuilderInterface):
         self.download_manager = DownloadManager(
             should_add_checksum=self.args.add_checksum,
             download_dir=self.fs_layout.tp_download_dir)
+        intel_oneapi.set_download_manager(self.download_manager)
 
         compiler_family, compiler_prefix = self.determine_compiler_family_and_prefix()
 
@@ -311,35 +320,18 @@ class Builder(BuilderInterface):
             lto_type=self.args.lto)
         self.populate_dependencies()
         self.select_dependencies_to_build()
-        self.compiler_choice.set_compiler(use_compiler_wrapper=False)
+
+        # Do not decide whether to use the compiler wrapper now.
+        self.compiler_choice.set_compiler(use_compiler_wrapper=None)
 
     def populate_dependencies(self) -> None:
         # We have to use get_build_def_module to access submodules of build_definitions,
         # otherwise MyPy gets confused.
 
-        self.dependencies = get_deps_from_module_names([
-            # Avoiding a name collision with the standard zlib module, hence "zlib_dependency".
-            'zlib_dependency',
-            'lz4',
-            'openssl',
-            'libev',
-            'rapidjson',
-            'squeasel',
-            'curl',
-            'hiredis',
-            'cqlsh',
-            'flex',
-            'bison',
-            'openldap',
-            'redis_cli',
-            'wyhash',
-            'jwt_cpp',
-        ])
-        for dep in self.dependencies:
-            if dep.build_group != BuildGroup.COMMON:
-                raise ValueError(
-                    "Expected the initial group of dependencies to all be in the common build "
-                    f"group, found: {dep.build_group} for dependency {dep.name}")
+        self.dependencies = get_deps_from_module_names(
+            dependency_selection.COMMON_DEPENDENCY_MODULE_NAMES)
+
+        build_definitions.ensure_build_group(self.dependencies, BuildGroup.COMMON)
 
         if is_linux():
             self.dependencies += [
@@ -374,35 +366,8 @@ class Builder(BuilderInterface):
             self.dependencies.append(get_build_def_module('libbacktrace').LibBacktraceDependency())
 
         self.dependencies += get_deps_from_module_names(
-            # On macOS, flex, bison, and krb5 depend on gettext, and we don't want to use gettext
-            # from Homebrew.
-            # libunistring is required by gettext.
-            (
-                ['libunistring', 'gettext'] if is_macos() else []
-            ) + [
-                'ncurses',
-            ] + (
-                [] if is_macos() else ['libkeyutils', 'libverto', 'abseil', 'tcmalloc']
-            ) + [
-                'libedit',
-                'icu4c',
-                'protobuf',
-                'crypt_blowfish',
-                'boost',
-                'gflags',
-                'glog',
-                'gperftools',
-                'googletest',
-                'snappy',
-                'crcutil',
-                'libcds',
-                'libuv',
-                'cassandra_cpp_driver',
-                'krb5',
-                'hdrhistogram',
-                'otel_proto',
-                'otel'
-            ])
+            dependency_selection.get_final_dependency_module_names(self.compiler_choice))
+
         for dep in self.dependencies:
             if dep.name in self.dependencies_by_name:
                 raise ValueError("Duplicate dependency: %s" % dep.name)
@@ -447,7 +412,7 @@ class Builder(BuilderInterface):
                 add_path_entry(llvm_tool_dir)
 
     def run(self) -> None:
-        if is_macos() and get_target_arch() == 'x86_64':
+        if is_macos() and is_building_for_x86_64():
             os.environ['MACOSX_DEPLOYMENT_TARGET'] = get_min_supported_macos_version()
         if self.args.clean or self.args.clean_downloads:
             self.fs_layout.clean(self.selected_dependencies, self.args.clean_downloads)
@@ -488,17 +453,17 @@ class Builder(BuilderInterface):
 
     def prepare_out_dirs(self) -> None:
         dirs = [
-            os.path.join(self.fs_layout.tp_installed_dir, build_type.dir_name())
+            os.path.join(self.fs_layout.tp_installed_dir, build_type.dir_name)
             for build_type in BuildType
         ]
         libcxx_dirs = [os.path.join(dir_path, 'libcxx') for dir_path in dirs]
         for dir_path in dirs + libcxx_dirs:
             if self.args.verbose:
                 log("Preparing output directory %s", dir_path)
-            util.mkdir_p(os.path.join(dir_path, 'bin'))
+            file_util.mkdir_p(os.path.join(dir_path, 'bin'))
             lib_dir = os.path.join(dir_path, 'lib')
-            util.mkdir_p(lib_dir)
-            util.mkdir_p(os.path.join(dir_path, 'include'))
+            file_util.mkdir_p(lib_dir)
+            file_util.mkdir_p(os.path.join(dir_path, 'include'))
             # On some systems, autotools installs libraries to lib64 rather than lib. Fix this by
             # setting up lib64 as a symlink to lib. We have to do this step first to handle cases
             # where one third-party library depends on another.
@@ -535,7 +500,7 @@ class Builder(BuilderInterface):
         self.add_linuxbrew_flags()
         for build_type in set([BuildType.COMMON, self.build_type]):
             build_type_parent_dir = os.path.join(
-                self.fs_layout.tp_installed_dir, build_type.dir_name())
+                self.fs_layout.tp_installed_dir, build_type.dir_name)
 
             self.add_include_path(os.path.join(build_type_parent_dir, 'include'))
             self.add_lib_dir_and_rpath(os.path.join(build_type_parent_dir, 'lib'))
@@ -613,10 +578,10 @@ class Builder(BuilderInterface):
         self.ld_flags.insert(0, get_rpath_flag(path))
         self.additional_allowed_shared_lib_paths.add(path)
 
-    def log_prefix(self, dep: Dependency) -> str:
+    def log_prefix(self, dep: Dependency, extra_components: List[str] = []) -> str:
         detail_components = self.compiler_choice.get_build_type_components(
                 lto_type=self.lto_type, with_arch=False
-            ) + [self.build_type.dir_name()]
+            ) + [self.build_type.dir_name] + extra_components
         return '{} ({})'.format(dep.name, ', '.join(detail_components))
 
     def check_current_dir(self) -> None:
@@ -634,17 +599,60 @@ class Builder(BuilderInterface):
         """
         return EnvVarContext(YB_THIRDPARTY_CONFIGURING='1')
 
+    def build_with_make(
+            self,
+            dep: Dependency,
+            extra_make_args: List[str] = builder_interface.DEFAULT_EXTRA_MAKE_ARGS,
+            install_targets: List[str] = builder_interface.DEFAULT_INSTALL_TARGETS,
+            specify_prefix: bool = builder_interface.DEFAULT_MAKE_SPECIFY_PREFIX,
+            prefix_var: str = builder_interface.DEFAULT_MAKE_PREFIX_VAR) -> None:
+        """
+        Build the given dependency using the its corresponding Unix Makefile.
+        """
+        if not self.prepare_for_build_tool_invocation(dep):
+            return
+
+        log_prefix = self.log_prefix(dep)
+        make_cmd_line = ['make', '-j{}'.format(get_make_parallelism())]
+        prefix_args = []
+        if specify_prefix:
+            prefix_args = [f'{prefix_var}={self.prefix}']
+        make_cmd_line.extend(extra_make_args)
+        self.log_output(log_prefix, make_cmd_line + prefix_args)
+        if install_targets:
+            self.log_output(log_prefix, ['make'] + install_targets + prefix_args)
+
+        self.validate_build_output()
+
+    def prepare_for_build_tool_invocation(self, dep: Dependency) -> bool:
+        """
+        Does common steps needed in the beginning of build_... functions. Returns true if the
+        calling function should continue its execution, and false if it should return.
+        """
+        self.check_current_dir()
+        if self.args.skip_build_invocations:
+            log("--skip-build-invocations specified, skipping invoking the build tool on "
+                f"dependency {dep.name}")
+            return False
+        return True
+
     def build_with_configure(
             self,
             dep: Dependency,
-            extra_args: List[str] = [],
-            configure_cmd: List[str] = ['./configure'],
-            install: List[str] = ['install'],
-            run_autogen: bool = False,
-            autoconf: bool = False,
-            src_subdir_name: Optional[str] = None,
-            post_configure_action: Optional[Callable] = None) -> None:
-        self.check_current_dir()
+            extra_configure_args: List[str] = builder_interface.DEFAULT_EXTRA_CONFIGURE_ARGS,
+            extra_make_args: List[str] = builder_interface.DEFAULT_EXTRA_MAKE_ARGS,
+            configure_cmd: List[str] = builder_interface.DEFAULT_CONFIGURE_CMD,
+            install_targets: List[str] = builder_interface.DEFAULT_INSTALL_TARGETS,
+            run_autogen: bool = builder_interface.DEFAULT_RUN_AUTOGEN,
+            run_autoreconf: bool = builder_interface.DEFAULT_RUN_AUTORECONF,
+            src_subdir_name: Optional[str] = builder_interface.DEFAULT_SRC_SUBDIR_NAME,
+            post_configure_action: Optional[Callable] = None
+            ) -> None:
+        """
+        :param src_subdir_name: subdirectory name to run the build in.
+        """
+        if not self.prepare_for_build_tool_invocation(dep):
+            return
         log_prefix = self.log_prefix(dep)
         dir_for_build = os.getcwd()
         if src_subdir_name:
@@ -656,11 +664,13 @@ class Builder(BuilderInterface):
                 with self.create_configure_action_context():
                     if run_autogen:
                         self.log_output(log_prefix, ['./autogen.sh'])
-                    if autoconf:
+                    if run_autoreconf:
                         self.log_output(log_prefix, ['autoreconf', '-i'])
 
                     configure_args = (
-                        configure_cmd.copy() + ['--prefix={}'.format(self.prefix)] + extra_args
+                        configure_cmd.copy() +
+                        ['--prefix={}'.format(self.prefix)] +
+                        extra_configure_args
                     )
                     configure_args = get_arch_switch_cmd_prefix() + configure_args
                     self.log_output(
@@ -690,11 +700,10 @@ class Builder(BuilderInterface):
             if post_configure_action:
                 post_configure_action()
 
-            self.log_output(log_prefix, ['make', '-j{}'.format(get_make_parallelism())])
-            if install:
-                self.log_output(log_prefix, ['make'] + install)
-
-            self.validate_build_output()
+            self.build_with_make(
+                dep=dep,
+                extra_make_args=extra_make_args,
+                install_targets=install_targets)
 
     def log_output(
             self,
@@ -711,14 +720,15 @@ class Builder(BuilderInterface):
     def build_with_cmake(
             self,
             dep: Dependency,
-            extra_args: List[str] = [],
-            use_ninja_if_available: bool = True,
-            src_subdir_name: Optional[str] = None,
-            extra_build_tool_args: List[str] = [],
-            should_install: bool = True,
-            install_targets: List[str] = ['install'],
-            shared_and_static: bool = False) -> None:
-        self.check_current_dir()
+            extra_cmake_args: List[str] = builder_interface.DEFAULT_EXTRA_CMAKE_ARGS,
+            use_ninja_if_available: bool = builder_interface.DEFAULT_USE_NINJA_IF_AVAILABLE,
+            src_subdir_name: Optional[str] = builder_interface.DEFAULT_SRC_SUBDIR_NAME,
+            extra_build_tool_args: List[str] = builder_interface.DEFAULT_EXTRA_MAKE_OR_NINJA_ARGS,
+            should_install: bool = builder_interface.DEFAULT_CMAKE_SHOULD_INSTALL,
+            shared_and_static: bool = builder_interface.DEFAULT_CMAKE_BUILD_SHARED_AND_STATIC
+            ) -> None:
+        if not self.prepare_for_build_tool_invocation(dep):
+            return
         build_tool = 'make'
         if use_ninja_if_available:
             ninja_available = is_ninja_available()
@@ -727,7 +737,6 @@ class Builder(BuilderInterface):
                 build_tool = 'ninja'
 
         log("Building dependency %s using CMake. Build tool: %s", dep, build_tool)
-        log_prefix = self.log_prefix(dep)
 
         remove_path('CMakeCache.txt')
         remove_path('CMakeFiles')
@@ -740,8 +749,8 @@ class Builder(BuilderInterface):
         if build_tool == 'ninja':
             args += ['-G', 'Ninja']
         args += self.get_common_cmake_flag_args(dep)
-        if extra_args is not None:
-            args += extra_args
+        if extra_cmake_args is not None:
+            args += extra_cmake_args
         args += dep.get_additional_cmake_args(self)
 
         if shared_and_static and any(arg.startswith('-DBUILD_SHARED_LIBS=') for arg in args):
@@ -753,7 +762,9 @@ class Builder(BuilderInterface):
             # TODO: a better approach for setting CMake arguments from multiple places.
             args.append('-DBUILD_SHARED_LIBS=ON')
 
-        def do_build_with_cmake(additional_cmake_args: List[str] = []) -> None:
+        def do_build_with_cmake(
+                extra_log_prefix_components: List[str] = [],
+                additional_cmake_args: List[str] = []) -> None:
             final_cmake_args = args + additional_cmake_args
             log("CMake command line (one argument per line):\n%s" %
                 format_cmake_args_for_log(final_cmake_args))
@@ -779,16 +790,21 @@ class Builder(BuilderInterface):
                      stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IWGRP |
                      stat.S_IROTH)
 
+            custom_log_prefix = self.log_prefix(dep, extra_log_prefix_components)
             with self.create_configure_action_context():
-                self.log_output(log_prefix, final_cmake_args)
+                self.log_output(custom_log_prefix, final_cmake_args)
 
             if build_tool == 'ninja':
                 dep.postprocess_ninja_build_file(self, 'build.ninja')
 
-            self.log_output(log_prefix, build_tool_cmd)
+            self.log_output(custom_log_prefix, build_tool_cmd)
 
             if should_install:
-                self.log_output(log_prefix, [build_tool] + install_targets)
+                # We can add a make_or_ninja_install_targets argument to this method if we need to
+                # customize the target below.
+                self.log_output(
+                    custom_log_prefix,
+                    [build_tool] + builder_interface.DEFAULT_INSTALL_TARGETS)
 
             with open('compile_commands.json') as compile_commands_file:
                 compile_commands = json.load(compile_commands_file)
@@ -807,12 +823,15 @@ class Builder(BuilderInterface):
                 ('OFF', 'static')
             ):
                 build_dir = os.path.join(os.getcwd(), subdir_name)
-                util.mkdir_p(build_dir)
+                file_util.mkdir_p(build_dir)
                 build_shared_libs_cmake_arg = '-DBUILD_SHARED_LIBS=%s' % build_shared_libs_value
                 log("Building dependency '%s' for build type '%s' with option: %s",
                     dep.name, self.build_type, build_shared_libs_cmake_arg)
                 with PushDir(build_dir):
-                    do_build_with_cmake([build_shared_libs_cmake_arg])
+                    do_build_with_cmake(
+                        # Include "shared" or "static" in the log prefix.
+                        extra_log_prefix_components=[subdir_name],
+                        additional_cmake_args=[build_shared_libs_cmake_arg])
                     self.validate_build_output()
         else:
             do_build_with_cmake()
@@ -824,6 +843,8 @@ class Builder(BuilderInterface):
             verbose_output: bool = True,
             should_clean: bool = True,
             targets: List[str] = []) -> None:
+        if not self.prepare_for_build_tool_invocation(dep):
+            return
         log_prefix = self.log_prefix(dep)
         if should_clean:
             self.log_output(log_prefix, ['bazel', 'clean', '--expunge'])
@@ -935,37 +956,32 @@ class Builder(BuilderInterface):
         dependencies_matching_group = [
             dep for dep in self.selected_dependencies if dep.build_group == build_group
         ]
+        if build_type.is_sanitizer:
+            # A temporary workaround to skip building DiskANN in ASAN/TSAN builds until we figure
+            # out the proper way to control how DiskANN uses or does not use tcmalloc.
+            dependencies_matching_group = [
+                dep for dep in dependencies_matching_group
+                if dep.name != 'diskann'
+            ]
+
         for dep in dependencies_matching_group:
             self.perform_pre_build_steps(dep)
 
         for dep in dependencies_matching_group:
+            self.perform_pre_build_steps(dep)
             should_build = dep.should_build(self)
             should_rebuild = self.should_rebuild_dependency(dep)
-            if should_build and should_rebuild:
-                self.build_dependency(dep, only_process_flags=False)
-                self.check_spurious_a_out_file()
-            else:
-                self.build_dependency(dep, only_process_flags=True)
+            only_process_flags = not should_build or not should_rebuild
+            self.build_dependency(dep, only_process_flags=only_process_flags)
+            if only_process_flags:
                 log(f"Skipped dependency {dep.name}: "
                     f"should_build={should_build}, "
                     f"should_rebuild={should_rebuild}.")
-
-        for dep in self.selected_dependencies:
-            if build_group == dep.build_group:
-                self.perform_pre_build_steps(dep)
-                should_build = dep.should_build(self)
-                should_rebuild = self.should_rebuild_dependency(dep)
-                if should_build and should_rebuild:
-                    self.build_dependency(dep, only_process_flags=False)
-                    self.check_spurious_a_out_file()
-                else:
-                    self.build_dependency(dep, only_process_flags=True)
-                    log(f"Skipped dependency {dep.name}: "
-                        f"should_build={should_build}, "
-                        f"should_rebuild={should_rebuild}.")
+            else:
+                self.check_spurious_a_out_file()
 
     def get_install_prefix(self) -> str:
-        return os.path.join(self.fs_layout.tp_installed_dir, self.build_type.dir_name())
+        return os.path.join(self.fs_layout.tp_installed_dir, self.build_type.dir_name)
 
     def set_build_type(self, build_type: BuildType) -> None:
         self.build_type = build_type
@@ -1108,7 +1124,7 @@ class Builder(BuilderInterface):
         self.ld_flags += ['-lunwind']
 
         libcxx_installed_include, libcxx_installed_lib = self.get_libcxx_dirs(
-            self.build_type.dir_name())
+            self.build_type.dir_name)
         log("libc++ include directory: %s", libcxx_installed_include)
         log("libc++ library directory: %s", libcxx_installed_lib)
 
@@ -1268,15 +1284,15 @@ class Builder(BuilderInterface):
 
         # This is needed at least for glog to be able to find gflags.
         self.add_rpath(
-            os.path.join(self.fs_layout.tp_installed_dir, self.build_type.dir_name(), 'lib'))
+            os.path.join(self.fs_layout.tp_installed_dir, self.build_type.dir_name, 'lib'))
 
         if self.build_type != BuildType.COMMON:
             # Needed to find libunwind for Clang 10 when using compiler-rt.
             self.add_rpath(os.path.join(
-                self.fs_layout.tp_installed_dir, BuildType.COMMON.dir_name(), 'lib'))
+                self.fs_layout.tp_installed_dir, BuildType.COMMON.dir_name, 'lib'))
 
         if only_process_flags:
-            log("Skipping the build of dependecy %s", dep.name)
+            log("Skipping the build of dependency %s (only_process_flags is set)", dep.name)
             return
 
         env_vars: Dict[str, Optional[str]] = {
@@ -1353,11 +1369,11 @@ class Builder(BuilderInterface):
         clang_toolchain_dir = self.get_clang_toolchain_dir()
 
         try:
-            if self.args.compile_commands and not self.build_type.is_sanitizer():
+            if self.args.compile_commands and not self.build_type.is_sanitizer:
                 compile_commands_tmp_dir = compile_commands.get_compile_commands_tmp_dir_path(
                     dep.name)
                 env_vars[compile_commands.TMP_DIR_ENV_VAR_NAME] = compile_commands_tmp_dir
-                util.mkdir_p(compile_commands_tmp_dir)
+                file_util.mkdir_p(compile_commands_tmp_dir)
 
             src_dir = self.fs_layout.get_source_path(dep)
             build_dir = self.create_build_dir_and_prepare(dep)
@@ -1368,18 +1384,28 @@ class Builder(BuilderInterface):
                 return
 
             with PushDir(build_dir):
-                with EnvVarContext(**env_vars):
+                with EnvVarContext(env_vars):
                     write_env_vars(DEPENDENCY_ENV_FILE_NAME)
                     log("PATH=%s" % os.getenv('PATH'))
                     dep.build(self)
+
             if compile_commands_tmp_dir is not None:
                 compile_commands.aggregate_compile_commands(
                     compile_commands_tmp_dir, build_dir, self.bazel_path_mapping,
                     clang_toolchain_dir, src_dir)
+
+            if self.args.delete_build_dir_after and dep.name not in ('abseil', 'icu4c'):
+                # We cannot delete the Abseil build directory because it is necessary by the
+                # Google tcmalloc Bazel build.
+                #
+                # We also cannot delete icu4c because we use the results from uninstrumented icu4c
+                # build when building icu4c with ASAN.
+                log("Deleting build directory %s (--delete-build-dir-after specified)", build_dir)
+                remove_path(build_dir, should_log=True)
+
         finally:
             if compile_commands_tmp_dir is not None:
-                log("Deleting %s", compile_commands_tmp_dir)
-                subprocess.check_call(['rm', '-rf', compile_commands_tmp_dir])
+                remove_path(compile_commands_tmp_dir, should_log=True)
 
         self.save_build_stamp_for_dependency(dep)
         log("")
@@ -1488,8 +1514,8 @@ class Builder(BuilderInterface):
 
         if self.args.delete_build_dir:
             log("Deleting directory %s (--delete-build-dir specified)", build_dir)
-            subprocess.check_call(['rm', '-rf', build_dir])
-        util.mkdir_p(build_dir)
+            remove_path(build_dir)
+        file_util.mkdir_p(build_dir)
 
         # Write the source path to a file in the build directory. We use this during processing of
         # compilation database files to map file paths in the build directory back to the source
@@ -1558,3 +1584,42 @@ class Builder(BuilderInterface):
             '-DOPENSSL_LIBRARIES=%s;%s' % (openssl_crypto_library, openssl_ssl_library)
         ]
         return openssl_options
+
+    def copy_include_files(
+            self,
+            dep: Dependency,
+            rel_src_include_path: str,
+            dest_include_path: str) -> None:
+        """
+        Copies the include files of the given dependency from the given path relative to the
+        dependency's source directory to the given output path. It is assumed that the
+        desination directory is exclusive to this particular installation step, and all other files
+        are deleted from that directory via rsync's --delete argument.
+
+        :param rel_src_include_path: path to copy from, relative to the dependency's source
+            directory
+        :param dest_include_path: path to copy to, either absolute, or relative to the
+            installed/include directory
+        :param dest_relative_to_include_dir: whether rel_dest_include_path is considered to be
+            relative to the installed include directory (True by default).
+        """
+        copy_from_dir = os.path.join(self.fs_layout.get_source_path(dep), rel_src_include_path)
+        if not copy_from_dir.endswith('/'):
+            # Ensure the copy-from directory ends with a slash so that its contents are copied,
+            # and not the directory itself.
+            copy_from_dir += '/'
+
+        dir_must_exist = copy_from_dir[:-1]
+        if not os.path.exists(dir_must_exist):
+            raise IOError(f"Directory {dir_must_exist} does not exist, cannot copy include files")
+
+        if os.path.isabs(dest_include_path):
+            copy_to_dir = dest_include_path
+        else:
+            copy_to_dir = os.path.join(self.prefix_include, dest_include_path)
+
+        log("Copying include files from %s to %s", copy_from_dir, copy_to_dir)
+        self.log_output(
+            self.log_prefix(dep),
+            ['rsync', '-av', '--delete', copy_from_dir, copy_to_dir]
+        )

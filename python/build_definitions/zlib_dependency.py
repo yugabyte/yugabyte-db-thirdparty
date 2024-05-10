@@ -15,7 +15,7 @@
 import os
 
 from yugabyte_db_thirdparty.build_definition_helpers import *
-from yugabyte_db_thirdparty.util import EnvVarContext  # noqa
+from yugabyte_db_thirdparty.env_helpers import EnvVarContext  # noqa
 
 
 class ZLibDependency(Dependency):

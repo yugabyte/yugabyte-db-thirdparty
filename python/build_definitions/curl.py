@@ -39,7 +39,7 @@ class CurlDependency(Dependency):
             '--without-zstd',
         ]
 
-        builder.build_with_configure(dep=self, extra_args=extra_args)
+        builder.build_with_configure(dep=self, extra_configure_args=extra_args)
 
     def use_cppflags_env_var(self) -> bool:
         return True

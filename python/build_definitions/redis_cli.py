@@ -28,7 +28,9 @@ class RedisCliDependency(Dependency):
         self.copy_sources = True
 
     def build(self, builder: BuilderInterface) -> None:
-        log_prefix = builder.log_prefix(self)
-        builder.log_output(
-                log_prefix, ['make', '-j{}'.format(multiprocessing.cpu_count()), 'redis-cli'])
-        builder.log_output(log_prefix, ['cp', 'src/redis-cli', builder.prefix_bin])
+        builder.build_with_make(
+            dep=self,
+            extra_make_args=['redis-cli'],
+            # Instead of "make install", we do a custom copy command below.
+            install_targets=[])
+        builder.log_output(builder.log_prefix(self), ['cp', 'src/redis-cli', builder.prefix_bin])

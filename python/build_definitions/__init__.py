@@ -21,7 +21,6 @@ import pkgutil
 
 from typing import Any, List, Dict, Union, TYPE_CHECKING
 
-from yugabyte_db_thirdparty.custom_logging import log
 from yugabyte_db_thirdparty.archive_handling import make_archive_name
 
 if TYPE_CHECKING:
@@ -37,9 +36,11 @@ class BuildType(enum.Enum):
     ASAN = enum.auto()  # AddressSanitizer and UndefinedBehaviorSanitizer.
     TSAN = enum.auto()  # ThreadSanitizer
 
+    @property
     def dir_name(self) -> str:
         return self.name.lower()
 
+    @property
     def is_sanitizer(self) -> bool:
         return self in (BuildType.ASAN, BuildType.TSAN)
 
@@ -58,12 +59,6 @@ class BuildGroup(enum.Enum):
         if self == BuildGroup.POTENTIALLY_INSTRUMENTED:
             return BuildType.UNINSTRUMENTED
         raise ValueError("Unknown build group: %s" % self)
-
-
-def unset_env_var_if_set(name: str) -> None:
-    if name in os.environ:
-        log('Unsetting %s for third-party build (was set to "%s").', name, os.environ[name])
-        del os.environ[name]
 
 
 def is_jenkins_user() -> bool:
@@ -133,3 +128,14 @@ def get_dependency_by_submodule_name(module_name: str) -> 'Dependency':
 
 def get_deps_from_module_names(module_names: List[str]) -> List['Dependency']:
     return [get_dependency_by_submodule_name(module_name) for module_name in module_names]
+
+
+def ensure_build_group(dependencies: List['Dependency'], expected_group: BuildGroup) -> None:
+    for dep in dependencies:
+        if dep.build_group != expected_group:
+            all_dep_names: List[str] = list(set([dep.name for dep in dependencies]))
+            all_dep_names_str = ', '.join(all_dep_names)
+            raise ValueError(
+                f"Expected the given list of dependencies to be in the group {expected_group} "
+                f"build group, found: {dep.build_group} for dependency {dep.name}. All "
+                f"dependency names subjected to this requirement: {all_dep_names_str}.")

@@ -11,12 +11,32 @@
 # under the License.
 #
 
-import os
 import glob
+import os
+import re
 import subprocess
 
-from sys_detection import is_macos
+from typing import List, Set, Union
+
 from yugabyte_db_thirdparty.custom_logging import log
+from sys_detection import is_macos
+
+
+def get_readelf_rpath_regex_str(path_type: str) -> re.Pattern:
+    return re.compile(''.join([
+        '^.*[(]',
+        path_type.upper(),
+        '[)]',
+        r'\s+',
+        'Library ',
+        path_type.lower(),
+        ': ',
+        r'\[(.*)\]',
+    ]))
+
+
+READELF_LIBRARY_RUNPATH_LINE = get_readelf_rpath_regex_str('runpath')
+READELF_LIBRARY_RPATH_LINE = get_readelf_rpath_regex_str('rpath')
 
 
 def fix_shared_library_references(
@@ -74,3 +94,66 @@ def fix_shared_library_references(
                         '@loader_path/' + dependency_name,
                         lib
                     ])
+
+
+def get_rpath_flag(path: str) -> str:
+    """
+    Get the linker flag needed to add the given RPATH to the generated executable or library.
+    """
+    return "-Wl,-rpath,{}".format(path)
+
+
+def get_rpaths(file_path: str) -> List[str]:
+    candidate_runpaths: Set[str] = set()
+    candidate_rpaths_deprecated: Set[str] = set()
+    for line in subprocess.check_output(['readelf', '-d', file_path]).decode('utf-8').split('\n'):
+        line = line.strip()
+        m = READELF_LIBRARY_RUNPATH_LINE.match(line.strip())
+        if m:
+            candidate_runpaths.add(m.group(1))
+        m = READELF_LIBRARY_RPATH_LINE.match(line.strip())
+        if m:
+            candidate_rpaths_deprecated.add(m.group(1))
+    if candidate_rpaths_deprecated:
+        raise ValueError(
+            f"File {file_path} has the older RPATH attribute. Refusing to work with it.")
+
+    if not candidate_runpaths:
+        return []
+
+    if len(candidate_runpaths) > 1:
+        raise ValueError(
+            f"Contradictory RUNPATH values found for file {file_path}: {candidate_runpaths}")
+
+    runpaths = [item.strip() for item in list(candidate_runpaths)[0].split(':')]
+    return [item for item in runpaths if item]
+
+
+def set_rpaths(file_path: str, rpath_list: List[str]) -> None:
+    subprocess.check_call(['patchelf', '--set-rpath', ':'.join(rpath_list), file_path])
+    new_rpaths = get_rpaths(file_path)
+    if new_rpaths != rpath_list:
+        raise ValueError(
+            f"Failed to set RPATH on file {file_path} to {rpath_list} using patchelf: "
+            f"found {new_rpaths} when re-checked")
+
+
+def normalize_path_list(paths: Union[str, List[str]]) -> List[str]:
+    if isinstance(paths, list):
+        return list(paths)
+    if isinstance(paths, str):
+        return [paths]
+    raise ValueError(f"Expected a string or a list of strings, got: {paths}")
+
+
+def modify_rpaths(
+        file_path: str,
+        remove: Union[str, List[str]] = [],
+        add_first: Union[str, List[str]] = [],
+        add_last: Union[str, List[str]] = []) -> None:
+    old_rpaths = get_rpaths(file_path)
+    set_to_remove = set(normalize_path_list(remove))
+    new_rpaths = [p for p in old_rpaths if p not in set_to_remove]
+    new_rpaths = normalize_path_list(add_first) + new_rpaths + normalize_path_list(add_last)
+    if new_rpaths != old_rpaths:
+        set_rpaths(file_path, new_rpaths)

@@ -14,6 +14,7 @@
 #
 #
 
+import argparse
 import build_definitions
 import glob
 import itertools
@@ -24,48 +25,32 @@ from build_definitions import *  # noqa
 from yugabyte_db_thirdparty.arch import verify_arch
 from yugabyte_db_thirdparty.builder import Builder
 from yugabyte_db_thirdparty.clang_util import get_clang_library_dir
-from yugabyte_db_thirdparty.custom_logging import log_separator, heading, configure_logging
+from yugabyte_db_thirdparty.custom_logging import log, configure_logging
 from yugabyte_db_thirdparty.library_checking import get_lib_tester
 from yugabyte_db_thirdparty.packager import Packager
 from yugabyte_db_thirdparty.remote_build import build_remotely
 from yugabyte_db_thirdparty.snyk import run_snyk_scan
 from yugabyte_db_thirdparty.util import log_and_run_cmd, YB_THIRDPARTY_DIR
 
+from yugabyte_db_thirdparty import intel_oneapi, env_helpers
+
 
 import_submodules(build_definitions)
 
 
-def main() -> None:
-    configure_logging()
-    verify_arch()
+# TODO: do we need to unset more than just these?
+ENV_VARS_TO_AUTO_UNSET = ['CC', 'CXX']
 
-    unset_env_var_if_set('CC')
-    unset_env_var_if_set('CXX')
 
-    if 'YB_BUILD_THIRDPARTY_DUMP_ENV' in os.environ:
-        heading('Environment of {}:'.format(sys.argv[0]))
-        for key in os.environ:
-            log('{}={}'.format(key, os.environ[key]))
-        log_separator()
+class BuilderTool:
+    builder: Builder
+    args: argparse.Namespace
 
-    builder = Builder()
-    builder.parse_args()
-    if builder.remote_build:
-        build_remotely(
-            remote_server=builder.args.remote_build_server,
-            remote_build_code_path=builder.args.remote_build_dir)
-        return
+    def __init__(self) -> None:
+        self.builder = Builder()
 
-    builder.finish_initialization()
-
-    start_time_sec = time.time()
-    if builder.args.check_libs_only:
-        log("Skipping build, --check-libs-only is specified")
-    else:
-        builder.run()
-        log("Build finished in %.1f sec", time.time() - start_time_sec)
-
-    if not builder.args.download_extract_only:
+    def check_libraries(self) -> None:
+        builder = self.builder
         lib_checking_start_time_sec = time.time()
 
         lib_tester = get_lib_tester(fs_layout=builder.fs_layout)
@@ -83,8 +68,9 @@ def main() -> None:
 
         log("Libraries checked in %.1f sec", time.time() - lib_checking_start_time_sec)
 
-    if builder.args.create_package or builder.args.upload_as_tag:
-        if builder.args.cleanup_before_packaging:
+    def create_and_upload_package(self) -> None:
+        args = self.builder.args
+        if args.cleanup_before_packaging:
             log("Cleaning up disk space before packaging")
             log_and_run_cmd(
                 ['rm', '-rf'] + list(itertools.chain.from_iterable([
@@ -97,10 +83,10 @@ def main() -> None:
         packager = Packager()
         packager.create_package()
 
-        if builder.args.upload_as_tag:
+        if args.upload_as_tag:
             github_token = os.environ.get('GITHUB_TOKEN')
             if github_token is not None and github_token.strip():
-                packager.upload_package(builder.args.upload_as_tag)
+                packager.upload_package(args.upload_as_tag)
             else:
                 log("GITHUB_TOKEN is not set, not uploading the release package despite " +
                     "--upload-as-tag being specified")
@@ -108,8 +94,65 @@ def main() -> None:
         log("Time taken for packaging/upload %.1f sec",
             time.time() - packaging_and_upload_start_time_sec)
 
-    if builder.args.snyk:
-        run_snyk_scan(builder.fs_layout)
+    def run(self) -> None:
+        builder = self.builder
+        builder.parse_args()
+
+        args = self.builder.args
+        if builder.remote_build:
+            build_remotely(
+                remote_server=args.remote_build_server,
+                remote_build_code_path=args.remote_build_dir)
+            return
+
+        self.do_build()
+
+    def do_build(self) -> None:
+        builder = self.builder
+        args = builder.args
+
+        builder.finish_initialization()
+        if args.package_intel_oneapi:
+            intel_oneapi.enable_package_build_mode(
+                installed_common_dir=builder.fs_layout.tp_installed_common_dir)
+        if args.intel_oneapi_base_dir:
+            intel_oneapi.find_intel_oneapi(base_dir=args.intel_oneapi_base_dir)
+
+        start_time_sec = time.time()
+        if args.check_libs_only:
+            log("Skipping build, --check-libs-only is specified")
+        else:
+            builder.run()
+            log("Build finished in %.1f sec", time.time() - start_time_sec)
+
+        if args.package_intel_oneapi:
+            intel_oneapi.find_intel_oneapi().create_package(dest_dir=os.getcwd())
+
+        if not args.download_extract_only:
+            self.check_libraries()
+
+        if args.create_package or args.upload_as_tag:
+            self.create_and_upload_package()
+
+        if args.snyk:
+            run_snyk_scan(builder.fs_layout)
+
+
+def adjust_environment() -> None:
+    for env_var_name in ENV_VARS_TO_AUTO_UNSET:
+        env_helpers.unset_env_var_if_set_and_log(env_var_name)
+
+    if 'YB_BUILD_THIRDPARTY_DUMP_ENV' in os.environ:
+        env_helpers.dump_env_vars_to_log(sys.argv[0])
+
+
+def main() -> None:
+    configure_logging()
+    verify_arch()
+    adjust_environment()
+
+    builder_tool = BuilderTool()
+    builder_tool.run()
 
 
 if __name__ == "__main__":

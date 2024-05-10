@@ -35,7 +35,7 @@ class LlvmLibUnwindDependency(LlvmPartDependencyBase):
             raise IOError(f"Main llvm project directory not found at {llvm_path}")
         builder.build_with_cmake(
             self,
-            extra_args=[
+            extra_cmake_args=[
                 '-DCMAKE_BUILD_TYPE=Release',
                 '-DBUILD_SHARED_LIBS=ON',
                 '-DLIBUNWIND_USE_COMPILER_RT=ON',

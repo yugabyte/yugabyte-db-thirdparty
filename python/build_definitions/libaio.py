@@ -12,26 +12,19 @@
 # under the License.
 #
 
+import multiprocessing
+
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
 
-class LibBacktraceDependency(Dependency):
+class LibAIODependency(Dependency):
     def __init__(self) -> None:
-        super(LibBacktraceDependency, self).__init__(
-            name='libbacktrace',
-            version='8602fda64e78f1f46563220f2ee9f7e70819c51d',
-            url_pattern='https://github.com/yugabyte/libbacktrace/archive/{0}.zip',
+        super(LibAIODependency, self).__init__(
+            name='libaio',
+            version='0.3.113',
+            url_pattern='https://github.com/yugabyte/libaio/archive/refs/tags/libaio-{0}.tar.gz',
             build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = True
 
-    def get_compiler_wrapper_ld_flags_to_remove(self, builder: BuilderInterface) -> Set[str]:
-        if builder.build_type == BuildType.ASAN:
-            # This is needed so that the configure script does not decide that some functions,
-            # e.g. getexecname, are available while they are really not.
-            return {
-                '-Wl,--unresolved-symbols=ignore-all'
-            }
-        return set()
-
     def build(self, builder: BuilderInterface) -> None:
-        builder.build_with_configure(dep=self, extra_configure_args=['--with-pic'])
+        builder.build_with_make(dep=self, specify_prefix=True, prefix_var='prefix')

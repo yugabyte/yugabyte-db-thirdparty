@@ -20,6 +20,7 @@ from typing import Dict, Optional, List
 
 from yugabyte_db_thirdparty.custom_logging import log
 from yugabyte_db_thirdparty.util import which_executable
+from yugabyte_db_thirdparty.string_util import one_per_line_indented
 
 
 PLACEHOLDER_RPATH = (
@@ -41,13 +42,6 @@ def is_ninja_available() -> bool:
     if g_is_ninja_available is None:
         g_is_ninja_available = bool(which_executable('ninja'))
     return g_is_ninja_available
-
-
-def get_rpath_flag(path: str) -> str:
-    """
-    Get the linker flag needed to add the given RPATH to the generated executable or library.
-    """
-    return "-Wl,-rpath,{}".format(path)
 
 
 def sanitize_flags_line_for_log(line: str) -> str:
@@ -86,5 +80,5 @@ def format_cmake_args_for_log(args: List[str]) -> str:
 
         lines.append(arg)
 
-    indent = " " * 4
-    return indent + "\n".join([(indent + sanitize_flags_line_for_log(line)) for line in lines])
+    sanitized_lines = [sanitize_flags_line_for_log(line) for line in lines]
+    return one_per_line_indented(sanitized_lines)

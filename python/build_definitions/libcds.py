@@ -27,7 +27,7 @@ class LibCDSDependency(Dependency):
     def build(self, builder: BuilderInterface) -> None:
         builder.build_with_cmake(
             self,
-            extra_args=[
+            extra_cmake_args=[
                 '-DCMAKE_BUILD_TYPE=Release',
                 '-DBUILD_SHARED_LIBS=ON'
             ]

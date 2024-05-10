@@ -36,4 +36,5 @@ class LibUuidDependency(Dependency):
         return flags
 
     def build(self, builder: BuilderInterface) -> None:
-        builder.build_with_configure(dep=self, extra_args=['--with-pic'], autoconf=True)
+        builder.build_with_configure(
+            dep=self, extra_configure_args=['--with-pic'], run_autoreconf=True)

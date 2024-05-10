@@ -59,7 +59,7 @@ class OpenSSLDependency(Dependency):
             dep=self,
             configure_cmd=configure_cmd,
             # https://bit.ly/openssl_install_without_manpages
-            install=['install_sw', 'install_fips']
+            install_targets=['install_sw', 'install_fips']
         )
 
     def use_cppflags_env_var(self) -> bool:
