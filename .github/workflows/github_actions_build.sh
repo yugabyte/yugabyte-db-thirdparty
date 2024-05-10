@@ -56,8 +56,9 @@ if [[ $GIT_HEAD_COMMIT_MESSAGE == *"$CI_BUILD_TYPES_KEYWORD"* ]]; then
     if [[ $build_type_pattern == *linux* ]]; then
       echo >&2 "Expanding pattern '$build_type_pattern' to match all Linux distributions."
       build_type_patterns_array+=(
-        "${build_type_pattern//linux/centos}"
         "${build_type_pattern//linux/almalinux}"
+        "${build_type_pattern//linux/amazonlinux}"
+        "${build_type_pattern//linux/centos}"
         "${build_type_pattern//linux/ubuntu}"
       )
     fi
