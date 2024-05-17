@@ -303,13 +303,17 @@ class IntelOneAPIInstallation:
         assert os.path.isabs(tag_dir)
         for root, dirs, files in os.walk(tag_dir):
             for file_name in files:
-                file_path = os.path.join(root, file_name)
-                rel_path = os.path.relpath(file_path, tag_dir)
+                tag_file_path = os.path.join(root, file_name)
+                rel_path = os.path.relpath(tag_file_path, tag_dir)
                 self.add_path_to_be_packaged(rel_path)
-                rel_to_include_dir_path = get_path_rel_to_include_dir(rel_path)
+                actual_include_file_path = os.path.join(self.base_dir, rel_path)
+
+                # Relative path of the include file to its "include" directory.
+                # E.g. for compiler/2024.1/opt/compiler/include/omp.h this would be omp.h.
+                rel_to_include_dir_path = get_path_rel_to_include_dir(actual_include_file_path)
                 dest_path = os.path.join(include_install_dir, rel_to_include_dir_path)
                 file_util.mkdir_p(os.path.dirname(dest_path))
-                file_util.copy_file_or_simple_symlink(file_path, dest_path)
+                file_util.copy_file_or_simple_symlink(tag_file_path, dest_path)
 
     def create_package(self, dest_dir: str) -> None:
         tmp_dir = tempfile.mkdtemp(prefix='intel_oneapi_package_')

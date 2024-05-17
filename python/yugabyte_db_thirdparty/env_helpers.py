@@ -136,3 +136,23 @@ def unset_env_var_if_set_and_log(name: str) -> None:
     if name in os.environ:
         log('Unsetting %s for third-party build (was set to "%s").', name, os.environ[name])
         del os.environ[name]
+
+
+def get_dir_list_from_env_var(env_var_name: str) -> List[str]:
+    """
+    Get a colon-separated directory list from an environment variable.
+    """
+    env_var_value = os.getenv(env_var_name)
+    if env_var_value is None:
+        return []
+    return env_var_value.split(':')
+
+
+def get_flag_list_from_env_var(env_var_name: str) -> List[str]:
+    """
+    Get a whitespace-separated list from an environment variable.
+    """
+    env_var_value = os.getenv(env_var_name)
+    if env_var_value is None:
+        return []
+    return env_var_value.strip().split()

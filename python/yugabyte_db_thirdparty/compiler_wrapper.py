@@ -23,17 +23,15 @@ from copy import deepcopy
 from typing import List, Set, Optional
 
 from yugabyte_db_thirdparty.util import shlex_join, is_shared_library_name
-from yugabyte_db_thirdparty.constants import (
-    COMPILER_WRAPPER_ENV_VAR_NAME_LD_FLAGS_TO_APPEND,
-    COMPILER_WRAPPER_ENV_VAR_NAME_LD_FLAGS_TO_REMOVE,
-    COMPILER_WRAPPER_ENV_VAR_NAME_TRACK_INCLUDES_IN_SUBDIRS_OF,
-    COMPILER_WRAPPER_ENV_VAR_NAME_SAVE_USED_INCLUDE_TAGS_IN_DIR,
-)
 
 from yugabyte_db_thirdparty import file_util
-from yugabyte_db_thirdparty.env_helpers import get_env_var_name_and_value_str, get_bool_env_var
-from yugabyte_db_thirdparty import compile_commands, constants, compiler_flag_util
-
+from yugabyte_db_thirdparty import (
+    compile_commands,
+    compiler_flag_util,
+    constants,
+    env_helpers,
+    env_var_names,
+)
 
 C_CXX_SUFFIXES = ('.c', '.cc', '.cxx', '.cpp')
 
@@ -87,21 +85,18 @@ class CompilerWrapper:
             self.real_compiler_path = os.environ['YB_THIRDPARTY_REAL_C_COMPILER']
             self.language = 'C'
 
-        disallowed_include_dirs_colon_separated = os.getenv('YB_DISALLOWED_INCLUDE_DIRS')
-        self.disallowed_include_dirs = []
-        if disallowed_include_dirs_colon_separated:
-            self.disallowed_include_dirs = disallowed_include_dirs_colon_separated.split(':')
+        self.disallowed_include_dirs = env_helpers.get_dir_list_from_env_var(
+            env_var_names.DISALLOWED_INCLUDE_DIRS, default_value=[])
         self.compiler_args = self._filter_args(sys.argv[1:])
 
-        self.track_includes_in_subdirs_of = os.getenv(
-            COMPILER_WRAPPER_ENV_VAR_NAME_TRACK_INCLUDES_IN_SUBDIRS_OF)
+        self.track_includes_in_subdirs_of = os.getenv(env_var_names.TRACK_INCLUDES_IN_SUBDIRS_OF)
 
         # For each include file under the "tracked" directory (above), we will create a
         # corresponding "tag file" in a directory tree rooted under this directory. We will use
         # those tag files to copy the needed include files into the thirdparty installed directory
         # as well as into our pre-packaged Intel oneAPI archive.
         self.save_used_include_tags_in_dir = os.getenv(
-            COMPILER_WRAPPER_ENV_VAR_NAME_SAVE_USED_INCLUDE_TAGS_IN_DIR)
+            env_var_names.SAVE_USED_INCLUDE_TAGS_IN_DIR)
 
         if ((self.track_includes_in_subdirs_of is None) !=
                 (self.save_used_include_tags_in_dir is None)):
@@ -109,19 +104,19 @@ class CompilerWrapper:
                 'Expected the following two environment variables to be set or unset at the same '
                 'time: ' +
                 ', '.join([
-                    get_env_var_name_and_value_str(
-                        COMPILER_WRAPPER_ENV_VAR_NAME_TRACK_INCLUDES_IN_SUBDIRS_OF),
-                    get_env_var_name_and_value_str(
-                        COMPILER_WRAPPER_ENV_VAR_NAME_SAVE_USED_INCLUDE_TAGS_IN_DIR),
+                    env_helpers.get_env_var_name_and_value_str(
+                        env_var_names.TRACK_INCLUDES_IN_SUBDIRS_OF),
+                    env_helpers.get_env_var_name_and_value_str(
+                        env_var_names.SAVE_USED_INCLUDE_TAGS_IN_DIR),
                 ]))
 
         if self.track_includes_in_subdirs_of:
             assert self.save_used_include_tags_in_dir is not None  # Needed by MyPy.
 
             for env_var_name, env_var_value in (
-                    (COMPILER_WRAPPER_ENV_VAR_NAME_TRACK_INCLUDES_IN_SUBDIRS_OF,
+                    (env_var_names.TRACK_INCLUDES_IN_SUBDIRS_OF,
                      self.track_includes_in_subdirs_of),
-                    (COMPILER_WRAPPER_ENV_VAR_NAME_SAVE_USED_INCLUDE_TAGS_IN_DIR,
+                    (env_var_names.SAVE_USED_INCLUDE_TAGS_IN_DIR,
                      self.save_used_include_tags_in_dir)):
 
                 assert os.path.isabs(env_var_value), \
@@ -202,6 +197,11 @@ class CompilerWrapper:
             f"Preprocessing command arguments: {shlex_join(pp_args)}."
         )
 
+        import random
+        subprocess.check_call(['cp', pp_output_path,
+                               os.path.join('/tmp/pp_outputs/%s.%d' % (
+                                   os.path.basename(pp_output_path), random.randint(1, 1000000)))])
+
         # Collect included files from preprocessor output.
         # https://gcc.gnu.org/onlinedocs/cpp/Preprocessor-Output.html
         included_files = set()
@@ -210,12 +210,20 @@ class CompilerWrapper:
                 if line.startswith('# 1 "'):
                     line = line[5:].rstrip()
                     if line.startswith('<'):
+                        # This is probably '# 1 "<built-in>" 1' or '# 1 "<command line>" 1'.
                         continue
                     quote_pos = line.find('"')
                     if quote_pos < 0:
                         continue
                     included_files.add(line[:quote_pos])
         real_included_files = set(os.path.realpath(p) for p in included_files)
+
+        for p in real_included_files:
+            if os.path.basename(p) == 'omp.h':
+                if not self.track_includes_in_subdirs_of:
+                    raise ValueError(p)
+                if not p.startswith(self.track_includes_in_subdirs_of + '/'):
+                    raise ValueError("Missed omp.h: " + p)
 
         for disallowed_dir in self.disallowed_include_dirs:
             for included_file in real_included_files:
@@ -321,16 +329,18 @@ class CompilerWrapper:
             is_shared_library_name(output_file_name) for output_file_name in output_files
         ]
 
-        if self.is_cxx and not is_linking and not get_bool_env_var('YB_THIRDPARTY_CONFIGURING'):
+        if (self.is_cxx and
+                not is_linking and
+                not env_helpers.get_bool_env_var('YB_THIRDPARTY_CONFIGURING')):
             self.check_cxx_standard_version_flags(cmd_args)
 
         if is_linking:
             cmd_args.extend(
-                os.environ.get(
-                    COMPILER_WRAPPER_ENV_VAR_NAME_LD_FLAGS_TO_APPEND, '').strip().split())
+                env_helpers.get_flag_list_from_env_var(
+                    env_var_names.LD_FLAGS_TO_APPEND, default_value=[]))
 
-            ld_flags_to_remove: Set[str] = set(os.environ.get(
-                    COMPILER_WRAPPER_ENV_VAR_NAME_LD_FLAGS_TO_REMOVE, '').strip().split())
+            ld_flags_to_remove: Set[str] = set(env_helpers.get_flag_list_from_env_var(
+                    env_var_names.LD_FLAGS_TO_REMOVE, default_value=[]))
             cmd_args = [arg for arg in cmd_args if arg not in ld_flags_to_remove]
 
         self.handle_compilation_command(output_files)

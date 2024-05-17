@@ -20,13 +20,10 @@ from yugabyte_db_thirdparty.builder_interface import BuilderInterface  # noqa
 from yugabyte_db_thirdparty.intel_oneapi import find_intel_oneapi, IntelOneAPIInstallation
 from yugabyte_db_thirdparty.rpath_util import get_rpath_flag
 from yugabyte_db_thirdparty.env_helpers import EnvVarContext
-from yugabyte_db_thirdparty.constants import (
-    COMPILER_WRAPPER_ENV_VAR_NAME_TRACK_INCLUDES_IN_SUBDIRS_OF,
-    COMPILER_WRAPPER_ENV_VAR_NAME_SAVE_USED_INCLUDE_TAGS_IN_DIR
-)
 from yugabyte_db_thirdparty import (
-    util,
+    env_var_names,
     intel_oneapi,
+    util,
 )
 
 
@@ -156,16 +153,20 @@ class DiskANNDependency(Dependency):
         # We must use the dictionary syntax of EnvVarContext constructor below, because the
         # environment variable name is specified as an expression (constant).
         env_vars = {}
-        used_include_tags_dir: Optional[str] = None
+
+        used_include_tags_dir = util.create_preferably_in_mem_tmp_dir(
+            prefix='used_include_tags_',
+            suffix='_' + util.get_temporal_randomized_file_name_suffix(),
+            delete_at_exit=False)  # TODO mbautin: change
+        env_vars[env_var_names.TRACK_INCLUDES_IN_SUBDIRS_OF] = self.oneapi_installation.base_dir
+        env_vars[env_var_names.SAVE_USED_INCLUDE_TAGS_IN_DIR] = used_include_tags_dir
+
         if intel_oneapi.is_package_build_mode_enabled():
-            used_include_tags_dir = util.create_preferably_in_mem_tmp_dir(
-                prefix='used_include_tags_',
-                suffix='_' + util.get_temporal_randomized_file_name_suffix(),
-                delete_at_exit=True)
-            env_vars[COMPILER_WRAPPER_ENV_VAR_NAME_TRACK_INCLUDES_IN_SUBDIRS_OF] = \
+            env_vars[env_var_names.DISALLOWED_INCLUDE_DIR_PREFIXES] = \
+                intel_oneapi.YB_INTEL_ONEAPI_PACKAGE_PARENT_DIR
+        else:
+            env_vars[env_var_names.DISALLOWED_INCLUDE_DIR_PREFIXES] = \
                 intel_oneapi.ONEAPI_DEFAULT_BASE_DIR
-            env_vars[COMPILER_WRAPPER_ENV_VAR_NAME_SAVE_USED_INCLUDE_TAGS_IN_DIR] = \
-                used_include_tags_dir
 
         with EnvVarContext(env_vars):
             builder.build_with_cmake(
@@ -197,3 +198,4 @@ class DiskANNDependency(Dependency):
             self.oneapi_installation.process_needed_include_files(
                 tag_dir=used_include_tags_dir,
                 include_install_dir=include_install_dir)
+            raise ValueError(used_include_tags_dir)
