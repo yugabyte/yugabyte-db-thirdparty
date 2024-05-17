@@ -71,6 +71,7 @@ class CompilerWrapper:
     language: str
     compiler_args: List[str]
     disallowed_include_dirs: List[str]
+    disallowed_include_dir_prefixes: List[str]
 
     track_includes_in_subdirs_of: Optional[str]
     save_used_include_tags_in_dir: Optional[str]
@@ -86,7 +87,9 @@ class CompilerWrapper:
             self.language = 'C'
 
         self.disallowed_include_dirs = env_helpers.get_dir_list_from_env_var(
-            env_var_names.DISALLOWED_INCLUDE_DIRS, default_value=[])
+            env_var_names.DISALLOWED_INCLUDE_DIRS)
+        self.disallowed_include_dir_prefixes = env_helpers.get_dir_list_from_env_var(
+            env_var_names.DISALLOWED_INCLUDE_DIR_PREFIXES)
         self.compiler_args = self._filter_args(sys.argv[1:])
 
         self.track_includes_in_subdirs_of = os.getenv(env_var_names.TRACK_INCLUDES_IN_SUBDIRS_OF)
@@ -310,8 +313,8 @@ class CompilerWrapper:
                 ), compile_command_file)
 
     def run(self) -> None:
-        verbose = get_bool_env_var('YB_THIRDPARTY_VERBOSE')
-        use_ccache = get_bool_env_var('YB_THIRDPARTY_USE_CCACHE')
+        verbose = env_helpers.get_bool_env_var('YB_THIRDPARTY_VERBOSE')
+        use_ccache = env_helpers.get_bool_env_var('YB_THIRDPARTY_USE_CCACHE')
 
         cmd_args: List[str]
         if use_ccache:
@@ -336,11 +339,10 @@ class CompilerWrapper:
 
         if is_linking:
             cmd_args.extend(
-                env_helpers.get_flag_list_from_env_var(
-                    env_var_names.LD_FLAGS_TO_APPEND, default_value=[]))
+                env_helpers.get_flag_list_from_env_var(env_var_names.LD_FLAGS_TO_APPEND))
 
             ld_flags_to_remove: Set[str] = set(env_helpers.get_flag_list_from_env_var(
-                    env_var_names.LD_FLAGS_TO_REMOVE, default_value=[]))
+                    env_var_names.LD_FLAGS_TO_REMOVE))
             cmd_args = [arg for arg in cmd_args if arg not in ld_flags_to_remove]
 
         self.handle_compilation_command(output_files)
