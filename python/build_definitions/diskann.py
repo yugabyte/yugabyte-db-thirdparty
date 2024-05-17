@@ -101,7 +101,9 @@ class DiskANNDependency(Dependency):
             # CMake module does not correctly pass them to the linker command line in that case.
             "-L" + self.openmp_lib_dir,
             "-L" + self.intel_mkl_lib_dir,
-            OPENMP_FLAG
+            OPENMP_FLAG,
+
+            "-D__PURE_SYS_C99_HEADERS__=1"
         ]
 
     def get_additional_ld_flags(self, builder: BuilderInterface) -> List[str]:
@@ -138,6 +140,9 @@ class DiskANNDependency(Dependency):
 
     def get_intel_oneapi_installed_lib_dir(self, builder: BuilderInterface) -> str:
         return os.path.join(builder.fs_layout.tp_installed_common_dir, 'lib', 'intel-oneapi')
+
+    def get_intel_oneapi_installed_include_dir(self, builder: BuilderInterface) -> str:
+        return os.path.join(builder.fs_layout.tp_installed_common_dir, 'include', 'intel-oneapi')
 
     def get_intel_oneapi_lib_dirs(self) -> List[str]:
         return [self.openmp_lib_dir, self.intel_mkl_lib_dir]
@@ -188,4 +193,4 @@ class DiskANNDependency(Dependency):
         self.oneapi_installation.process_needed_libraries(
             install_prefix, lib_dest_dir, rpaths_for_ldd=self.get_intel_oneapi_lib_dirs())
         if used_include_tags_dir is not None:
-            self.oneapi_installation.remember_paths_to_package_from_tag_dir(used_include_tags_dir)
+            self.oneapi_installation.process_needed_include_files(used_include_tags_dir)

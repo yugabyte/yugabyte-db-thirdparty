@@ -54,6 +54,12 @@ def get_package_url_by_tag(tag: str) -> str:
            f'{tag}/yb-intel-oneapi-{tag}.tar.gz'
 
 
+def get_path_rel_to_include_dir(rel_path: str) -> str:
+    include_substring = '/include/'
+    sub_pos = rel_path.rfind(include_substring)
+    if sub_pos == -1:
+        raise ValueError(
+            f"Could not find the substring '{include_substring}' in relative path {rel_path}")
 class IntelOneAPIInstallation:
     version: str
     dirs_checked_for_existence: Set[str]
@@ -279,13 +285,19 @@ class IntelOneAPIInstallation:
             "as the libmkl_core library. File names to be packaged:\n" + \
             one_per_line_indented(sorted(file_names_found))
 
-    def remember_paths_to_package_from_tag_dir(self, tag_dir: str) -> None:
+    def process_needed_include_files(self, tag_dir: str, dest_include_path: str) -> None:
+        """
+        Examine the given directory containing "tag" files indicating that certain include paths
+        were used during compilation. Remember these files in case we are packaging Intel oneAPI.
+        Also copy them to the given include directory.
+        """
         assert os.path.isabs(tag_dir)
         for root, dirs, files in os.walk(tag_dir):
             for file_name in files:
                 file_path = os.path.join(root, file_name)
                 rel_path = os.path.relpath(file_path, tag_dir)
                 self.add_path_to_be_packaged(rel_path)
+                include_dir_pos = rel_path.rfind('/include/')
 
     def create_package(self, dest_dir: str) -> None:
         tmp_dir = tempfile.mkdtemp(prefix='intel_oneapi_package_')
