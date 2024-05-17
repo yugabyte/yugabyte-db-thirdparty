@@ -188,9 +188,12 @@ class DiskANNDependency(Dependency):
             rel_src_include_path='include',
             dest_include_path=os.path.join(install_prefix, 'include'))
 
-        lib_dest_dir = self.get_intel_oneapi_installed_lib_dir(builder)
+        lib_install_dir = self.get_intel_oneapi_installed_lib_dir(builder)
+        include_install_dir = self.get_intel_oneapi_installed_include_dir(builder)
 
         self.oneapi_installation.process_needed_libraries(
-            install_prefix, lib_dest_dir, rpaths_for_ldd=self.get_intel_oneapi_lib_dirs())
+            install_prefix, lib_install_dir, rpaths_for_ldd=self.get_intel_oneapi_lib_dirs())
         if used_include_tags_dir is not None:
-            self.oneapi_installation.process_needed_include_files(used_include_tags_dir)
+            self.oneapi_installation.process_needed_include_files(
+                tag_dir=used_include_tags_dir,
+                include_install_dir=include_install_dir)
