@@ -32,7 +32,7 @@ from yugabyte_db_thirdparty import intel_oneapi
 
 INCOMPATIBLE_ARGUMENTS: Dict[str, Set[str]] = {
     'toolchain': {'devtoolset', 'compiler_prefix', 'compiler_suffix'},
-    'check_libs_only': {'download_extract_only', 'create_package'},
+    'check_libs_only': {'download_extract_only', 'create_package', 'skip_library_checking'},
 }
 
 
@@ -226,6 +226,11 @@ def parse_cmd_line_args() -> argparse.Namespace:
         help='Do not build anything. Only check the dependencies of installed executables and '
              'libraries.'
     )
+
+    parser.add_argument(
+        '--skip-library-checking',
+        action='store_true',
+        help='Skip checking the dependencies of installed executables and libraries.')
 
     parser.add_argument(
         '--snyk',
