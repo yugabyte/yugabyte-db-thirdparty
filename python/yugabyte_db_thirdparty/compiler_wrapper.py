@@ -200,11 +200,6 @@ class CompilerWrapper:
             f"Preprocessing command arguments: {shlex_join(pp_args)}."
         )
 
-        import random
-        subprocess.check_call(['cp', pp_output_path,
-                               os.path.join('/tmp/pp_outputs/%s.%d' % (
-                                   os.path.basename(pp_output_path), random.randint(1, 1000000)))])
-
         # Collect included files from preprocessor output.
         # https://gcc.gnu.org/onlinedocs/cpp/Preprocessor-Output.html
         included_files = set()
