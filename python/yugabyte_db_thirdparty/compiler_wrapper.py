@@ -214,15 +214,8 @@ class CompilerWrapper:
                     if quote_pos < 0:
                         continue
                     included_files.add(line[:quote_pos])
+
         real_included_files = set(os.path.realpath(p) for p in included_files)
-
-        for p in real_included_files:
-            if os.path.basename(p) == 'omp.h':
-                if not self.track_includes_in_subdirs_of:
-                    raise ValueError(p)
-                if not p.startswith(self.track_includes_in_subdirs_of + '/'):
-                    raise ValueError("Missed omp.h: " + p)
-
         for included_file in real_included_files:
             for disallowed_dir in self.disallowed_include_dirs:
                 if included_file.startswith(disallowed_dir + '/'):
