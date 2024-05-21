@@ -178,6 +178,10 @@ class CompilerChoice:
     def is_gcc(self) -> bool:
         return self.compiler_family == 'gcc'
 
+    def is_gcc_major_version_at_least(self, expected_major_version: int) -> bool:
+        gcc_major_version = self.get_gcc_major_version()
+        return gcc_major_version is not None and gcc_major_version >= expected_major_version
+
     def is_linux_clang(self) -> bool:
         return is_linux() and self.is_clang()
 

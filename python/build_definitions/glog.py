@@ -36,7 +36,8 @@ class GLogDependency(Dependency):
         cmake_args = [
             '-DCMAKE_BUILD_TYPE=Release',
         ]
-        if builder.build_type in [BuildType.ASAN, BuildType.TSAN]:
+        if (builder.build_type in [BuildType.ASAN, BuildType.TSAN] or
+                builder.compiler_choice.is_gcc_major_version_at_least(13)):
             # Can't build glog unit tests in ASAN/TSAN because of their overrides of new/delete.
             # We could patch glog to support that at some point.
             cmake_args += ['-DBUILD_TESTING=OFF']
