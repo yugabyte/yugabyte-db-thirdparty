@@ -103,7 +103,7 @@ from yugabyte_db_thirdparty import (
 from yugabyte_db_thirdparty.rpath_util import get_rpath_flag
 from yugabyte_db_thirdparty.env_helpers import EnvVarContext
 
-from yugabyte_db_thirdparty import intel_oneapi, dependency_selection
+from yugabyte_db_thirdparty import intel_oneapi, dependency_selection, env_var_names
 
 # -------------------------------------------------------------------------------------------------
 
@@ -268,7 +268,7 @@ class Builder(BuilderInterface):
             return
 
         if self.args.make_parallelism:
-            os.environ['YB_MAKE_PARALLELISM'] = str(self.args.make_parallelism)
+            os.environ[env_var_names.MAKE_PARALLELISM] = str(self.args.make_parallelism)
 
         self.fs_layout = FileSystemLayout()
 

@@ -79,10 +79,10 @@ class CompilerWrapper:
         self.is_cxx = is_cxx
         self.args = sys.argv
         if self.is_cxx:
-            self.real_compiler_path = os.environ['YB_THIRDPARTY_REAL_CXX_COMPILER']
+            self.real_compiler_path = os.environ[env_var_names.REAL_CXX_COMPILER]
             self.language = 'C++'
         else:
-            self.real_compiler_path = os.environ['YB_THIRDPARTY_REAL_C_COMPILER']
+            self.real_compiler_path = os.environ[env_var_names.REAL_C_COMPILER]
             self.language = 'C'
 
         self.disallowed_include_dirs = env_helpers.get_dir_list_from_env_var(
