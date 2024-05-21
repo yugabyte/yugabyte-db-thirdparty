@@ -206,4 +206,3 @@ class DiskANNDependency(Dependency):
             self.oneapi_installation.process_needed_include_files(
                 tag_dir=used_include_tags_dir,
                 include_install_dir=include_install_dir)
-            raise ValueError(used_include_tags_dir)
