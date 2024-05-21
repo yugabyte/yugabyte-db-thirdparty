@@ -148,6 +148,11 @@ def get_dir_list_from_env_var(env_var_name: str) -> List[str]:
     return env_var_value.split(':')
 
 
+def join_dir_list(dirs: List[str]) -> str:
+    d = [d.strip() for d in dirs]
+    return ':'.join([d for d in dirs if d])
+
+
 def get_flag_list_from_env_var(env_var_name: str) -> List[str]:
     """
     Get a whitespace-separated list from an environment variable.

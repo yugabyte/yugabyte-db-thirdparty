@@ -19,8 +19,8 @@ from yugabyte_db_thirdparty.build_definition_helpers import *
 from yugabyte_db_thirdparty.builder_interface import BuilderInterface  # noqa
 from yugabyte_db_thirdparty.intel_oneapi import find_intel_oneapi, IntelOneAPIInstallation
 from yugabyte_db_thirdparty.rpath_util import get_rpath_flag
-from yugabyte_db_thirdparty.env_helpers import EnvVarContext
 from yugabyte_db_thirdparty import (
+    env_helpers,
     env_var_names,
     intel_oneapi,
     util,
@@ -144,6 +144,17 @@ class DiskANNDependency(Dependency):
     def get_intel_oneapi_lib_dirs(self) -> List[str]:
         return [self.openmp_lib_dir, self.intel_mkl_lib_dir]
 
+    def get_disallowed_include_dirs(self) -> List[str]:
+        dirs = []
+        if not intel_oneapi.is_package_build_mode_enabled():
+            # Ignore this exact directory that DiskANN build adds, even if we don't specify it.
+            # We need to specify the exact directory from the -I flag, so that the _filter_args
+            # function in CompilerWrapper can remove this flag.
+            dirs.append(os.path.join(
+                intel_oneapi.ONEAPI_DEFAULT_BASE_DIR, 'mkl', 'latest', 'include'))
+        dirs.append(intel_oneapi.get_disallowed_include_dir())
+        return dirs
+
     def build(self, builder: BuilderInterface) -> None:
         self.configure_intel_oneapi()
         assert self.oneapi_installation is not None
@@ -157,18 +168,15 @@ class DiskANNDependency(Dependency):
         used_include_tags_dir = util.create_preferably_in_mem_tmp_dir(
             prefix='used_include_tags_',
             suffix='_' + util.get_temporal_randomized_file_name_suffix(),
-            delete_at_exit=False)  # TODO mbautin: change
+            delete_at_exit=True)
         env_vars[env_var_names.TRACK_INCLUDES_IN_SUBDIRS_OF] = self.oneapi_installation.base_dir
         env_vars[env_var_names.SAVE_USED_INCLUDE_TAGS_IN_DIR] = used_include_tags_dir
 
-        if intel_oneapi.is_package_build_mode_enabled():
-            env_vars[env_var_names.DISALLOWED_INCLUDE_DIR_PREFIXES] = \
-                intel_oneapi.YB_INTEL_ONEAPI_PACKAGE_PARENT_DIR
-        else:
-            env_vars[env_var_names.DISALLOWED_INCLUDE_DIR_PREFIXES] = \
-                intel_oneapi.ONEAPI_DEFAULT_BASE_DIR
+        env_vars[env_var_names.DISALLOWED_INCLUDE_DIRS] = env_helpers.join_dir_list(
+            env_helpers.get_dir_list_from_env_var(env_var_names.DISALLOWED_INCLUDE_DIRS) +
+            self.get_disallowed_include_dirs())
 
-        with EnvVarContext(env_vars):
+        with env_helpers.EnvVarContext(env_vars):
             builder.build_with_cmake(
                 self,
                 extra_cmake_args=[

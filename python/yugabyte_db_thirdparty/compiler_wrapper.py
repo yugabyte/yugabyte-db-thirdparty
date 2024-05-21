@@ -71,7 +71,6 @@ class CompilerWrapper:
     language: str
     compiler_args: List[str]
     disallowed_include_dirs: List[str]
-    disallowed_include_dir_prefixes: List[str]
 
     track_includes_in_subdirs_of: Optional[str]
     save_used_include_tags_in_dir: Optional[str]
@@ -88,8 +87,6 @@ class CompilerWrapper:
 
         self.disallowed_include_dirs = env_helpers.get_dir_list_from_env_var(
             env_var_names.DISALLOWED_INCLUDE_DIRS)
-        self.disallowed_include_dir_prefixes = env_helpers.get_dir_list_from_env_var(
-            env_var_names.DISALLOWED_INCLUDE_DIR_PREFIXES)
         self.compiler_args = self._filter_args(sys.argv[1:])
 
         self.track_includes_in_subdirs_of = os.getenv(env_var_names.TRACK_INCLUDES_IN_SUBDIRS_OF)
@@ -133,7 +130,10 @@ class CompilerWrapper:
     def _is_permitted_arg(self, arg: str) -> bool:
         if not arg.startswith('-I'):
             return True
-        include_path = arg[1:]
+        # For a long time, we had a bug here: arg[1:] instead of arg[2:]. That means, the below
+        # logic for filtering out disallowed include directories from the command line did not
+        # work.
+        include_path = arg[2:]
         if include_path.startswith('"') and include_path.endswith('"') and len(include_path) >= 2:
             include_path = include_path[1:-1]
         return include_path not in self.disallowed_include_dirs
@@ -228,14 +228,15 @@ class CompilerWrapper:
                 if not p.startswith(self.track_includes_in_subdirs_of + '/'):
                     raise ValueError("Missed omp.h: " + p)
 
-        for disallowed_dir in self.disallowed_include_dirs:
-            for included_file in real_included_files:
+        for included_file in real_included_files:
+            for disallowed_dir in self.disallowed_include_dirs:
                 if included_file.startswith(disallowed_dir + '/'):
                     raise ValueError(
                         "File from a disallowed directory included: %s. "
-                        "Compiler invocation: %s" % (
+                        "Compiler invocation: %s. Disallowed directories: %s" % (
                             included_file,
-                            self._get_compiler_command_str()))
+                            self._get_compiler_command_str(),
+                            ', '.join(sorted(self.disallowed_include_dirs))))
 
         if self.track_includes_in_subdirs_of is not None:
             include_file_abs_path_prefix = self.track_includes_in_subdirs_of + '/'

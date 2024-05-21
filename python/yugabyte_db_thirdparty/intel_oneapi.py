@@ -450,3 +450,13 @@ def enable_package_build_mode(installed_common_dir: str) -> None:
 
 def is_package_build_mode_enabled() -> bool:
     return _package_build_mode_enabled
+
+
+def get_disallowed_include_dir() -> str:
+    # Do not allow use of include files from the wrong parent directory.
+    if is_package_build_mode_enabled():
+        # We should be using /opt/intel, not /opt/yb-build/intel-oneapi
+        return YB_INTEL_ONEAPI_PACKAGE_PARENT_DIR
+    else:
+        # We should be using /opt/yb-build/intel-oneapi, not /opt/intel.
+        return ONEAPI_DEFAULT_BASE_DIR

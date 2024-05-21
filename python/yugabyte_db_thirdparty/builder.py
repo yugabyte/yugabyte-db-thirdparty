@@ -594,7 +594,7 @@ class Builder(BuilderInterface):
         Create a "context" for running a configure-like action (autogen, autoconf, configure,
         CMake configure, etc.) This context should be usable with the "with" statement.
         """
-        return EnvVarContext(YB_THIRDPARTY_CONFIGURING='1')
+        return EnvVarContext({env_var_names.CONFIGURING: '1'})
 
     def build_with_make(
             self,
