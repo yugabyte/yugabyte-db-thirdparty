@@ -100,6 +100,11 @@ class DiskANNDependency(Dependency):
             "-L" + self.intel_mkl_lib_dir,
             OPENMP_FLAG,
 
+            # Ensure that wrappers around standard C headers present in Intel Compiler include
+            # directories act as no-ops.
+            #
+            # E.g. see the occurrences of this macro in Intel oneAPI's math.h:
+            # https://gist.githubusercontent.com/mbautin/d121de1da09b973c0bfeaeecf1fff413/raw
             "-D__PURE_SYS_C99_HEADERS__=1"
         ]
 
