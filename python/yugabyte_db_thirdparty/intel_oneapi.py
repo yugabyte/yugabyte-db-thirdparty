@@ -54,6 +54,21 @@ def get_package_url_by_tag(tag: str) -> str:
            f'{tag}/yb-intel-oneapi-{tag}.tar.gz'
 
 
+def get_path_rel_to_include_dir(include_file_path: str) -> str:
+    """
+    Given an include file path, find the path relative to the deepest "include" directory.
+    """
+    include_substring = '/include/'
+    sub_pos = include_file_path.rfind(include_substring)
+    if sub_pos == -1:
+        raise ValueError(
+            f"Could not find the substring '{include_substring}' in the relative path of an "
+            f"include file: {include_file_path}")
+    new_rel_path = include_file_path[sub_pos + len(include_substring):]
+    assert new_rel_path, f'Unexpected relative path of a header file: {include_file_path}'
+    return new_rel_path
+
+
 class IntelOneAPIInstallation:
     version: str
     dirs_checked_for_existence: Set[str]
@@ -279,13 +294,26 @@ class IntelOneAPIInstallation:
             "as the libmkl_core library. File names to be packaged:\n" + \
             one_per_line_indented(sorted(file_names_found))
 
-    def remember_paths_to_package_from_tag_dir(self, tag_dir: str) -> None:
+    def process_needed_include_files(self, tag_dir: str, include_install_dir: str) -> None:
+        """
+        Examine the given directory containing "tag" files indicating that certain include paths
+        were used during compilation. Remember these files in case we are packaging Intel oneAPI.
+        Also copy them to the given include directory.
+        """
         assert os.path.isabs(tag_dir)
         for root, dirs, files in os.walk(tag_dir):
             for file_name in files:
-                file_path = os.path.join(root, file_name)
-                rel_path = os.path.relpath(file_path, tag_dir)
+                tag_file_path = os.path.join(root, file_name)
+                rel_path = os.path.relpath(tag_file_path, tag_dir)
                 self.add_path_to_be_packaged(rel_path)
+                actual_include_file_path = os.path.join(self.base_dir, rel_path)
+
+                # Relative path of the include file to its "include" directory.
+                # E.g. for compiler/2024.1/opt/compiler/include/omp.h this would be omp.h.
+                rel_to_include_dir_path = get_path_rel_to_include_dir(actual_include_file_path)
+                dest_path = os.path.join(include_install_dir, rel_to_include_dir_path)
+                file_util.mkdir_p(os.path.dirname(dest_path))
+                file_util.copy_file_or_simple_symlink(tag_file_path, dest_path)
 
     def create_package(self, dest_dir: str) -> None:
         tmp_dir = tempfile.mkdtemp(prefix='intel_oneapi_package_')
@@ -422,3 +450,13 @@ def enable_package_build_mode(installed_common_dir: str) -> None:
 
 def is_package_build_mode_enabled() -> bool:
     return _package_build_mode_enabled
+
+
+def get_disallowed_include_dir() -> str:
+    # Do not allow use of include files from the wrong parent directory.
+    if is_package_build_mode_enabled():
+        # We should be using /opt/intel, not /opt/yb-build/intel-oneapi
+        return YB_INTEL_ONEAPI_PACKAGE_PARENT_DIR
+    else:
+        # We should be using /opt/yb-build/intel-oneapi, not /opt/intel.
+        return ONEAPI_DEFAULT_BASE_DIR

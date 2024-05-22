@@ -23,17 +23,15 @@ from copy import deepcopy
 from typing import List, Set, Optional
 
 from yugabyte_db_thirdparty.util import shlex_join, is_shared_library_name
-from yugabyte_db_thirdparty.constants import (
-    COMPILER_WRAPPER_ENV_VAR_NAME_LD_FLAGS_TO_APPEND,
-    COMPILER_WRAPPER_ENV_VAR_NAME_LD_FLAGS_TO_REMOVE,
-    COMPILER_WRAPPER_ENV_VAR_NAME_TRACK_INCLUDES_IN_SUBDIRS_OF,
-    COMPILER_WRAPPER_ENV_VAR_NAME_SAVE_USED_INCLUDE_TAGS_IN_DIR,
-)
 
 from yugabyte_db_thirdparty import file_util
-from yugabyte_db_thirdparty.env_helpers import get_env_var_name_and_value_str, get_bool_env_var
-from yugabyte_db_thirdparty import compile_commands, constants, compiler_flag_util
-
+from yugabyte_db_thirdparty import (
+    compile_commands,
+    compiler_flag_util,
+    constants,
+    env_helpers,
+    env_var_names,
+)
 
 C_CXX_SUFFIXES = ('.c', '.cc', '.cxx', '.cpp')
 
@@ -81,27 +79,24 @@ class CompilerWrapper:
         self.is_cxx = is_cxx
         self.args = sys.argv
         if self.is_cxx:
-            self.real_compiler_path = os.environ['YB_THIRDPARTY_REAL_CXX_COMPILER']
+            self.real_compiler_path = os.environ[env_var_names.REAL_CXX_COMPILER]
             self.language = 'C++'
         else:
-            self.real_compiler_path = os.environ['YB_THIRDPARTY_REAL_C_COMPILER']
+            self.real_compiler_path = os.environ[env_var_names.REAL_C_COMPILER]
             self.language = 'C'
 
-        disallowed_include_dirs_colon_separated = os.getenv('YB_DISALLOWED_INCLUDE_DIRS')
-        self.disallowed_include_dirs = []
-        if disallowed_include_dirs_colon_separated:
-            self.disallowed_include_dirs = disallowed_include_dirs_colon_separated.split(':')
+        self.disallowed_include_dirs = env_helpers.get_dir_list_from_env_var(
+            env_var_names.DISALLOWED_INCLUDE_DIRS)
         self.compiler_args = self._filter_args(sys.argv[1:])
 
-        self.track_includes_in_subdirs_of = os.getenv(
-            COMPILER_WRAPPER_ENV_VAR_NAME_TRACK_INCLUDES_IN_SUBDIRS_OF)
+        self.track_includes_in_subdirs_of = os.getenv(env_var_names.TRACK_INCLUDES_IN_SUBDIRS_OF)
 
         # For each include file under the "tracked" directory (above), we will create a
         # corresponding "tag file" in a directory tree rooted under this directory. We will use
         # those tag files to copy the needed include files into the thirdparty installed directory
         # as well as into our pre-packaged Intel oneAPI archive.
         self.save_used_include_tags_in_dir = os.getenv(
-            COMPILER_WRAPPER_ENV_VAR_NAME_SAVE_USED_INCLUDE_TAGS_IN_DIR)
+            env_var_names.SAVE_USED_INCLUDE_TAGS_IN_DIR)
 
         if ((self.track_includes_in_subdirs_of is None) !=
                 (self.save_used_include_tags_in_dir is None)):
@@ -109,19 +104,19 @@ class CompilerWrapper:
                 'Expected the following two environment variables to be set or unset at the same '
                 'time: ' +
                 ', '.join([
-                    get_env_var_name_and_value_str(
-                        COMPILER_WRAPPER_ENV_VAR_NAME_TRACK_INCLUDES_IN_SUBDIRS_OF),
-                    get_env_var_name_and_value_str(
-                        COMPILER_WRAPPER_ENV_VAR_NAME_SAVE_USED_INCLUDE_TAGS_IN_DIR),
+                    env_helpers.get_env_var_name_and_value_str(
+                        env_var_names.TRACK_INCLUDES_IN_SUBDIRS_OF),
+                    env_helpers.get_env_var_name_and_value_str(
+                        env_var_names.SAVE_USED_INCLUDE_TAGS_IN_DIR),
                 ]))
 
         if self.track_includes_in_subdirs_of:
             assert self.save_used_include_tags_in_dir is not None  # Needed by MyPy.
 
             for env_var_name, env_var_value in (
-                    (COMPILER_WRAPPER_ENV_VAR_NAME_TRACK_INCLUDES_IN_SUBDIRS_OF,
+                    (env_var_names.TRACK_INCLUDES_IN_SUBDIRS_OF,
                      self.track_includes_in_subdirs_of),
-                    (COMPILER_WRAPPER_ENV_VAR_NAME_SAVE_USED_INCLUDE_TAGS_IN_DIR,
+                    (env_var_names.SAVE_USED_INCLUDE_TAGS_IN_DIR,
                      self.save_used_include_tags_in_dir)):
 
                 assert os.path.isabs(env_var_value), \
@@ -135,7 +130,10 @@ class CompilerWrapper:
     def _is_permitted_arg(self, arg: str) -> bool:
         if not arg.startswith('-I'):
             return True
-        include_path = arg[1:]
+        # For a long time, we had a bug here: arg[1:] instead of arg[2:]. That means, the below
+        # logic for filtering out disallowed include directories from the command line did not
+        # work.
+        include_path = arg[2:]
         if include_path.startswith('"') and include_path.endswith('"') and len(include_path) >= 2:
             include_path = include_path[1:-1]
         return include_path not in self.disallowed_include_dirs
@@ -210,21 +208,23 @@ class CompilerWrapper:
                 if line.startswith('# 1 "'):
                     line = line[5:].rstrip()
                     if line.startswith('<'):
+                        # This is probably '# 1 "<built-in>" 1' or '# 1 "<command line>" 1'.
                         continue
                     quote_pos = line.find('"')
                     if quote_pos < 0:
                         continue
                     included_files.add(line[:quote_pos])
-        real_included_files = set(os.path.realpath(p) for p in included_files)
 
-        for disallowed_dir in self.disallowed_include_dirs:
-            for included_file in real_included_files:
+        real_included_files = set(os.path.realpath(p) for p in included_files)
+        for included_file in real_included_files:
+            for disallowed_dir in self.disallowed_include_dirs:
                 if included_file.startswith(disallowed_dir + '/'):
                     raise ValueError(
                         "File from a disallowed directory included: %s. "
-                        "Compiler invocation: %s" % (
+                        "Compiler invocation: %s. Disallowed directories: %s" % (
                             included_file,
-                            self._get_compiler_command_str()))
+                            self._get_compiler_command_str(),
+                            ', '.join(sorted(self.disallowed_include_dirs))))
 
         if self.track_includes_in_subdirs_of is not None:
             include_file_abs_path_prefix = self.track_includes_in_subdirs_of + '/'
@@ -302,8 +302,8 @@ class CompilerWrapper:
                 ), compile_command_file)
 
     def run(self) -> None:
-        verbose = get_bool_env_var('YB_THIRDPARTY_VERBOSE')
-        use_ccache = get_bool_env_var('YB_THIRDPARTY_USE_CCACHE')
+        verbose = env_helpers.get_bool_env_var('YB_THIRDPARTY_VERBOSE')
+        use_ccache = env_helpers.get_bool_env_var('YB_THIRDPARTY_USE_CCACHE')
 
         cmd_args: List[str]
         if use_ccache:
@@ -321,16 +321,17 @@ class CompilerWrapper:
             is_shared_library_name(output_file_name) for output_file_name in output_files
         ]
 
-        if self.is_cxx and not is_linking and not get_bool_env_var('YB_THIRDPARTY_CONFIGURING'):
+        if (self.is_cxx and
+                not is_linking and
+                not env_helpers.get_bool_env_var('YB_THIRDPARTY_CONFIGURING')):
             self.check_cxx_standard_version_flags(cmd_args)
 
         if is_linking:
             cmd_args.extend(
-                os.environ.get(
-                    COMPILER_WRAPPER_ENV_VAR_NAME_LD_FLAGS_TO_APPEND, '').strip().split())
+                env_helpers.get_flag_list_from_env_var(env_var_names.LD_FLAGS_TO_APPEND))
 
-            ld_flags_to_remove: Set[str] = set(os.environ.get(
-                    COMPILER_WRAPPER_ENV_VAR_NAME_LD_FLAGS_TO_REMOVE, '').strip().split())
+            ld_flags_to_remove: Set[str] = set(env_helpers.get_flag_list_from_env_var(
+                    env_var_names.LD_FLAGS_TO_REMOVE))
             cmd_args = [arg for arg in cmd_args if arg not in ld_flags_to_remove]
 
         self.handle_compilation_command(output_files)

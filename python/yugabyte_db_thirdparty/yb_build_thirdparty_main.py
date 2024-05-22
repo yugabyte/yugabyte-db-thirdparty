@@ -128,7 +128,7 @@ class BuilderTool:
         if args.package_intel_oneapi:
             intel_oneapi.find_intel_oneapi().create_package(dest_dir=os.getcwd())
 
-        if not args.download_extract_only:
+        if not args.download_extract_only and not args.skip_library_checking:
             self.check_libraries()
 
         if args.create_package or args.upload_as_tag:

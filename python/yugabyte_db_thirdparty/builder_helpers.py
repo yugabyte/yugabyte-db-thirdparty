@@ -22,6 +22,8 @@ from yugabyte_db_thirdparty.custom_logging import log
 from yugabyte_db_thirdparty.util import which_executable
 from yugabyte_db_thirdparty.string_util import one_per_line_indented
 
+from yugabyte_db_thirdparty import env_var_names
+
 
 PLACEHOLDER_RPATH = (
     "/tmp/making_sure_we_have_enough_room_to_set_rpath_later_{}_end_of_rpath".format('_' * 256))
@@ -31,7 +33,7 @@ CMAKE_VAR_RE = re.compile(r'^(-D[A-Z_]+)=(.*)$')
 
 
 def get_make_parallelism() -> int:
-    return int(os.environ.get('YB_MAKE_PARALLELISM', multiprocessing.cpu_count()))
+    return int(os.environ.get(env_var_names.MAKE_PARALLELISM, multiprocessing.cpu_count()))
 
 
 g_is_ninja_available: Optional[bool] = None

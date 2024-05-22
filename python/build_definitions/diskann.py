@@ -19,14 +19,11 @@ from yugabyte_db_thirdparty.build_definition_helpers import *
 from yugabyte_db_thirdparty.builder_interface import BuilderInterface  # noqa
 from yugabyte_db_thirdparty.intel_oneapi import find_intel_oneapi, IntelOneAPIInstallation
 from yugabyte_db_thirdparty.rpath_util import get_rpath_flag
-from yugabyte_db_thirdparty.env_helpers import EnvVarContext
-from yugabyte_db_thirdparty.constants import (
-    COMPILER_WRAPPER_ENV_VAR_NAME_TRACK_INCLUDES_IN_SUBDIRS_OF,
-    COMPILER_WRAPPER_ENV_VAR_NAME_SAVE_USED_INCLUDE_TAGS_IN_DIR
-)
 from yugabyte_db_thirdparty import (
-    util,
+    env_helpers,
+    env_var_names,
     intel_oneapi,
+    util,
 )
 
 
@@ -101,7 +98,14 @@ class DiskANNDependency(Dependency):
             # CMake module does not correctly pass them to the linker command line in that case.
             "-L" + self.openmp_lib_dir,
             "-L" + self.intel_mkl_lib_dir,
-            OPENMP_FLAG
+            OPENMP_FLAG,
+
+            # Ensure that wrappers around standard C headers present in Intel Compiler include
+            # directories act as no-ops.
+            #
+            # E.g. see the occurrences of this macro in Intel oneAPI's math.h:
+            # https://gist.githubusercontent.com/mbautin/d121de1da09b973c0bfeaeecf1fff413/raw
+            "-D__PURE_SYS_C99_HEADERS__=1"
         ]
 
     def get_additional_ld_flags(self, builder: BuilderInterface) -> List[str]:
@@ -139,8 +143,22 @@ class DiskANNDependency(Dependency):
     def get_intel_oneapi_installed_lib_dir(self, builder: BuilderInterface) -> str:
         return os.path.join(builder.fs_layout.tp_installed_common_dir, 'lib', 'intel-oneapi')
 
+    def get_intel_oneapi_installed_include_dir(self, builder: BuilderInterface) -> str:
+        return os.path.join(builder.fs_layout.tp_installed_common_dir, 'include', 'intel-oneapi')
+
     def get_intel_oneapi_lib_dirs(self) -> List[str]:
         return [self.openmp_lib_dir, self.intel_mkl_lib_dir]
+
+    def get_disallowed_include_dirs(self) -> List[str]:
+        dirs = []
+        if not intel_oneapi.is_package_build_mode_enabled():
+            # Ignore this exact directory that DiskANN build adds, even if we don't specify it.
+            # We need to specify the exact directory from the -I flag, so that the _filter_args
+            # function in CompilerWrapper can remove this flag.
+            dirs.append(os.path.join(
+                intel_oneapi.ONEAPI_DEFAULT_BASE_DIR, 'mkl', 'latest', 'include'))
+        dirs.append(intel_oneapi.get_disallowed_include_dir())
+        return dirs
 
     def build(self, builder: BuilderInterface) -> None:
         self.configure_intel_oneapi()
@@ -151,18 +169,19 @@ class DiskANNDependency(Dependency):
         # We must use the dictionary syntax of EnvVarContext constructor below, because the
         # environment variable name is specified as an expression (constant).
         env_vars = {}
-        used_include_tags_dir: Optional[str] = None
-        if intel_oneapi.is_package_build_mode_enabled():
-            used_include_tags_dir = util.create_preferably_in_mem_tmp_dir(
-                prefix='used_include_tags_',
-                suffix='_' + util.get_temporal_randomized_file_name_suffix(),
-                delete_at_exit=True)
-            env_vars[COMPILER_WRAPPER_ENV_VAR_NAME_TRACK_INCLUDES_IN_SUBDIRS_OF] = \
-                intel_oneapi.ONEAPI_DEFAULT_BASE_DIR
-            env_vars[COMPILER_WRAPPER_ENV_VAR_NAME_SAVE_USED_INCLUDE_TAGS_IN_DIR] = \
-                used_include_tags_dir
 
-        with EnvVarContext(env_vars):
+        used_include_tags_dir = util.create_preferably_in_mem_tmp_dir(
+            prefix='used_include_tags_',
+            suffix='_' + util.get_temporal_randomized_file_name_suffix(),
+            delete_at_exit=True)
+        env_vars[env_var_names.TRACK_INCLUDES_IN_SUBDIRS_OF] = self.oneapi_installation.base_dir
+        env_vars[env_var_names.SAVE_USED_INCLUDE_TAGS_IN_DIR] = used_include_tags_dir
+
+        env_vars[env_var_names.DISALLOWED_INCLUDE_DIRS] = env_helpers.join_dir_list(
+            env_helpers.get_dir_list_from_env_var(env_var_names.DISALLOWED_INCLUDE_DIRS) +
+            self.get_disallowed_include_dirs())
+
+        with env_helpers.EnvVarContext(env_vars):
             builder.build_with_cmake(
                 self,
                 extra_cmake_args=[
@@ -183,9 +202,12 @@ class DiskANNDependency(Dependency):
             rel_src_include_path='include',
             dest_include_path=os.path.join(install_prefix, 'include'))
 
-        lib_dest_dir = self.get_intel_oneapi_installed_lib_dir(builder)
+        lib_install_dir = self.get_intel_oneapi_installed_lib_dir(builder)
+        include_install_dir = self.get_intel_oneapi_installed_include_dir(builder)
 
         self.oneapi_installation.process_needed_libraries(
-            install_prefix, lib_dest_dir, rpaths_for_ldd=self.get_intel_oneapi_lib_dirs())
+            install_prefix, lib_install_dir, rpaths_for_ldd=self.get_intel_oneapi_lib_dirs())
         if used_include_tags_dir is not None:
-            self.oneapi_installation.remember_paths_to_package_from_tag_dir(used_include_tags_dir)
+            self.oneapi_installation.process_needed_include_files(
+                tag_dir=used_include_tags_dir,
+                include_install_dir=include_install_dir)

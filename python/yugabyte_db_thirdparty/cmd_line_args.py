@@ -27,12 +27,13 @@ from yugabyte_db_thirdparty.checksums import CHECKSUM_FILE_NAME
 from yugabyte_db_thirdparty.util import log
 from yugabyte_db_thirdparty.toolchain import TOOLCHAIN_TYPES
 from yugabyte_db_thirdparty.constants import ADD_CHECKSUM_ARG, ADD_CHECKSUM_ALTERNATE_ARG
-from yugabyte_db_thirdparty import intel_oneapi
+
+from yugabyte_db_thirdparty import intel_oneapi, env_var_names
 
 
 INCOMPATIBLE_ARGUMENTS: Dict[str, Set[str]] = {
     'toolchain': {'devtoolset', 'compiler_prefix', 'compiler_suffix'},
-    'check_libs_only': {'download_extract_only', 'create_package'},
+    'check_libs_only': {'download_extract_only', 'create_package', 'skip_library_checking'},
 }
 
 
@@ -102,7 +103,7 @@ def parse_cmd_line_args() -> argparse.Namespace:
         '-j', '--make-parallelism',
         help='How many cores should the build use. This is passed to '
               'Make/Ninja child processes. This can also be specified using the '
-              'YB_MAKE_PARALLELISM environment variable.',
+              f'{env_var_names.MAKE_PARALLELISM} environment variable.',
               type=int)
 
     parser.add_argument(
@@ -124,14 +125,14 @@ def parse_cmd_line_args() -> argparse.Namespace:
     parser.add_argument(
         '--remote-build-server',
         help='Build third-party dependencies remotely on this server. The default value is '
-             'determined by YB_THIRDPARTY_REMOTE_BUILD_SERVER environment variable.',
-        default=os.getenv('YB_THIRDPARTY_REMOTE_BUILD_SERVER'))
+             f'determined by {env_var_names.REMOTE_BUILD_SERVER} environment variable.',
+        default=os.getenv(env_var_names.REMOTE_BUILD_SERVER))
 
     parser.add_argument(
         '--remote-build-dir',
         help='The directory on the remote server to build third-party dependencies in. The '
-             'value is determined by the YB_THIRDPARTY_REMOTE_BUILD_DIR environment variable.',
-        default=os.getenv('YB_THIRDPARTY_REMOTE_BUILD_DIR'))
+             f'value is determined by the {env_var_names.REMOTE_BUILD_DIR} environment variable.',
+        default=os.getenv(env_var_names.REMOTE_BUILD_DIR))
 
     parser.add_argument(
         '--local',
@@ -226,6 +227,11 @@ def parse_cmd_line_args() -> argparse.Namespace:
         help='Do not build anything. Only check the dependencies of installed executables and '
              'libraries.'
     )
+
+    parser.add_argument(
+        '--skip-library-checking',
+        action='store_true',
+        help='Skip checking the dependencies of installed executables and libraries.')
 
     parser.add_argument(
         '--snyk',
@@ -330,7 +336,7 @@ def parse_cmd_line_args() -> argparse.Namespace:
 
     if args.verbose:
         # This is used e.g. in compiler_wrapper.py.
-        os.environ['YB_THIRDPARTY_VERBOSE'] = '1'
+        os.environ[env_var_names.VERBOSE] = '1'
 
     incompatible_args = False
     for arg1_name, incompatible_arg_set in INCOMPATIBLE_ARGUMENTS.items():

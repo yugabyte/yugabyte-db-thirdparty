@@ -93,20 +93,17 @@ from yugabyte_db_thirdparty.clang_util import (
 )
 from yugabyte_db_thirdparty.macos import get_min_supported_macos_version
 from yugabyte_db_thirdparty.linuxbrew import get_linuxbrew_dir, using_linuxbrew, set_linuxbrew_dir
-from yugabyte_db_thirdparty.constants import (
-    COMPILER_WRAPPER_ENV_VAR_NAME_LD_FLAGS_TO_APPEND,
-    COMPILER_WRAPPER_ENV_VAR_NAME_LD_FLAGS_TO_REMOVE,
-)
 from yugabyte_db_thirdparty import (
     compile_commands,
     constants,
+    env_var_names,
     file_util,
     git_util,
 )
 from yugabyte_db_thirdparty.rpath_util import get_rpath_flag
 from yugabyte_db_thirdparty.env_helpers import EnvVarContext
 
-from yugabyte_db_thirdparty import intel_oneapi, dependency_selection
+from yugabyte_db_thirdparty import intel_oneapi, dependency_selection, env_var_names
 
 # -------------------------------------------------------------------------------------------------
 
@@ -271,7 +268,7 @@ class Builder(BuilderInterface):
             return
 
         if self.args.make_parallelism:
-            os.environ['YB_MAKE_PARALLELISM'] = str(self.args.make_parallelism)
+            os.environ[env_var_names.MAKE_PARALLELISM] = str(self.args.make_parallelism)
 
         self.fs_layout = FileSystemLayout()
 
@@ -302,7 +299,7 @@ class Builder(BuilderInterface):
             if using_linuxbrew():
                 log("Automatically enabling compiler wrapper for a Clang Linuxbrew-targeting build")
                 log("Disallowing the use of headers in /usr/include")
-                os.environ['YB_DISALLOWED_INCLUDE_DIRS'] = '/usr/include'
+                os.environ[env_var_names.DISALLOWED_INCLUDE_DIRS] = '/usr/include'
                 self.args.use_compiler_wrapper = True
             if llvm_major_version >= 13:
                 log("Automatically enabling compiler wrapper for Clang major version 13 or higher")
@@ -597,7 +594,7 @@ class Builder(BuilderInterface):
         Create a "context" for running a configure-like action (autogen, autoconf, configure,
         CMake configure, etc.) This context should be usable with the "with" statement.
         """
-        return EnvVarContext(YB_THIRDPARTY_CONFIGURING='1')
+        return EnvVarContext({env_var_names.CONFIGURING: '1'})
 
     def build_with_make(
             self,
@@ -1334,7 +1331,7 @@ class Builder(BuilderInterface):
                     "Need to add extra linker arguments in the compiler wrapper, but compiler "
                     "wrapper is not being used: %s" % compiler_wrapper_extra_ld_flags)
             log_and_set_env_var_to_list(
-                env_vars, COMPILER_WRAPPER_ENV_VAR_NAME_LD_FLAGS_TO_APPEND,
+                env_vars, env_var_names.LD_FLAGS_TO_APPEND,
                 compiler_wrapper_extra_ld_flags)
 
         compiler_wrapper_ld_flags_to_remove: Set[str] = dep.get_compiler_wrapper_ld_flags_to_remove(
@@ -1345,7 +1342,7 @@ class Builder(BuilderInterface):
                     "Need to remove some linker arguments in the compiler wrapper, but compiler "
                     "wrapper is not being used: %s" % sorted(compiler_wrapper_ld_flags_to_remove))
             log_and_set_env_var_to_list(
-                env_vars, COMPILER_WRAPPER_ENV_VAR_NAME_LD_FLAGS_TO_REMOVE,
+                env_vars, env_var_names.LD_FLAGS_TO_REMOVE,
                 sorted(compiler_wrapper_ld_flags_to_remove))
 
         for k, v in env_vars.items():

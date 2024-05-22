@@ -25,6 +25,8 @@ from yugabyte_db_thirdparty.devtoolset import validate_devtoolset_compiler_path
 from yugabyte_db_thirdparty.linuxbrew import using_linuxbrew, get_linuxbrew_dir
 from yugabyte_db_thirdparty.arch import get_target_arch
 
+from yugabyte_db_thirdparty import env_var_names
+
 from compiler_identification import (
     CompilerIdentification, identify_compiler
 )
@@ -176,6 +178,10 @@ class CompilerChoice:
     def is_gcc(self) -> bool:
         return self.compiler_family == 'gcc'
 
+    def is_gcc_major_version_at_least(self, expected_major_version: int) -> bool:
+        gcc_major_version = self.get_gcc_major_version()
+        return gcc_major_version is not None and gcc_major_version >= expected_major_version
+
     def is_linux_clang(self) -> bool:
         return is_linux() and self.is_clang()
 
@@ -189,9 +195,9 @@ class CompilerChoice:
         cxx_compiler = self.get_cxx_compiler()
 
         if self.use_compiler_wrapper:
-            os.environ['YB_THIRDPARTY_REAL_C_COMPILER'] = c_compiler
-            os.environ['YB_THIRDPARTY_REAL_CXX_COMPILER'] = cxx_compiler
-            os.environ['YB_THIRDPARTY_USE_CCACHE'] = '1' if self.use_ccache else '0'
+            os.environ[env_var_names.REAL_C_COMPILER] = c_compiler
+            os.environ[env_var_names.REAL_CXX_COMPILER] = cxx_compiler
+            os.environ[env_var_names.USE_CCACHE] = '1' if self.use_ccache else '0'
 
             python_scripts_dir = os.path.join(YB_THIRDPARTY_DIR, 'python', 'yugabyte_db_thirdparty')
             self.c_compiler_or_wrapper = os.path.join(python_scripts_dir, 'compiler_wrapper_cc.py')
