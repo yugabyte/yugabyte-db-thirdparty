@@ -313,7 +313,10 @@ class IntelOneAPIInstallation:
                 rel_to_include_dir_path = get_path_rel_to_include_dir(actual_include_file_path)
                 dest_path = os.path.join(include_install_dir, rel_to_include_dir_path)
                 file_util.mkdir_p(os.path.dirname(dest_path))
-                file_util.copy_file_or_simple_symlink(tag_file_path, dest_path)
+
+                # It is important that we don't copy the tag file, which has zero size, but the
+                # actual include file.
+                file_util.copy_file_or_simple_symlink(actual_include_file_path, dest_path)
 
     def create_package(self, dest_dir: str) -> None:
         tmp_dir = tempfile.mkdtemp(prefix='intel_oneapi_package_')
