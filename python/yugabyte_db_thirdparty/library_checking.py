@@ -32,7 +32,9 @@ from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR, capture_all_output, s
 from yugabyte_db_thirdparty.macos import get_min_supported_macos_version
 from yugabyte_db_thirdparty.file_system_layout import FileSystemLayout
 from yugabyte_db_thirdparty.compiler_choice import CompilerChoice
-from yugabyte_db_thirdparty.ldd_util import run_ldd, LddResult
+from yugabyte_db_thirdparty.ldd_util import run_ldd
+
+from yugabyte_db_thirdparty import patchelf_util
 
 from build_definitions import BuildType
 
@@ -95,7 +97,7 @@ def get_needed_libs(file_path: str) -> List[str]:
     if file_path.endswith(IGNORED_EXTENSIONS) or os.path.basename(file_path) in IGNORED_FILE_NAMES:
         return []
     return capture_all_output(
-        ['patchelf', '--print-needed', file_path],
+        [patchelf_util.get_patchelf_path(), '--print-needed', file_path],
         allowed_exit_codes={1},
         extra_msg_on_nonzero_exit_code="Warning: could not determine libraries directly "
                                        f"needed by {file_path}")
@@ -161,6 +163,11 @@ class LibTestBase:
         else:
             # For Clang 12, it looks like we can safely remove the libgcc_s dependency.
             self.needed_libs_to_remove.add('libgcc_s')
+
+        if compiler_choice.using_gcc_major_version_at_least(11):
+            # When building DiskANN with GCC 11+, we end up using the system OpenMP library called
+            # libgomp.so.1.
+            self.allowed_system_libraries.add('libgomp')
 
     def init_regex(self) -> None:
         self.allowed_patterns = compile_re_list(self.lib_re_list)
@@ -364,7 +371,7 @@ class LibTestLinux(LibTestBase):
                 if any([unused_lib_name.startswith(lib_name + '.')
                         for lib_name in self.needed_libs_to_remove]):
                     subprocess.check_call([
-                        'patchelf',
+                        patchelf_util.get_patchelf_path(),
                         '--remove-needed',
                         unused_lib_name,
                         file_path

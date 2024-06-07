@@ -19,6 +19,8 @@ from yugabyte_db_thirdparty.build_definition_helpers import *
 from yugabyte_db_thirdparty.builder_interface import BuilderInterface  # noqa
 from yugabyte_db_thirdparty.intel_oneapi import find_intel_oneapi, IntelOneAPIInstallation
 from yugabyte_db_thirdparty.rpath_util import get_rpath_flag
+from yugabyte_db_thirdparty.arch import is_building_for_x86_64
+from yugabyte_db_thirdparty.compiler_choice import CompilerChoice
 from yugabyte_db_thirdparty import (
     env_helpers,
     env_var_names,
@@ -27,16 +29,13 @@ from yugabyte_db_thirdparty import (
 )
 
 
-OPENMP_FLAG = '-fopenmp=libiomp5'
-
-
 class DiskANNDependency(Dependency):
     oneapi_installation: Optional[IntelOneAPIInstallation]
 
     def __init__(self) -> None:
         super(DiskANNDependency, self).__init__(
             name='diskann',
-            version='0.7.0-yb-4',
+            version='0.7.0-yb-7',
             url_pattern='https://github.com/yugabyte/diskann/archive/v{0}.tar.gz',
             build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = False
@@ -89,24 +88,52 @@ class DiskANNDependency(Dependency):
         self.openmp_include_dir = self.oneapi_installation.get_openmp_include_dir()
         log("openmp_include_dir: %s", self.openmp_include_dir)
 
+    def should_use_intel_openmp(self, compiler_choice: CompilerChoice) -> bool:
+        return is_linux() and is_building_for_x86_64() and compiler_choice.is_clang()
+
+    def get_openmp_flag(self, compiler_choice: CompilerChoice) -> str:
+        flag_suffix = ''
+        if self.should_use_intel_openmp(compiler_choice):
+            flag_suffix = '=libiomp5'
+        return '-fopenmp' + flag_suffix
+
     def get_additional_compiler_flags(self, builder: BuilderInterface) -> List[str]:
         self.configure_intel_oneapi()
-        return [
-            "-I" + self.openmp_include_dir,
-            "-I" + self.intel_mkl_include_dir,
-            # TODO: ideally, the -L flags below should be linker flags. However, the FindOpenMP
-            # CMake module does not correctly pass them to the linker command line in that case.
-            "-L" + self.openmp_lib_dir,
-            "-L" + self.intel_mkl_lib_dir,
-            OPENMP_FLAG,
+        include_dirs = []
+        library_dirs = []
+        if self.should_use_intel_openmp(builder.compiler_choice):
+            include_dirs.append(self.openmp_include_dir)
+            library_dirs.append(self.openmp_lib_dir)
+        include_dirs.append(self.intel_mkl_include_dir)
+        library_dirs.append(self.intel_mkl_lib_dir)
 
-            # Ensure that wrappers around standard C headers present in Intel Compiler include
-            # directories act as no-ops.
-            #
-            # E.g. see the occurrences of this macro in Intel oneAPI's math.h:
-            # https://gist.githubusercontent.com/mbautin/d121de1da09b973c0bfeaeecf1fff413/raw
-            "-D__PURE_SYS_C99_HEADERS__=1"
-        ]
+        # Ideally, the library directories should be specified the linker flags, not in the compiler
+        # flags. However, the FindOpenMP CMake module does not correctly pass them to the linker
+        # command line in that case.
+        flags = []
+        for prefix, elements in (('-I', include_dirs), ('-L', library_dirs)):
+            for element in elements:
+                flags.append(prefix + element)
+
+        # Ensure that wrappers around standard C headers present in Intel Compiler include
+        # directories act as no-ops.
+        #
+        # E.g. see the occurrences of this macro in Intel oneAPI's math.h:
+        # https://gist.githubusercontent.com/mbautin/d121de1da09b973c0bfeaeecf1fff413/raw
+        flags.append("-D__PURE_SYS_C99_HEADERS__=1")
+
+        if builder.compiler_choice.is_gcc_major_version_at_least(13):
+            flags.extend([
+                '-Wno-error=' + w
+                for w in [
+                    'overloaded-virtual',
+                    'reorder',
+                    'sign-compare',
+                    'unused-but-set-variable',
+                    'unused-variable',
+                ]
+            ])
+        return flags
 
     def get_additional_ld_flags(self, builder: BuilderInterface) -> List[str]:
         self.configure_intel_oneapi()
@@ -119,11 +146,7 @@ class DiskANNDependency(Dependency):
             get_rpath_flag(os.path.join(self.get_install_prefix(builder), 'lib')),
         ]
 
-        return [
-            # We need to link with the libaio library. It is surprising that DiskANN's
-            # CMakeLists.txt itself does not specify this dependency.
-            '-laio',
-        ] + [get_rpath_flag(p) for p in rpaths]
+        return [get_rpath_flag(p) for p in rpaths]
 
     def get_compiler_wrapper_ld_flags_to_remove(self, builder: BuilderInterface) -> Set[str]:
         """
