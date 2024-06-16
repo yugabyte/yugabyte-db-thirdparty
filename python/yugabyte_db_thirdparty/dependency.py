@@ -173,3 +173,9 @@ class Dependency:
         This function only affects dependencies built with configure (autotools), not with CMake.
         '''
         return False
+
+    def get_preprocessor_flags(self) -> List[str]:
+        '''
+        These flags are added to the end of CPPFLAGS (C preprocessor flags).
+        '''
+        return []
