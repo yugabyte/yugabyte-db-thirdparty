@@ -25,7 +25,8 @@ class LibEvDependency(Dependency):
         self.copy_sources = True
 
     def build(self, builder: BuilderInterface) -> None:
-        builder.build_with_configure(dep=self, extra_args=['--with-pic'])
+        builder.build_with_configure(
+            dep=self, extra_args=['CPPFLAGS=-DEV_USE_EVENTFD=0', '--with-pic'])
 
     def use_cppflags_env_var(self) -> bool:
         return True
