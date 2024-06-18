@@ -31,6 +31,18 @@ class GetTextDependency(Dependency):
             return {'-lrt'}
         return set()
 
+    def get_additional_compiler_flags(self, builder: BuilderInterface) -> List[str]:
+        flags = []
+        if is_macos():
+            # To avoid this error in build:
+            # [gettext (clang15, uninstrumented)] strerror.c:59:7: warning: 'sprintf' is deprecated:
+            #  This function is provided for compatibility reasons only.  Due to security concerns
+            # inherent in the design of sprintf(3), it is highly recommended that you use
+            # snprintf(3) instead. [-Wdeprecated-declarations]
+            flags.append('-Wno-deprecated-declarations')
+            flags.append('-Wno-error=incompatible-function-pointer-types')
+        return flags
+
     def build(self, builder: BuilderInterface) -> None:
         builder.build_with_configure(
             dep=self,
