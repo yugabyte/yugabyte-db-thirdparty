@@ -19,7 +19,7 @@ class GFlagsDependency(Dependency):
     def __init__(self) -> None:
         super(GFlagsDependency, self).__init__(
             name='gflags',
-            version='2.2.2-yb-1',
+            version='2.2.2-yb-2',
             url_pattern='https://github.com/yugabyte/gflags/archive/v{0}.tar.gz',
             build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = False
