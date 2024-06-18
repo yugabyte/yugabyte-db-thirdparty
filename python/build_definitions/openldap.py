@@ -38,7 +38,6 @@ class OpenLDAPDependency(Dependency):
             # https://gist.githubusercontent.com/mbautin/a9ca659ec5955ecb0e3d469376659c2b/raw
             flags.append('-Wno-error=implicit-function-declaration')
 
-        if linux_llvm15_or_later:
             # See the links for the errors with Clang 15 on Linux that make the corresponding
             # -Wno-error=... flags necessary.
             flags.extend([

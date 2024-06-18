@@ -31,6 +31,18 @@ class GetTextDependency(Dependency):
             return {'-lrt'}
         return set()
 
+    def get_additional_compiler_flags(self, builder: BuilderInterface) -> List[str]:
+        flags = []
+        if is_macos():
+            # See the links for the errors.
+            flags.extend([
+                # https://gist.githubusercontent.com/hari90/884042ede3a0d408b215bff43ec1c17c/raw
+                '-Wno-deprecated-declarations',
+                # https://gist.githubusercontent.com/hari90/c8e928aac8f9e9023bb5ae7258a18735/raw
+                '-Wno-error=incompatible-function-pointer-types'
+            ])
+        return flags
+
     def build(self, builder: BuilderInterface) -> None:
         builder.build_with_configure(
             dep=self,
