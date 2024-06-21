@@ -32,7 +32,7 @@ from yugabyte_db_thirdparty import (
     file_util,
     rpath_util,
 )
-from yugabyte_db_thirdparty import download_manager
+from yugabyte_db_thirdparty import patchelf_util
 from yugabyte_db_thirdparty.download_manager import DownloadManager
 from yugabyte_db_thirdparty.string_util import one_per_line_indented
 
@@ -277,7 +277,8 @@ class IntelOneAPIInstallation:
                             os.path.basename(dest_path).startswith('libmkl_def.')):
                         # The libmkl_def shared library will fail the library checking if we don't
                         # give it a way to find other libraries in its directory.
-                        subprocess.check_call(['patchelf', '--set-rpath', '$ORIGIN', dest_path])
+                        subprocess.check_call([
+                            patchelf_util.get_patchelf_path(), '--set-rpath', '$ORIGIN', dest_path])
 
         mkl_def_library_found = False
         for file_name in file_names_found:

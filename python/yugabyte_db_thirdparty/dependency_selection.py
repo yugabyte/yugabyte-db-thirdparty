@@ -18,9 +18,10 @@ from yugabyte_db_thirdparty.arch import is_building_for_x86_64
 from yugabyte_db_thirdparty.compiler_choice import CompilerChoice
 
 
-COMMON_DEPENDENCY_MODULE_NAMES = [
-    # Avoiding a name collision with the standard zlib module, hence "zlib_dependency".
+DEFAULT_COMMON_DEPENDENCY_MODULE_NAMES = [
+    # Avoiding a name collision with the standard Python zlib module, hence "zlib_dependency".
     'zlib_dependency',
+
     'lz4',
     'openssl',
     'libev',
@@ -38,6 +39,10 @@ COMMON_DEPENDENCY_MODULE_NAMES = [
 ]
 
 
+def get_common_dependency_module_names() -> List[str]:
+    return list(DEFAULT_COMMON_DEPENDENCY_MODULE_NAMES)
+
+
 def get_final_dependency_module_names(compiler_choice: CompilerChoice) -> List[str]:
     """
     Returns the list of module names that are added to the end of the list.
@@ -53,6 +58,11 @@ def get_final_dependency_module_names(compiler_choice: CompilerChoice) -> List[s
 
     if is_linux():
         dep_names.extend(['libkeyutils', 'libverto', 'libaio', 'abseil', 'tcmalloc'])
+        if compiler_choice.is_gcc():
+            # We only need to build a newer version of patchelf when building with GCC.
+            # If using Clang, we can't use the custom-built patchelf to patch libc++ that patchelf
+            # itself uses.
+            dep_names.append('patchelf')
 
     dep_names.extend([
         'libedit',
@@ -75,8 +85,9 @@ def get_final_dependency_module_names(compiler_choice: CompilerChoice) -> List[s
         'otel',
     ])
 
-    if is_linux() and is_building_for_x86_64() and compiler_choice.is_clang():
-        # TODO: support all other configurations too.
+    if is_linux() and is_building_for_x86_64() and (
+            compiler_choice.is_clang() or compiler_choice.is_gcc_major_version_at_least(11)):
+        # TODO (mbautin): support aarch64 too.
         dep_names.append('diskann')
 
     return dep_names

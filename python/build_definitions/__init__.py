@@ -19,7 +19,7 @@ import sys
 import importlib
 import pkgutil
 
-from typing import Any, List, Dict, Union, TYPE_CHECKING
+from typing import Any, List, Dict, Union, Set, TYPE_CHECKING
 
 from yugabyte_db_thirdparty.archive_handling import make_archive_name
 
@@ -50,13 +50,17 @@ class BuildGroup(enum.Enum):
     # Also we should not build any C++ code as part of this, only C code.
     COMMON = enum.auto()
 
+    # Used for C++ dependencies that cannot be build in the COMMON group, but don't need to be
+    # instrumented with ASAN/UBSAN or TSAN.
+    CXX_UNINSTRUMENTED = enum.auto()
+
     # Dependencies that instrumented with ASAN/UBSAN or TSAN.
     POTENTIALLY_INSTRUMENTED = enum.auto()
 
     def default_build_type(self) -> BuildType:
         if self == BuildGroup.COMMON:
             return BuildType.COMMON
-        if self == BuildGroup.POTENTIALLY_INSTRUMENTED:
+        if self in (BuildGroup.CXX_UNINSTRUMENTED, BuildGroup.POTENTIALLY_INSTRUMENTED):
             return BuildType.UNINSTRUMENTED
         raise ValueError("Unknown build group: %s" % self)
 
@@ -130,12 +134,22 @@ def get_deps_from_module_names(module_names: List[str]) -> List['Dependency']:
     return [get_dependency_by_submodule_name(module_name) for module_name in module_names]
 
 
-def ensure_build_group(dependencies: List['Dependency'], expected_group: BuildGroup) -> None:
+def ensure_build_group(
+        dependencies: List['Dependency'],
+        expected_group: Union[BuildGroup, Set[BuildGroup]]) -> None:
+    """
+    Ensures that the build group of every dependency in the given list is the same as the expected
+    value or is in the expected set.
+    """
+    if isinstance(expected_group, BuildGroup):
+        expected_group = {expected_group}
+
     for dep in dependencies:
-        if dep.build_group != expected_group:
+        expected_group_str = ' or '.join(sorted([str(g) for g in expected_group]))
+        if dep.build_group not in expected_group:
             all_dep_names: List[str] = list(set([dep.name for dep in dependencies]))
             all_dep_names_str = ', '.join(all_dep_names)
             raise ValueError(
-                f"Expected the given list of dependencies to be in the group {expected_group} "
+                f"Expected the given list of dependencies to be in the {expected_group_str} "
                 f"build group, found: {dep.build_group} for dependency {dep.name}. All "
                 f"dependency names subjected to this requirement: {all_dep_names_str}.")

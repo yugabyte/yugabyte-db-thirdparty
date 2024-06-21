@@ -18,8 +18,11 @@ import subprocess
 
 from typing import List, Set, Union
 
-from yugabyte_db_thirdparty.custom_logging import log
 from sys_detection import is_macos
+
+from yugabyte_db_thirdparty.custom_logging import log
+
+from yugabyte_db_thirdparty import patchelf_util
 
 
 def get_readelf_rpath_regex_str(path_type: str) -> re.Pattern:
@@ -130,7 +133,8 @@ def get_rpaths(file_path: str) -> List[str]:
 
 
 def set_rpaths(file_path: str, rpath_list: List[str]) -> None:
-    subprocess.check_call(['patchelf', '--set-rpath', ':'.join(rpath_list), file_path])
+    subprocess.check_call([
+        patchelf_util.get_patchelf_path(), '--set-rpath', ':'.join(rpath_list), file_path])
     new_rpaths = get_rpaths(file_path)
     if new_rpaths != rpath_list:
         raise ValueError(

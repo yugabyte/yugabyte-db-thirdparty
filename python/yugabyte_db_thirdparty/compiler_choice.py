@@ -275,6 +275,12 @@ class CompilerChoice:
         assert self.compiler_version_str is not None
         return extract_major_version(self.compiler_version_str)
 
+    def using_gcc_major_version_at_least(self, required_gcc_major_version: int) -> bool:
+        gcc_major_version = self.get_gcc_major_version()
+        if gcc_major_version is None:
+            return False
+        return gcc_major_version >= required_gcc_major_version
+
     def check_compiler_major_version(self) -> None:
         assert self.expected_major_compiler_version is not None
         actual_major_version = self.get_compiler_major_version()

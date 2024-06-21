@@ -54,7 +54,6 @@ from yugabyte_db_thirdparty.compiler_choice import CompilerChoice
 from yugabyte_db_thirdparty.custom_logging import (
     colored_log,
     fatal,
-    heading,
     log,
     log_output_internal,
     SEPARATOR,
@@ -99,6 +98,7 @@ from yugabyte_db_thirdparty import (
     env_var_names,
     file_util,
     git_util,
+    patchelf_util,
 )
 from yugabyte_db_thirdparty.rpath_util import get_rpath_flag
 from yugabyte_db_thirdparty.env_helpers import EnvVarContext
@@ -326,7 +326,7 @@ class Builder(BuilderInterface):
         # otherwise MyPy gets confused.
 
         self.dependencies = get_deps_from_module_names(
-            dependency_selection.COMMON_DEPENDENCY_MODULE_NAMES)
+            dependency_selection.get_common_dependency_module_names())
 
         build_definitions.ensure_build_group(self.dependencies, BuildGroup.COMMON)
 
@@ -362,8 +362,12 @@ class Builder(BuilderInterface):
 
             self.dependencies.append(get_build_def_module('libbacktrace').LibBacktraceDependency())
 
-        self.dependencies += get_deps_from_module_names(
+        potentially_instrumented_deps = get_deps_from_module_names(
             dependency_selection.get_final_dependency_module_names(self.compiler_choice))
+        build_definitions.ensure_build_group(
+            potentially_instrumented_deps,
+            {BuildGroup.CXX_UNINSTRUMENTED, BuildGroup.POTENTIALLY_INSTRUMENTED})
+        self.dependencies += potentially_instrumented_deps
 
         for dep in self.dependencies:
             if dep.name in self.dependencies_by_name:
@@ -947,11 +951,17 @@ class Builder(BuilderInterface):
             return
 
         self.set_build_type(build_type)
-        build_group = (BuildGroup.COMMON if build_type == BuildType.COMMON
-                       else BuildGroup.POTENTIALLY_INSTRUMENTED)
+        if build_type == BuildType.COMMON:
+            build_group_set = {BuildGroup.COMMON}
+        elif build_type == BuildType.UNINSTRUMENTED:
+            build_group_set = {BuildGroup.CXX_UNINSTRUMENTED, BuildGroup.POTENTIALLY_INSTRUMENTED}
+        elif build_type in {BuildType.ASAN, BuildType.TSAN}:
+            build_group_set = {BuildGroup.POTENTIALLY_INSTRUMENTED}
+        else:
+            raise ValueError(f"Unknown build type {build_type}")
 
         dependencies_matching_group = [
-            dep for dep in self.selected_dependencies if dep.build_group == build_group
+            dep for dep in self.selected_dependencies if dep.build_group in build_group_set
         ]
         if build_type.is_sanitizer:
             # A temporary workaround to skip building DiskANN in ASAN/TSAN builds until we figure
@@ -1005,6 +1015,10 @@ class Builder(BuilderInterface):
 
         if self.compiler_choice.using_gcc():
             self.cxx_flags.append('-fext-numeric-literals')
+
+        if is_linux():
+            # Tell old linkers to use RUNPATH instead of RPATH.
+            self.ld_flags.append('-Wl,--enable-new-dtags')
 
     def get_libcxx_dirs(self, libcxx_installed_suffix: str) -> Tuple[str, str]:
         libcxx_installed_path = os.path.join(
@@ -1254,6 +1268,16 @@ class Builder(BuilderInterface):
             "version": dep.version,
             "url": dep.download_url
         })
+
+        self.set_custom_patchelf_path()
+
+    def set_custom_patchelf_path(self) -> None:
+        custom_patchelf_path = os.path.join(
+            os.path.join(self.fs_layout.tp_installed_dir, 'uninstrumented', 'bin', 'patchelf'))
+        log(
+            f"Using a custom-built version of the patchelf utility: {custom_patchelf_path}. " +
+            ('ALREADY EXISTS.' if os.path.exists(custom_patchelf_path) else 'DOES NOT EXIST YET.'))
+        patchelf_util.set_custom_patchelf_path(custom_patchelf_path)
 
     def get_clang_toolchain_dir(self) -> Optional[str]:
         if self.toolchain and self.compiler_choice.is_clang():
