@@ -29,6 +29,3 @@ class LibEvDependency(Dependency):
 
     def use_cppflags_env_var(self) -> bool:
         return True
-
-    def get_preprocessor_flags(self) -> List[str]:
-        return ['-DEV_USE_EVENTFD=0']
