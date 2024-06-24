@@ -547,8 +547,6 @@ class Builder(BuilderInterface):
         if self.build_type == BUILD_TYPE_TSAN:
             self.compiler_flags += TSAN_COMPILER_FLAGS
 
-        self.preprocessor_flags.extend(dep.get_preprocessor_flags())
-
     def add_linuxbrew_flags(self) -> None:
         if using_linuxbrew():
             lib_dir = os.path.join(get_linuxbrew_dir(), 'lib')
