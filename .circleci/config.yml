@@ -77,3 +77,37 @@ workflows:
             --expected-major-compiler-version=17
             --skip-sanitizers
             --lto=full
+
+      - aarch64:
+          archive_name_suffix: amzn2-aarch64-clang17
+          docker_image: yugabyteci/yb_build_infra_amazonlinux2_aarch64:v2024-04-25T17_55_13
+          build_thirdparty_args: >-
+            --toolchain=llvm17
+            --expected-major-compiler-version=17
+            --skip-sanitizers
+
+      - aarch64:
+          archive_name_suffix: amzn2-aarch64-clang17-full-lto
+          docker_image: yugabyteci/yb_build_infra_amazonlinux2_aarch64:v2024-04-25T17_55_13
+          build_thirdparty_args: >-
+            --toolchain=llvm17
+            --expected-major-compiler-version=17
+            --skip-sanitizers
+            --lto=full
+
+      - aarch64:
+          archive_name_suffix: amzn2-aarch64-clang18
+          docker_image: yugabyteci/yb_build_infra_amazonlinux2_aarch64:v2024-04-25T17_55_13
+          build_thirdparty_args: >-
+            --toolchain=llvm18
+            --expected-major-compiler-version=18
+            --skip-sanitizers
+
+      - aarch64:
+          archive_name_suffix: amzn2-aarch64-clang18-full-lto
+          docker_image: yugabyteci/yb_build_infra_amazonlinux2_aarch64:v2024-04-25T17_55_13
+          build_thirdparty_args: >-
+            --toolchain=llvm18
+            --expected-major-compiler-version=18
+            --skip-sanitizers
+            --lto=full

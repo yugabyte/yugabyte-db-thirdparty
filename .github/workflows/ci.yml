@@ -70,6 +70,7 @@ jobs:
               --toolchain=llvm17
               --expected-major-compiler-version=17
               --lto=full
+              --skip-sanitizers
 
           # ---------------------------------------------------------------------------------------
           # Ubuntu 20.04
@@ -102,6 +103,45 @@ jobs:
               --expected-major-compiler-version=17
 
           # ---------------------------------------------------------------------------------------
+          # Amazon Linux 2 -- the next oldest glibc after CentOS 7's EOL
+          # ---------------------------------------------------------------------------------------
+
+          # Clang 17
+          - name: amzn2-x86_64-clang17
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_amazonlinux2_x86_64:v2024-04-25T17_54_47
+            build_thirdparty_args: >-
+              --toolchain=llvm17
+              --expected-major-compiler-version=17
+
+          - name: amzn2-x86_64-clang17-full-lto
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_amazonlinux2_x86_64:v2024-04-25T17_54_47
+            build_thirdparty_args: >-
+              --toolchain=llvm17
+              --expected-major-compiler-version=17
+              --lto=full
+
+          # Clang 18
+          # TODO: enable ASAN/TSAN for Clang 18.
+          - name: amzn2-x86_64-clang18
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_amazonlinux2_x86_64:v2024-04-25T17_54_47
+            build_thirdparty_args: >-
+              --toolchain=llvm18
+              --expected-major-compiler-version=18
+              --skip-sanitizers
+
+          - name: amzn2-x86_64-clang18-full-lto
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_amazonlinux2_x86_64:v2024-04-25T17_54_47
+            build_thirdparty_args: >-
+              --toolchain=llvm18
+              --expected-major-compiler-version=18
+              --lto=full
+              --skip-sanitizers
+
+          # ---------------------------------------------------------------------------------------
           # AlmaLinux 8
           # ---------------------------------------------------------------------------------------
 
@@ -119,6 +159,16 @@ jobs:
             build_thirdparty_args: >-
               --toolchain=llvm17
               --expected-major-compiler-version=17
+
+          # Clang/LLVM 18
+          # TODO: enable ASAN/TSAN for Clang 18.
+          - name: almalinux8-x86_64-clang18
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2023-10-25T03_33_01
+            build_thirdparty_args: >-
+              --toolchain=llvm18
+              --expected-major-compiler-version=18
+              --skip-sanitizers
 
           # ---------------------------------------------------------------------------------------
           # Ubuntu 23.04
