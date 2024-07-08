@@ -166,7 +166,12 @@ class LibCxxWithAbiDependency(LlvmLibCxxDependencyBase):
         return 'runtimes'
 
     def get_additional_cmake_args(self, builder: BuilderInterface) -> List[str]:
-        args = ['-DLLVM_ENABLE_RUNTIMES=libcxx;libcxxabi']
+        enabled_runtimes = ['libcxx', 'libcxxabi']
+        if builder.compiler_choice.is_llvm_major_version_at_least(18):
+            # To avoid this error:
+            # https://gist.githubusercontent.com/mbautin/51cf333bebf69c1a3ddb1a04148b84ba/raw
+            enabled_runtimes.append('libunwind')
+        args = ['-DLLVM_ENABLE_RUNTIMES={}'.format(';'.join(enabled_runtimes))]
         if builder.build_type in [BuildType.ASAN, BuildType.TSAN]:
             local_sys_conf = sys_detection.local_sys_conf()
             if local_sys_conf.is_redhat_family() and int(local_sys_conf.short_os_version()) == 7:

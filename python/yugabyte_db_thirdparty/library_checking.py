@@ -364,10 +364,12 @@ class LibTestLinux(LibTestBase):
                         f"File does not exist: {unused_lib_path} "
                         f"(obtained as an output line from command: {ldd_u_cmd_str})")
                 unused_lib_name = os.path.basename(unused_lib_path)
+                if unused_lib_name.startswith('ld-linux-'):
+                    continue
                 if unused_lib_name not in needed_libs:
                     raise ValueError(
-                        "Unused library %s does not match the list of needed libs: %s" % (
-                            unused_lib_path, needed_libs))
+                        "Unused library %s does not appear in the list of needed libs: %s "
+                        "(for file %s)" % (unused_lib_path, needed_libs, file_path))
                 if any([unused_lib_name.startswith(lib_name + '.')
                         for lib_name in self.needed_libs_to_remove]):
                     subprocess.check_call([
