@@ -285,6 +285,18 @@ class Builder(BuilderInterface):
 
         if self.args.devtoolset is not None:
             activate_devtoolset(self.args.devtoolset)
+
+        if self.args.expected_major_compiler_version is None:
+            if self.args.toolchain and re.match('^llvm[0-9]+$', self.args.toolchain):
+                self.args.expected_major_compiler_version = int(self.args.toolchain[4:])
+            elif self.args.devtoolset is not None:
+                self.args.expected_major_compiler_version = self.args.devtoolset
+            elif re.match('^-[0-9]+$', self.args.compiler_suffix):
+                self.args.expected_major_compiler_version = int(self.args.compiler_suffix[1:])
+            if self.args.expected_major_compiler_version is not None:
+                log("Automatically setting expected major compiler version to %d",
+                    self.args.expected_major_compiler_version)
+
         self.compiler_choice = CompilerChoice(
             compiler_family=compiler_family,
             compiler_prefix=compiler_prefix,

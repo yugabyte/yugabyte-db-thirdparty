@@ -122,17 +122,36 @@ class DiskANNDependency(Dependency):
         # https://gist.githubusercontent.com/mbautin/d121de1da09b973c0bfeaeecf1fff413/raw
         flags.append("-D__PURE_SYS_C99_HEADERS__=1")
 
+        ignored_warnings = []
         if builder.compiler_choice.is_gcc_major_version_at_least(13):
+            ignored_warnings = [
+                'overloaded-virtual',
+                'reorder',
+                'sign-compare',
+                'unused-but-set-variable',
+                'unused-variable',
+            ]
+        elif builder.compiler_choice.is_clang() and \
+                builder.compiler_choice.is_llvm_major_version_at_least(18):
+            ignored_warnings = [
+                'inconsistent-missing-override',
+                'instantiation-after-specialization',
+                'nan-infinity-disabled',
+                'overloaded-virtual',
+                'reorder-ctor',
+                'return-type',
+                'unused-but-set-variable',
+                'unused-lambda-capture',
+                'unused-private-field',
+                'unused-variable',
+            ]
+
+        if ignored_warnings:
             flags.extend([
                 '-Wno-error=' + w
-                for w in [
-                    'overloaded-virtual',
-                    'reorder',
-                    'sign-compare',
-                    'unused-but-set-variable',
-                    'unused-variable',
-                ]
+                for w in ignored_warnings
             ])
+
         return flags
 
     def get_additional_ld_flags(self, builder: BuilderInterface) -> List[str]:

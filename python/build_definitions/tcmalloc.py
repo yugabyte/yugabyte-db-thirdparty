@@ -54,6 +54,13 @@ class TCMallocDependency(Dependency):
     def set_abseil_source_dir_basename(self, abseil_src_dir_name: str) -> None:
         self.abseil_src_dir_name = abseil_src_dir_name
 
+    def get_additional_cxx_flags(self, builder: 'BuilderInterface') -> List[str]:
+        cxx_flags = []
+        if (builder.compiler_choice.is_clang() and
+                builder.compiler_choice.is_llvm_major_version_at_least(18)):
+            cxx_flags.append('-Wno-error=thread-safety-reference-return')
+        return cxx_flags
+
     def build(self, builder: BuilderInterface) -> None:
         log_prefix = builder.log_prefix(self)
         self.update_workspace_file()
