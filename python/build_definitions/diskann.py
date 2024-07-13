@@ -35,7 +35,7 @@ class DiskANNDependency(Dependency):
     def __init__(self) -> None:
         super(DiskANNDependency, self).__init__(
             name='diskann',
-            version='0.7.0-yb-7',
+            version='0.7.0.1-yb-1',
             url_pattern='https://github.com/yugabyte/diskann/archive/v{0}.tar.gz',
             build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = False
