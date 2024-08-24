@@ -36,6 +36,7 @@ DEFAULT_COMMON_DEPENDENCY_MODULE_NAMES = [
     'redis_cli',
     'wyhash',
     'jwt_cpp',
+    "clockbound",
 ]
 
 

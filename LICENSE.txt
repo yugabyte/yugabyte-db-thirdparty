@@ -485,6 +485,9 @@ Source: http://savannah.nongnu.org/projects/libunwind/
   LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
   OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
   WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+--------------------------------------------------------------------------------
+thirdparty/clockbound: Apache 2.0 LICENSE (https://github.com/aws/clock-bound/blob/main/clock-bound-ffi/LICENSE)
+Source: https://github.com/aws/clock-bound/blob/main/clock-bound-ffi/
 
 ================================================================================
 BUILD-ONLY DEPENDENCIES
