@@ -241,12 +241,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.CUSTOM_GITHUB_TOKEN }}
           SNYK_TOKEN: ${{ secrets.SNYK_AUTH_TOKEN }}
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: yugabyte-db-thirdparty-${{ matrix.name }}.tar.gz
           path: archive.tar.gz
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: yugabyte-db-thirdparty-${{ matrix.name }}.tar.gz.sha256
           path: archive.tar.gz.sha256
