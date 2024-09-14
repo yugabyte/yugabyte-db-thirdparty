@@ -49,7 +49,7 @@ jobs:
           # ---------------------------------------------------------------------------------------
           - name: ubuntu2004-x86_64-clang16
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_ubuntu2004_x86_64:v2023-10-25T03_33_01
+            docker_image: yugabyteci/yb_build_infra_ubuntu2004_x86_64:v2024-09-13T18_52_51
             build_thirdparty_args: >-
               --toolchain=llvm16
             architecture: x86_64
@@ -60,7 +60,7 @@ jobs:
 
           - name: ubuntu2204-x86_64-gcc11
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_ubuntu2204_x86_64:v2023-10-25T03_33_00
+            docker_image: yugabyteci/yb_build_infra_ubuntu2204_x86_64:v2024-09-13T18_52_51
             build_thirdparty_args: >-
               --compiler-prefix=/usr
               --compiler-family=gcc
@@ -69,7 +69,7 @@ jobs:
 
           - name: ubuntu2204-x86_64-clang17
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_ubuntu2204_x86_64:v2023-10-25T03_33_00
+            docker_image: yugabyteci/yb_build_infra_ubuntu2204_x86_64:v2024-09-13T18_52_51
             build_thirdparty_args: >-
               --toolchain=llvm17
             architecture: x86_64
@@ -81,14 +81,14 @@ jobs:
           # Clang 17
           - name: amzn2-x86_64-clang17
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_amazonlinux2_x86_64:v2024-04-25T17_54_47
+            docker_image: yugabyteci/yb_build_infra_amazonlinux2_x86_64:v2024-09-13T18_52_53
             build_thirdparty_args: >-
               --toolchain=llvm17
             architecture: x86_64
 
           - name: amzn2-x86_64-clang17-full-lto
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_amazonlinux2_x86_64:v2024-04-25T17_54_47
+            docker_image: yugabyteci/yb_build_infra_amazonlinux2_x86_64:v2024-09-13T18_52_53
             build_thirdparty_args: >-
               --toolchain=llvm17
               --lto=full
@@ -98,7 +98,7 @@ jobs:
           # TODO: enable ASAN/TSAN for Clang 18.
           - name: amzn2-x86_64-clang18
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_amazonlinux2_x86_64:v2024-04-25T17_54_47
+            docker_image: yugabyteci/yb_build_infra_amazonlinux2_x86_64:v2024-09-13T18_52_53
             build_thirdparty_args: >-
               --toolchain=llvm18
               --skip-sanitizers
@@ -106,7 +106,7 @@ jobs:
 
           - name: amzn2-x86_64-clang18-full-lto
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_amazonlinux2_x86_64:v2024-04-25T17_54_47
+            docker_image: yugabyteci/yb_build_infra_amazonlinux2_x86_64:v2024-09-13T18_52_53
             build_thirdparty_args: >-
               --toolchain=llvm18
               --lto=full
@@ -119,7 +119,7 @@ jobs:
 
           - name: almalinux8-x86_64-gcc11
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2023-10-25T03_33_01
+            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2024-09-13T18_52_52
             build_thirdparty_args: >-
               --devtoolset=11
             architecture: x86_64
@@ -127,7 +127,7 @@ jobs:
           # Clang/LLVM 17
           - name: almalinux8-x86_64-clang17
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2023-10-25T03_33_01
+            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2024-09-13T18_52_52
             build_thirdparty_args: >-
               --toolchain=llvm17
             architecture: x86_64
@@ -136,7 +136,7 @@ jobs:
           # TODO: enable ASAN/TSAN for Clang 18.
           - name: almalinux8-x86_64-clang18
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2023-10-25T03_33_01
+            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2024-09-13T18_52_52
             build_thirdparty_args: >-
               --toolchain=llvm18
               --skip-sanitizers
@@ -148,7 +148,7 @@ jobs:
 
           - name: ubuntu2304-x86_64-gcc13
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_ubuntu2304_x86_64:v2023-10-25T03_33_00
+            docker_image: yugabyteci/yb_build_infra_ubuntu2304_x86_64:v2024-07-09T00_14_02
             build_thirdparty_args: >-
               --compiler-prefix=/usr
               --compiler-suffix=-13
@@ -161,14 +161,14 @@ jobs:
 
           - name: almalinux9-x86_64-gcc12
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_almalinux9_x86_64:v2023-10-25T03_33_02
+            docker_image: yugabyteci/yb_build_infra_almalinux9_x86_64:v2024-09-13T18_52_52
             build_thirdparty_args: >-
               --devtoolset=12
             architecture: x86_64
 
           - name: almalinux9-x86_64-clang17
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_almalinux9_x86_64:v2023-10-25T03_33_02
+            docker_image: yugabyteci/yb_build_infra_almalinux9_x86_64:v2024-09-13T18_52_52
             build_thirdparty_args: >-
               --toolchain=llvm17
             architecture: x86_64
@@ -189,14 +189,14 @@ jobs:
 
           - name: amzn2-aarch64-clang17
             os: ubuntu-24.04-aarch64-4core-16gb
-            docker_image: yugabyteci/yb_build_infra_amazonlinux2_aarch64:v2024-04-25T17_55_13
+            docker_image: yugabyteci/yb_build_infra_amazonlinux2_aarch64:v2024-09-13T18_54_13
             build_thirdparty_args: >-
               --toolchain=llvm17
               --skip-sanitizers
 
           - name: amzn2-aarch64-clang17-full-lto
             os: ubuntu-24.04-aarch64-4core-16gb
-            docker_image: yugabyteci/yb_build_infra_amazonlinux2_aarch64:v2024-04-25T17_55_13
+            docker_image: yugabyteci/yb_build_infra_amazonlinux2_aarch64:v2024-09-13T18_54_13
             build_thirdparty_args: >-
               --toolchain=llvm17
               --skip-sanitizers
@@ -204,14 +204,14 @@ jobs:
 
           - name: amzn2-aarch64-clang18
             os: ubuntu-24.04-aarch64-4core-16gb
-            docker_image: yugabyteci/yb_build_infra_amazonlinux2_aarch64:v2024-04-25T17_55_13
+            docker_image: yugabyteci/yb_build_infra_amazonlinux2_aarch64:v2024-09-13T18_54_13
             build_thirdparty_args: >-
               --toolchain=llvm18
               --skip-sanitizers
 
           - name: amzn2-aarch64-clang18-full-lto
             os: ubuntu-24.04-aarch64-4core-16gb
-            docker_image: yugabyteci/yb_build_infra_amazonlinux2_aarch64:v2024-04-25T17_55_13
+            docker_image: yugabyteci/yb_build_infra_amazonlinux2_aarch64:v2024-09-13T18_54_13
             build_thirdparty_args: >-
               --toolchain=llvm18
               --skip-sanitizers
@@ -241,12 +241,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.CUSTOM_GITHUB_TOKEN }}
           SNYK_TOKEN: ${{ secrets.SNYK_AUTH_TOKEN }}
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: yugabyte-db-thirdparty-${{ matrix.name }}.tar.gz
           path: archive.tar.gz
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: yugabyte-db-thirdparty-${{ matrix.name }}.tar.gz.sha256
           path: archive.tar.gz.sha256
