@@ -146,9 +146,9 @@ jobs:
           # Ubuntu 23.04
           # ---------------------------------------------------------------------------------------
 
-          - name: ubuntu2304-x86_64-gcc13
+          - name: ubuntu2404-x86_64-gcc13
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_ubuntu2304_x86_64:v2024-07-09T00_14_02
+            docker_image: yugabyteci/yb_build_infra_ubuntu2404_x86_64:v2024-09-13T18_52_51
             build_thirdparty_args: >-
               --compiler-prefix=/usr
               --compiler-suffix=-13

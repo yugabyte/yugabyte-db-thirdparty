@@ -175,3 +175,6 @@ class BuilderInterface:
             rel_src_include_path: str,
             dest_include_path: str) -> None:
         raise NotImplementedError()
+
+    def prepare_for_build_tool_invocation(self, dep: 'Dependency') -> bool:
+        raise NotImplementedError()
