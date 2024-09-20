@@ -119,15 +119,29 @@ jobs:
 
           - name: almalinux8-x86_64-gcc11
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2024-09-13T18_52_52
+            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2024-09-20T20_33_55
             build_thirdparty_args: >-
               --devtoolset=11
+            architecture: x86_64
+
+          - name: almalinux8-x86_64-gcc12
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2024-09-20T20_33_55
+            build_thirdparty_args: >-
+              --devtoolset=12
+            architecture: x86_64
+
+          - name: almalinux8-x86_64-gcc13
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2024-09-20T20_33_55
+            build_thirdparty_args: >-
+              --devtoolset=13
             architecture: x86_64
 
           # Clang/LLVM 17
           - name: almalinux8-x86_64-clang17
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2024-09-13T18_52_52
+            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2024-09-20T20_33_55
             build_thirdparty_args: >-
               --toolchain=llvm17
             architecture: x86_64
@@ -136,14 +150,14 @@ jobs:
           # TODO: enable ASAN/TSAN for Clang 18.
           - name: almalinux8-x86_64-clang18
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2024-09-13T18_52_52
+            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2024-09-20T20_33_55
             build_thirdparty_args: >-
               --toolchain=llvm18
               --skip-sanitizers
             architecture: x86_64
 
           # ---------------------------------------------------------------------------------------
-          # Ubuntu 23.04
+          # Ubuntu 24.04
           # ---------------------------------------------------------------------------------------
 
           - name: ubuntu2404-x86_64-gcc13
@@ -164,6 +178,13 @@ jobs:
             docker_image: yugabyteci/yb_build_infra_almalinux9_x86_64:v2024-09-13T18_52_52
             build_thirdparty_args: >-
               --devtoolset=12
+            architecture: x86_64
+
+          - name: almalinux9-x86_64-gcc13
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_almalinux9_x86_64:v2024-09-13T18_52_52
+            build_thirdparty_args: >-
+              --devtoolset=13
             architecture: x86_64
 
           - name: almalinux9-x86_64-clang17
