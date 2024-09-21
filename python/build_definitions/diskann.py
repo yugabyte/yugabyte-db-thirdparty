@@ -139,7 +139,7 @@ class DiskANNDependency(Dependency):
             ])
 
         if (builder.compiler_choice.is_clang() and
-                    builder.compiler_choice.is_llvm_major_version_at_least(17)):
+                builder.compiler_choice.is_llvm_major_version_at_least(17)):
             ignored_warnings.extend([
                 'inconsistent-missing-override',
                 'instantiation-after-specialization',
