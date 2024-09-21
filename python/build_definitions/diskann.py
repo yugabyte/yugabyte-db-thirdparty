@@ -124,16 +124,20 @@ class DiskANNDependency(Dependency):
 
         ignored_warnings = []
         if builder.compiler_choice.is_gcc_major_version_at_least(13):
-            ignored_warnings = [
+            ignored_warnings += [
                 'overloaded-virtual',
                 'reorder',
                 'sign-compare',
                 'unused-but-set-variable',
                 'unused-variable',
             ]
-        elif builder.compiler_choice.is_clang() and \
+
+        if builder.compiler_choice.is_gcc_major_version_at_least(11):
+            ignored_warnings += ['reorder']
+
+        if builder.compiler_choice.is_clang() and \
                 builder.compiler_choice.is_llvm_major_version_at_least(18):
-            ignored_warnings = [
+            ignored_warnings += [
                 'inconsistent-missing-override',
                 'instantiation-after-specialization',
                 'nan-infinity-disabled',
