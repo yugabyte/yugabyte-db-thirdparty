@@ -41,8 +41,7 @@ def parse_cmd_line_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog=sys.argv[0])
     parser.add_argument('--build-type',
                         default=None,
-                        type=str,
-                        action=enum_action(BuildType),
+                        action=enum_action(BuildType, str.lower),
                         help='Build only the third-party dependencies of the given type')
     parser.add_argument('--skip-sanitizers',
                         action='store_true',
