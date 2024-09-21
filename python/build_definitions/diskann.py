@@ -138,23 +138,19 @@ class DiskANNDependency(Dependency):
                 'unused-variable',
             ])
 
-        if builder.compiler_choice.is_clang():
-            if builder.compiler_choice.is_llvm_major_version_at_least(17):
-                ignored_warnings.extend([
-                    'unused-private-field',
-                ])
-            if builder.compiler_choice.is_llvm_major_version_at_least(18):
-                ignored_warnings.extend([
-                    'inconsistent-missing-override',
-                    'instantiation-after-specialization',
-                    'nan-infinity-disabled',
-                    'overloaded-virtual',
-                    'reorder-ctor',
-                    'return-type',
-                    'unused-but-set-variable',
-                    'unused-lambda-capture',
-                    'unused-variable',
-                ])
+        if (builder.compiler_choice.is_clang() and
+                    builder.compiler_choice.is_llvm_major_version_at_least(17)):
+            ignored_warnings.extend([
+                'inconsistent-missing-override',
+                'instantiation-after-specialization',
+                'nan-infinity-disabled',
+                'overloaded-virtual',
+                'reorder-ctor',
+                'return-type',
+                'unused-but-set-variable',
+                'unused-lambda-capture',
+                'unused-variable',
+            ])
 
         if ignored_warnings:
             flags.extend([
