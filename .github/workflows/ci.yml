@@ -60,16 +60,72 @@ jobs:
 
           - name: ubuntu2204-x86_64-gcc11
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_ubuntu2204_x86_64:v2024-09-13T18_52_51
+            docker_image: yugabyteci/yb_build_infra_ubuntu2204_x86_64:v2024-09-20T23_57_46
             build_thirdparty_args: >-
               --compiler-prefix=/usr
               --compiler-family=gcc
               --compiler-suffix=-11
             architecture: x86_64
 
+          - name: ubuntu2204-x86_64-gcc12
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_ubuntu2204_x86_64:v2024-09-20T23_57_46
+            build_thirdparty_args: >-
+              --compiler-prefix=/usr
+              --compiler-family=gcc
+              --compiler-suffix=-12
+            architecture: x86_64
+
+          - name: ubuntu2204-x86_64-gcc13
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_ubuntu2204_x86_64:v2024-09-20T23_57_46
+            build_thirdparty_args: >-
+              --compiler-prefix=/usr
+              --compiler-family=gcc
+              --compiler-suffix=-13
+            architecture: x86_64
+
           - name: ubuntu2204-x86_64-clang17
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_ubuntu2204_x86_64:v2024-09-13T18_52_51
+            docker_image: yugabyteci/yb_build_infra_ubuntu2204_x86_64:v2024-09-20T23_57_46
+            build_thirdparty_args: >-
+              --toolchain=llvm17
+            architecture: x86_64
+
+          # ---------------------------------------------------------------------------------------
+          # Ubuntu 24.04
+          # ---------------------------------------------------------------------------------------
+
+          - name: ubuntu2404-x86_64-gcc11
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_ubuntu2404_x86_64:v2024-09-20T23_57_48
+            build_thirdparty_args: >-
+              --compiler-prefix=/usr
+              --compiler-family=gcc
+              --compiler-suffix=-11
+            architecture: x86_64
+
+          - name: ubuntu2404-x86_64-gcc12
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_ubuntu2404_x86_64:v2024-09-20T23_57_48
+            build_thirdparty_args: >-
+              --compiler-prefix=/usr
+              --compiler-family=gcc
+              --compiler-suffix=-12
+            architecture: x86_64
+
+          - name: ubuntu2404-x86_64-gcc13
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_ubuntu2404_x86_64:v2024-09-20T23_57_48
+            build_thirdparty_args: >-
+              --compiler-prefix=/usr
+              --compiler-family=gcc
+              --compiler-suffix=-13
+            architecture: x86_64
+
+          - name: ubuntu2404-x86_64-clang17
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_ubuntu2404_x86_64:v2024-09-20T23_57_48
             build_thirdparty_args: >-
               --toolchain=llvm17
             architecture: x86_64
@@ -154,19 +210,6 @@ jobs:
             build_thirdparty_args: >-
               --toolchain=llvm18
               --skip-sanitizers
-            architecture: x86_64
-
-          # ---------------------------------------------------------------------------------------
-          # Ubuntu 24.04
-          # ---------------------------------------------------------------------------------------
-
-          - name: ubuntu2404-x86_64-gcc13
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_ubuntu2404_x86_64:v2024-09-13T18_52_51
-            build_thirdparty_args: >-
-              --compiler-prefix=/usr
-              --compiler-suffix=-13
-              --compiler-family=gcc
             architecture: x86_64
 
           # ---------------------------------------------------------------------------------------
