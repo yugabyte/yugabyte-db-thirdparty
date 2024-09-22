@@ -147,6 +147,7 @@ class DiskANNDependency(Dependency):
                     'return-type',
                     'unused-but-set-variable',
                     'unused-lambda-capture',
+                    'unused-private-field',
                     'unused-variable',
                 ])
 
