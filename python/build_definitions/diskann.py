@@ -123,28 +123,39 @@ class DiskANNDependency(Dependency):
         flags.append("-D__PURE_SYS_C99_HEADERS__=1")
 
         ignored_warnings = []
-        if builder.compiler_choice.is_gcc_major_version_at_least(13):
-            ignored_warnings = [
-                'overloaded-virtual',
+
+        if builder.compiler_choice.is_gcc_major_version_at_least(11):
+            ignored_warnings.extend([
                 'reorder',
+                'sign-compare',
+            ])
+
+        if builder.compiler_choice.is_gcc_major_version_at_least(13):
+            ignored_warnings.extend([
+                'overloaded-virtual',
                 'sign-compare',
                 'unused-but-set-variable',
                 'unused-variable',
-            ]
-        elif builder.compiler_choice.is_clang() and \
-                builder.compiler_choice.is_llvm_major_version_at_least(18):
-            ignored_warnings = [
-                'inconsistent-missing-override',
-                'instantiation-after-specialization',
-                'nan-infinity-disabled',
-                'overloaded-virtual',
-                'reorder-ctor',
-                'return-type',
-                'unused-but-set-variable',
-                'unused-lambda-capture',
-                'unused-private-field',
-                'unused-variable',
-            ]
+            ])
+
+        if builder.compiler_choice.is_clang():
+            if builder.compiler_choice.is_llvm_major_version_at_least(17):
+                ignored_warnings.extend([
+                    'inconsistent-missing-override',
+                    'instantiation-after-specialization',
+                    'overloaded-virtual',
+                    'reorder-ctor',
+                    'return-type',
+                    'unused-but-set-variable',
+                    'unused-lambda-capture',
+                    'unused-private-field',
+                    'unused-variable',
+                ])
+
+            if builder.compiler_choice.is_llvm_major_version_at_least(18):
+                ignored_warnings.extend([
+                    'nan-infinity-disabled',
+                ])
 
         if ignored_warnings:
             flags.extend([

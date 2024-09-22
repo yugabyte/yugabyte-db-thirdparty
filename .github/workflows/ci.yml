@@ -60,16 +60,47 @@ jobs:
 
           - name: ubuntu2204-x86_64-gcc11
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_ubuntu2204_x86_64:v2024-09-13T18_52_51
+            docker_image: yugabyteci/yb_build_infra_ubuntu2204_x86_64:v2024-09-20T23_57_46
             build_thirdparty_args: >-
               --compiler-prefix=/usr
               --compiler-family=gcc
               --compiler-suffix=-11
             architecture: x86_64
 
+          - name: ubuntu2204-x86_64-gcc12
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_ubuntu2204_x86_64:v2024-09-20T23_57_46
+            build_thirdparty_args: >-
+              --compiler-prefix=/usr
+              --compiler-family=gcc
+              --compiler-suffix=-12
+            architecture: x86_64
+
           - name: ubuntu2204-x86_64-clang17
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_ubuntu2204_x86_64:v2024-09-13T18_52_51
+            docker_image: yugabyteci/yb_build_infra_ubuntu2204_x86_64:v2024-09-20T23_57_46
+            build_thirdparty_args: >-
+              --toolchain=llvm17
+            architecture: x86_64
+
+          # ---------------------------------------------------------------------------------------
+          # Ubuntu 24.04
+          # ---------------------------------------------------------------------------------------
+
+          # GCC 11 and GCC 12 have DiskANN compilation issues on Ubuntu 24.04.
+
+          - name: ubuntu2404-x86_64-gcc13
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_ubuntu2404_x86_64:v2024-09-20T23_57_48
+            build_thirdparty_args: >-
+              --compiler-prefix=/usr
+              --compiler-family=gcc
+              --compiler-suffix=-13
+            architecture: x86_64
+
+          - name: ubuntu2404-x86_64-clang17
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_ubuntu2404_x86_64:v2024-09-20T23_57_48
             build_thirdparty_args: >-
               --toolchain=llvm17
             architecture: x86_64
@@ -119,15 +150,29 @@ jobs:
 
           - name: almalinux8-x86_64-gcc11
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2024-09-13T18_52_52
+            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2024-09-20T20_33_55
             build_thirdparty_args: >-
               --devtoolset=11
+            architecture: x86_64
+
+          - name: almalinux8-x86_64-gcc12
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2024-09-20T20_33_55
+            build_thirdparty_args: >-
+              --devtoolset=12
+            architecture: x86_64
+
+          - name: almalinux8-x86_64-gcc13
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2024-09-20T20_33_55
+            build_thirdparty_args: >-
+              --devtoolset=13
             architecture: x86_64
 
           # Clang/LLVM 17
           - name: almalinux8-x86_64-clang17
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2024-09-13T18_52_52
+            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2024-09-20T20_33_55
             build_thirdparty_args: >-
               --toolchain=llvm17
             architecture: x86_64
@@ -136,23 +181,10 @@ jobs:
           # TODO: enable ASAN/TSAN for Clang 18.
           - name: almalinux8-x86_64-clang18
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2024-09-13T18_52_52
+            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2024-09-20T20_33_55
             build_thirdparty_args: >-
               --toolchain=llvm18
               --skip-sanitizers
-            architecture: x86_64
-
-          # ---------------------------------------------------------------------------------------
-          # Ubuntu 23.04
-          # ---------------------------------------------------------------------------------------
-
-          - name: ubuntu2404-x86_64-gcc13
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_ubuntu2404_x86_64:v2024-09-13T18_52_51
-            build_thirdparty_args: >-
-              --compiler-prefix=/usr
-              --compiler-suffix=-13
-              --compiler-family=gcc
             architecture: x86_64
 
           # ---------------------------------------------------------------------------------------
@@ -161,14 +193,21 @@ jobs:
 
           - name: almalinux9-x86_64-gcc12
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_almalinux9_x86_64:v2024-09-13T18_52_52
+            docker_image: yugabyteci/yb_build_infra_almalinux9_x86_64:v2024-09-20T20_33_54
             build_thirdparty_args: >-
               --devtoolset=12
             architecture: x86_64
 
+          - name: almalinux9-x86_64-gcc13
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_almalinux9_x86_64:v2024-09-20T20_33_54
+            build_thirdparty_args: >-
+              --devtoolset=13
+            architecture: x86_64
+
           - name: almalinux9-x86_64-clang17
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_almalinux9_x86_64:v2024-09-13T18_52_52
+            docker_image: yugabyteci/yb_build_infra_almalinux9_x86_64:v2024-09-20T20_33_54
             build_thirdparty_args: >-
               --toolchain=llvm17
             architecture: x86_64
