@@ -142,6 +142,7 @@ class DiskANNDependency(Dependency):
             if builder.compiler_choice.is_llvm_major_version_at_least(17):
                 ignored_warnings.extend([
                     'inconsistent-missing-override',
+                    'instantiation-after-specialization',
                     'overloaded-virtual',
                     'reorder-ctor',
                     'return-type',
@@ -153,7 +154,6 @@ class DiskANNDependency(Dependency):
 
             if builder.compiler_choice.is_llvm_major_version_at_least(18):
                 ignored_warnings.extend([
-                    'instantiation-after-specialization',
                     'nan-infinity-disabled',
                 ])
 
