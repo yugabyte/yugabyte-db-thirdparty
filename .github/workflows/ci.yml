@@ -32,10 +32,7 @@ on:
 jobs:
   build:
     name: ${{ matrix.name }}
-    runs-on: ${{ matrix.os }}
-    # This was added for controlling hosted macOS runner architecture. We use a different way to
-    # specify the architecture for Linux builds.
-    arch: ${{ matrix.architecture }}
+    runs-on: ${{ matrix.runs_on }}
     if: >
       (github.event_name == 'push' &&
        !contains(github.event.head_commit.message, 'skip ci') &&
@@ -51,7 +48,7 @@ jobs:
           # Ubuntu 20.04
           # ---------------------------------------------------------------------------------------
           - name: ubuntu2004-x86_64-clang16
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_ubuntu2004_x86_64:v2024-09-13T18_52_51
             build_thirdparty_args: >-
               --toolchain=llvm16
@@ -62,7 +59,7 @@ jobs:
           # ---------------------------------------------------------------------------------------
 
           - name: ubuntu2204-x86_64-gcc11
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_ubuntu2204_x86_64:v2024-09-20T23_57_46
             build_thirdparty_args: >-
               --compiler-prefix=/usr
@@ -71,7 +68,7 @@ jobs:
             architecture: x86_64
 
           - name: ubuntu2204-x86_64-gcc12
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_ubuntu2204_x86_64:v2024-09-20T23_57_46
             build_thirdparty_args: >-
               --compiler-prefix=/usr
@@ -80,7 +77,7 @@ jobs:
             architecture: x86_64
 
           - name: ubuntu2204-x86_64-clang17
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_ubuntu2204_x86_64:v2024-09-20T23_57_46
             build_thirdparty_args: >-
               --toolchain=llvm17
@@ -93,7 +90,7 @@ jobs:
           # GCC 11 and GCC 12 have DiskANN compilation issues on Ubuntu 24.04.
 
           - name: ubuntu2404-x86_64-gcc13
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_ubuntu2404_x86_64:v2024-09-20T23_57_48
             build_thirdparty_args: >-
               --compiler-prefix=/usr
@@ -102,7 +99,7 @@ jobs:
             architecture: x86_64
 
           - name: ubuntu2404-x86_64-clang17
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_ubuntu2404_x86_64:v2024-09-20T23_57_48
             build_thirdparty_args: >-
               --toolchain=llvm17
@@ -114,14 +111,14 @@ jobs:
 
           # Clang 17
           - name: amzn2-x86_64-clang17
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_amazonlinux2_x86_64:v2024-09-13T18_52_53
             build_thirdparty_args: >-
               --toolchain=llvm17
             architecture: x86_64
 
           - name: amzn2-x86_64-clang17-full-lto
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_amazonlinux2_x86_64:v2024-09-13T18_52_53
             build_thirdparty_args: >-
               --toolchain=llvm17
@@ -131,7 +128,7 @@ jobs:
           # Clang 18
           # TODO: enable ASAN/TSAN for Clang 18.
           - name: amzn2-x86_64-clang18
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_amazonlinux2_x86_64:v2024-09-13T18_52_53
             build_thirdparty_args: >-
               --toolchain=llvm18
@@ -139,7 +136,7 @@ jobs:
             architecture: x86_64
 
           - name: amzn2-x86_64-clang18-full-lto
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_amazonlinux2_x86_64:v2024-09-13T18_52_53
             build_thirdparty_args: >-
               --toolchain=llvm18
@@ -152,21 +149,21 @@ jobs:
           # ---------------------------------------------------------------------------------------
 
           - name: almalinux8-x86_64-gcc11
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2024-09-20T20_33_55
             build_thirdparty_args: >-
               --devtoolset=11
             architecture: x86_64
 
           - name: almalinux8-x86_64-gcc12
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2024-09-20T20_33_55
             build_thirdparty_args: >-
               --devtoolset=12
             architecture: x86_64
 
           - name: almalinux8-x86_64-gcc13
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2024-09-20T20_33_55
             build_thirdparty_args: >-
               --devtoolset=13
@@ -174,7 +171,7 @@ jobs:
 
           # Clang/LLVM 17
           - name: almalinux8-x86_64-clang17
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2024-09-20T20_33_55
             build_thirdparty_args: >-
               --toolchain=llvm17
@@ -183,7 +180,7 @@ jobs:
           # Clang/LLVM 18
           # TODO: enable ASAN/TSAN for Clang 18.
           - name: almalinux8-x86_64-clang18
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2024-09-20T20_33_55
             build_thirdparty_args: >-
               --toolchain=llvm18
@@ -195,21 +192,21 @@ jobs:
           # ---------------------------------------------------------------------------------------
 
           - name: almalinux9-x86_64-gcc12
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_almalinux9_x86_64:v2024-09-20T20_33_54
             build_thirdparty_args: >-
               --devtoolset=12
             architecture: x86_64
 
           - name: almalinux9-x86_64-gcc13
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_almalinux9_x86_64:v2024-09-20T20_33_54
             build_thirdparty_args: >-
               --devtoolset=13
             architecture: x86_64
 
           - name: almalinux9-x86_64-clang17
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_almalinux9_x86_64:v2024-09-20T20_33_54
             build_thirdparty_args: >-
               --toolchain=llvm17
@@ -220,30 +217,32 @@ jobs:
           # ---------------------------------------------------------------------------------------
 
           - name: macos-x86_64
-            os: macos-13
+            runs_on: macos-13
             docker_image:
             build_thirdparty_args: --enforce_arch=x86_64
             architecture: x86_64
 
           - name: macos-arm64
-            os: macos-13
+            # According to https://github.com/orgs/community/discussions/69211, this is the runner
+            # type that corresponds to Apple Silicon.
+            runs_on: macos-13-xlarge
             docker_image:
-            build_thirdparty_args:
-            architecture: arm64 --enforce_arch=arm64
+            build_thirdparty_args: --enforce_arch=arm64
+            architecture: arm64
 
           # ---------------------------------------------------------------------------------------
           # aarch64 builds (Amazon Linux 2)
           # ---------------------------------------------------------------------------------------
 
           - name: amzn2-aarch64-clang17
-            os: ubuntu-24.04-aarch64-4core-16gb
+            runs_on: ubuntu-24.04-aarch64-4core-16gb
             docker_image: yugabyteci/yb_build_infra_amazonlinux2_aarch64:v2024-09-13T18_54_13
             build_thirdparty_args: >-
               --toolchain=llvm17
               --skip-sanitizers
 
           - name: amzn2-aarch64-clang17-full-lto
-            os: ubuntu-24.04-aarch64-4core-16gb
+            runs_on: ubuntu-24.04-aarch64-4core-16gb
             docker_image: yugabyteci/yb_build_infra_amazonlinux2_aarch64:v2024-09-13T18_54_13
             build_thirdparty_args: >-
               --toolchain=llvm17
@@ -251,14 +250,14 @@ jobs:
               --lto=full
 
           - name: amzn2-aarch64-clang18
-            os: ubuntu-24.04-aarch64-4core-16gb
+            runs_on: ubuntu-24.04-aarch64-4core-16gb
             docker_image: yugabyteci/yb_build_infra_amazonlinux2_aarch64:v2024-09-13T18_54_13
             build_thirdparty_args: >-
               --toolchain=llvm18
               --skip-sanitizers
 
           - name: amzn2-aarch64-clang18-full-lto
-            os: ubuntu-24.04-aarch64-4core-16gb
+            runs_on: ubuntu-24.04-aarch64-4core-16gb
             docker_image: yugabyteci/yb_build_infra_amazonlinux2_aarch64:v2024-09-13T18_54_13
             build_thirdparty_args: >-
               --toolchain=llvm18
