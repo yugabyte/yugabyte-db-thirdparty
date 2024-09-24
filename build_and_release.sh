@@ -97,15 +97,17 @@ log "CPU architecture as reported by arch     : $( arch )"
 
 if [[ $OSTYPE == darwin* ]]; then
   # Check if the Mac is using an Apple Silicon chip
-  if /usr/sbin/sysctl -n machdep.cpu.brand_string | grep -q "Apple"; then
+  cpu_brand_string=$( /usr/sbin/sysctl -n machdep.cpu.brand_string  )
+  log "CPU brand string: $cpu_brand_string"
+  if [[ $cpu_brand_string == *Apple* ]]; then
     # Check if Rosetta 2 is installed
     if /usr/bin/pgrep oahd &>/dev/null; then
-      echo "Rosetta 2 is installed."
+      log "Rosetta 2 is installed."
     else
-      echo "Rosetta 2 is not installed."
+      log "Rosetta 2 is not installed."
     fi
   else
-    echo "This appears to be a non-Apple Silicon Mac, not checking for Rosetta 2."
+    log "This appears to be a non-Apple Silicon Mac, not checking for Rosetta 2."
   fi
 fi
 
