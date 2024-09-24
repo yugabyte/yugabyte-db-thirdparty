@@ -92,6 +92,23 @@ log "YB_BUILD_THIRDPARTY_ARGS: ${YB_BUILD_THIRDPARTY_ARGS:-undefined}"
 YB_BUILD_THIRDPARTY_EXTRA_ARGS=${YB_BUILD_THIRDPARTY_EXTRA_ARGS:-}
 log "YB_BUILD_THIRDPARTY_EXTRA_ARGS: ${YB_BUILD_THIRDPARTY_EXTRA_ARGS:-undefined}"
 
+log "CPU architecture as reported by uname -m : $( uname -m )"
+log "CPU architecture as reported by arch     : $( arch )"
+
+if [[ $OSTYPE == darwin* ]]; then
+  # Check if the Mac is using an Apple Silicon chip
+  if /usr/sbin/sysctl -n machdep.cpu.brand_string | grep -q "Apple"; then
+    # Check if Rosetta 2 is installed
+    if /usr/bin/pgrep oahd &>/dev/null; then
+      echo "Rosetta 2 is installed."
+    else
+      echo "Rosetta 2 is not installed."
+    fi
+  else
+    echo "This appears to be a non-Apple Silicon Mac, not checking for Rosetta 2."
+  fi
+fi
+
 # -------------------------------------------------------------------------------------------------
 # Installed tools
 # -------------------------------------------------------------------------------------------------
@@ -134,7 +151,6 @@ if [[ $OSTYPE == darwin* && $cmake_version == "$unsupported_cmake_version" ]]; t
   log "Newly installed CMake version:"
   ( set -x; cmake --version )
 fi
-
 
 # -------------------------------------------------------------------------------------------------
 # Check for errors in Python code of this repository

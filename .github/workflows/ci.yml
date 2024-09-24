@@ -219,14 +219,14 @@ jobs:
           - name: macos-x86_64
             os: macos-12
             docker_image:
-            build_thirdparty_args:
+            build_thirdparty_args: --enforce_arch=x86_64
             architecture: x86_64
 
           - name: macos-arm64
             os: macos-12
             docker_image:
             build_thirdparty_args:
-            architecture: arm64
+            architecture: arm64 --enforce_arch=arm64
 
           # ---------------------------------------------------------------------------------------
           # aarch64 builds (Amazon Linux 2)
