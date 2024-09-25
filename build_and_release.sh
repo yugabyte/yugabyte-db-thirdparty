@@ -83,7 +83,9 @@ if [[ $OSTYPE == darwin* ]]; then
   fi
 
   brew_path=$homebrew_prefix/bin/brew
-  if [[ ! -f $brew_path ]]; then
+  if [[ -f $brew_path ]]; then
+    log "Homebrew found at $brew_path"
+  else
     log "Homebrew not found at $brew_path, attempting to install"
 
     /bin/bash -c "$(
@@ -97,7 +99,13 @@ if [[ $OSTYPE == darwin* ]]; then
   log "Homebrew packages explicitly installed by the user:"
   "$brew_path" leaves --installed-on-request
 
-  homebrew_packages=( install autoconf automake pkg-config )
+  homebrew_packages=(
+    autoconf
+    automake
+    cmake
+    libtool
+    pkg-config
+  )
   log "Installing Homebrew packages"
   time ( set -x; "$brew_path" install "${homebrew_packages[@]}" )
   log "Homebrew packages installed"

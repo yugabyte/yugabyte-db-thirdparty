@@ -17,9 +17,6 @@ import os
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
 
-ARM64_HOMEBREW_BASH_PATH = '/opt/homebrew/bin/bash'
-
-
 def use_arm64_bash_in_script(script_path: str) -> None:
     with open(script_path) as script_file:
         lines = [line.rstrip() for line in script_file]
@@ -28,7 +25,7 @@ def use_arm64_bash_in_script(script_path: str) -> None:
         return
     if not lines[0].startswith('#!') and lines[0].endswith('bash'):
         return
-    lines[0] = '#!' + ARM64_HOMEBREW_BASH_PATH
+    lines[0] = '#!/opt/homebrew/bin/bash'
     with open(script_path, 'w') as output_file:
         output_file.write('\n'.join(lines) + '\n')
 
@@ -52,15 +49,9 @@ class OpenSSLDependency(Dependency):
         common_configure_options = ['shared', 'no-tests', 'enable-fips']
         install_path = os.path.join(
             builder.fs_layout.tp_installed_common_dir, "lib")
-        configure_cmd = ['./config'] + common_configure_options
         if is_macos_arm64_build():
-            if os.path.exists(ARM64_HOMEBREW_BASH_PATH):
-                use_arm64_bash_in_script('config')
-            else:
-                log(f"{ARM64_HOMEBREW_BASH_PATH} not found, cannot modify OpenSSL configure script"
-                    " to use it. Using the arch command instead.")
-                configure_cmd = ['arch', '-arm64'] + configure_cmd
-
+            use_arm64_bash_in_script('config')
+        configure_cmd = ['./config'] + common_configure_options
         if not is_macos():
             configure_cmd += ['-Wl,-rpath=' + install_path]
 
