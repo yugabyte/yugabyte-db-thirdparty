@@ -109,6 +109,13 @@ if [[ $OSTYPE == darwin* ]]; then
   else
     log "This appears to be a non-Apple Silicon Mac, not checking for Rosetta 2."
   fi
+
+  if [[ -f /opt/homebrew/bin/bash ]]; then
+    log "/opt/homebrew/bin/bash exists, checking its architecture:"
+    file /opt/homebrew/bin/bash
+  else
+    log "/opt/homebrew/bin/bash does not exist"
+  fi
 fi
 
 # -------------------------------------------------------------------------------------------------
