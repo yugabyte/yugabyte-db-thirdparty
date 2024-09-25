@@ -64,7 +64,7 @@ if [[ $OSTYPE == darwin* ]]; then
   if [[ $YB_TARGET_ARCH == "x86_64" ]]; then
     homebrew_prefix=/usr/local
   elif [[ $YB_TARGET_ARCH == "arm64" ]]; then
-    homebrew_prefix=/usr/homebrew
+    homebrew_prefix=/opt/homebrew
   fi
   export PATH=${homebrew_prefix}/bin:$PATH
 
