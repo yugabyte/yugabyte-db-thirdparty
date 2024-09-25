@@ -62,10 +62,41 @@ echo "OSTYPE: $OSTYPE"
 if [[ $OSTYPE == darwin* ]]; then
   # On macOS, add the Homebrew bin directory corresponding to the target architecture to the PATH.
   if [[ $YB_TARGET_ARCH == "x86_64" ]]; then
-    export PATH=/usr/local/bin:$PATH
+    homebrew_prefix=/usr/local
   elif [[ $YB_TARGET_ARCH == "arm64" ]]; then
-    export PATH=/usr/homebrew/bin:$PATH
+    homebrew_prefix=/usr/homebrew
   fi
+  export PATH=${homebrew_prefix}/bin:$PATH
+
+  # Check if the Mac is using an Apple Silicon chip
+  cpu_brand_string=$( /usr/sbin/sysctl -n machdep.cpu.brand_string  )
+  log "CPU brand string: $cpu_brand_string"
+  if [[ $cpu_brand_string == *Apple* ]]; then
+    # Check if Rosetta 2 is installed
+    if /usr/bin/pgrep oahd &>/dev/null; then
+      log "Rosetta 2 is installed."
+    else
+      log "Rosetta 2 is not installed."
+    fi
+  else
+    log "This appears to be a non-Apple Silicon Mac, not checking for Rosetta 2."
+  fi
+
+  brew_path=$homebrew_prefix/bin/brew
+  if [[ ! -f $brew_path ]]; then
+    fatal "Homebrew not found at $brew_path"
+  fi
+
+  log "Homebrew packages explicitly installed by the user:"
+  "$brew_path" leaves --installed-on-request
+
+  homebrew_packages=( install autoconf automake pkg-config )
+  log "Installing Homebrew packages"
+  time ( set -x; "$brew_path" install "${homebrew_packages[@]}" )
+  log "Homebrew packages installed"
+
+  log "New list of homebrew packages explicitly installed by the user, including newly installed:"
+  "$brew_path" leaves --installed-on-request
 else
   log "Contents of /proc/cpuinfo:"
   cat /proc/cpuinfo
@@ -95,29 +126,6 @@ log "YB_BUILD_THIRDPARTY_EXTRA_ARGS: ${YB_BUILD_THIRDPARTY_EXTRA_ARGS:-undefined
 log "CPU architecture as reported by uname -m : $( uname -m )"
 log "CPU architecture as reported by arch     : $( arch )"
 
-if [[ $OSTYPE == darwin* ]]; then
-  # Check if the Mac is using an Apple Silicon chip
-  cpu_brand_string=$( /usr/sbin/sysctl -n machdep.cpu.brand_string  )
-  log "CPU brand string: $cpu_brand_string"
-  if [[ $cpu_brand_string == *Apple* ]]; then
-    # Check if Rosetta 2 is installed
-    if /usr/bin/pgrep oahd &>/dev/null; then
-      log "Rosetta 2 is installed."
-    else
-      log "Rosetta 2 is not installed."
-    fi
-  else
-    log "This appears to be a non-Apple Silicon Mac, not checking for Rosetta 2."
-  fi
-
-  if [[ -f /opt/homebrew/bin/bash ]]; then
-    log "/opt/homebrew/bin/bash exists, checking its architecture:"
-    file /opt/homebrew/bin/bash
-  else
-    log "/opt/homebrew/bin/bash does not exist"
-  fi
-fi
-
 # -------------------------------------------------------------------------------------------------
 # Installed tools
 # -------------------------------------------------------------------------------------------------
@@ -125,10 +133,11 @@ fi
 echo "Bash version: $BASH_VERSION"
 
 tools_to_show_versions=(
-  cmake
-  automake
   autoconf
+  automake
   autoreconf
+  cmake
+  libtool
   pkg-config
   python3
 )
