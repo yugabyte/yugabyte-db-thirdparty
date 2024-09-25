@@ -62,10 +62,60 @@ echo "OSTYPE: $OSTYPE"
 if [[ $OSTYPE == darwin* ]]; then
   # On macOS, add the Homebrew bin directory corresponding to the target architecture to the PATH.
   if [[ $YB_TARGET_ARCH == "x86_64" ]]; then
-    export PATH=/usr/local/bin:$PATH
+    homebrew_prefix=/usr/local
   elif [[ $YB_TARGET_ARCH == "arm64" ]]; then
-    export PATH=/usr/homebrew/bin:$PATH
+    homebrew_prefix=/opt/homebrew
   fi
+  export PATH=${homebrew_prefix}/bin:$PATH
+
+  # Check if the Mac is using an Apple Silicon chip
+  cpu_brand_string=$( /usr/sbin/sysctl -n machdep.cpu.brand_string  )
+  log "CPU brand string: $cpu_brand_string"
+  if [[ $cpu_brand_string == *Apple* ]]; then
+    # Check if Rosetta 2 is installed
+    if /usr/bin/pgrep oahd &>/dev/null; then
+      log "Rosetta 2 is installed."
+    else
+      log "Rosetta 2 is not installed."
+    fi
+  else
+    log "This appears to be a non-Apple Silicon Mac, not checking for Rosetta 2."
+  fi
+
+  brew_path=$homebrew_prefix/bin/brew
+  if [[ -f $brew_path ]]; then
+    log "Homebrew found at $brew_path"
+  else
+    log "Homebrew not found at $brew_path, attempting to install"
+
+    /bin/bash -c "$(
+      curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh
+    )"
+    if [[ ! -f $brew_path ]]; then
+      fatal "Failed to install Homebrew at $brew_path"
+    fi
+  fi
+
+  log "Homebrew packages explicitly installed by the user:"
+  "$brew_path" leaves --installed-on-request
+
+  homebrew_packages=(
+    autoconf
+    automake
+    bash
+    cmake
+    libtool
+    pkg-config
+  )
+  log "Installing Homebrew packages"
+  time ( set -x; "$brew_path" install "${homebrew_packages[@]}" )
+  log "Homebrew packages installed"
+
+  log "New list of homebrew packages explicitly installed by the user, including newly installed:"
+  ( set -x; "$brew_path" leaves --installed-on-request )
+
+  log "Final list of all installed Homebrew packages, with versions:"
+  ( set -x; "$brew_path" list --versions )
 else
   log "Contents of /proc/cpuinfo:"
   cat /proc/cpuinfo
@@ -92,17 +142,21 @@ log "YB_BUILD_THIRDPARTY_ARGS: ${YB_BUILD_THIRDPARTY_ARGS:-undefined}"
 YB_BUILD_THIRDPARTY_EXTRA_ARGS=${YB_BUILD_THIRDPARTY_EXTRA_ARGS:-}
 log "YB_BUILD_THIRDPARTY_EXTRA_ARGS: ${YB_BUILD_THIRDPARTY_EXTRA_ARGS:-undefined}"
 
+log "CPU architecture as reported by uname -m : $( uname -m )"
+log "CPU architecture as reported by arch     : $( arch )"
+
 # -------------------------------------------------------------------------------------------------
 # Installed tools
 # -------------------------------------------------------------------------------------------------
 
 echo "Bash version: $BASH_VERSION"
 
+# Not adding libtool to this list because it does not support --version.
 tools_to_show_versions=(
-  cmake
-  automake
   autoconf
+  automake
   autoreconf
+  cmake
   pkg-config
   python3
 )
@@ -134,7 +188,6 @@ if [[ $OSTYPE == darwin* && $cmake_version == "$unsupported_cmake_version" ]]; t
   log "Newly installed CMake version:"
   ( set -x; cmake --version )
 fi
-
 
 # -------------------------------------------------------------------------------------------------
 # Check for errors in Python code of this repository
