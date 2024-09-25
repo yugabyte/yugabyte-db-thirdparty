@@ -84,7 +84,14 @@ if [[ $OSTYPE == darwin* ]]; then
 
   brew_path=$homebrew_prefix/bin/brew
   if [[ ! -f $brew_path ]]; then
-    fatal "Homebrew not found at $brew_path"
+    log "Homebrew not found at $brew_path, attempting to install"
+
+    /bin/bash -c "$(
+      curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh
+    )"
+    if [[ ! -f $brew_path ]]; then
+      fatal "Failed to install Homebrew at $brew_path"
+    fi
   fi
 
   log "Homebrew packages explicitly installed by the user:"
