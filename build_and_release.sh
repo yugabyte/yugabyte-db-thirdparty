@@ -102,6 +102,7 @@ if [[ $OSTYPE == darwin* ]]; then
   homebrew_packages=(
     autoconf
     automake
+    bash
     cmake
     libtool
     pkg-config
@@ -111,7 +112,10 @@ if [[ $OSTYPE == darwin* ]]; then
   log "Homebrew packages installed"
 
   log "New list of homebrew packages explicitly installed by the user, including newly installed:"
-  "$brew_path" leaves --installed-on-request
+  ( set -x; "$brew_path" leaves --installed-on-request )
+
+  log "Final list of all installed Homebrew packages, with versions:"
+  ( set -x; "$brew_path" list --versions )
 else
   log "Contents of /proc/cpuinfo:"
   cat /proc/cpuinfo
