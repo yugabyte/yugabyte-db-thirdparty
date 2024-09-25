@@ -147,12 +147,12 @@ log "CPU architecture as reported by arch     : $( arch )"
 
 echo "Bash version: $BASH_VERSION"
 
+# Not adding libtool to this list because it does not support --version.
 tools_to_show_versions=(
   autoconf
   automake
   autoreconf
   cmake
-  libtool
   pkg-config
   python3
 )
