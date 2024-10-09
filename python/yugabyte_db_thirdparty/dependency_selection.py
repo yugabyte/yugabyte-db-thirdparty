@@ -24,6 +24,7 @@ DEFAULT_COMMON_DEPENDENCY_MODULE_NAMES = [
 
     'lz4',
     'openssl',
+    'openssl_fips',
     'libev',
     'rapidjson',
     'squeasel',
