@@ -13,6 +13,7 @@
 #
 
 import os
+from typing import List
 
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
@@ -30,11 +31,11 @@ def use_arm64_bash_in_script(script_path: str) -> None:
         output_file.write('\n'.join(lines) + '\n')
 
 
-class OpenSSLDependency(Dependency):
+class OpenSSLFIPSDependency(Dependency):
     def __init__(self) -> None:
-        super(OpenSSLDependency, self).__init__(
-            name='openssl',
-            version='3.0.15',
+        super(OpenSSLFIPSDependency, self).__init__(
+            name='openssl_fips',
+            version='3.0.8',
             url_pattern='https://www.openssl.org/source/openssl-{0}.tar.gz',
             build_group=BuildGroup.COMMON)
         self.copy_sources = True
@@ -46,7 +47,7 @@ class OpenSSLDependency(Dependency):
         self.patches = ['openssl-fix-afalg-link-on-centos7.patch']
 
     def build(self, builder: BuilderInterface) -> None:
-        common_configure_options = ['shared', 'no-tests']
+        common_configure_options = ['shared', 'no-tests', 'enable-fips']
         install_path = os.path.join(
             builder.fs_layout.tp_installed_common_dir, "lib")
         if is_macos_arm64_build():
@@ -58,8 +59,7 @@ class OpenSSLDependency(Dependency):
         builder.build_with_configure(
             dep=self,
             configure_cmd=configure_cmd,
-            # https://bit.ly/openssl_install_without_manpages
-            install_targets=['install_sw']
+            install_targets=['install_fips']
         )
 
     def use_cppflags_env_var(self) -> bool:
