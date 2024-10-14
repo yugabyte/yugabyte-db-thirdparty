@@ -322,6 +322,7 @@ class Builder(BuilderInterface):
             'zlib_dependency',
             'lz4',
             'openssl',
+            'openssl_fips',
             'libev',
             'rapidjson',
             'squeasel',
