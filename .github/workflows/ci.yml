@@ -67,6 +67,23 @@ jobs:
               --expected-major-compiler-version=16
               --lto=full
 
+          - name: centos7-aarch64-clang16
+            os: ubuntu-24.04-aarch64-4core-16gb
+            docker_image: yugabyteci/yb_build_infra_centos7_aarch64:v2023-10-25T03_32_55
+            build_thirdparty_args: >-
+              --toolchain=llvm16
+              --expected-major-compiler-version=16
+              --skip-sanitizers
+
+          - name: centos7-aarch64-clang16-full-lto
+            os: ubuntu-24.04-aarch64-4core-16gb
+            docker_image: yugabyteci/yb_build_infra_centos7_aarch64:v2023-10-25T03_32_55
+            build_thirdparty_args: >-
+              --toolchain=llvm16
+              --expected-major-compiler-version=16
+              --skip-sanitizers
+              --lto=full
+
           # Clang 17
           - name: centos7-x86_64-clang17
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
@@ -81,6 +98,23 @@ jobs:
             build_thirdparty_args: >-
               --toolchain=llvm17
               --expected-major-compiler-version=17
+              --lto=full
+
+          - name: centos7-aarch64-clang17
+            os: ubuntu-24.04-aarch64-4core-16gb
+            docker_image: yugabyteci/yb_build_infra_centos7_aarch64:v2023-10-25T03_32_55
+            build_thirdparty_args: >-
+              --toolchain=llvm17
+              --expected-major-compiler-version=17
+              --skip-sanitizers
+
+          - name: centos7-aarch64-clang17-full-lto
+            os: ubuntu-24.04-aarch64-4core-16gb
+            docker_image: yugabyteci/yb_build_infra_centos7_aarch64:v2023-10-25T03_32_55
+            build_thirdparty_args: >-
+              --toolchain=llvm17
+              --expected-major-compiler-version=17
+              --skip-sanitizers
               --lto=full
 
           # ---------------------------------------------------------------------------------------
@@ -214,6 +248,22 @@ jobs:
               --toolchain=llvm17
               --expected-major-compiler-version=17
 
+          - name: amazonlinux2-aarch64-clang17
+            os: ubuntu-24.04-aarch64-4core-16gb
+            docker_image: yugabyteci/yb_build_infra_amazonlinux2_aarch64:v2024-04-25T17_55_13
+            build_thirdparty_args: >-
+              --toolchain=llvm17
+              --expected-major-compiler-version=17
+              --skip-sanitizers
+
+          - name: amazonlinux2-aarch64-clang17-full-lto
+            os: ubuntu-24.04-aarch64-4core-16gb
+            docker_image: yugabyteci/yb_build_infra_amazonlinux2_aarch64:v2024-04-25T17_55_13
+            build_thirdparty_args: >-
+              --toolchain=llvm17
+              --expected-major-compiler-version=17
+              --skip-sanitizers
+              --lto=full
 
           # ---------------------------------------------------------------------------------------
           # macOS
