@@ -47,49 +47,6 @@ jobs:
       matrix:
         include:
           # ---------------------------------------------------------------------------------------
-          # CentOS 7
-          # ---------------------------------------------------------------------------------------
-          # GCC 11
-          - name: centos7-x86_64-gcc11
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_centos7_x86_64:v2023-10-25T03_33_02
-            build_thirdparty_args: >-
-              --devtoolset=11
-              --expected-major-compiler-version=11
-
-          # Clang 16
-          - name: centos7-x86_64-clang16
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_centos7_x86_64:v2023-10-25T03_33_02
-            build_thirdparty_args: >-
-              --toolchain=llvm16
-              --expected-major-compiler-version=16
-
-          - name: centos7-x86_64-clang16-full-lto
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_centos7_x86_64:v2023-10-25T03_33_02
-            build_thirdparty_args: >-
-              --toolchain=llvm16
-              --expected-major-compiler-version=16
-              --lto=full
-
-          # Clang 17
-          - name: centos7-x86_64-clang17
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_centos7_x86_64:v2023-10-25T03_33_02
-            build_thirdparty_args: >-
-              --toolchain=llvm17
-              --expected-major-compiler-version=17
-
-          - name: centos7-x86_64-clang17-full-lto
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_centos7_x86_64:v2023-10-25T03_33_02
-            build_thirdparty_args: >-
-              --toolchain=llvm17
-              --expected-major-compiler-version=17
-              --lto=full
-
-          # ---------------------------------------------------------------------------------------
           # Ubuntu 20.04
           # ---------------------------------------------------------------------------------------
           - name: ubuntu2004-x86_64-clang16
@@ -145,6 +102,29 @@ jobs:
               --toolchain=llvm16
               --expected-major-compiler-version=16
 
+          - name: almalinux8-x86_64-clang16-full-lto
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2023-10-25T03_33_01
+            build_thirdparty_args: >-
+              --toolchain=llvm16
+              --expected-major-compiler-version=16
+              --lto=full
+
+          - name: almalinux8-aarch64-clang16
+            os: ubuntu-24.04-aarch64-4core-16gb
+            docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2024-09-20T23_59_06
+            build_thirdparty_args: >-
+              --toolchain=llvm16
+              --expected-major-compiler-version=16
+
+          - name: almalinux8-aarch64-clang16-full-lto
+            os: ubuntu-24.04-aarch64-4core-16gb
+            docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2024-09-20T23_59_06
+            build_thirdparty_args: >-
+              --toolchain=llvm16
+              --expected-major-compiler-version=16
+              --lto=full
+
           # Clang/LLVM 17
           - name: almalinux8-x86_64-clang17
             os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
@@ -152,6 +132,30 @@ jobs:
             build_thirdparty_args: >-
               --toolchain=llvm17
               --expected-major-compiler-version=17
+
+          - name: almalinux8-x86_64-clang17-full-lto
+            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2023-10-25T03_33_01
+            build_thirdparty_args: >-
+              --toolchain=llvm17
+              --expected-major-compiler-version=17
+              --lto=full
+
+          - name: almalinux8-aarch64-clang17
+            os: ubuntu-24.04-aarch64-4core-16gb
+            docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2024-09-20T23_59_06
+            build_thirdparty_args: >-
+              --toolchain=llvm17
+              --expected-major-compiler-version=17
+
+          - name: almalinux8-aarch64-clang17
+            os: ubuntu-24.04-aarch64-4core-16gb
+            docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2024-09-20T23_59_06
+            build_thirdparty_args: >-
+              --toolchain=llvm17
+              --expected-major-compiler-version=17
+              --lto=full
+
 
           # ---------------------------------------------------------------------------------------
           # Ubuntu 23.04
@@ -203,10 +207,22 @@ jobs:
     steps:
       - name: Increase disk space
         run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          sudo rm -rf \
+            "$AGENT_TOOLSDIRECTORY" \
+            /opt/google/chrome \
+            /opt/microsoft/msedge \
+            /opt/microsoft/powershell \
+            /opt/pipx \
+            /usr/lib/mono \
+            /usr/local/julia* \
+            /usr/local/lib/android \
+            /usr/local/lib/node_modules \
+            /usr/local/share/chromium \
+            /usr/local/share/powershell \
+            /usr/share/dotnet \
+            /usr/share/swift \
+            /opt/ghc \
+            /usr/local/share/boost
 
       - name: Clone repository
         uses: actions/checkout@v2
@@ -224,12 +240,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.CUSTOM_GITHUB_TOKEN }}
           SNYK_TOKEN: ${{ secrets.SNYK_AUTH_TOKEN }}
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: yugabyte-db-thirdparty-${{ matrix.name }}.tar.gz
           path: archive.tar.gz
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: yugabyte-db-thirdparty-${{ matrix.name }}.tar.gz.sha256
           path: archive.tar.gz.sha256
