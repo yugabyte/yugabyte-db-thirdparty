@@ -148,7 +148,7 @@ jobs:
               --toolchain=llvm17
               --expected-major-compiler-version=17
 
-          - name: almalinux8-aarch64-clang17
+          - name: almalinux8-aarch64-clang17-full-lto
             os: ubuntu-24.04-aarch64-4core-16gb
             docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2024-09-20T23_59_06
             build_thirdparty_args: >-
