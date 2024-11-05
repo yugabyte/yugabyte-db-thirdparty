@@ -5,15 +5,8 @@ on:
     branches:
       - master
       # Not all of these branches might exist.
-      - 2.4
-      - 2.6
-      - 2.8
-      - 2.10
-      - 2.12
-      - 2.14
-      - 2.16
-      - 2.17.3
-      - 2.18
+      - 2.20
+      - 2024.1
     paths-ignore:
       - README.md
 
@@ -21,10 +14,8 @@ on:
   pull_request:
     branches:
       - master
-      - 2.14
-      - 2.16
-      - 2.17.3
-      - 2.18
+      - 2.20
+      - 2024.1
 
     paths-ignore:
       - README.md
@@ -288,12 +279,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.CUSTOM_GITHUB_TOKEN }}
           SNYK_TOKEN: ${{ secrets.SNYK_AUTH_TOKEN }}
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@43
         with:
           name: yugabyte-db-thirdparty-${{ matrix.name }}.tar.gz
           path: archive.tar.gz
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: yugabyte-db-thirdparty-${{ matrix.name }}.tar.gz.sha256
           path: archive.tar.gz.sha256
