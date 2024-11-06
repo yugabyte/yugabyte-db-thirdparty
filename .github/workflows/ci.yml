@@ -279,7 +279,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.CUSTOM_GITHUB_TOKEN }}
           SNYK_TOKEN: ${{ secrets.SNYK_AUTH_TOKEN }}
 
-      - uses: actions/upload-artifact@4
+      - uses: actions/upload-artifact@v4
         with:
           name: yugabyte-db-thirdparty-${{ matrix.name }}.tar.gz
           path: archive.tar.gz
