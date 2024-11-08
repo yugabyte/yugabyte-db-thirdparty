@@ -159,7 +159,10 @@ tools_to_show_versions=(
   cmake
   pkg-config
   python3
+  python3.9
+  python
 )
+echo "path: $PATH"
 
 if [[ $OSTYPE == darwin* ]]; then
   tools_to_show_versions+=( shasum )
