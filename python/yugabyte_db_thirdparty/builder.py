@@ -824,6 +824,9 @@ class Builder(BuilderInterface):
 
             for command_item in compile_commands:
                 command_args = command_item['command'].split()
+                if command_args[-1].endswith('.S'):
+                    # Compiling assembly, skip check.
+                    continue
                 if self.build_type == BuildType.ASAN:
                     assert_list_contains(command_args, '-fsanitize=address')
                     assert_list_contains(command_args, '-fsanitize=undefined')
