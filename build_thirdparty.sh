@@ -67,7 +67,8 @@ echo
 echo "Logging to ${log_path} (linked to ${link_path_list_str})"
 echo
 
-cmd=( python3 "${YB_THIRDPARTY_DIR}/python/yugabyte_db_thirdparty/yb_build_thirdparty_main.py" )
+cmd=( ${PYTHON:-python3}
+      "${YB_THIRDPARTY_DIR}/python/yugabyte_db_thirdparty/yb_build_thirdparty_main.py" )
 if [[ ${#build_thirdparty_args[@]} -gt 0 ]]; then
   cmd+=( "${build_thirdparty_args[@]}" )
 fi
