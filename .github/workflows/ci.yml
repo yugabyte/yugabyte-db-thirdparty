@@ -249,6 +249,15 @@ jobs:
           # in test code.
           fetch-depth: 0
 
+      # Python version really only matters in the non-docker cases (macos), but it should match
+      # the version used in the docker images, for a common requirements_frozen.txt.
+      # The linux images (from build-infra repo) should be updated to newer python and this version
+      # updated to match.
+      - name: PythonVer
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.8'
+
       - name: Build
         run: .github/workflows/github_actions_build.sh
         env:
