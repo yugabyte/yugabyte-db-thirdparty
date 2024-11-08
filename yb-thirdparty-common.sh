@@ -43,7 +43,7 @@ compute_sha256sum() {
 
 activate_virtualenv() {
   if [[ ! -d $YB_THIRDPARTY_DIR/venv ]]; then
-    ${PYTHON:-python3} -m venv "$YB_THIRDPARTY_DIR/venv"
+    "${PYTHON:-python3}" -m venv "$YB_THIRDPARTY_DIR/venv"
   fi
   set +u
   # shellcheck disable=SC1090
