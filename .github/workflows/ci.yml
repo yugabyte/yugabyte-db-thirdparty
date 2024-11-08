@@ -97,45 +97,6 @@ jobs:
             architecture: x86_64
 
           # ---------------------------------------------------------------------------------------
-          # Amazon Linux 2 -- the next oldest glibc after CentOS 7's EOL
-          # ---------------------------------------------------------------------------------------
-
-          # Clang 17
-          - name: amzn2-x86_64-clang17
-            runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_amazonlinux2_x86_64:v2024-09-13T18_52_53
-            build_thirdparty_args: >-
-              --toolchain=llvm17
-            architecture: x86_64
-
-          - name: amzn2-x86_64-clang17-full-lto
-            runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_amazonlinux2_x86_64:v2024-09-13T18_52_53
-            build_thirdparty_args: >-
-              --toolchain=llvm17
-              --lto=full
-            architecture: x86_64
-
-          # Clang 18
-          # TODO: enable ASAN/TSAN for Clang 18.
-          - name: amzn2-x86_64-clang18
-            runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_amazonlinux2_x86_64:v2024-09-13T18_52_53
-            build_thirdparty_args: >-
-              --toolchain=llvm18
-              --skip-sanitizers
-            architecture: x86_64
-
-          - name: amzn2-x86_64-clang18-full-lto
-            runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_amazonlinux2_x86_64:v2024-09-13T18_52_53
-            build_thirdparty_args: >-
-              --toolchain=llvm18
-              --lto=full
-              --skip-sanitizers
-            architecture: x86_64
-
-          # ---------------------------------------------------------------------------------------
           # AlmaLinux 8
           # ---------------------------------------------------------------------------------------
 
@@ -168,13 +129,31 @@ jobs:
               --toolchain=llvm17
             architecture: x86_64
 
+          - name: almalinux8-x86_64-clang17-full-lto
+            runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2024-09-20T20_33_55
+            build_thirdparty_args: >-
+              --toolchain=llvm17
+              --lto=full
+            architecture: x86_64
+
           # Clang/LLVM 18
           # TODO: enable ASAN/TSAN for Clang 18.
+          # Need to debug build failures without the --skip-sanitizers flag.
           - name: almalinux8-x86_64-clang18
             runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2024-09-20T20_33_55
             build_thirdparty_args: >-
               --toolchain=llvm18
+              --skip-sanitizers
+            architecture: x86_64
+
+          - name: almalinux8-x86_64-clang18-full-lto
+            runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2024-09-20T20_33_55
+            build_thirdparty_args: >-
+              --toolchain=llvm18
+              --lto=full
               --skip-sanitizers
             architecture: x86_64
 
@@ -222,34 +201,34 @@ jobs:
             architecture: arm64
 
           # ---------------------------------------------------------------------------------------
-          # aarch64 builds (Amazon Linux 2)
+          # aarch64 - almalinux8 builds
           # ---------------------------------------------------------------------------------------
 
-          - name: amzn2-aarch64-clang17
+          - name: almalinux8-aarch64-clang17
             runs_on: ubuntu-24.04-aarch64-4core-16gb
-            docker_image: yugabyteci/yb_build_infra_amazonlinux2_aarch64:v2024-09-13T18_54_13
+            docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2024-09-20T23_59_06
             build_thirdparty_args: >-
               --toolchain=llvm17
               --skip-sanitizers
 
-          - name: amzn2-aarch64-clang17-full-lto
+          - name: almalinux8-aarch64-clang17-full-lto
             runs_on: ubuntu-24.04-aarch64-4core-16gb
-            docker_image: yugabyteci/yb_build_infra_amazonlinux2_aarch64:v2024-09-13T18_54_13
+            docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2024-09-20T23_59_06
             build_thirdparty_args: >-
               --toolchain=llvm17
               --skip-sanitizers
               --lto=full
 
-          - name: amzn2-aarch64-clang18
+          - name: almalinux8-aarch64-clang18
             runs_on: ubuntu-24.04-aarch64-4core-16gb
-            docker_image: yugabyteci/yb_build_infra_amazonlinux2_aarch64:v2024-09-13T18_54_13
+            docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2024-09-20T23_59_06
             build_thirdparty_args: >-
               --toolchain=llvm18
               --skip-sanitizers
 
-          - name: amzn2-aarch64-clang18-full-lto
+          - name: almalinux8-aarch64-clang18-full-lto
             runs_on: ubuntu-24.04-aarch64-4core-16gb
-            docker_image: yugabyteci/yb_build_infra_amazonlinux2_aarch64:v2024-09-13T18_54_13
+            docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2024-09-20T23_59_06
             build_thirdparty_args: >-
               --toolchain=llvm18
               --skip-sanitizers
