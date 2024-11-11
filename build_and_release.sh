@@ -158,7 +158,7 @@ tools_to_show_versions=(
   autoreconf
   cmake
   pkg-config
-  python3
+  "${PYTHON:-python3}"
 )
 
 if [[ $OSTYPE == darwin* ]]; then
