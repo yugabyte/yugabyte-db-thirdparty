@@ -19,12 +19,10 @@ class LZ4Dependency(Dependency):
     def __init__(self) -> None:
         super(LZ4Dependency, self).__init__(
             name='lz4',
-            version='r130',
-            url_pattern='https://github.com/lz4/lz4/archive/{0}.tar.gz',
+            version='v1.10.0',
+            url_pattern='https://github.com/lz4/lz4/archive/refs/tags/{0}.tar.gz',
             build_group=BuildGroup.COMMON)
         self.copy_sources = False
-        self.patch_version = 1
-        self.patches = ['lz4-0001-Fix-cmake-build-to-use-gnu-flags-on-clang.patch']
 
     def build(self, builder: BuilderInterface) -> None:
         builder.build_with_cmake(
@@ -34,6 +32,6 @@ class LZ4Dependency(Dependency):
                 '-DBUILD_TOOLS=0',
                 '-DCMAKE_INSTALL_PREFIX:PATH={}'.format(builder.prefix)
             ],
-            src_subdir_name='cmake_unofficial',
+            src_subdir_name='build/cmake',
             shared_and_static=True)
         fix_shared_library_references(builder.prefix, 'liblz4')
