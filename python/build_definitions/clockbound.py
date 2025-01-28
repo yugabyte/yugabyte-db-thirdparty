@@ -33,7 +33,7 @@ class ClockBoundDependency(Dependency):
     def __init__(self) -> None:
         super(ClockBoundDependency, self).__init__(
             name='clockbound',
-            version='main',
+            version='26c05dcbd0f8adb41c5000c279f53659a476f2b3',
             url_pattern='https://github.com/aws/clock-bound/archive/{0}.zip',
             build_group=BuildGroup.COMMON)
 
