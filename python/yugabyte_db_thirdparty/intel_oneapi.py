@@ -41,7 +41,7 @@ from yugabyte_db_thirdparty.string_util import one_per_line_indented
 ONEAPI_DEFAULT_BASE_DIR = '/opt/intel/oneapi'
 
 # See https://github.com/yugabyte/yb-intel-oneapi-package/releases/ for the most recent tag.
-DEFAULT_PACKAGE_TAG = 'v2024.1-1715210296'
+DEFAULT_PACKAGE_TAG = 'v2025.0-1738320070'
 
 # The directory where we install YugabyteDB-packaged Intel oneAPI directories.
 YB_INTEL_ONEAPI_PACKAGE_PARENT_DIR = '/opt/yb-build/intel-oneapi'
@@ -50,7 +50,7 @@ VERSION_RE = re.compile(r'^[\d.]+$')
 
 
 def get_package_url_by_tag(tag: str) -> str:
-    return f'https://github.com/yugabyte/yb-intel-oneapi-package/releases/download/' \
+    return f'https://github.com/es1024/yb-intel-oneapi-package/releases/download/' \
            f'{tag}/yb-intel-oneapi-{tag}.tar.gz'
 
 

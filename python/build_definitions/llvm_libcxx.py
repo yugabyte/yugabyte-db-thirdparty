@@ -167,10 +167,6 @@ class LibCxxWithAbiDependency(LlvmLibCxxDependencyBase):
 
     def get_additional_cmake_args(self, builder: BuilderInterface) -> List[str]:
         enabled_runtimes = ['libcxx', 'libcxxabi']
-        if builder.compiler_choice.is_llvm_major_version_at_least(18):
-            # To avoid this error:
-            # https://gist.githubusercontent.com/mbautin/51cf333bebf69c1a3ddb1a04148b84ba/raw
-            enabled_runtimes.append('libunwind')
         args = ['-DLLVM_ENABLE_RUNTIMES={}'.format(';'.join(enabled_runtimes))]
         if builder.build_type in [BuildType.ASAN, BuildType.TSAN]:
             local_sys_conf = sys_detection.local_sys_conf()
@@ -180,6 +176,8 @@ class LibCxxWithAbiDependency(LlvmLibCxxDependencyBase):
                 # it should still use the weak symbol.
                 # See https://github.com/yugabyte/yugabyte-db/issues/13615 for details.
                 args.append('-DLIBCXXABI_HAS_CXA_THREAD_ATEXIT_IMPL=OFF')
+        if builder.compiler_choice.is_llvm_major_version_at_least(18):
+            args.append('-DLIBCXXABI_USE_LLVM_UNWINDER=OFF')
         return args
 
     def get_compiler_wrapper_ld_flags_to_append(self, builder: 'BuilderInterface') -> List[str]:
