@@ -46,8 +46,7 @@ class BoostDependency(Dependency):
         super(BoostDependency, self).__init__(
             name='boost',
             version=self.VERSION_STR,
-            # URL grabbed from https://www.boost.org/users/history/version_1_77_0.html
-            url_pattern='https://boostorg.jfrog.io/artifactory/main/release/{}/source/'
+            url_pattern='https://archives.boost.io/release/{}/source/'
                         'boost_{}.tar.bz2'.format(self.VERSION_STR, self.VERSION_STR_UNDERSCORES),
             build_group=BuildGroup.POTENTIALLY_INSTRUMENTED,
             license='Boost Software License 1.0')
