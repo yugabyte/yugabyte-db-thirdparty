@@ -22,8 +22,8 @@ from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 class CassandraCppDriverDependency(Dependency):
     def __init__(self) -> None:
         super(CassandraCppDriverDependency, self).__init__(
-                'cassandra-cpp-driver', '2.9.0-yb-15-esheng',
-                'https://github.com/es1024/yb-cassandra-cpp-driver/archive/{0}.tar.gz',
+                'cassandra-cpp-driver', '2.9.0-yb-15',
+                'https://github.com/yugabyte/cassandra-cpp-driver/archive/{0}.tar.gz',
                 BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = False
         self.patch_version = 0

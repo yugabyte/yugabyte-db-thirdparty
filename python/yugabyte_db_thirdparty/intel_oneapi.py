@@ -50,7 +50,7 @@ VERSION_RE = re.compile(r'^[\d.]+$')
 
 
 def get_package_url_by_tag(tag: str) -> str:
-    return f'https://github.com/es1024/yb-intel-oneapi-package/releases/download/' \
+    return f'https://github.com/yugabyte/yb-intel-oneapi-package/releases/download/' \
            f'{tag}/yb-intel-oneapi-{tag}.tar.gz'
 
 
