@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-brew install autoconf automake pkg-config shellcheck hub
+brew install autoconf automake pkg-config shellcheck hub llvm@19
 dirs=( /opt/yb-build/{thirdparty,brew,tmp} )
 sudo mkdir -p "${dirs[@]}"
 sudo chmod 777 "${dirs[@]}"
