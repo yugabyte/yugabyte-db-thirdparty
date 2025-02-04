@@ -36,16 +36,6 @@ jobs:
       matrix:
         include:
           # ---------------------------------------------------------------------------------------
-          # Ubuntu 20.04
-          # ---------------------------------------------------------------------------------------
-          - name: ubuntu2004-x86_64-clang16
-            runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_ubuntu2004_x86_64:v2024-09-13T18_52_51
-            build_thirdparty_args: >-
-              --toolchain=llvm16
-            architecture: x86_64
-
-          # ---------------------------------------------------------------------------------------
           # Ubuntu 22.04
           # ---------------------------------------------------------------------------------------
 
@@ -74,6 +64,13 @@ jobs:
               --toolchain=llvm17
             architecture: x86_64
 
+          - name: ubuntu2204-x86_64-clang19
+            runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_ubuntu2204_x86_64:v2024-09-20T23_57_46
+            build_thirdparty_args: >-
+              --toolchain=llvm19
+            architecture: x86_64
+
           # ---------------------------------------------------------------------------------------
           # Ubuntu 24.04
           # ---------------------------------------------------------------------------------------
@@ -94,6 +91,13 @@ jobs:
             docker_image: yugabyteci/yb_build_infra_ubuntu2404_x86_64:v2024-09-20T23_57_48
             build_thirdparty_args: >-
               --toolchain=llvm17
+            architecture: x86_64
+
+          - name: ubuntu2404-x86_64-clang19
+            runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            docker_image: yugabyteci/yb_build_infra_ubuntu2404_x86_64:v2024-09-20T23_57_48
+            build_thirdparty_args: >-
+              --toolchain=llvm19
             architecture: x86_64
 
           # ---------------------------------------------------------------------------------------
@@ -137,24 +141,20 @@ jobs:
               --lto=full
             architecture: x86_64
 
-          # Clang/LLVM 18
-          # TODO: enable ASAN/TSAN for Clang 18.
-          # Need to debug build failures without the --skip-sanitizers flag.
-          - name: almalinux8-x86_64-clang18
+          # Clang/LLVM 19
+          - name: almalinux8-x86_64-clang19
             runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2024-09-20T20_33_55
             build_thirdparty_args: >-
-              --toolchain=llvm18
-              --skip-sanitizers
+              --toolchain=llvm19
             architecture: x86_64
 
-          - name: almalinux8-x86_64-clang18-full-lto
+          - name: almalinux8-x86_64-clang19-full-lto
             runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2024-09-20T20_33_55
             build_thirdparty_args: >-
-              --toolchain=llvm18
+              --toolchain=llvm19
               --lto=full
-              --skip-sanitizers
             architecture: x86_64
 
           # ---------------------------------------------------------------------------------------
@@ -175,11 +175,11 @@ jobs:
               --devtoolset=13
             architecture: x86_64
 
-          - name: almalinux9-x86_64-clang17
+          - name: almalinux9-x86_64-clang19
             runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_almalinux9_x86_64:v2024-09-20T20_33_54
             build_thirdparty_args: >-
-              --toolchain=llvm17
+              --toolchain=llvm19
             architecture: x86_64
 
           # ---------------------------------------------------------------------------------------
@@ -219,18 +219,18 @@ jobs:
               --skip-sanitizers
               --lto=full
 
-          - name: almalinux8-aarch64-clang18
+          - name: almalinux8-aarch64-clang19
             runs_on: ubuntu-24.04-aarch64-4core-16gb
             docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2024-09-20T23_59_06
             build_thirdparty_args: >-
-              --toolchain=llvm18
+              --toolchain=llvm19
               --skip-sanitizers
 
-          - name: almalinux8-aarch64-clang18-full-lto
+          - name: almalinux8-aarch64-clang19-full-lto
             runs_on: ubuntu-24.04-aarch64-4core-16gb
             docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2024-09-20T23_59_06
             build_thirdparty_args: >-
-              --toolchain=llvm18
+              --toolchain=llvm19
               --skip-sanitizers
               --lto=full
 

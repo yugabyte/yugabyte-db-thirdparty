@@ -17,7 +17,7 @@ importlib-resources==6.1.0
 jaraco.classes==3.3.0
 jeepney==0.8.0
 keyring==24.2.0
-llvm-installer==1.4.9
+llvm-installer==1.4.10
 markdown-it-py==3.0.0
 mdurl==0.1.2
 more-itertools==10.1.0

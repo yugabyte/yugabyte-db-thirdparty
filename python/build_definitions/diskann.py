@@ -157,6 +157,11 @@ class DiskANNDependency(Dependency):
                     'nan-infinity-disabled',
                 ])
 
+            if builder.compiler_choice.is_llvm_major_version_at_least(19):
+                ignored_warnings.extend([
+                    'deprecated-ofast',
+                ])
+
         if ignored_warnings:
             flags.extend([
                 '-Wno-error=' + w

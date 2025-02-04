@@ -1358,6 +1358,10 @@ class Builder(BuilderInterface):
         log_and_set_env_var_to_list(env_vars, 'LDFLAGS', self.get_effective_ld_flags(dep))
         log_and_set_env_var_to_list(
             env_vars, 'ASFLAGS', self.get_effective_assembler_flags(dep))
+
+        if self.build_type == BuildType.TSAN and \
+                self.compiler_choice.is_llvm_major_version_at_least(18):
+            self.libs += ['-lclang_rt.builtins']
         log_and_set_env_var_to_list(env_vars, 'LIBS', self.libs)
 
         compiler_wrapper_extra_ld_flags = dep.get_compiler_wrapper_ld_flags_to_append(self)
