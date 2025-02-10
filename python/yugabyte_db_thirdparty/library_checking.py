@@ -47,6 +47,8 @@ IGNORED_EXTENSIONS = (
     '.h',
     '.hpp',
     '.cmake',
+    '.cppm',
+    '.json',
 )
 
 IGNORED_FILE_NAMES = set([
