@@ -40,7 +40,7 @@ jobs:
           # ---------------------------------------------------------------------------------------
 
           - name: ubuntu2204-x86_64-gcc11
-            runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            runs_on: ubuntu-24.04  # For the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_ubuntu2204_x86_64:v2024-09-20T23_57_46
             build_thirdparty_args: >-
               --compiler-prefix=/usr
@@ -49,7 +49,7 @@ jobs:
             architecture: x86_64
 
           - name: ubuntu2204-x86_64-gcc12
-            runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            runs_on: ubuntu-24.04
             docker_image: yugabyteci/yb_build_infra_ubuntu2204_x86_64:v2024-09-20T23_57_46
             build_thirdparty_args: >-
               --compiler-prefix=/usr
@@ -58,14 +58,14 @@ jobs:
             architecture: x86_64
 
           - name: ubuntu2204-x86_64-clang17
-            runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            runs_on: ubuntu-24.04
             docker_image: yugabyteci/yb_build_infra_ubuntu2204_x86_64:v2024-09-20T23_57_46
             build_thirdparty_args: >-
               --toolchain=llvm17
             architecture: x86_64
 
           - name: ubuntu2204-x86_64-clang19
-            runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            runs_on: ubuntu-24.04
             docker_image: yugabyteci/yb_build_infra_ubuntu2204_x86_64:v2024-09-20T23_57_46
             build_thirdparty_args: >-
               --toolchain=llvm19
@@ -78,7 +78,7 @@ jobs:
           # GCC 11 and GCC 12 have DiskANN compilation issues on Ubuntu 24.04.
 
           - name: ubuntu2404-x86_64-gcc13
-            runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            runs_on: ubuntu-24.04
             docker_image: yugabyteci/yb_build_infra_ubuntu2404_x86_64:v2024-09-20T23_57_48
             build_thirdparty_args: >-
               --compiler-prefix=/usr
@@ -87,14 +87,14 @@ jobs:
             architecture: x86_64
 
           - name: ubuntu2404-x86_64-clang17
-            runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            runs_on: ubuntu-24.04
             docker_image: yugabyteci/yb_build_infra_ubuntu2404_x86_64:v2024-09-20T23_57_48
             build_thirdparty_args: >-
               --toolchain=llvm17
             architecture: x86_64
 
           - name: ubuntu2404-x86_64-clang19
-            runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            runs_on: ubuntu-24.04
             docker_image: yugabyteci/yb_build_infra_ubuntu2404_x86_64:v2024-09-20T23_57_48
             build_thirdparty_args: >-
               --toolchain=llvm19
@@ -105,21 +105,21 @@ jobs:
           # ---------------------------------------------------------------------------------------
 
           - name: almalinux8-x86_64-gcc11
-            runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            runs_on: ubuntu-24.04
             docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2024-09-20T20_33_55
             build_thirdparty_args: >-
               --devtoolset=11
             architecture: x86_64
 
           - name: almalinux8-x86_64-gcc12
-            runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            runs_on: ubuntu-24.04
             docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2024-09-20T20_33_55
             build_thirdparty_args: >-
               --devtoolset=12
             architecture: x86_64
 
           - name: almalinux8-x86_64-gcc13
-            runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            runs_on: ubuntu-24.04
             docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2024-09-20T20_33_55
             build_thirdparty_args: >-
               --devtoolset=13
@@ -127,14 +127,14 @@ jobs:
 
           # Clang/LLVM 17
           - name: almalinux8-x86_64-clang17
-            runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            runs_on: ubuntu-24.04
             docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2024-09-20T20_33_55
             build_thirdparty_args: >-
               --toolchain=llvm17
             architecture: x86_64
 
           - name: almalinux8-x86_64-clang17-full-lto
-            runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            runs_on: ubuntu-24.04
             docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2024-09-20T20_33_55
             build_thirdparty_args: >-
               --toolchain=llvm17
@@ -143,14 +143,14 @@ jobs:
 
           # Clang/LLVM 19
           - name: almalinux8-x86_64-clang19
-            runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            runs_on: ubuntu-24.04
             docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2024-09-20T20_33_55
             build_thirdparty_args: >-
               --toolchain=llvm19
             architecture: x86_64
 
           - name: almalinux8-x86_64-clang19-full-lto
-            runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            runs_on: ubuntu-24.04
             docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2024-09-20T20_33_55
             build_thirdparty_args: >-
               --toolchain=llvm19
@@ -162,21 +162,21 @@ jobs:
           # ---------------------------------------------------------------------------------------
 
           - name: almalinux9-x86_64-gcc12
-            runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            runs_on: ubuntu-24.04
             docker_image: yugabyteci/yb_build_infra_almalinux9_x86_64:v2024-09-20T20_33_54
             build_thirdparty_args: >-
               --devtoolset=12
             architecture: x86_64
 
           - name: almalinux9-x86_64-gcc13
-            runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            runs_on: ubuntu-24.04
             docker_image: yugabyteci/yb_build_infra_almalinux9_x86_64:v2024-09-20T20_33_54
             build_thirdparty_args: >-
               --devtoolset=13
             architecture: x86_64
 
           - name: almalinux9-x86_64-clang19
-            runs_on: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            runs_on: ubuntu-24.04
             docker_image: yugabyteci/yb_build_infra_almalinux9_x86_64:v2024-09-20T20_33_54
             build_thirdparty_args: >-
               --toolchain=llvm19
