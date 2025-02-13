@@ -518,7 +518,7 @@ class Builder(BuilderInterface):
             self.add_include_path(os.path.join(build_type_parent_dir, 'include'))
             self.add_lib_dir_and_rpath(os.path.join(build_type_parent_dir, 'lib'))
 
-        self.compiler_flags += ['-fno-omit-frame-pointer', '-fPIC', '-O3', '-Wall']
+        self.compiler_flags += ['-fno-omit-frame-pointer', '-fPIC', '-O3', '-Wall', '-DNDEBUG']
         if is_linux():
             # On Linux, ensure we set a long enough rpath so we can change it later with chrpath,
             # patchelf, or a similar tool.
