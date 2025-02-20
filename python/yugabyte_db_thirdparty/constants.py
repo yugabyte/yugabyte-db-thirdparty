@@ -20,4 +20,4 @@ SRC_PATH_FILE_NAME = 'yb_dep_src_path.txt'
 
 GIT_CLONE_DEPTH = 10
 
-CXX_STANDARD = 20
+CXX_STANDARD = 23
