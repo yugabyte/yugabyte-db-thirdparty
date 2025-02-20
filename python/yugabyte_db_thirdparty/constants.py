@@ -21,3 +21,4 @@ SRC_PATH_FILE_NAME = 'yb_dep_src_path.txt'
 GIT_CLONE_DEPTH = 10
 
 CXX_STANDARD = 23
+OSX_CXX_STANDARD = '2b'
