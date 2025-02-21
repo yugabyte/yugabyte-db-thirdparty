@@ -31,7 +31,7 @@ class LlvmLibCxxDependencyBase(LlvmPartDependencyBase):
             builder: BuilderInterface,
             ninja_build_file_path: str) -> None:
         super().postprocess_ninja_build_file(builder, ninja_build_file_path)
-        if not builder.compiler_choice.is_linux_clang():
+        if not builder.compiler_choice.is_llvm_installer_clang():
             return
 
         if builder.build_type not in [BuildType.ASAN, BuildType.TSAN]:

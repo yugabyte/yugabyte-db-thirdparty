@@ -79,3 +79,6 @@ class Krb5Dependency(Dependency):
                     extra_configure_args=extra_args,
                 )
                 log(f"Finished building krb5 with {linking_type} linking in {os.getcwd()}")
+
+    def use_cppflags_env_var(self) -> bool:
+        return True

@@ -50,3 +50,6 @@ class ProtobufDependency(Dependency):
             ],
             run_autogen=True
         )
+
+    def use_cppflags_env_var(self) -> bool:
+        return True
