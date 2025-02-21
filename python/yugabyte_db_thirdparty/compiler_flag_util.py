@@ -34,7 +34,8 @@ def get_cxx_standard_version_from_flag(flag: str) -> str:
 
 
 def is_correct_cxx_standard_version(version: Union[int, str]) -> bool:
-    return str(version) == str(constants.CXX_STANDARD)
+    return str(version) == str(constants.CXX_STANDARD) or \
+           str(version) == str(constants.OSX_CXX_STANDARD)
 
 
 def get_cxx_standard_version_set(cmd_args: List[str]) -> Set[str]:

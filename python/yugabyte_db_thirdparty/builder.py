@@ -561,7 +561,10 @@ class Builder(BuilderInterface):
         # issues with handling exceptions. We are force-including this flag even though there are
         # "proper" ways to specify the C++ standard for various build systems, e.g. CMake's
         # CMAKE_CXX_STANDARD.
-        self.cxx_flags.append(f'-std=c++{constants.CXX_STANDARD}')
+        if is_macos():
+            self.cxx_flags.append(f'-std=c++{constants.OSX_CXX_STANDARD}')
+        else:
+            self.cxx_flags.append(f'-std=c++{constants.CXX_STANDARD}')
 
     def add_linuxbrew_flags(self) -> None:
         if using_linuxbrew():

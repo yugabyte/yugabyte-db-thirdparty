@@ -23,7 +23,7 @@ class TCMallocDependency(Dependency):
     def __init__(self) -> None:
         super(TCMallocDependency, self).__init__(
             name='tcmalloc',
-            version='3b79ccc-yb-1',
+            version='3b79ccc-yb-2',
             url_pattern='https://github.com/yugabyte/tcmalloc/archive/{0}.tar.gz',
             build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = True
