@@ -24,7 +24,7 @@ class TCMallocDependency(Dependency):
         super(TCMallocDependency, self).__init__(
             name='tcmalloc',
             version='3b79ccc-yb-2',
-            url_pattern='https://github.com/es1024/yb-tcmalloc/archive/{0}.tar.gz',
+            url_pattern='https://github.com/yugabyte/tcmalloc/archive/{0}.tar.gz',
             build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = True
         self.bazel_project_subdir_name = 'com_google_tcmalloc'
