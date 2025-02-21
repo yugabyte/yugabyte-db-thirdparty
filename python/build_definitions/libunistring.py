@@ -23,7 +23,7 @@ class LibUnistringDependency(Dependency):
             'libunistring',
             '1.0',
             'https://ftp.gnu.org/gnu/libunistring/libunistring-{0}.tar.gz',
-            BuildGroup.POTENTIALLY_INSTRUMENTED)
+            BuildGroup.COMMON)
         self.copy_sources = True
 
     def get_compiler_wrapper_ld_flags_to_remove(self, builder: BuilderInterface) -> Set[str]:
@@ -33,3 +33,6 @@ class LibUnistringDependency(Dependency):
 
     def build(self, builder: BuilderInterface) -> None:
         builder.build_with_configure(dep=self)
+
+    def use_cppflags_env_var(self) -> bool:
+        return True
