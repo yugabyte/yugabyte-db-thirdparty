@@ -43,3 +43,6 @@ class CRCUtilDependency(Dependency):
         log_prefix = builder.log_prefix(self)
         builder.log_output(log_prefix, ['./autogen.sh'])
         builder.build_with_configure(dep=self)
+
+    def use_cppflags_env_var(self) -> bool:
+        return True
