@@ -504,11 +504,12 @@ class Builder(BuilderInterface):
         elif is_macos():
             self.shared_lib_suffix = "dylib"
 
-            # YugaByte builds with C++11, which on OS X requires using libc++ as the standard
-            # library implementation. Some of the dependencies do not compile against libc++ by
-            # default, so we specify it explicitly.
-            self.cxx_flags.append("-stdlib=libc++")
-            self.ld_flags += ["-lc++", "-lc++abi"]
+            if not self.compiler_choice.is_llvm_installer_clang():
+                # YugaByte builds with C++11, which on OS X requires using libc++ as the standard
+                # library implementation. Some of the dependencies do not compile against libc++ by
+                # default, so we specify it explicitly.
+                self.cxx_flags.append("-stdlib=libc++")
+                self.ld_flags += ["-lc++", "-lc++abi"]
 
             # Build for macOS Mojave or later. See https://bit.ly/37myHbk
             extend_lists(
