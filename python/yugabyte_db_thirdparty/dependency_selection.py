@@ -85,6 +85,7 @@ def get_final_dependency_module_names(compiler_choice: CompilerChoice) -> List[s
         'hdrhistogram',
         'otel_proto',
         'otel',
+        'bson',
     ])
 
     if is_linux() and is_building_for_x86_64() and (
