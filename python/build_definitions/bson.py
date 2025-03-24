@@ -14,6 +14,7 @@
 
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
+
 class BsonDependency(Dependency):
     def __init__(self) -> None:
         super(BsonDependency, self).__init__(
