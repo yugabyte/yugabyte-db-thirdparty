@@ -25,9 +25,6 @@ class BsonDependency(Dependency):
             build_group=BuildGroup.CXX_UNINSTRUMENTED)
         self.copy_sources = True
 
-    def get_additional_c_flags(self, builder: 'BuilderInterface') -> List[str]:
-        return ['-fPIC']
-
     def get_additional_cmake_args(self, builder: 'BuilderInterface') -> List[str]:
         return [
                 '-DENABLE_MONGOC=OFF',
