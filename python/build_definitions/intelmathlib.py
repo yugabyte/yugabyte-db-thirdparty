@@ -12,6 +12,8 @@
 # under the License.
 #
 
+import os
+import subprocess
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
 class IntelMathLibDependency(Dependency):
@@ -22,7 +24,8 @@ class IntelMathLibDependency(Dependency):
             url_pattern='https://netlib.org/misc/intel/IntelRDFPMathLib{0}.tar.gz',
             build_group=BuildGroup.CXX_UNINSTRUMENTED)
         self.copy_sources = True
-        self.patches = ['intelmathlib_macOS_missing_includes.patch']
+        self.patches = ['intelmathlib_macOS_missing_includes.patch',
+                        'intelmathlib_macOS_missing_includes_crlf.patch']
 
     def build(self, builder: BuilderInterface) -> None:
         with PushDir("LIBRARY"):
@@ -35,4 +38,15 @@ class IntelMathLibDependency(Dependency):
                     'GLOBAL_RND=0',
                     'GLOBAL_FLAGS=0',
                     'UNCHANGED_BINARY_FLAGS=0',
-                    ])
+                    ],
+                # Instead of "make install", we do a custom copy command below.
+                install_targets=[],)
+
+            lib_dir = builder.prefix_lib
+            include_dir = builder.prefix_include
+
+            builder.log_output(builder.log_prefix(self), ['echo', 'Library directory:', lib_dir])
+            builder.log_output(builder.log_prefix(self), ['echo', 'Library directory:', include_dir])
+            # builder.log_output(builder.log_prefix(self), ['cp', '-a', '*.h', include_dir])
+            # builder.log_output(builder.log_prefix(self), ['cp', 'libbid.a', lib_dir])
+        

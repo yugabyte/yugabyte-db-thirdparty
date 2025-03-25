@@ -1,44 +1,33 @@
-diff -au -ruN a/LIBRARY/float128/dpml_exception.c b/LIBRARY/float128/dpml_exception.c
---- a/LIBRARY/float128/dpml_exception.c	2025-03-23 14:39:16
-+++ b/LIBRARY/float128/dpml_exception.c	2025-03-23 14:37:46
-@@ -132,7 +132,6 @@
-     !defined(wnt)
- 
- #   include <sys/signal.h>
--#   include <signal.h>
- #   define DPML_SIGNAL(p)	 raise(SIGFPE)
- 
- #else
-diff -au -ruN a/LIBRARY/src/bid128_pow.c b/LIBRARY/src/bid128_pow.c
+diff -ruN a/LIBRARY/src/bid128_pow.c b/LIBRARY/src/bid128_pow.c
 --- a/LIBRARY/src/bid128_pow.c	2025-03-23 14:38:52
 +++ b/LIBRARY/src/bid128_pow.c	2025-03-23 14:37:46
-@@ -27,7 +27,6 @@
+@@ -27,6 +27,7 @@
    THE POSSIBILITY OF SUCH DAMAGE.
  ******************************************************************************/
  
--#include <stdlib.h>
++#include <stdlib.h>
  #include "bid_trans.h"
  
  static BID_UINT128 BID128_0 = {BID128_LH_INIT( 0x0000000000000000ull, 0x3040000000000000ull )};
-diff -au -ruN a/LIBRARY/src/bid32_pow.c b/LIBRARY/src/bid32_pow.c
+diff -ruN a/LIBRARY/src/bid32_pow.c b/LIBRARY/src/bid32_pow.c
 --- a/LIBRARY/src/bid32_pow.c	2025-03-23 14:38:24
 +++ b/LIBRARY/src/bid32_pow.c	2025-03-23 14:37:46
-@@ -28,7 +28,6 @@
+@@ -28,6 +28,7 @@
  ******************************************************************************/
  
  
--#include <stdlib.h>
++#include <stdlib.h>
  #include "bid_internal.h"
  
  #define BID32_NAN 0x7c000000ul
-diff -au -ruN a/LIBRARY/src/bid64_pow.c b/LIBRARY/src/bid64_pow.c
+diff -ruN a/LIBRARY/src/bid64_pow.c b/LIBRARY/src/bid64_pow.c
 --- a/LIBRARY/src/bid64_pow.c	2025-03-23 14:38:42
 +++ b/LIBRARY/src/bid64_pow.c	2025-03-23 14:37:46
-@@ -28,7 +28,6 @@
+@@ -28,6 +28,7 @@
  ******************************************************************************/
  
  
--#include <stdlib.h>
++#include <stdlib.h>
  #include "bid_trans.h"
  
  #define BID64_0 0x31c0000000000000ull
