@@ -31,7 +31,7 @@ class IntelMathLibDependency(Dependency):
     def build(self, builder: BuilderInterface) -> None:
         with PushDir("LIBRARY"):
             builder.build_with_make(
-                self,
+                dep=self,
                 extra_make_args=['_CFLAGS_OPT=-fPIC',
                                  'CC=gcc',
                                  'CALL_BY_REF=0',
@@ -40,10 +40,13 @@ class IntelMathLibDependency(Dependency):
                                  'UNCHANGED_BINARY_FLAGS=0',
                                  ],
                 # Instead of "make install", we do a custom copy command below.
-                install_targets=[],)
+                install_targets=[],
+                specify_prefix=True)
 
             lib_path = os.path.join(builder.prefix_lib, "intelmathlib" + self.version + ".a")
             include_dir = os.path.join(builder.prefix_include, "intelmathlib" + self.version)
+            builder.log_output(builder.log_prefix(self), ['echo', 'Library path:', lib_path])
+            builder.log_output(builder.log_prefix(self), ['echo', 'Include path:', include_dir])
 
             for root, _, files in os.walk("."):
                 for file in files:
