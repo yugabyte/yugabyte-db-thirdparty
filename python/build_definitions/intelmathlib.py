@@ -57,4 +57,3 @@ class IntelMathLibDependency(Dependency):
                         builder.log_output(builder.log_prefix(self), ['cp', src_path, dest_path])
 
             builder.log_output(builder.log_prefix(self), ['cp', 'libbid.a', lib_path])
-        
