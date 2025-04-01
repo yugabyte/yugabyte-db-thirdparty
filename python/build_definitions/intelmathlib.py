@@ -16,6 +16,7 @@ import os
 import subprocess
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
+
 class IntelMathLibDependency(Dependency):
     def __init__(self) -> None:
         super(IntelMathLibDependency, self).__init__(
@@ -31,19 +32,18 @@ class IntelMathLibDependency(Dependency):
         with PushDir("LIBRARY"):
             builder.build_with_make(
                 self,
-                extra_make_args =
-                    ['_CFLAGS_OPT=-fPIC',
-                    'CC=gcc',
-                    'CALL_BY_REF=0',
-                    'GLOBAL_RND=0',
-                    'GLOBAL_FLAGS=0',
-                    'UNCHANGED_BINARY_FLAGS=0',
-                    ],
+                extra_make_args=['_CFLAGS_OPT=-fPIC',
+                                 'CC=gcc',
+                                 'CALL_BY_REF=0',
+                                 'GLOBAL_RND=0',
+                                 'GLOBAL_FLAGS=0',
+                                 'UNCHANGED_BINARY_FLAGS=0',
+                                 ],
                 # Instead of "make install", we do a custom copy command below.
                 install_targets=[],)
 
             lib_path = os.path.join(builder.prefix_lib, "intelmathlib" + self.version + ".a")
-            include_dir = os.path.join(builder.prefix_include, "intelmathlib" + self.version )
+            include_dir = os.path.join(builder.prefix_include, "intelmathlib" + self.version)
 
             for root, _, files in os.walk("."):
                 for file in files:
