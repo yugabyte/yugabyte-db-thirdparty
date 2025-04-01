@@ -45,9 +45,6 @@ class IntelMathLibDependency(Dependency):
             lib_path = os.path.join(builder.prefix_lib, "intelmathlib" + self.version + ".a")
             include_dir = os.path.join(builder.prefix_include, "intelmathlib" + self.version )
 
-            builder.log_output(builder.log_prefix(self), ['echo', 'Library path:', lib_path])
-            builder.log_output(builder.log_prefix(self), ['echo', 'Include directory:', include_dir])
-
             for root, _, files in os.walk("."):
                 for file in files:
                     if file.endswith(".h"):
