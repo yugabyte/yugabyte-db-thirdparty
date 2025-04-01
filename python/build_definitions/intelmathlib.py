@@ -42,11 +42,19 @@ class IntelMathLibDependency(Dependency):
                 # Instead of "make install", we do a custom copy command below.
                 install_targets=[],)
 
-            lib_dir = builder.prefix_lib
-            include_dir = builder.prefix_include
+            lib_path = os.path.join(builder.prefix_lib, "intelmathlib" + self.version + ".a")
+            include_dir = os.path.join(builder.prefix_include, "intelmathlib" + self.version )
 
-            builder.log_output(builder.log_prefix(self), ['echo', 'Library directory:', lib_dir])
-            builder.log_output(builder.log_prefix(self), ['echo', 'Library directory:', include_dir])
-            # builder.log_output(builder.log_prefix(self), ['cp', '-a', '*.h', include_dir])
-            # builder.log_output(builder.log_prefix(self), ['cp', 'libbid.a', lib_dir])
+            builder.log_output(builder.log_prefix(self), ['echo', 'Library path:', lib_path])
+            builder.log_output(builder.log_prefix(self), ['echo', 'Include directory:', include_dir])
+
+            for root, _, files in os.walk("."):
+                for file in files:
+                    if file.endswith(".h"):
+                        src_path = os.path.join(root, file)
+                        dest_path = os.path.join(include_dir, os.path.relpath(src_path, "."))
+                        os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+                        builder.log_output(builder.log_prefix(self), ['cp', src_path, dest_path])
+
+            builder.log_output(builder.log_prefix(self), ['cp', 'libbid.a', lib_path])
         
