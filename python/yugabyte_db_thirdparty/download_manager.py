@@ -381,7 +381,6 @@ class DownloadManager:
                     with open(os.path.join(YB_THIRDPARTY_DIR, 'patches', patch), 'rt', newline="") as inp:
                         patch = inp.read()
                     assert process.stdin is not None
-                    log(patch.encode('utf-8'))
                     process.stdin.write(patch.encode('utf-8'))
                     process.stdin.close()
                     exit_code = process.wait()
