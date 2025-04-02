@@ -85,13 +85,14 @@ def get_final_dependency_module_names(compiler_choice: CompilerChoice) -> List[s
         'hdrhistogram',
         'otel_proto',
         'otel',
-        'bson',
-        'intelmathlib'
+        'bson'
     ])
 
     if is_linux() and is_building_for_x86_64() and (
             compiler_choice.is_clang() or compiler_choice.is_gcc_major_version_at_least(11)):
-        # TODO (mbautin): support aarch64 too.
-        dep_names.append('diskann')
+        dep_names.extend([
+            'diskann',  # TODO (mbautin): support aarch64 too.
+            'intelmathlib'
+            ])
 
     return dep_names

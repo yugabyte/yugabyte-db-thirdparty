@@ -47,13 +47,13 @@ class IntelMathLibDependency(Dependency):
             include_dir = os.path.join(builder.prefix_include, "intelmathlib" + self.version)
             builder.log_output(builder.log_prefix(self), ['echo', 'Library path:', lib_path])
             builder.log_output(builder.log_prefix(self), ['echo', 'Include path:', include_dir])
+            os.makedirs(os.path.dirname(include_dir), exist_ok=True)
 
             for root, _, files in os.walk("."):
                 for file in files:
                     if file.endswith(".h"):
                         src_path = os.path.join(root, file)
-                        dest_path = os.path.join(include_dir, os.path.relpath(src_path, "."))
-                        os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+                        dest_path = os.path.join(include_dir, file)
                         builder.log_output(builder.log_prefix(self), ['cp', src_path, dest_path])
 
             builder.log_output(builder.log_prefix(self), ['cp', 'libbid.a', lib_path])
