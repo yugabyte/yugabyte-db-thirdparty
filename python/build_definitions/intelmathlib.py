@@ -49,7 +49,7 @@ class IntelMathLibDependency(Dependency):
             builder.log_output(builder.log_prefix(self), ['echo', 'Include path:', include_dir])
             os.makedirs(os.path.dirname(include_dir), exist_ok=True)
 
-            for root, _, files in os.walk("."):
+            for root, _, files in os.walk("src"):
                 for file in files:
                     if file.endswith(".h"):
                         src_path = os.path.join(root, file)
