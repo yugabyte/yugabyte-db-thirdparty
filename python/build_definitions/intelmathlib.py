@@ -25,8 +25,6 @@ class IntelMathLibDependency(Dependency):
             url_pattern='https://netlib.org/misc/intel/IntelRDFPMathLib{0}.tar.gz',
             build_group=BuildGroup.CXX_UNINSTRUMENTED)
         self.copy_sources = True
-        self.patches = ['intelmathlib_macOS_missing_includes.patch',
-                        'intelmathlib_macOS_missing_includes_crlf.patch']
 
     def build(self, builder: BuilderInterface) -> None:
         with PushDir("LIBRARY"):
@@ -47,7 +45,7 @@ class IntelMathLibDependency(Dependency):
             include_dir = os.path.join(builder.prefix_include, "intelmathlib" + self.version)
             builder.log_output(builder.log_prefix(self), ['echo', 'Library path:', lib_path])
             builder.log_output(builder.log_prefix(self), ['echo', 'Include path:', include_dir])
-            os.makedirs(os.path.dirname(include_dir), exist_ok=True)
+            os.makedirs(include_dir, exist_ok=True)
 
             for root, _, files in os.walk("src"):
                 for file in files:
