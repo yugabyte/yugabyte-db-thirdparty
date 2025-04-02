@@ -375,14 +375,9 @@ class DownloadManager:
             with PushDir(src_path):
                 for patch in dep.patches:
                     log("Applying patch: %s", patch)
-                    log("Running command: patch -p{}".format(dep.patch_strip))
-                    process = subprocess.Popen(['patch',
-                                                '--binary',
-                                                '-p{}'.format(dep.patch_strip)
-                                                ],
+                    process = subprocess.Popen(['patch', '-p{}'.format(dep.patch_strip)],
                                                stdin=subprocess.PIPE)
-                    patch_path = os.path.join(YB_THIRDPARTY_DIR, 'patches', patch)
-                    with open(patch_path, 'rt', newline="") as inp:
+                    with open(os.path.join(YB_THIRDPARTY_DIR, 'patches', patch), 'rt') as inp:
                         patch = inp.read()
                     assert process.stdin is not None
                     process.stdin.write(patch.encode('utf-8'))
