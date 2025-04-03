@@ -26,6 +26,8 @@ class BidDependency(Dependency):
             build_group=BuildGroup.CXX_UNINSTRUMENTED)
         self.copy_sources = True
 
+        self.patches =['bid.patch', 'bid-crlf.patch']
+
     def build(self, builder: BuilderInterface) -> None:
         with PushDir("LIBRARY"):
             builder.build_with_make(
