@@ -33,7 +33,6 @@ class BidDependency(Dependency):
             builder.build_with_make(
                 dep=self,
                 extra_make_args=['_CFLAGS_OPT=-fPIC',
-                                 'CC=gcc',
                                  'CALL_BY_REF=0',
                                  'GLOBAL_RND=0',
                                  'GLOBAL_FLAGS=0',
