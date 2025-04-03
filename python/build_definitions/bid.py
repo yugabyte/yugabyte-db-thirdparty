@@ -17,10 +17,10 @@ import subprocess
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
 
-class IntelMathLibDependency(Dependency):
+class BidDependency(Dependency):
     def __init__(self) -> None:
-        super(IntelMathLibDependency, self).__init__(
-            name='intelmathlib',
+        super(BidDependency, self).__init__(
+            name='bid',
             version='20U2',
             url_pattern='https://netlib.org/misc/intel/IntelRDFPMathLib{0}.tar.gz',
             build_group=BuildGroup.CXX_UNINSTRUMENTED)
@@ -41,9 +41,7 @@ class IntelMathLibDependency(Dependency):
                 install_targets=[],
                 specify_prefix=True)
 
-            lib_path = os.path.join(builder.prefix_lib, "intelmathlib" + self.version + ".a")
-            include_dir = os.path.join(builder.prefix_include, "intelmathlib" + self.version)
-            builder.log_output(builder.log_prefix(self), ['echo', 'Library path:', lib_path])
+            include_dir = os.path.join(builder.prefix_include, "bid")
             builder.log_output(builder.log_prefix(self), ['echo', 'Include path:', include_dir])
             os.makedirs(include_dir, exist_ok=True)
 
@@ -54,4 +52,4 @@ class IntelMathLibDependency(Dependency):
                         dest_path = os.path.join(include_dir, file)
                         builder.log_output(builder.log_prefix(self), ['cp', src_path, dest_path])
 
-            builder.log_output(builder.log_prefix(self), ['cp', 'libbid.a', lib_path])
+            builder.log_output(builder.log_prefix(self), ['cp', 'libbid.a', builder.prefix_lib])

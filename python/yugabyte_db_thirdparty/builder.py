@@ -1180,7 +1180,7 @@ class Builder(BuilderInterface):
 
         self.preprocessor_flags.extend(clang_linuxbrew_isystem_flags)
 
-        if dep.name != 'intelmathlib':
+        if dep.name != 'bid':
             no_unused_arg = '-Wno-error=unused-command-line-argument'
             self.compiler_flags.append(no_unused_arg)
             self.ld_flags.append(no_unused_arg)
