@@ -1,3 +1,4 @@
+diff -au -ruN a/LIBRARY/makefile b/LIBRARY/makefile
 --- a/LIBRARY/makefile	2018-06-07 23:09:01.000000000 +0000
 +++ b/LIBRARY/makefile	2025-04-03 21:36:35.203934877 +0000
 @@ -349,12 +349,12 @@
@@ -92,3 +93,14 @@
  
                                                             
  cleanBinary :
+diff -au -ruN a/LIBRARY/float128/dpml_exception.c b/LIBRARY/float128/dpml_exception.c
+--- a/LIBRARY/float128/dpml_exception.c	2025-03-23 14:39:16
++++ b/LIBRARY/float128/dpml_exception.c	2025-03-23 14:37:46
+@@ -132,6 +132,6 @@
+     !defined(wnt)
+ 
+-#   include <sys/signal.h>
++#   include <signal.h>
+ #   define DPML_SIGNAL(p)	 raise(SIGFPE)
+ 
+ #else

@@ -1,31 +1,58 @@
 diff -ruN a/LIBRARY/src/makefile.iml_head b/LIBRARY/src/makefile.iml_head
 --- a/LIBRARY/makefile.iml_head    2018-06-07 23:09:37.000000000 +0000
 +++ a/LIBRARY/makefile.iml_head    2025-04-03 02:27:17.047879100 +0000
-@@ -344,10 +344,10 @@
-     endif
- endif
- 
--ARCH_ALIAS := x86  ia64 EM64T x86_64 i686 amd64 Intel64 sun4u
--ARCH_LIST  := IA32 IA64 EFI2  EFI2   IA32 EFI2  EFI2    EFI2
--ARCH_TYPE  := IA32 IA64 EFI2  EFI2   IA32 EFI2  EFI2    EFI2
--ARCH_TYPES := IA32 IA64 EFI2
-+ARCH_ALIAS := x86  ia64 EM64T x86_64 i686 amd64 Intel64 sun4u aarch64
-+ARCH_LIST  := IA32 IA64 EFI2  EFI2   IA32 EFI2  EFI2    EFI2  ARM64
-+ARCH_TYPE  := IA32 IA64 EFI2  EFI2   IA32 EFI2  EFI2    EFI2  ARM64
-+ARCH_TYPES := IA32 IA64 EFI2 ARM64
- 
+@@ -352,16 +352,10 @@
  UARCH_LIST := SSE GSSE LRB LRB2
  
-@@ -522,7 +522,7 @@
+ _HOST_ARCH_INDEX = $(call GetIndex,$(_HOST_ARCH),$(ARCH_ALIAS))
+-ifeq (,$(_HOST_ARCH_INDEX))
+-    $(error Unknown host architecture $(_HOST_ARCH))
+-endif
+ 
+ IML_HOST_ARCH   ?= $(word $(_HOST_ARCH_INDEX),$(ARCH_LIST))
+ IML_HOST_ARCH   := $(IML_HOST_ARCH)
+ HOST_ARCH_LIST_INDEX  := $(call GetIndex,$(IML_HOST_ARCH),$(ARCH_LIST))
+-ifeq (,$(HOST_ARCH_LIST_INDEX))
+-    $(error Invalid host architecture $(IML_HOST_ARCH))
+-endif
+ 
+ IML_HOST_ARCH_TYPE   ?= $(word $(HOST_ARCH_LIST_INDEX),$(ARCH_TYPE))
+ IML_HOST_ARCH_TYPE   := $(IML_HOST_ARCH_TYPE)
+@@ -522,34 +516,6 @@
      endif
  endif
  
 -CC_NAME_LIST  := icc icl gcc cl cc
-+CC_NAME_LIST  := icc icl gcc cl cc compiler_wrapper_cc.py
- CC_TYPE_LIST  := gcc cl  gcc cl gcc
- CC_TYPES      := gcc cl
- INTEL_CC_LIST := icc icl
-diff -ruN a/LIBRARY/src/bid128_pow.c b/LIBRARY/src/bid128_pow.c
+-CC_TYPE_LIST  := gcc cl  gcc cl gcc
+-CC_TYPES      := gcc cl
+-INTEL_CC_LIST := icc icl
+-
+-CC_NAME_INDEX := $(call GetIndex,$(CC_NAME),$(CC_NAME_LIST))
+-ifeq ($(CC_NAME_INDEX),)
+-    $(error "Unknown CC_NAME ($(CC_NAME)). Must be one of $(CC_NAME_LIST))
+-endif
+-
+-CC_INDEX      := $(call GetIndex,$(CC_NAME),$(CC_NAME_LIST))
+-CC_TYPE       := $(word $(CC_INDEX),$(CC_TYPE_LIST))
+-CC_TYPE_INDEX := $(call GetIndex,$(CC_TYPE),$(CC_TYPES))
+-
+-CcSelect       = $(strip $($(CC_INDEX)))
+-CcTypeSelect   = $(strip $($(CC_TYPE_INDEX)))
+-CcNameSelect   = $(strip $($(CC_NAME_INDEX)))
+-
+-_CPP := $(CC_NAME) $(call CcNameSelect,-EP,-EP,-E -P,-EP)
+-_CC  := $(CC_NAME) $(call CcNameSelect,, -nologo,, -nologo)
+-
+-ifeq ($(origin CC),default)
+-    CC := $(_CC)
+-endif
+-ifeq ($(origin CPP),default)
+-    CPP := $(_CPP)
+-endif
+-
+ CselCc         = $(call Cset,$1,$(call CcTypeSelect,$2,$3))
+ 
+ QOPT           := $(call CselCc, QOPT,        -, /Q      )
 --- a/LIBRARY/src/bid128_pow.c	2025-03-23 14:38:52
 +++ b/LIBRARY/src/bid128_pow.c	2025-03-23 14:37:46
 @@ -27,6 +27,7 @@

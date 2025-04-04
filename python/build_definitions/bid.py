@@ -28,6 +28,10 @@ class BidDependency(Dependency):
 
         self.patches = ['bid.patch', 'bid-crlf.patch']
 
+    def get_additional_compiler_flags(self, builder: BuilderInterface) -> List[str]:
+        flags = ['-Wno-error=missing-braces']
+        return flags
+
     def build(self, builder: BuilderInterface) -> None:
         with PushDir("LIBRARY"):
             builder.build_with_make(
