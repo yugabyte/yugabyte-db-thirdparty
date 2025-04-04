@@ -1,0 +1,70 @@
+diff -ruN a/LIBRARY/src/makefile.iml_head b/LIBRARY/src/makefile.iml_head
+--- a/LIBRARY/makefile.iml_head    2018-06-07 23:09:37.000000000 +0000
++++ a/LIBRARY/makefile.iml_head    2025-04-03 02:27:17.047879100 +0000
+@@ -522,34 +522,6 @@
+     endif
+ endif
+ 
+-CC_NAME_LIST  := icc icl gcc cl cc
+-CC_TYPE_LIST  := gcc cl  gcc cl gcc
+-CC_TYPES      := gcc cl
+-INTEL_CC_LIST := icc icl
+-
+-CC_NAME_INDEX := $(call GetIndex,$(CC_NAME),$(CC_NAME_LIST))
+-ifeq ($(CC_NAME_INDEX),)
+-    $(error "Unknown CC_NAME ($(CC_NAME)). Must be one of $(CC_NAME_LIST))
+-endif
+-
+-CC_INDEX      := $(call GetIndex,$(CC_NAME),$(CC_NAME_LIST))
+-CC_TYPE       := $(word $(CC_INDEX),$(CC_TYPE_LIST))
+-CC_TYPE_INDEX := $(call GetIndex,$(CC_TYPE),$(CC_TYPES))
+-
+-CcSelect       = $(strip $($(CC_INDEX)))
+-CcTypeSelect   = $(strip $($(CC_TYPE_INDEX)))
+-CcNameSelect   = $(strip $($(CC_NAME_INDEX)))
+-
+-_CPP := $(CC_NAME) $(call CcNameSelect,-EP,-EP,-E -P,-EP)
+-_CC  := $(CC_NAME) $(call CcNameSelect,, -nologo,, -nologo)
+-
+-ifeq ($(origin CC),default)
+-    CC := $(_CC)
+-endif
+-ifeq ($(origin CPP),default)
+-    CPP := $(_CPP)
+-endif
+-
+ CselCc         = $(call Cset,$1,$(call CcTypeSelect,$2,$3))
+ 
+ QOPT           := $(call CselCc, QOPT,        -, /Q      )
+--- a/LIBRARY/src/bid128_pow.c	2025-03-23 14:38:52
++++ b/LIBRARY/src/bid128_pow.c	2025-03-23 14:37:46
+@@ -27,6 +27,7 @@
+   THE POSSIBILITY OF SUCH DAMAGE.
+ ******************************************************************************/
+
++#include <stdlib.h>
+ #include "bid_trans.h"
+
+ static BID_UINT128 BID128_0 = {BID128_LH_INIT( 0x0000000000000000ull, 0x3040000000000000ull )};
+diff -ruN a/LIBRARY/src/bid32_pow.c b/LIBRARY/src/bid32_pow.c
+--- a/LIBRARY/src/bid32_pow.c	2025-03-23 14:38:24
++++ b/LIBRARY/src/bid32_pow.c	2025-03-23 14:37:46
+@@ -28,6 +28,7 @@
+ ******************************************************************************/
+
+
++#include <stdlib.h>
+ #include "bid_internal.h"
+
+ #define BID32_NAN 0x7c000000ul
+diff -ruN a/LIBRARY/src/bid64_pow.c b/LIBRARY/src/bid64_pow.c
+--- a/LIBRARY/src/bid64_pow.c	2025-03-23 14:38:42
++++ b/LIBRARY/src/bid64_pow.c	2025-03-23 14:37:46
+@@ -28,6 +28,7 @@
+ ******************************************************************************/
+
+
++#include <stdlib.h>
+ #include "bid_trans.h"
+
+ #define BID64_0 0x31c0000000000000ull
