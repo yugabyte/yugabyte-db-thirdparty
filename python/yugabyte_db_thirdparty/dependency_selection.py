@@ -14,7 +14,7 @@ from sys_detection import is_macos, is_linux
 
 from typing import List
 
-from yugabyte_db_thirdparty.arch import is_building_for_x86_64
+from yugabyte_db_thirdparty.arch import is_building_for_x86_64, is_building_for_aarch64
 from yugabyte_db_thirdparty.compiler_choice import CompilerChoice
 
 
@@ -86,12 +86,14 @@ def get_final_dependency_module_names(compiler_choice: CompilerChoice) -> List[s
         'otel_proto',
         'otel',
         'bson',
-        'bid',
     ])
 
     if is_linux() and is_building_for_x86_64() and (
             compiler_choice.is_clang() or compiler_choice.is_gcc_major_version_at_least(11)):
         # TODO (mbautin): support aarch64 too.
         dep_names.append('diskann')
+
+    if not is_building_for_aarch64():
+        dep_names.append('bid')
 
     return dep_names

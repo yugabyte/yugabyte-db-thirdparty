@@ -52,6 +52,8 @@ def get_target_arch() -> str:
 def is_building_for_x86_64() -> bool:
     return get_target_arch() == 'x86_64'
 
+def is_building_for_aarch64() -> bool:
+    return get_target_arch() == 'aarch64'
 
 def verify_arch() -> None:
     target_arch = get_target_arch()
