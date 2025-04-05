@@ -22,7 +22,7 @@ class BsonDependency(Dependency):
             version='1.28.0',
             url_pattern='https://github.com/mongodb/mongo-c-driver/archive/refs/tags/'
                         '{0}.tar.gz',
-            build_group=BuildGroup.CXX_UNINSTRUMENTED)
+            build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = True
 
     def get_additional_cmake_args(self, builder: 'BuilderInterface') -> List[str]:

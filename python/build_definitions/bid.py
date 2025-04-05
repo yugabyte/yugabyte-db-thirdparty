@@ -23,7 +23,7 @@ class BidDependency(Dependency):
             name='bid',
             version='20U2',
             url_pattern='https://netlib.org/misc/intel/IntelRDFPMathLib{0}.tar.gz',
-            build_group=BuildGroup.CXX_UNINSTRUMENTED)
+            build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = True
 
         self.patches = ['bid.patch', 'bid-crlf.patch']
