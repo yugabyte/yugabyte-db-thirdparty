@@ -24,6 +24,7 @@ class BsonDependency(Dependency):
                         '{0}.tar.gz',
             build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = True
+        self.patches = ['libbid.patch']
 
     def get_additional_cmake_args(self, builder: 'BuilderInterface') -> List[str]:
         return [

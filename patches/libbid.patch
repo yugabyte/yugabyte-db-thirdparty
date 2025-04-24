@@ -1,0 +1,11 @@
+diff -ruN a/src/libbson/src/bson/bson-memory.c b/src/libbson/src/bson/bson-memory.c
+--- a/src/libbson/src/bson/bson-memory.c	2025-04-24 11:46:41
++++ b/src/libbson/src/bson/bson-memory.c	2025-04-24 11:44:47
+@@ -53,6 +53,7 @@
+    // _aligned_free instead of free and modifies errno on failure, both of which
+    // breaks symmetry with C11 aligned_alloc, so it is deliberately not used.
+    BSON_UNUSED (alignment);
++   static_assert(false, "aligned_alloc not supported on this platform");
+    return malloc (num_bytes);
+ }
+ #endif
