@@ -769,8 +769,6 @@ class Builder(BuilderInterface):
             args += extra_cmake_args
         args += dep.get_additional_cmake_args(self)
 
-        args += ['-DCMAKE_POLICY_VERSION_MINIMUM=3.5']
-
         if shared_and_static and any(arg.startswith('-DBUILD_SHARED_LIBS=') for arg in args):
             raise ValueError(
                 "shared_and_static=True is specified but CMake arguments already mention "
