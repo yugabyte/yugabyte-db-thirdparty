@@ -37,6 +37,7 @@ class CurlDependency(Dependency):
             '--without-librtmp',
             '--without-nghttp2',
             '--without-zstd',
+            '--without-libpsl',
         ]
 
         builder.build_with_configure(dep=self, extra_configure_args=extra_args)
