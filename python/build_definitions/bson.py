@@ -30,7 +30,8 @@ class BsonDependency(Dependency):
                 '-DENABLE_MONGOC=OFF',
                 '-DMONGOC_ENABLE_ICU=OFF'
                 '-DENABLE_ICU=OFF',
-                '-DENABLE_ZSTD=OFF',]
+                '-DENABLE_ZSTD=OFF',
+                '-DENABLE_EXTRA_ALIGNMENT=OFF']
 
     def build(self, builder: BuilderInterface) -> None:
         builder.build_with_cmake(self, shared_and_static=True)
