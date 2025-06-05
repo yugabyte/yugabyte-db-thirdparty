@@ -1,0 +1,29 @@
+diff --git a/src/history.c b/src/history.c
+index 2a8ca1a..71b3fbe 100644
+--- a/src/history.c
++++ b/src/history.c
+@@ -793,13 +793,12 @@ history_load(TYPE(History) *h, const char *fname)
+ 	if ((sz = getline(&line, &llen, fp)) == -1)
+ 		goto done;
+ 
+-	if (strncmp(line, hist_cookie, (size_t)sz) != 0)
+-		goto done;
+-
+ 	ptr = h_malloc((max_size = 1024) * sizeof(*ptr));
+ 	if (ptr == NULL)
+ 		goto done;
+-	for (i = 0; (sz = getline(&line, &llen, fp)) != -1; i++) {
++	for (i = 0; (sz = getline(&line, &llen, fp)) != -1;) {
++		if (i == 0 && strncmp(line, hist_cookie, (size_t)sz) != 0)
++			continue;
+ 		if (sz > 0 && line[sz - 1] == '\n')
+ 			line[--sz] = '\0';
+ 		if (max_size < (size_t)sz) {
+@@ -820,6 +819,7 @@ history_load(TYPE(History) *h, const char *fname)
+ 			i = -1;
+ 			goto oomem;
+ 		}
++		i++;
+ 	}
+ oomem:
+ 	h_free(ptr);
