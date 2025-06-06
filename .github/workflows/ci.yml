@@ -200,7 +200,7 @@ jobs:
           # ---------------------------------------------------------------------------------------
 
           - name: macos-x86_64
-            os: macos-12
+            os: macos-13
             docker_image:
             build_thirdparty_args:
 
