@@ -45,7 +45,7 @@ jobs:
           # Ubuntu 20.04
           # ---------------------------------------------------------------------------------------
           - name: ubuntu2004-x86_64-clang16
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            os: ubuntu-24.04  # Ubuntu 24.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_ubuntu2004_x86_64:v2023-10-25T03_33_01
             build_thirdparty_args: >-
               --toolchain=llvm16
@@ -56,7 +56,7 @@ jobs:
           # ---------------------------------------------------------------------------------------
 
           - name: ubuntu2204-x86_64-gcc11
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            os: ubuntu-24.04  # Ubuntu 24.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_ubuntu2204_x86_64:v2023-10-25T03_33_00
             build_thirdparty_args: >-
               --compiler-prefix=/usr
@@ -65,14 +65,14 @@ jobs:
               --expected-major-compiler-version=11
 
           - name: ubuntu2204-x86_64-clang16
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            os: ubuntu-24.04  # Ubuntu 24.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_ubuntu2204_x86_64:v2023-10-25T03_33_00
             build_thirdparty_args: >-
               --toolchain=llvm16
               --expected-major-compiler-version=16
 
           - name: ubuntu2204-x86_64-clang17
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            os: ubuntu-24.04  # Ubuntu 24.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_ubuntu2204_x86_64:v2023-10-25T03_33_00
             build_thirdparty_args: >-
               --toolchain=llvm17
@@ -83,7 +83,7 @@ jobs:
           # ---------------------------------------------------------------------------------------
 
           - name: almalinux8-x86_64-gcc11
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            os: ubuntu-24.04  # Ubuntu 24.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2023-10-25T03_33_01
             build_thirdparty_args: >-
               --devtoolset=11
@@ -91,21 +91,21 @@ jobs:
 
           # Clang/LLVM 16
           - name: almalinux8-x86_64-clang16
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            os: ubuntu-24.04  # Ubuntu 24.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2023-10-25T03_33_01
             build_thirdparty_args: >-
               --toolchain=llvm16
               --expected-major-compiler-version=16
 
           - name: almalinux8-x86_64-clang16-linuxbrew
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            os: ubuntu-24.04  # Ubuntu 24.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2023-10-25T03_33_01
             build_thirdparty_args: >-
               --toolchain=llvm16_linuxbrew
               --expected-major-compiler-version=16
 
           - name: almalinux8-x86_64-clang16-linuxbrew-full-lto
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            os: ubuntu-24.04  # Ubuntu 24.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2023-10-25T03_33_01
             build_thirdparty_args: >-
               --toolchain=llvm16_linuxbrew
@@ -131,21 +131,21 @@ jobs:
 
           # Clang/LLVM 17
           - name: almalinux8-x86_64-clang17
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            os: ubuntu-24.04  # Ubuntu 24.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2023-10-25T03_33_01
             build_thirdparty_args: >-
               --toolchain=llvm17
               --expected-major-compiler-version=17
 
           - name: almalinux8-x86_64-clang17-linuxbrew
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            os: ubuntu-24.04  # Ubuntu 24.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2023-10-25T03_33_01
             build_thirdparty_args: >-
               --toolchain=llvm17_linuxbrew
               --expected-major-compiler-version=17
 
           - name: almalinux8-x86_64-clang17-linuxbrew-full-lto
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            os: ubuntu-24.04  # Ubuntu 24.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2023-10-25T03_33_01
             build_thirdparty_args: >-
               --toolchain=llvm17_linuxbrew
@@ -157,21 +157,21 @@ jobs:
           # ---------------------------------------------------------------------------------------
 
           - name: almalinux9-x86_64-gcc12
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            os: ubuntu-24.04  # Ubuntu 24.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_almalinux9_x86_64:v2023-10-25T03_33_02
             build_thirdparty_args: >-
               --devtoolset=12
               --expected-major-compiler-version=12
 
           - name: almalinux9-x86_64-clang16
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            os: ubuntu-24.04  # Ubuntu 24.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_almalinux9_x86_64:v2023-10-25T03_33_02
             build_thirdparty_args: >-
               --toolchain=llvm16
               --expected-major-compiler-version=16
 
           - name: almalinux9-x86_64-clang17
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            os: ubuntu-24.04  # Ubuntu 24.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_almalinux9_x86_64:v2023-10-25T03_33_02
             build_thirdparty_args: >-
               --toolchain=llvm17
@@ -183,7 +183,7 @@ jobs:
 
           # Clang/LLVM 17
           - name: amazonlinux2-x86_64-clang17
-            os: ubuntu-20.04  # Ubuntu 20.04 is for the top-level VM only. We use Docker in it.
+            os: ubuntu-24.04  # Ubuntu 24.04 is for the top-level VM only. We use Docker in it.
             docker_image: yugabyteci/yb_build_infra_amazonlinux2_x86_64:v2024-04-25T17_54_47
             build_thirdparty_args: >-
               --toolchain=llvm17
@@ -211,7 +211,7 @@ jobs:
           # ---------------------------------------------------------------------------------------
 
           - name: macos-x86_64
-            os: macos-12
+            os: macos-13
             docker_image:
             build_thirdparty_args:
 
@@ -230,6 +230,17 @@ jobs:
           # in test code.
           fetch-depth: 0
 
+      # Python version really only matters in the non-docker cases (macos), but it should match
+      # the version used in the docker images, for a common requirements_frozen.txt.
+      # The linux images (from build-infra repo) should be updated to newer python and this version
+      # updated to match.
+      # This action puts python and python3.9 in path, but python3 is still latest version.
+      # See setting in .github/workflows/macos_build.sh
+      - name: PythonVer
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+
       - name: Build
         run: .github/workflows/github_actions_build.sh
         env:
@@ -239,12 +250,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.CUSTOM_GITHUB_TOKEN }}
           SNYK_TOKEN: ${{ secrets.SNYK_AUTH_TOKEN }}
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: yugabyte-db-thirdparty-${{ matrix.name }}.tar.gz
           path: archive.tar.gz
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: yugabyte-db-thirdparty-${{ matrix.name }}.tar.gz.sha256
           path: archive.tar.gz.sha256
