@@ -103,7 +103,7 @@ tools_to_show_versions=(
   autoconf
   autoreconf
   pkg-config
-  python3
+  "${PYTHON:-python3}"
 )
 
 if [[ $OSTYPE == darwin* ]]; then

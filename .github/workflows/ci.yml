@@ -231,6 +231,17 @@ jobs:
           # in test code.
           fetch-depth: 0
 
+      # Python version really only matters in the non-docker cases (macos), but it should match
+      # the version used in the docker images, for a common requirements_frozen.txt.
+      # The linux images (from build-infra repo) should be updated to newer python and this version
+      # updated to match.
+      # This action puts python and python3.9 in path, but python3 is still latest version.
+      # See setting in .github/workflows/macos_build.sh
+      - name: PythonVer
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+
       - name: Build
         run: .github/workflows/github_actions_build.sh
         env:
