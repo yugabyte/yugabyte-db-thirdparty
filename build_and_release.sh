@@ -10,9 +10,8 @@ set -euo pipefail
 # -------------------------------------------------------------------------------------------------
 
 install_cmake_on_macos() {
-  # We need to avoid using CMake 3.19.1.
-  #
-  local cmake_version=3.19.3
+  # We need to avoid using CMake 3.19.1 and 4.x.
+  local cmake_version=3.31.0
   local cmake_dir_name=cmake-${cmake_version}-macos-universal
   local cmake_tarball_name=${cmake_dir_name}.tar.gz
   local cmake_download_base_url=https://github.com/Kitware/CMake/releases/download
@@ -29,7 +28,7 @@ install_cmake_on_macos() {
   local actual_sha256
   actual_sha256=$( shasum -a 256 "$cmake_tarball_name" | awk '{print $1}' )
   log "Actual checksum of '$cmake_tarball_name': $actual_sha256"
-  expected_sha256="a6b79ad05f89241a05797510e650354d74ff72cc988981cdd1eb2b3b2bda66ac"
+  expected_sha256="50d5b9f370e71c8eee87c123b7fb9272caf2bf2b372ea7c9423f10f1cd52813b"
   if [[ $actual_sha256 != "$expected_sha256" ]]; then
     fatal "Wrong SHA256 for CMake: $actual_sha256, expected: $expected_sha256"
   fi
@@ -104,7 +103,7 @@ tools_to_show_versions=(
   autoconf
   autoreconf
   pkg-config
-  python3
+  "${PYTHON:-python3}"
 )
 
 if [[ $OSTYPE == darwin* ]]; then
@@ -122,13 +121,15 @@ for tool_name in "${tools_to_show_versions[@]}"; do
 done
 
 detect_cmake_version
-unsupported_cmake_version=3.19.1
-if [[ $OSTYPE == darwin* && $cmake_version == "$unsupported_cmake_version" ]]; then
+# We need to avoid using CMake 3.19.1 and 4.x.
+if [[ $OSTYPE == darwin* && ($cmake_version == 3.19.1 || $cmake_version == 4.*) ]]; then
   install_cmake_on_macos
   detect_cmake_version
-  if [[ $cmake_version == "$unsupported_cmake_version" ]]; then
+  if [[ $cmake_version == 3.19.1 ]]; then
     fatal "CMake 3.19.1 is not supported." \
           "See https://gitlab.kitware.com/cmake/cmake/-/issues/21529 for more details."
+  elif [[ $cmake_version == 4.* ]]; then
+    fatal "CMake 4.x is not supported due to lack of compatibility with CMake older than 3.5."
   fi
 
   log "Newly installed CMake version:"
