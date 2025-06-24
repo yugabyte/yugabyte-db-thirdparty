@@ -42,7 +42,12 @@ DEFAULT_COMMON_DEPENDENCY_MODULE_NAMES = [
 
 
 def get_common_dependency_module_names() -> List[str]:
-    return list(DEFAULT_COMMON_DEPENDENCY_MODULE_NAMES)
+    names = list(DEFAULT_COMMON_DEPENDENCY_MODULE_NAMES)
+    if is_macos():
+        # On macOS, flex, bison, and krb5 depend on gettext, and we don't want to use gettext from
+        # Homebrew. libunistring is required by gettext.
+        names.extend(['libunistring', 'gettext'])
+    return names
 
 
 def get_final_dependency_module_names(compiler_choice: CompilerChoice) -> List[str]:
@@ -50,11 +55,6 @@ def get_final_dependency_module_names(compiler_choice: CompilerChoice) -> List[s
     Returns the list of module names that are added to the end of the list.
     """
     dep_names: List[str] = []
-
-    if is_macos():
-        # On macOS, flex, bison, and krb5 depend on gettext, and we don't want to use gettext from
-        # Homebrew. libunistring is required by gettext.
-        dep_names.extend(['libunistring', 'gettext'])
 
     dep_names.append('ncurses')
 

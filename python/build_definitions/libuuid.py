@@ -26,10 +26,11 @@ class LibUuidDependency(Dependency):
 
     def get_additional_compiler_flags(self, builder: BuilderInterface) -> List[str]:
         llvm_major_version = builder.compiler_choice.get_llvm_major_version()
-        linux_llvm15_or_later = (
-            is_linux() and llvm_major_version is not None and llvm_major_version >= 15)
+        llvm_installer_15_or_later = (
+            builder.compiler_choice.is_llvm_installer_clang() and
+            llvm_major_version is not None and llvm_major_version >= 15)
         flags = []
-        if linux_llvm15_or_later:
+        if llvm_installer_15_or_later:
             # https://gist.githubusercontent.com/mbautin/9ae79d6c81adaa68746287458cac4d10/raw
             flags.append('-Wno-error=implicit-function-declaration')
 

@@ -28,10 +28,11 @@ class BisonDependency(Dependency):
     def get_additional_compiler_flags(self, builder: BuilderInterface) -> List[str]:
         llvm_major_version = builder.compiler_choice.get_llvm_major_version()
         flags = []
-        linux_llvm16_or_later = (
-            is_linux() and llvm_major_version is not None and llvm_major_version >= 16)
+        llvm_installer_16_or_later = (
+            builder.compiler_choice.is_llvm_installer_clang() and
+            llvm_major_version is not None and llvm_major_version >= 16)
 
-        if (is_macos() or linux_llvm16_or_later):
+        if (is_macos() or llvm_installer_16_or_later):
             # To avoid this error in Bison 3.4.1 build:
             # lib/obstack.c:351:31: error: incompatible function pointer types initializing
             # 'void (*)(void) __attribute__((noreturn))' with an expression of type 'void (void)'
@@ -41,3 +42,6 @@ class BisonDependency(Dependency):
 
     def build(self, builder: BuilderInterface) -> None:
         builder.build_with_configure(dep=self, extra_configure_args=['--with-pic'])
+
+    def use_cppflags_env_var(self) -> bool:
+        return True
