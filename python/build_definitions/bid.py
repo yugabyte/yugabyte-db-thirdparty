@@ -47,7 +47,6 @@ class BidDependency(Dependency):
                 specify_prefix=True)
 
             include_dir = os.path.join(builder.prefix_include, "bid")
-            builder.log_output(builder.log_prefix(self), ['echo', 'Include path:', include_dir])
             os.makedirs(include_dir, exist_ok=True)
 
             for root, _, files in os.walk("src"):
