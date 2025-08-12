@@ -29,11 +29,12 @@ class OpenLDAPDependency(Dependency):
 
     def get_additional_compiler_flags(self, builder: BuilderInterface) -> List[str]:
         llvm_major_version = builder.compiler_choice.get_llvm_major_version()
+        llvm_installer_15_or_later = (
+            builder.compiler_choice.is_llvm_installer_clang() and
+            llvm_major_version is not None and llvm_major_version >= 15)
         flags = []
-        linux_llvm15_or_later = (
-            is_linux() and llvm_major_version is not None and llvm_major_version >= 15)
 
-        if is_macos() or linux_llvm15_or_later:
+        if is_macos() or llvm_installer_15_or_later:
             # To avoid this error with Clang 15 on Linux:
             # https://gist.githubusercontent.com/mbautin/a9ca659ec5955ecb0e3d469376659c2b/raw
             flags.append('-Wno-error=implicit-function-declaration')
