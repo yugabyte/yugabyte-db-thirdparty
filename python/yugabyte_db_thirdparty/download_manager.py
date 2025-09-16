@@ -402,7 +402,7 @@ class DownloadManager:
             toolchain_url: str,
             dest_parent_dir: str) -> str:
         """
-        Download a C/C++ compiler toolchain, e.g. Linuxbrew GCC 5.5, or LLVM. Returns the directory
+        Download a C/C++ compiler toolchain, e.g. LLVM 19. Returns the directory
         where the toolchain is installed.
         """
         parsed_url = urlparse(toolchain_url)
@@ -449,24 +449,11 @@ class DownloadManager:
                 enable_using_alternative_url=False,
                 expected_checksum=expected_checksum)
 
-            if dest_dir_name.startswith('linuxbrew'):
-                dest_dir_name_tmp = dest_dir_name + tmp_suffix
-                self.extract_archive(
-                    archive_file_name=archive_temporary_dest_path,
-                    out_dir=dest_parent_dir,
-                    out_name=dest_dir_name_tmp
-                )
-                orig_brew_home = read_file(
-                    os.path.join(dest_parent_dir, dest_dir_name_tmp, 'ORIG_BREW_HOME')
-                ).strip()
-                os.rename(os.path.join(dest_parent_dir, dest_dir_name_tmp), orig_brew_home)
-                os.symlink(os.path.basename(orig_brew_home), toolchain_dest_dir_path)
-            else:
-                self.extract_archive(
-                    archive_file_name=archive_temporary_dest_path,
-                    out_dir=dest_parent_dir,
-                    out_name=dest_dir_name
-                )
+            self.extract_archive(
+                archive_file_name=archive_temporary_dest_path,
+                out_dir=dest_parent_dir,
+                out_name=dest_dir_name
+            )
 
             if not os.path.isdir(toolchain_dest_dir_path):
                 raise RuntimeError(

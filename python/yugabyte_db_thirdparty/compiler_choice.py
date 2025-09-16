@@ -22,7 +22,6 @@ from yugabyte_db_thirdparty.util import (
     extract_major_version,
 )
 from yugabyte_db_thirdparty.devtoolset import validate_devtoolset_compiler_path
-from yugabyte_db_thirdparty.linuxbrew import using_linuxbrew, get_linuxbrew_dir
 from yugabyte_db_thirdparty.arch import get_target_arch
 
 from yugabyte_db_thirdparty import env_var_names
@@ -131,10 +130,7 @@ class CompilerChoice:
         return self._do_find_gcc('gcc', 'g++')
 
     def _do_find_gcc(self, c_compiler: str, cxx_compiler: str) -> Tuple[str, str]:
-        if using_linuxbrew():
-            gcc_dir = get_linuxbrew_dir()
-            assert gcc_dir is not None
-        elif self.compiler_prefix:
+        if self.compiler_prefix:
             gcc_dir = self.compiler_prefix
         else:
             c_compiler_path = which_must_exist(c_compiler)
@@ -315,8 +311,6 @@ class CompilerChoice:
         the "build" and "installed" directories, or the log prefix used when building a dependency.
         """
         components = [self.get_compiler_family_and_version()]
-        if using_linuxbrew():
-            components.append('linuxbrew')
         if lto_type is not None:
             components.append('%s-lto' % lto_type)
         if with_arch:

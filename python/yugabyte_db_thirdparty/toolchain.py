@@ -24,11 +24,6 @@ import sys_detection
 from sys_detection import SHORT_OS_NAME_REGEX_STR, is_compatible_os_and_version
 
 
-LINUXBREW_URL = (
-    'https://github.com/yugabyte/brew-build/releases/download/'
-    '20181203T161736v9/linuxbrew-20181203T161736v9.tar.gz'
-)
-
 LLVM_VERSION_FROM_ARCHIVE_NAME_RE = re.compile(
         rf'^yb-llvm-v(.*)-[0-9]+-[0-9a-f]+-.*')
 
@@ -43,11 +38,7 @@ MAX_LLVM_VERSION = 19
 
 LLVM_VERSIONS = list(range(MIN_LLVM_VERSION, MAX_LLVM_VERSION + 1))
 
-TOOLCHAIN_TYPES = (
-    ['llvm%d' % v for v in LLVM_VERSIONS] +
-    ['linuxbrew'] +
-    ['llvm%d_linuxbrew' % v for v in LLVM_VERSIONS]
-)
+TOOLCHAIN_TYPES = ['llvm%d' % v for v in LLVM_VERSIONS]
 
 
 class Toolchain:
@@ -82,15 +73,8 @@ class Toolchain:
             f"Considered paths: {candidate_paths}.")
 
     def write_url_and_path_files(self) -> None:
-        if self.toolchain_type == 'linuxbrew':
-            file_prefix = 'linuxbrew'
-        else:
-            file_prefix = 'toolchain'
-
-        write_file(os.path.join(YB_THIRDPARTY_DIR, '%s_url.txt' % file_prefix),
-                   self.toolchain_url)
-        write_file(os.path.join(YB_THIRDPARTY_DIR, '%s_path.txt' % file_prefix),
-                   self.toolchain_root)
+        write_file(os.path.join(YB_THIRDPARTY_DIR, 'toolchain_url.txt'), self.toolchain_url)
+        write_file(os.path.join(YB_THIRDPARTY_DIR, 'toolchain_path.txt'), self.toolchain_root)
 
     def get_llvm_version_str(self) -> str:
         if not self.toolchain_type.startswith('llvm'):
@@ -119,10 +103,6 @@ def ensure_toolchains_installed(
 
 
 def get_toolchain_url(toolchain_type: str) -> str:
-    if toolchain_type == 'linuxbrew':
-        # Does not depend on the OS.
-        return LINUXBREW_URL
-
     assert toolchain_type.startswith('llvm')
     local_sys_conf = sys_detection.local_sys_conf()
     major_llvm_version = int(toolchain_type[4:])
@@ -144,8 +124,6 @@ def ensure_toolchain_installed(
 
     if toolchain_type.startswith('llvm'):
         parent_dir = '/opt/yb-build/llvm'
-    elif toolchain_type == 'linuxbrew':
-        parent_dir = '/opt/yb-build/brew'
     else:
         raise RuntimeError(
             f"We don't know where to install toolchain of type f{toolchain_type}")

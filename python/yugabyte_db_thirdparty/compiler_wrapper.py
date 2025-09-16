@@ -181,8 +181,7 @@ class CompilerWrapper:
           find /opt/intel/oneapi ( -name "*.h" -or -name "*.hpp" ) -type f -exec ls -l {} ; |
             awk '{S += $5} END {print S}
 
-        - Disallow using headers from certain directories, e.g. system directories when building
-          with Linuxbrew glibc.
+        - Disallow using headers from certain directories.
 
         :param output_path: the output path of the compilation command
         """

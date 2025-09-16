@@ -20,8 +20,6 @@ installed_*/
 installed-deps-tsan/
 installed-deps/
 installed/
-linuxbrew_url.txt
-linuxbrew_path.txt
 toolchain_path.txt
 toolchain_url.txt
 prebuilt_downloads/

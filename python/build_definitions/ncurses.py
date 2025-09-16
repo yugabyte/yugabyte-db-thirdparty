@@ -13,7 +13,6 @@
 #
 
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
-from yugabyte_db_thirdparty.linuxbrew import using_linuxbrew
 
 
 class NCursesDependency(Dependency):
@@ -28,15 +27,6 @@ class NCursesDependency(Dependency):
     def build(self, builder: BuilderInterface) -> None:
         extra_args = ['--with-shared', '--with-default-terminfo-dir=/usr/share/terminfo']
         builder.build_with_configure(dep=self, extra_configure_args=extra_args)
-
-    def get_additional_leading_ld_flags(self, builder: 'BuilderInterface') -> List[str]:
-        flags = super().get_additional_leading_ld_flags(builder)
-
-        # We need to put the ../lib directory in front of the linker flags so that
-        # Linuxbrew-provided ncurses does not take over.
-        if using_linuxbrew():
-            flags.append('-L../lib')
-        return flags
 
     def use_cppflags_env_var(self) -> bool:
         return True

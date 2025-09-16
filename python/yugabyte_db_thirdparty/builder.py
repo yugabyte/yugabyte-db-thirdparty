@@ -91,7 +91,6 @@ from yugabyte_db_thirdparty.clang_util import (
     create_llvm_tool_dir,
 )
 from yugabyte_db_thirdparty.macos import get_min_supported_macos_version
-from yugabyte_db_thirdparty.linuxbrew import get_linuxbrew_dir, using_linuxbrew, set_linuxbrew_dir
 from yugabyte_db_thirdparty import (
     compile_commands,
     constants,
@@ -192,7 +191,6 @@ class Builder(BuilderInterface):
     of dependencies to build, build types, and the directories to install dependencies.
     """
     def __init__(self) -> None:
-        self.linuxbrew_dir = None
         self.additional_allowed_shared_lib_paths = set()
 
         self.toolchain = None
@@ -202,36 +200,16 @@ class Builder(BuilderInterface):
         self.dependencies = []
         self.dependencies_by_name = {}
 
-    def install_toolchains(self) -> None:
-        toolchains = ensure_toolchains_installed(
-            self.download_manager, self.args.toolchain.split('_'))
-
-        # We expect at most one Linuxbrew toolchain to be specified (handled by set_linuxbrew_dir).
-        for toolchain in toolchains:
-            if toolchain.toolchain_type == 'linuxbrew':
-                set_linuxbrew_dir(toolchain.toolchain_root)
-
-        if len(toolchains) == 1:
-            self.toolchain = toolchains[0]
-            return
-        if len(toolchains) != 2:
-            raise ValueError("Unsupported combination of toolchains: %s" % self.args.toolchain)
-        if not toolchains[0].toolchain_type.startswith('llvm'):
-            raise ValueError(
-                "For a combination of toolchains, the first one must be an LLVM one, got: %s" %
-                toolchains[0].toolchain_type)
-        self.toolchain = toolchains[0]
-        if toolchains[1].toolchain_type != 'linuxbrew':
-            raise ValueError(
-                "For a combination of toolchains, the second one must be Linuxbrew, got: %s" %
-                toolchains[1].toolchain_type)
+    def install_toolchain(self) -> None:
+        self.toolchain = ensure_toolchains_installed(
+                self.download_manager, [self.args.toolchain])[0]
 
     def determine_compiler_family_and_prefix(self) -> Tuple[str, Optional[str]]:
         compiler_family: Optional[str] = None
         compiler_prefix: Optional[str] = None
         if self.args.toolchain:
-            self.install_toolchains()
-            assert self.toolchain is not None  # install_toolchains guarantees this.
+            self.install_toolchain()
+            assert self.toolchain is not None  # install_toolchain guarantees this.
             compiler_prefix = self.toolchain.toolchain_root
             self.toolchain.write_url_and_path_files()
             if self.args.toolchain.startswith('llvm'):
@@ -307,15 +285,9 @@ class Builder(BuilderInterface):
         )
 
         llvm_major_version: Optional[int] = self.compiler_choice.get_llvm_major_version()
-        if llvm_major_version:
-            if using_linuxbrew():
-                log("Automatically enabling compiler wrapper for a Clang Linuxbrew-targeting build")
-                log("Disallowing the use of headers in /usr/include")
-                os.environ[env_var_names.DISALLOWED_INCLUDE_DIRS] = '/usr/include'
-                self.args.use_compiler_wrapper = True
-            if llvm_major_version >= 13:
-                log("Automatically enabling compiler wrapper for Clang major version 13 or higher")
-                self.args.use_compiler_wrapper = True
+        if llvm_major_version and llvm_major_version >= 13:
+            log("Automatically enabling compiler wrapper for Clang major version 13 or higher")
+            self.args.use_compiler_wrapper = True
 
         self.lto_type = self.args.lto
 
@@ -447,10 +419,9 @@ class Builder(BuilderInterface):
         if (is_linux() and
                 self.compiler_choice.is_clang() and
                 not self.args.skip_sanitizers and
-                not using_linuxbrew() and
                 # With --postprocess-compile-commands-only, we don't need to build ASAN/TSAN.
                 not self.args.postprocess_compile_commands_only):
-            # We only support ASAN/TSAN builds on Clang, when not using Linuxbrew.
+            # We only support ASAN/TSAN builds on Clang.
             if not self.args.skip_asan:
                 build_types.append(BuildType.ASAN)
             if not self.args.skip_tsan:
@@ -510,7 +481,6 @@ class Builder(BuilderInterface):
         self.cxx_flags = []
         self.libs = []
 
-        self.add_linuxbrew_flags()
         for build_type in set([BuildType.COMMON, self.build_type]):
             build_type_parent_dir = os.path.join(
                 self.fs_layout.tp_installed_dir, build_type.dir_name)
@@ -565,12 +535,6 @@ class Builder(BuilderInterface):
             self.cxx_flags.append(f'-std=c++{constants.OSX_CXX_STANDARD}')
         else:
             self.cxx_flags.append(f'-std=c++{constants.CXX_STANDARD}')
-
-    def add_linuxbrew_flags(self) -> None:
-        if using_linuxbrew():
-            lib_dir = os.path.join(get_linuxbrew_dir(), 'lib')
-            self.ld_flags.append(" -Wl,-dynamic-linker={}".format(os.path.join(lib_dir, 'ld.so')))
-            self.add_lib_dir_and_rpath(lib_dir)
 
     def add_lib_dir_and_rpath(self, lib_dir: str) -> None:
         if self.args.verbose:
@@ -1050,38 +1014,12 @@ class Builder(BuilderInterface):
         llvm_major_version = self.compiler_choice.get_llvm_major_version()
         assert llvm_major_version is not None
 
-        if not using_linuxbrew():
-            # We don't build compiler-rt for Linuxbrew yet.
-            # TODO: we can build compiler-rt here the same way we build other LLVM components,
-            # such as libunwind, libc++abi, and libc++.
-            self.ld_flags.append('-rtlib=compiler-rt')
-
+        self.ld_flags.append('-rtlib=compiler-rt')
         self.ld_flags.append('-fuse-ld=lld')
         if self.lto_type is not None:
             self.compiler_flags.append('-flto=%s' % self.lto_type)
 
-        clang_linuxbrew_isystem_flags = []
-
-        if using_linuxbrew():
-            linuxbrew_dir = get_linuxbrew_dir()
-            assert linuxbrew_dir is not None
-            self.ld_flags.append(
-                '-Wl,--dynamic-linker=%s' % os.path.join(linuxbrew_dir, 'lib', 'ld.so'))
-            self.compiler_flags.append('-nostdinc')
-            self.compiler_flags.append('--gcc-toolchain={}'.format(linuxbrew_dir))
-
-            assert self.compiler_choice.cc is not None
-            clang_include_dir = get_clang_include_dir(self.compiler_choice.cc)
-
-            clang_linuxbrew_isystem_flags = [
-                '-isystem', clang_include_dir,
-
-                # This is the include directory of the Linuxbrew GCC 5.5 / glibc 2.23 bundle.
-                '-isystem', os.path.join(linuxbrew_dir, 'include')
-            ]
-
         if self.build_type == BuildType.COMMON:
-            self.preprocessor_flags.extend(clang_linuxbrew_isystem_flags)
             return
 
         # TODO mbautin: refactor to polymorphism
@@ -1177,8 +1115,6 @@ class Builder(BuilderInterface):
             # libc++abi needs to be able to find libcxx at runtime, even though it can't always find
             # it at build time because libc++abi is built first.
             self.add_rpath(libcxx_installed_lib)
-
-        self.preprocessor_flags.extend(clang_linuxbrew_isystem_flags)
 
         no_unused_arg = '-Wno-error=unused-command-line-argument'
         self.compiler_flags.append(no_unused_arg)

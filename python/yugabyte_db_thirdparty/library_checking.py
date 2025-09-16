@@ -72,7 +72,7 @@ ALLOWED_SYSTEM_LIBRARIES = (
     'libresolv',
     'librt',
     'libutil',
-    # When we use Linuxbrew, we can also see ld-linux-x86-64.so.2 in ldd output.
+    # ld-linux-aarch64.so.1 appears ldd output on aarch64 builds.
     'ld-linux',
 )
 
@@ -325,14 +325,12 @@ class LibTestLinux(LibTestBase):
             "^\tlinux-vdso",
             "^\t/lib64/",
             "^\t/lib/ld-linux-.*",
-            "^\t/opt/yb-build/brew/linuxbrew",
             "^\tstatically linked",
             "^\tnot a dynamic executable",
             "ldd: warning: you do not have execution permission",
             "^.* => /lib64/",
             "^.* => /lib/",
             "^.* => /usr/lib/x86_64-linux-gnu/",
-            "^.* => /opt/yb-build/brew/linuxbrew",
             f"^.* => {re.escape(YB_THIRDPARTY_DIR)}"
         ]
 
