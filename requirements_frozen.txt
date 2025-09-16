@@ -41,5 +41,6 @@ twine==4.0.2
 typing-extensions==4.8.0
 urllib3==2.0.6
 websocket-client==1.6.4
+yb-gcc-installer @ git+https://github.com/es1024/yb-gcc-installer@3b683e6c37a6073eb4af9582b3521ff7fa6dcfeb
 yugabyte-pycommon==1.9.15
 zipp==3.17.0

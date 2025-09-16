@@ -14,6 +14,7 @@
 import os
 import re
 from llvm_installer import LlvmInstaller
+from yb_gcc_installer import GCCInstaller
 
 from yugabyte_db_thirdparty.download_manager import DownloadManager
 from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR, write_file
@@ -24,21 +25,22 @@ import sys_detection
 from sys_detection import SHORT_OS_NAME_REGEX_STR, is_compatible_os_and_version
 
 
-LLVM_VERSION_FROM_ARCHIVE_NAME_RE = re.compile(
-        rf'^yb-llvm-v(.*)-[0-9]+-[0-9a-f]+-.*')
-
-
-def get_llvm_url(tag: str) -> str:
-    return 'https://github.com/yugabyte/build-clang/releases/download/%s/yb-llvm-%s.tar.gz' % (
-            tag, tag)
+INSTALLER_VERSION_FROM_ARCHIVE_NAME_RE = re.compile(
+        rf'^yb-(?:llvm|gcc)-v(.*)-[0-9]+-[0-9a-f]+-.*')
 
 
 MIN_LLVM_VERSION = 14
 MAX_LLVM_VERSION = 19
+MIN_GCC_VERSION = 12
+MAX_GCC_VERSION = 15
 
 LLVM_VERSIONS = list(range(MIN_LLVM_VERSION, MAX_LLVM_VERSION + 1))
+GCC_VERSIONS = list(range(MIN_GCC_VERSION, MAX_GCC_VERSION + 1))
 
-TOOLCHAIN_TYPES = ['llvm%d' % v for v in LLVM_VERSIONS]
+TOOLCHAIN_TYPES = (
+    ['llvm%d' % v for v in LLVM_VERSIONS] +
+    ['gcc%d' % v for v in GCC_VERSIONS]
+)
 
 
 class Toolchain:
@@ -76,14 +78,14 @@ class Toolchain:
         write_file(os.path.join(YB_THIRDPARTY_DIR, 'toolchain_url.txt'), self.toolchain_url)
         write_file(os.path.join(YB_THIRDPARTY_DIR, 'toolchain_path.txt'), self.toolchain_root)
 
-    def get_llvm_version_str(self) -> str:
-        if not self.toolchain_type.startswith('llvm'):
-            raise ValueError('Expected an LLVM toolchain type, found: %s' % self.toolchain_type)
+    def get_installer_version_str(self) -> str:
+        if not self.toolchain_type.startswith('llvm') and not self.toolchain_type.startswith('gcc'):
+            raise ValueError('Expected an LLVM/GCC toolchain type, found: %s' % self.toolchain_type)
         archive_name = os.path.basename(self.toolchain_url)
-        url_match = LLVM_VERSION_FROM_ARCHIVE_NAME_RE.match(archive_name)
+        url_match = INSTALLER_VERSION_FROM_ARCHIVE_NAME_RE.match(archive_name)
         if not url_match:
             raise ValueError(
-                    'Could not extract LLVM version from download URL: %s' % archive_name)
+                    'Could not extract LLVM/GCC version from download URL: %s' % archive_name)
         return url_match.group(1)
 
 
@@ -103,13 +105,19 @@ def ensure_toolchains_installed(
 
 
 def get_toolchain_url(toolchain_type: str) -> str:
-    assert toolchain_type.startswith('llvm')
     local_sys_conf = sys_detection.local_sys_conf()
-    major_llvm_version = int(toolchain_type[4:])
-    llvm_installer = LlvmInstaller(
-        short_os_name_and_version=local_sys_conf.short_os_name_and_version(),
-        architecture=local_sys_conf.architecture)
-    return llvm_installer.get_llvm_url(major_llvm_version=major_llvm_version)
+    if toolchain_type.startswith('llvm'):
+        major_version = int(toolchain_type[4:])
+        llvm_installer = LlvmInstaller(
+            short_os_name_and_version=local_sys_conf.short_os_name_and_version(),
+            architecture=local_sys_conf.architecture)
+        return llvm_installer.get_llvm_url(major_llvm_version=major_version)
+    else:
+        major_version = int(toolchain_type[3:])
+        gcc_installer = GCCInstaller(
+            short_os_name_and_version=local_sys_conf.short_os_name_and_version(),
+            architecture=local_sys_conf.architecture)
+        return gcc_installer.get_gcc_url(major_gcc_version=major_version)
 
 
 def ensure_toolchain_installed(
@@ -124,6 +132,8 @@ def ensure_toolchain_installed(
 
     if toolchain_type.startswith('llvm'):
         parent_dir = '/opt/yb-build/llvm'
+    elif toolchain_type.startswith('gcc'):
+        parent_dir = '/opt/yb-build/gcc'
     else:
         raise RuntimeError(
             f"We don't know where to install toolchain of type f{toolchain_type}")

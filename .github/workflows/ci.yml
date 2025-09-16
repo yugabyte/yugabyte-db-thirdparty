@@ -52,9 +52,7 @@ jobs:
             runs_on: ubuntu-24.04
             docker_image: yugabyteci/yb_build_infra_ubuntu2204_x86_64:v2024-09-20T23_57_46
             build_thirdparty_args: >-
-              --compiler-prefix=/usr
-              --compiler-family=gcc
-              --compiler-suffix=-12
+              --toolchain=gcc12
             architecture: x86_64
 
           - name: ubuntu2204-x86_64-clang17
@@ -115,7 +113,7 @@ jobs:
             runs_on: ubuntu-24.04
             docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2024-09-20T20_33_55
             build_thirdparty_args: >-
-              --devtoolset=12
+              --toolchain=gcc12
             architecture: x86_64
 
           - name: almalinux8-x86_64-gcc13

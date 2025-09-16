@@ -214,6 +214,8 @@ class Builder(BuilderInterface):
             self.toolchain.write_url_and_path_files()
             if self.args.toolchain.startswith('llvm'):
                 compiler_family = 'clang'
+            else:
+                compiler_family = 'gcc'
         elif self.args.devtoolset:
             compiler_family = 'gcc'
         elif self.args.compiler_prefix:
@@ -267,6 +269,8 @@ class Builder(BuilderInterface):
         if self.args.expected_major_compiler_version is None:
             if self.args.toolchain and re.match('^llvm[0-9]+$', self.args.toolchain):
                 self.args.expected_major_compiler_version = int(self.args.toolchain[4:])
+            if self.args.toolchain and re.match('^gcc[0-9]+$', self.args.toolchain):
+                self.args.expected_major_compiler_version = int(self.args.toolchain[3:])
             elif self.args.devtoolset is not None:
                 self.args.expected_major_compiler_version = self.args.devtoolset
             elif re.match('^-[0-9]+$', self.args.compiler_suffix):
@@ -281,7 +285,8 @@ class Builder(BuilderInterface):
             compiler_suffix=self.args.compiler_suffix,
             devtoolset=self.args.devtoolset,
             use_ccache=self.args.use_ccache,
-            expected_major_compiler_version=self.args.expected_major_compiler_version
+            expected_major_compiler_version=self.args.expected_major_compiler_version,
+            from_installer=self.args.toolchain is not None
         )
 
         llvm_major_version: Optional[int] = self.compiler_choice.get_llvm_major_version()
@@ -323,9 +328,9 @@ class Builder(BuilderInterface):
             if (self.compiler_choice.is_clang() and
                     llvm_major_version is not None and llvm_major_version >= 10):
                 if self.toolchain:
-                    llvm_version_str = self.toolchain.get_llvm_version_str()
+                    llvm_version_str = self.toolchain.get_installer_version_str()
                 else:
-                    llvm_version_str = self.compiler_choice.get_llvm_version_str()
+                    llvm_version_str = self.compiler_choice.get_installer_version_str()
 
                 self.dependencies.append(
                     get_build_def_module('llvm_libunwind').LlvmLibUnwindDependency(
@@ -487,6 +492,10 @@ class Builder(BuilderInterface):
 
             self.add_include_path(os.path.join(build_type_parent_dir, 'include'))
             self.add_lib_dir_and_rpath(os.path.join(build_type_parent_dir, 'lib'))
+
+        if self.toolchain:
+            self.add_lib_dir_and_rpath(os.path.join(self.toolchain.toolchain_root, 'lib'))
+            self.add_lib_dir_and_rpath(os.path.join(self.toolchain.toolchain_root, 'lib64'))
 
         self.compiler_flags += ['-fno-omit-frame-pointer', '-fPIC', '-O3', '-Wall', '-DNDEBUG']
         if is_linux():
@@ -983,7 +992,7 @@ class Builder(BuilderInterface):
         """
         self.init_compiler_independent_flags(dep)
 
-        if not is_macos() and self.compiler_choice.using_clang():
+        if not is_macos() and self.compiler_choice.is_clang():
             # Special setup for Clang on Linux.
             compiler_choice = self.compiler_choice
             llvm_major_version: Optional[int] = compiler_choice.get_llvm_major_version()
@@ -992,7 +1001,7 @@ class Builder(BuilderInterface):
             else:
                 raise ValueError(f"Unknown or unsupproted LLVM major version: {llvm_major_version}")
 
-        if self.compiler_choice.using_gcc():
+        if self.compiler_choice.is_gcc():
             self.cxx_flags.append('-fext-numeric-literals')
 
         if is_linux():
