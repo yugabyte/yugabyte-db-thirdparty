@@ -23,7 +23,7 @@ class PatchElfDependency(Dependency):
     def __init__(self) -> None:
         super(PatchElfDependency, self).__init__(
             name='patchelf',
-            version='0.18.0',
+            version='0.17.2',
             url_pattern='https://github.com/yugabyte/patchelf/archive/refs/tags/{0}.zip',
             build_group=BuildGroup.CXX_UNINSTRUMENTED)
         self.copy_sources = True
