@@ -306,9 +306,6 @@ if [[ -z ${YB_SKIP_UPLOAD:-} ]]; then
 fi
 
 (
-  if [[ -n ${YB_LINUXBREW_DIR:-} ]]; then
-    export PATH=$YB_LINUXBREW_DIR/bin:$PATH
-  fi
   set -x
   "${build_thirdparty_cmd_args[@]}"
 )

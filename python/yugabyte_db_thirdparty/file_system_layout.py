@@ -21,7 +21,6 @@ from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR, remove_path
 from yugabyte_db_thirdparty.dependency import Dependency
 from yugabyte_db_thirdparty.custom_logging import heading, log
 from yugabyte_db_thirdparty.compiler_choice import CompilerChoice
-from yugabyte_db_thirdparty.linuxbrew import using_linuxbrew
 from yugabyte_db_thirdparty.arch import get_target_arch
 
 from build_definitions import BuildType
