@@ -28,5 +28,8 @@ class NCursesDependency(Dependency):
         extra_args = ['--with-shared', '--with-default-terminfo-dir=/usr/share/terminfo']
         builder.build_with_configure(dep=self, extra_configure_args=extra_args)
 
+    def get_additional_c_flags(self, builder: BuilderInterface) -> List[str]:
+        return ['-std=gnu17']
+
     def use_cppflags_env_var(self) -> bool:
         return True

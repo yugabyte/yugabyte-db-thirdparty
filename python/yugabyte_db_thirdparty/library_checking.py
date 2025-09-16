@@ -152,12 +152,12 @@ class LibTestBase:
         self.tp_installed_dir = fs_layout.tp_installed_dir
 
     def configure_for_compiler(self, compiler_choice: CompilerChoice) -> None:
-        if compiler_choice.using_gcc():
+        if compiler_choice.is_gcc():
             # The GCC toolchain links with the libstdc++ library in a system-wide location.
             self.allowed_system_libraries.add('libstdc++')
 
-        if (compiler_choice.using_gcc() or
-                compiler_choice.using_clang() and
+        if (compiler_choice.is_gcc() or
+                compiler_choice.is_clang() and
                 compiler_choice.is_llvm_major_version_at_least(13)):
             # For GCC and Clang 13+, there are some issues with removing the libgcc_s dependency
             # from libraries even if it is apparently not needed as shown by "ldd -u".
@@ -166,7 +166,7 @@ class LibTestBase:
             # For Clang 12, it looks like we can safely remove the libgcc_s dependency.
             self.needed_libs_to_remove.add('libgcc_s')
 
-        if compiler_choice.using_gcc_major_version_at_least(11):
+        if compiler_choice.is_gcc_major_version_at_least(11):
             # When building DiskANN with GCC 11+, we end up using the system OpenMP library called
             # libgomp.so.1.
             self.allowed_system_libraries.add('libgomp')
