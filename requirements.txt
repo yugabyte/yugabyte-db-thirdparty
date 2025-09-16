@@ -7,5 +7,6 @@ packaging
 pycodestyle
 ruamel.yaml
 sys-detection
+yb-gcc-installer @ git+https://github.com/es1024/yb-gcc-installer
 yugabyte_pycommon
 argparse_utils
