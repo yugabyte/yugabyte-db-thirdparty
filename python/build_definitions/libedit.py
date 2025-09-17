@@ -25,6 +25,7 @@ class LibEditDependency(Dependency):
               url_pattern='https://github.com/yugabyte/libedit/archive/libedit-{}.tar.gz',
               build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = True
+        self.patches = ['libedit-ignore-missing-cookie.patch']
 
     def get_additional_compiler_flags(self, builder: BuilderInterface) -> List[str]:
         flags = ['-I%s' % os.path.join(builder.prefix_include, 'ncurses')]
