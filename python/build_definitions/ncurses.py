@@ -19,7 +19,7 @@ class NCursesDependency(Dependency):
     def __init__(self) -> None:
         super(NCursesDependency, self).__init__(
             'ncurses',
-            '6.3',
+            '6.4',
             'https://ftp.gnu.org/pub/gnu/ncurses/ncurses-{0}.tar.gz',
             BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = True
