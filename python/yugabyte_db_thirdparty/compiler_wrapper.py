@@ -192,6 +192,10 @@ class CompilerWrapper:
             self.compiler_args, pp_output_path)
 
         pp_args.append('-E')
+
+        # Preprocessor never needs -c argument.
+        pp_args = [arg for arg in pp_args if arg != '-c']
+
         subprocess.check_call(pp_args)
         assert pp_output_path is not None
         assert os.path.isfile(pp_output_path), (
