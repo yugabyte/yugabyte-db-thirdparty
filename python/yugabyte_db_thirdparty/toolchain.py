@@ -34,7 +34,7 @@ def get_llvm_url(tag: str) -> str:
 
 
 MIN_LLVM_VERSION = 14
-MAX_LLVM_VERSION = 19
+MAX_LLVM_VERSION = 21
 
 LLVM_VERSIONS = list(range(MIN_LLVM_VERSION, MAX_LLVM_VERSION + 1))
 
