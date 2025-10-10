@@ -184,6 +184,13 @@ jobs:
               --toolchain=llvm19
             architecture: x86_64
 
+          - name: almalinux9-x86_64-clang21
+            runs_on: ubuntu-24.04
+            docker_image: yugabyteci/yb_build_infra_almalinux9_x86_64:v2024-09-20T20_33_54
+            build_thirdparty_args: >-
+              --toolchain=llvm21
+            architecture: x86_64
+
           # ---------------------------------------------------------------------------------------
           # macOS
           # ---------------------------------------------------------------------------------------
