@@ -39,15 +39,6 @@ jobs:
           # Ubuntu 22.04
           # ---------------------------------------------------------------------------------------
 
-          - name: ubuntu2204-x86_64-gcc11
-            runs_on: ubuntu-24.04  # For the top-level VM only. We use Docker in it.
-            docker_image: yugabyteci/yb_build_infra_ubuntu2204_x86_64:v2024-09-20T23_57_46
-            build_thirdparty_args: >-
-              --compiler-prefix=/usr
-              --compiler-family=gcc
-              --compiler-suffix=-11
-            architecture: x86_64
-
           - name: ubuntu2204-x86_64-gcc12
             runs_on: ubuntu-24.04
             docker_image: yugabyteci/yb_build_infra_ubuntu2204_x86_64:v2024-09-20T23_57_46
@@ -103,13 +94,6 @@ jobs:
           # ---------------------------------------------------------------------------------------
           # AlmaLinux 8
           # ---------------------------------------------------------------------------------------
-
-          - name: almalinux8-x86_64-gcc11
-            runs_on: ubuntu-24.04
-            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2024-09-20T20_33_55
-            build_thirdparty_args: >-
-              --devtoolset=11
-            architecture: x86_64
 
           - name: almalinux8-x86_64-gcc12
             runs_on: ubuntu-24.04
