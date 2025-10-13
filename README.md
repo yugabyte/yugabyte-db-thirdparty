@@ -60,11 +60,17 @@ export YB_THIRDPARTY_DIR=~/code/yugabyte-db-thirdparty
 
 * Once you have tested your changes, create a PR in yugabyte-db-thirdparty with a descriptive commit message.
 
-## Integrating changes into yugabyte-db
-If `YB_THIRDPARTY_DIR` is not set, yugabyte-db uses `thirdparty_archives.yml` to decide which thirdparty archive to use for each build. You can easily update this list using thirdparty_tool.py. From the yugabyte-db root:
+* Once your PR has finished building, you can update `thirdparty_archives.yml` on yugabyte-db in order to build with your thirdparty changes on Jenkins and run unit tests. From the yugabyte-db root:
+```
+./build-support/thirdparty_tool --update --thirdparty-pr 99999
+```
+replacing 99999 with the number of your PR. You can then commit the changes to `thirdparty_archives.yml` and open a revision.
+
+* Once your PR has been merged, wait for builds for the commit to finish, update `thirdparty_archives.yml` on yugabyte-db again to pick up the final builds. From the yugabyte-db root:
 ```
 ./build-support/thirdparty_tool --update
 ``` 
+These changes need to then be committed and landed onto yugabyte-db.
 
 ## Working on a third-party dependency C/C++ codebase using using Visual Studio Code and Clangd
 
