@@ -78,7 +78,6 @@ def get_final_dependency_module_names(compiler_choice: CompilerChoice) -> List[s
         'googletest',
         'snappy',
         'crcutil',
-        'libcds',
         'libuv',
         'cassandra_cpp_driver',
         'krb5',
