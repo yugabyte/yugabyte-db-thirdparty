@@ -180,7 +180,7 @@ jobs:
           # ---------------------------------------------------------------------------------------
 
           - name: macos-x86_64
-            runs_on: macos-14-intel
+            runs_on: macos-14-large
             docker_image:
             build_thirdparty_args: --enforce_arch=x86_64
             architecture: x86_64
