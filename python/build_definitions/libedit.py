@@ -21,7 +21,7 @@ class LibEditDependency(Dependency):
     def __init__(self) -> None:
         super(LibEditDependency, self).__init__(
               name='libedit',
-              version='20191231-3.1',
+              version='20191231-3.1-yb-1',
               url_pattern='https://github.com/yugabyte/libedit/archive/libedit-{}.tar.gz',
               build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = True
