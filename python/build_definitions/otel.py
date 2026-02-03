@@ -26,7 +26,8 @@ class OtelDependency(Dependency):
             url_pattern='https://github.com/open-telemetry/opentelemetry-cpp/'
                         + 'archive/refs/tags/v{0}.tar.gz',
             build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
-        # No patches needed for linux build, not sure about macOS, was not able to verify it manually
+        # No patches needed for linux build, not sure about macOS,
+        # was not able to verify it manually
         # Commented out macOS patch for now
         # self.patches = ['add_macOS_missing_dependencies.patch']
         self.copy_sources = False
@@ -44,5 +45,7 @@ class OtelDependency(Dependency):
                                   '-DWITH_OTLP=ON',
                                   '-DWITH_OTLP_HTTP=ON',
                                   '-DWITH_BENCHMARK=OFF',
-                                  "-DCMAKE_PREFIX_PATH={uninst};{common}".format(uninst=builder.prefix, common=installed_common_dir),
+                                  "-DCMAKE_PREFIX_PATH={uninst};{common}".format(
+                                      uninst=builder.prefix,
+                                      common=installed_common_dir),
                                   "-DOTELCPP_PROTO_PATH={path}".format(path=src_dir)])
