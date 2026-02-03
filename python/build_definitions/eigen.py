@@ -12,6 +12,7 @@
 # under the License.
 #
 
+import os
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
 
@@ -33,4 +34,17 @@ class EigenDependency(Dependency):
     #             '-DENABLE_EXTRA_ALIGNMENT=OFF']
 
     def build(self, builder: BuilderInterface) -> None:
-        builder.build_with_cmake(self, shared_and_static=True)
+        include_dir =builder.prefix_include
+        os.makedirs(include_dir, exist_ok=True)
+
+        for root, _, files in os.walk("Eigen"):
+            for file in files:
+                src_path = os.path.join(root, file)
+                dest_path = os.path.join(include_dir, src_path)
+                #print what is being copied
+                print(f"Copying {src_path} to {dest_path}")
+                # Copy and create the directory if it doesn't exist
+                os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+                builder.log_output(builder.log_prefix(self), ['cp', src_path, dest_path])
+
+        # builder.log_output(builder.log_prefix(self), ['cp', 'libbid.a', builder.prefix_lib])
