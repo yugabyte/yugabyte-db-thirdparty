@@ -26,8 +26,6 @@ class HwyDependency(Dependency):
         self.copy_sources = True
 
     def build(self, builder: BuilderInterface) -> None:
-        # set(HWY_ENABLE_TESTS ON CACHE BOOL "Enable HWY tests")
-        # disable tests by default
         extra_cmake_args = [
             '-DHWY_ENABLE_TESTS=OFF',
         ]
