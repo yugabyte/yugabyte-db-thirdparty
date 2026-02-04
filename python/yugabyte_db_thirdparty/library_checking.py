@@ -59,7 +59,6 @@ IGNORED_FILE_NAMES = set([
 
 IGNORED_DIR_SUFFIXES = (
     '/include/c++/v1',
-    '/include/c++/v1/__cxx03',
     '/include/c++/v1/experimental',
     '/include/c++/v1/ext',
 )
@@ -97,10 +96,7 @@ def compile_re_list(re_list: List[str]) -> Any:
 
 
 def get_needed_libs(file_path: str) -> List[str]:
-    if (file_path.endswith(IGNORED_EXTENSIONS) or
-            os.path.basename(file_path) in IGNORED_FILE_NAMES or
-            '/include/c++/v1/' in file_path or
-            file_path.endswith('/include/c++/v1')):
+    if file_path.endswith(IGNORED_EXTENSIONS) or os.path.basename(file_path) in IGNORED_FILE_NAMES:
         return []
     return capture_all_output(
         [patchelf_util.get_patchelf_path(), '--print-needed', file_path],
@@ -216,10 +212,6 @@ class LibTestBase:
                 is_text_based_so_file(file_path) or
                 file_path.endswith(IGNORED_EXTENSIONS) or
                 os.path.basename(file_path) in IGNORED_FILE_NAMES):
-            return False
-
-        # Skip all files under libc++ include directories (headers, config files, etc.)
-        if '/include/c++/v1/' in file_path or file_path.endswith('/include/c++/v1'):
             return False
 
         file_dir = os.path.dirname(file_path)
