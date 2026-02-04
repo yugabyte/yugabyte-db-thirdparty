@@ -12,18 +12,25 @@
 # under the License.
 #
 
+import os
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
 
-class HwyDependency(Dependency):
+class CnpyDependency(Dependency):
     def __init__(self) -> None:
-        super(HwyDependency, self).__init__(
-            name='hwy',
-            version='1.3.0',
-            url_pattern='https://github.com/google/highway/archive/refs/tags/'
+        super(CnpyDependency, self).__init__(
+            name='cnpy',
+            version='57184ee0db37cac383fc29175950747a46a8b512',
+            url_pattern='https://github.com/sammymax/cnpy/archive/'
                         '{0}.tar.gz',
             build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = True
 
     def build(self, builder: BuilderInterface) -> None:
         builder.build_with_cmake(self, shared_and_static=True)
+
+        include_dir = os.path.join(builder.prefix_include, "cnpy")
+        os.makedirs(include_dir, exist_ok=True)
+        dest_path = os.path.join(include_dir, 'cnpy.h')
+        file_path = os.path.join('cnpy', 'cnpy.h')
+        builder.log_output(builder.log_prefix(self), ['cp', file_path, dest_path])

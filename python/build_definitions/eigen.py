@@ -25,26 +25,13 @@ class EigenDependency(Dependency):
             build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = True
 
-    # def get_additional_cmake_args(self, builder: 'BuilderInterface') -> List[str]:
-    #     return [
-    #             '-DENABLE_MONGOC=OFF',
-    #             '-DMONGOC_ENABLE_ICU=OFF'
-    #             '-DENABLE_ICU=OFF',
-    #             '-DENABLE_ZSTD=OFF',
-    #             '-DENABLE_EXTRA_ALIGNMENT=OFF']
-
     def build(self, builder: BuilderInterface) -> None:
-        include_dir =builder.prefix_include
+        include_dir = builder.prefix_include
         os.makedirs(include_dir, exist_ok=True)
 
         for root, _, files in os.walk("Eigen"):
             for file in files:
                 src_path = os.path.join(root, file)
                 dest_path = os.path.join(include_dir, src_path)
-                #print what is being copied
-                print(f"Copying {src_path} to {dest_path}")
-                # Copy and create the directory if it doesn't exist
                 os.makedirs(os.path.dirname(dest_path), exist_ok=True)
                 builder.log_output(builder.log_prefix(self), ['cp', src_path, dest_path])
-
-        # builder.log_output(builder.log_prefix(self), ['cp', 'libbid.a', builder.prefix_lib])
