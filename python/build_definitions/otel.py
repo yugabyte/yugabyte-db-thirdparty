@@ -26,10 +26,6 @@ class OtelDependency(Dependency):
             url_pattern='https://github.com/open-telemetry/opentelemetry-cpp/'
                         + 'archive/refs/tags/v{0}.tar.gz',
             build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
-        # No patches needed for linux build, not sure about macOS,
-        # was not able to verify it manually
-        # Commented out macOS patch for now
-        # self.patches = ['add_macOS_missing_dependencies.patch']
         self.copy_sources = False
 
     def build(self, builder: BuilderInterface) -> None:
