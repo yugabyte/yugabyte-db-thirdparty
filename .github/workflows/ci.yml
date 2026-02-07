@@ -193,6 +193,24 @@ jobs:
             build_thirdparty_args: --enforce_arch=arm64
             architecture: arm64
 
+          - name: macos-x86_64-clang19
+            runs_on: macos-13
+            docker_image:
+            build_thirdparty_args: >-
+              --enforce_arch=x86_64
+              --toolchain=llvm19
+            architecture: x86_64
+
+          - name: macos-arm64-clang19
+            # According to https://github.com/orgs/community/discussions/69211, this is the runner
+            # type that corresponds to Apple Silicon.
+            runs_on: macos-13-xlarge
+            docker_image:
+            build_thirdparty_args: >-
+              --enforce_arch=arm64
+              --toolchain=llvm19
+            architecture: arm64
+
           # ---------------------------------------------------------------------------------------
           # aarch64 - almalinux8 builds
           # ---------------------------------------------------------------------------------------

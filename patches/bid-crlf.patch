@@ -16,6 +16,15 @@ diff -au -ruN a/LIBRARY/makefile b/LIBRARY/makefile
  
  $(SRC_DIR)/bid_trans.h : $(SRC_DIR)/bid_internal.h
  	touch $@
+@@ -399,7 +399,7 @@
+ F128_PLATFORM_FLAGS := $(foreach n, IML_HOST_ARCH IML_HOST_OS CC_NAME \
+                         ,-D$(call ToLower,$($n)))
+ 
+-F128_CFLAGS := $(CFLAGS_OPT) -DUSE_NATIVE_QUAD_TYPE=0 $(F128_PLATFORM_FLAGS)
++F128_CFLAGS := $(CFLAGS) -DUSE_NATIVE_QUAD_TYPE=0 $(F128_PLATFORM_FLAGS)
+ 
+ F128_HDR_NAMES := bessel cons int  lgamma powi sqrt     bid  erf inv_hyper \
+                   log    pow  trig cbrt   exp  inv_trig mod
 @@ -430,7 +430,7 @@
  $(F128_HDR_OBJS) :: $(OBJ_DIR)/dpml_ux_%.$O : $(F128_DIR)/dpml_%_x.h
  
