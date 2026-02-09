@@ -1,0 +1,326 @@
+diff -ruN -x p a/MODULE.bazel b/MODULE.bazel
+--- a/MODULE.bazel	2025-02-06 17:29:40
++++ b/MODULE.bazel	2026-02-09 09:49:31
+@@ -40,3 +40,9 @@
+ 
+ bazel_dep(name = "platforms",
+           version = "0.0.10")
++
++bazel_dep(name = "rules_cc",
++          version = "0.1.0")
++
++bazel_dep(name = "rules_foreign_cc",
++          version = "0.13.0")
+diff -ruN -x p a/absl/BUILD.bazel b/absl/BUILD.bazel
+--- a/absl/BUILD.bazel	2025-02-06 17:29:40
++++ b/absl/BUILD.bazel	2026-02-09 09:47:05
+@@ -21,6 +21,7 @@
+     "ABSL_DEFAULT_LINKOPTS",
+ )
+ load("//absl:cc_static_library.bzl", "cc_static_library")
++load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
+ 
+ package(default_visibility = ["//visibility:public"])
+ 
+diff -ruN -x p a/absl/algorithm/BUILD.bazel b/absl/algorithm/BUILD.bazel
+--- a/absl/algorithm/BUILD.bazel	2025-02-06 17:29:40
++++ b/absl/algorithm/BUILD.bazel	2026-02-09 09:47:05
+@@ -20,6 +20,7 @@
+     "ABSL_DEFAULT_LINKOPTS",
+     "ABSL_TEST_COPTS",
+ )
++load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+ 
+ package(
+     default_visibility = ["//visibility:public"],
+diff -ruN -x p a/absl/base/BUILD.bazel b/absl/base/BUILD.bazel
+--- a/absl/base/BUILD.bazel	2025-02-06 17:29:40
++++ b/absl/base/BUILD.bazel	2026-02-09 09:47:05
+@@ -20,6 +20,7 @@
+     "ABSL_DEFAULT_LINKOPTS",
+     "ABSL_TEST_COPTS",
+ )
++load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
+ 
+ package(
+     default_visibility = ["//visibility:public"],
+diff -ruN -x p a/absl/cc_static_library.bzl b/absl/cc_static_library.bzl
+--- a/absl/cc_static_library.bzl	2025-02-06 17:29:40
++++ b/absl/cc_static_library.bzl	2026-02-09 09:50:47
+@@ -1,14 +1,29 @@
++load("@rules_cc//cc/common:cc_info.bzl", "CcInfo")
++
+ def _cc_static_library_impl(ctx):
+     cc = ctx.attr.dep[CcInfo]
+-    libraries = []
++    objects = []
++    static_libs = []
+     for link_input in cc.linking_context.linker_inputs.to_list():
+         for library in link_input.libraries:
+-            libraries += library.pic_objects
+-    args = ["r", ctx.outputs.out.path] + [f.path for f in libraries]
++            if library.pic_objects:
++                objects += library.pic_objects
++            elif library.objects:
++                objects += library.objects
++            elif library.pic_static_library:
++                static_libs.append(library.pic_static_library)
++            elif library.static_library:
++                static_libs.append(library.static_library)
++    if objects:
++        all_inputs = objects
++        args = ["-static", "-o", ctx.outputs.out.path] + [f.path for f in objects]
++    else:
++        all_inputs = static_libs
++        args = ["-static", "-o", ctx.outputs.out.path] + [f.path for f in static_libs]
+     ctx.actions.run(
+-        inputs = libraries,
++        inputs = all_inputs,
+         outputs = [ctx.outputs.out],
+-        executable = "/usr/bin/ar",
++        executable = "/usr/bin/libtool",
+         arguments = args,
+     )
+     return [DefaultInfo()]
+diff -ruN -x p a/absl/cleanup/BUILD.bazel b/absl/cleanup/BUILD.bazel
+--- a/absl/cleanup/BUILD.bazel	2025-02-06 17:29:40
++++ b/absl/cleanup/BUILD.bazel	2026-02-09 09:47:05
+@@ -18,6 +18,7 @@
+     "ABSL_DEFAULT_LINKOPTS",
+     "ABSL_TEST_COPTS",
+ )
++load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+ 
+ package(
+     default_visibility = ["//visibility:public"],
+diff -ruN -x p a/absl/container/BUILD.bazel b/absl/container/BUILD.bazel
+--- a/absl/container/BUILD.bazel	2025-02-06 17:29:40
++++ b/absl/container/BUILD.bazel	2026-02-09 09:47:05
+@@ -20,6 +20,7 @@
+     "ABSL_DEFAULT_LINKOPTS",
+     "ABSL_TEST_COPTS",
+ )
++load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
+ 
+ package(
+     default_visibility = ["//visibility:public"],
+diff -ruN -x p a/absl/crc/BUILD.bazel b/absl/crc/BUILD.bazel
+--- a/absl/crc/BUILD.bazel	2025-02-06 17:29:40
++++ b/absl/crc/BUILD.bazel	2026-02-09 09:47:05
+@@ -18,6 +18,7 @@
+     "ABSL_DEFAULT_LINKOPTS",
+     "ABSL_TEST_COPTS",
+ )
++load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
+ 
+ package(
+     default_visibility = ["//visibility:private"],
+diff -ruN -x p a/absl/debugging/BUILD.bazel b/absl/debugging/BUILD.bazel
+--- a/absl/debugging/BUILD.bazel	2025-02-06 17:29:40
++++ b/absl/debugging/BUILD.bazel	2026-02-09 09:47:05
+@@ -20,6 +20,7 @@
+     "ABSL_DEFAULT_LINKOPTS",
+     "ABSL_TEST_COPTS",
+ )
++load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
+ 
+ package(
+     default_visibility = ["//visibility:public"],
+diff -ruN -x p a/absl/flags/BUILD.bazel b/absl/flags/BUILD.bazel
+--- a/absl/flags/BUILD.bazel	2025-02-06 17:29:40
++++ b/absl/flags/BUILD.bazel	2026-02-09 09:47:05
+@@ -20,6 +20,7 @@
+     "ABSL_DEFAULT_LINKOPTS",
+     "ABSL_TEST_COPTS",
+ )
++load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
+ 
+ package(
+     default_visibility = ["//visibility:public"],
+diff -ruN -x p a/absl/functional/BUILD.bazel b/absl/functional/BUILD.bazel
+--- a/absl/functional/BUILD.bazel	2025-02-06 17:29:40
++++ b/absl/functional/BUILD.bazel	2026-02-09 09:47:05
+@@ -20,6 +20,7 @@
+     "ABSL_DEFAULT_LINKOPTS",
+     "ABSL_TEST_COPTS",
+ )
++load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+ 
+ package(
+     default_visibility = ["//visibility:public"],
+diff -ruN -x p a/absl/hash/BUILD.bazel b/absl/hash/BUILD.bazel
+--- a/absl/hash/BUILD.bazel	2025-02-06 17:29:40
++++ b/absl/hash/BUILD.bazel	2026-02-09 09:47:05
+@@ -20,6 +20,7 @@
+     "ABSL_DEFAULT_LINKOPTS",
+     "ABSL_TEST_COPTS",
+ )
++load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
+ 
+ package(
+     default_visibility = ["//visibility:public"],
+diff -ruN -x p a/absl/log/BUILD.bazel b/absl/log/BUILD.bazel
+--- a/absl/log/BUILD.bazel	2025-02-06 17:29:40
++++ b/absl/log/BUILD.bazel	2026-02-09 09:47:05
+@@ -20,6 +20,7 @@
+     "ABSL_DEFAULT_LINKOPTS",
+     "ABSL_TEST_COPTS",
+ )
++load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+ 
+ package(
+     default_visibility = ["//visibility:public"],
+diff -ruN -x p a/absl/log/internal/BUILD.bazel b/absl/log/internal/BUILD.bazel
+--- a/absl/log/internal/BUILD.bazel	2025-02-06 17:29:40
++++ b/absl/log/internal/BUILD.bazel	2026-02-09 09:47:05
+@@ -20,6 +20,7 @@
+     "ABSL_DEFAULT_LINKOPTS",
+     "ABSL_TEST_COPTS",
+ )
++load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
+ 
+ package(
+     default_visibility = [
+diff -ruN -x p a/absl/memory/BUILD.bazel b/absl/memory/BUILD.bazel
+--- a/absl/memory/BUILD.bazel	2025-02-06 17:29:40
++++ b/absl/memory/BUILD.bazel	2026-02-09 09:47:05
+@@ -20,6 +20,7 @@
+     "ABSL_DEFAULT_LINKOPTS",
+     "ABSL_TEST_COPTS",
+ )
++load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+ 
+ package(
+     default_visibility = ["//visibility:public"],
+diff -ruN -x p a/absl/meta/BUILD.bazel b/absl/meta/BUILD.bazel
+--- a/absl/meta/BUILD.bazel	2025-02-06 17:29:40
++++ b/absl/meta/BUILD.bazel	2026-02-09 09:47:05
+@@ -20,6 +20,7 @@
+     "ABSL_DEFAULT_LINKOPTS",
+     "ABSL_TEST_COPTS",
+ )
++load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+ 
+ package(
+     default_visibility = ["//visibility:public"],
+diff -ruN -x p a/absl/numeric/BUILD.bazel b/absl/numeric/BUILD.bazel
+--- a/absl/numeric/BUILD.bazel	2025-02-06 17:29:40
++++ b/absl/numeric/BUILD.bazel	2026-02-09 09:47:05
+@@ -18,6 +18,7 @@
+     "ABSL_DEFAULT_LINKOPTS",
+     "ABSL_TEST_COPTS",
+ )
++load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
+ 
+ package(
+     default_visibility = ["//visibility:public"],
+diff -ruN -x p a/absl/profiling/BUILD.bazel b/absl/profiling/BUILD.bazel
+--- a/absl/profiling/BUILD.bazel	2025-02-06 17:29:40
++++ b/absl/profiling/BUILD.bazel	2026-02-09 09:47:05
+@@ -18,6 +18,7 @@
+     "ABSL_DEFAULT_LINKOPTS",
+     "ABSL_TEST_COPTS",
+ )
++load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
+ 
+ package(
+     default_visibility = ["//visibility:private"],
+diff -ruN -x p a/absl/random/BUILD.bazel b/absl/random/BUILD.bazel
+--- a/absl/random/BUILD.bazel	2025-02-06 17:29:40
++++ b/absl/random/BUILD.bazel	2026-02-09 09:47:05
+@@ -22,6 +22,7 @@
+     "ABSL_DEFAULT_LINKOPTS",
+     "ABSL_TEST_COPTS",
+ )
++load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
+ 
+ package(
+     default_visibility = ["//visibility:public"],
+diff -ruN -x p a/absl/random/internal/BUILD.bazel b/absl/random/internal/BUILD.bazel
+--- a/absl/random/internal/BUILD.bazel	2025-02-06 17:29:40
++++ b/absl/random/internal/BUILD.bazel	2026-02-09 09:47:05
+@@ -23,6 +23,7 @@
+     "ABSL_TEST_COPTS",
+     "absl_random_randen_copts_init",
+ )
++load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
+ 
+ default_package_visibility = [
+     "//absl/random:__pkg__",
+diff -ruN -x p a/absl/status/BUILD.bazel b/absl/status/BUILD.bazel
+--- a/absl/status/BUILD.bazel	2025-02-06 17:29:40
++++ b/absl/status/BUILD.bazel	2026-02-09 09:47:05
+@@ -23,6 +23,7 @@
+     "ABSL_DEFAULT_LINKOPTS",
+     "ABSL_TEST_COPTS",
+ )
++load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+ 
+ package(
+     default_visibility = ["//visibility:public"],
+diff -ruN -x p a/absl/strings/BUILD.bazel b/absl/strings/BUILD.bazel
+--- a/absl/strings/BUILD.bazel	2025-02-06 17:29:40
++++ b/absl/strings/BUILD.bazel	2026-02-09 09:47:05
+@@ -19,6 +19,7 @@
+     "ABSL_DEFAULT_LINKOPTS",
+     "ABSL_TEST_COPTS",
+ )
++load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
+ 
+ package(
+     default_visibility = ["//visibility:public"],
+diff -ruN -x p a/absl/synchronization/BUILD.bazel b/absl/synchronization/BUILD.bazel
+--- a/absl/synchronization/BUILD.bazel	2025-02-06 17:29:40
++++ b/absl/synchronization/BUILD.bazel	2026-02-09 09:47:05
+@@ -20,6 +20,7 @@
+     "ABSL_DEFAULT_LINKOPTS",
+     "ABSL_TEST_COPTS",
+ )
++load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
+ 
+ package(
+     default_visibility = ["//visibility:private"],
+diff -ruN -x p a/absl/time/BUILD.bazel b/absl/time/BUILD.bazel
+--- a/absl/time/BUILD.bazel	2025-02-06 17:29:40
++++ b/absl/time/BUILD.bazel	2026-02-09 09:47:05
+@@ -20,6 +20,7 @@
+     "ABSL_DEFAULT_LINKOPTS",
+     "ABSL_TEST_COPTS",
+ )
++load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+ 
+ package(
+     default_visibility = ["//visibility:public"],
+diff -ruN -x p a/absl/time/internal/cctz/BUILD.bazel b/absl/time/internal/cctz/BUILD.bazel
+--- a/absl/time/internal/cctz/BUILD.bazel	2025-02-06 17:29:40
++++ b/absl/time/internal/cctz/BUILD.bazel	2026-02-09 09:47:05
+@@ -12,6 +12,7 @@
+ #   See the License for the specific language governing permissions and
+ #   limitations under the License.
+ 
++load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+ package(features = [
+     "header_modules",
+     "layering_check",
+diff -ruN -x p a/absl/types/BUILD.bazel b/absl/types/BUILD.bazel
+--- a/absl/types/BUILD.bazel	2025-02-06 17:29:40
++++ b/absl/types/BUILD.bazel	2026-02-09 09:47:05
+@@ -19,6 +19,7 @@
+     "ABSL_DEFAULT_LINKOPTS",
+     "ABSL_TEST_COPTS",
+ )
++load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+ 
+ package(
+     default_visibility = ["//visibility:public"],
+diff -ruN -x p a/absl/utility/BUILD.bazel b/absl/utility/BUILD.bazel
+--- a/absl/utility/BUILD.bazel	2025-02-06 17:29:40
++++ b/absl/utility/BUILD.bazel	2026-02-09 09:47:05
+@@ -20,6 +20,7 @@
+     "ABSL_DEFAULT_LINKOPTS",
+     "ABSL_TEST_COPTS",
+ )
++load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+ 
+ package(
+     default_visibility = ["//visibility:public"],

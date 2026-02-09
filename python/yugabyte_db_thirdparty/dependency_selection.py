@@ -56,7 +56,7 @@ def get_final_dependency_module_names(compiler_choice: CompilerChoice) -> List[s
         # Homebrew. libunistring is required by gettext.
         dep_names.extend(['libunistring', 'gettext'])
 
-    dep_names.append('ncurses')
+    dep_names.extend(['ncurses', 'abseil'])
 
     if is_linux():
         dep_names.extend(['libkeyutils', 'libverto', 'libaio', 'tcmalloc'])
@@ -67,7 +67,6 @@ def get_final_dependency_module_names(compiler_choice: CompilerChoice) -> List[s
             dep_names.append('patchelf')
 
     dep_names.extend([
-        'abseil',
         'libedit',
         'icu4c',
         'protobuf',

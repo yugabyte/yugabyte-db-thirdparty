@@ -862,6 +862,14 @@ class Builder(BuilderInterface):
 
         build_command.append("--verbose_failures")
 
+        if is_macos():
+            from yugabyte_db_thirdparty.macos import get_min_supported_macos_version
+            macos_min_ver = get_min_supported_macos_version()
+            build_command += [
+                "--macos_minimum_os=%s" % macos_min_ver,
+                "--action_env", "MACOSX_DEPLOYMENT_TARGET=%s" % macos_min_ver,
+            ]
+
         build_script_path = 'yb_build_with_bazel.sh'
         with open(build_script_path, 'w') as build_script_file:
             build_script_file.write('\n'.join([
