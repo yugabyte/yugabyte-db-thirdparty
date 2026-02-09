@@ -11,24 +11,6 @@ diff -ruN abseil-cpp-20240722.0-yb-1/MODULE.bazel abseil-cpp-20240722.0-yb-1-mod
 +
 +bazel_dep(name = "rules_foreign_cc",
 +          version = "0.13.0")
-diff -ruN abseil-cpp-20240722.0-yb-1/WORKSPACE abseil-cpp-20240722.0-yb-1-modified/WORKSPACE
---- abseil-cpp-20240722.0-yb-1/WORKSPACE
-+++ abseil-cpp-20240722.0-yb-1-modified/WORKSPACE
-@@ -18,6 +18,14 @@
- 
- load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
- 
-+# rules_cc with cc/common package for CcInfo provider (Bazel 9 compat).
-+http_archive(
-+    name = "rules_cc",
-+    sha256 = "a2fdfde2ab9b2176bd6a33afca14458039023edb1dd2e73e6823810809df4027",
-+    strip_prefix = "rules_cc-0.2.14",
-+    urls = ["https://github.com/bazelbuild/rules_cc/releases/download/0.2.14/rules_cc-0.2.14.tar.gz"],
-+)
-+
- # GoogleTest/GoogleMock framework. Used by most unit-tests.
- http_archive(
-     name = "com_google_googletest",
 diff -ruN abseil-cpp-20240722.0-yb-1/absl/BUILD.bazel abseil-cpp-20240722.0-yb-1-modified/absl/BUILD.bazel
 --- abseil-cpp-20240722.0-yb-1/absl/BUILD.bazel
 +++ abseil-cpp-20240722.0-yb-1-modified/absl/BUILD.bazel

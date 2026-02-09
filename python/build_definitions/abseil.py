@@ -13,6 +13,7 @@
 #
 
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
+from sys_detection import is_macos
 import os
 
 
@@ -26,8 +27,9 @@ class AbseilDependency(Dependency):
             build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = True
         self.bazel_project_subdir_name = 'com_google_absl'
-        self.patches = ['abseil-bazel9-compat.patch']
-        self.patch_version = 1
+        if is_macos():
+            self.patches = ['abseil-bazel9-compat.patch']
+            self.patch_version = 1
 
     def build(self, builder: BuilderInterface) -> None:
         log_prefix = builder.log_prefix(self)
