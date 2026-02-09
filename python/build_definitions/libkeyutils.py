@@ -40,7 +40,8 @@ class LibKeyUtilsDependency(Dependency):
     def get_additional_ld_flags(self, builder: 'BuilderInterface') -> List[str]:
         flags = []
         if (builder.compiler_choice.is_clang() and
-                builder.compiler_choice.is_llvm_major_version_at_least(17)):
+                builder.compiler_choice.is_llvm_major_version_at_least(17) and
+                not is_macos()):
             # Workaround for https://github.com/madler/zlib/issues/856
             flags.append('-Wl,--undefined-version')
         return flags

@@ -11,6 +11,8 @@
 # under the License.
 #
 
+import glob
+
 from yugabyte_db_thirdparty.arch import get_target_arch
 from sys_detection import is_macos
 
@@ -27,3 +29,13 @@ def get_min_supported_macos_version() -> str:
         return MIN_SUPPORTED_MACOS_VERSION_ARM64
     raise ValueError("Could not determine minimum supported macOS version for target "
                      "architecture %s" % target_arch)
+
+
+def get_macos_sysroot() -> str:
+    candidates = list(glob.glob(
+        '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/'
+        'MacOSX*.sdk'))
+    if not candidates:
+        raise RuntimeError("No Xcode SDKs found")
+    candidates.sort()
+    return candidates[-1]

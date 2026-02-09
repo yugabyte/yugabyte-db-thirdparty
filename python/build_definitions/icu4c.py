@@ -121,3 +121,6 @@ class Icu4cDependency(Dependency):
         )
 
         fix_shared_library_references(builder.prefix, 'libicu')
+
+    def use_cppflags_env_var(self) -> bool:
+        return True

@@ -90,7 +90,7 @@ from yugabyte_db_thirdparty.clang_util import (
     get_clang_include_dir,
     create_llvm_tool_dir,
 )
-from yugabyte_db_thirdparty.macos import get_min_supported_macos_version
+from yugabyte_db_thirdparty.macos import get_min_supported_macos_version, get_macos_sysroot
 from yugabyte_db_thirdparty import (
     compile_commands,
     constants,
@@ -319,6 +319,7 @@ class Builder(BuilderInterface):
                 get_build_def_module('libuuid').LibUuidDependency(),
             ]
 
+        if is_linux() or self.compiler_choice.is_llvm_installer_clang():
             llvm_major_version: Optional[int] = self.compiler_choice.get_llvm_major_version()
             if (self.compiler_choice.is_clang() and
                     llvm_major_version is not None and llvm_major_version >= 10):
@@ -503,16 +504,21 @@ class Builder(BuilderInterface):
         elif is_macos():
             self.shared_lib_suffix = "dylib"
 
-            # YugaByte builds with C++11, which on OS X requires using libc++ as the standard
-            # library implementation. Some of the dependencies do not compile against libc++ by
-            # default, so we specify it explicitly.
-            self.cxx_flags.append("-stdlib=libc++")
-            self.ld_flags += ["-lc++", "-lc++abi"]
+            if not self.compiler_choice.is_llvm_installer_clang():
+                # YugaByte builds with C++11, which on OS X requires using libc++ as the standard
+                # library implementation. Some of the dependencies do not compile against libc++ by
+                # default, so we specify it explicitly.
+                self.cxx_flags.append("-stdlib=libc++")
+                self.ld_flags += ["-lc++", "-lc++abi"]
 
             # Build for macOS Mojave or later. See https://bit.ly/37myHbk
             extend_lists(
                 [self.compiler_flags, self.ld_flags, self.assembler_flags],
                 ["-mmacosx-version-min=%s" % get_min_supported_macos_version()])
+
+            extend_lists(
+                [self.preprocessor_flags, self.ld_flags],
+                ['-isysroot', get_macos_sysroot()])
 
             self.ld_flags.append("-Wl,-headerpad_max_install_names")
         else:
@@ -983,12 +989,12 @@ class Builder(BuilderInterface):
         """
         self.init_compiler_independent_flags(dep)
 
-        if not is_macos() and self.compiler_choice.using_clang():
-            # Special setup for Clang on Linux.
+        if self.compiler_choice.is_llvm_installer_clang():
+            # Special setup for LLVM installer Clang.
             compiler_choice = self.compiler_choice
             llvm_major_version: Optional[int] = compiler_choice.get_llvm_major_version()
             if llvm_major_version is not None and llvm_major_version >= 10:
-                self.init_linux_clang_flags(dep)
+                self.init_clang_flags(dep)
             else:
                 raise ValueError(f"Unknown or unsupproted LLVM major version: {llvm_major_version}")
 
@@ -1006,7 +1012,7 @@ class Builder(BuilderInterface):
         libcxx_installed_lib = os.path.join(libcxx_installed_path, 'lib')
         return libcxx_installed_include, libcxx_installed_lib
 
-    def init_linux_clang_flags(self, dep: Dependency) -> None:
+    def init_clang_flags(self, dep: Dependency) -> None:
         """
         Flags for Clang. We are using LLVM-supplied libunwind, and in most cases, compiler-rt in
         this configuration.
