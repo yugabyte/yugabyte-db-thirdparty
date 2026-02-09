@@ -358,8 +358,9 @@ class Builder(BuilderInterface):
                 raise ValueError("Duplicate dependency: %s" % dep.name)
             self.dependencies_by_name[dep.name] = dep
         abseil_dep = self.dependencies_by_name.get('abseil')
-        if abseil_dep is not None:
-            tcmalloc_dep = cast(TCMallocDependency, self.dependencies_by_name['tcmalloc'])
+        tcmalloc_dep = self.dependencies_by_name.get('tcmalloc')
+        if tcmalloc_dep is not None and abseil_dep is not None:
+            tcmalloc_dep = cast(TCMallocDependency, tcmalloc_dep)
             tcmalloc_dep.set_abseil_source_dir_basename(abseil_dep.get_source_dir_basename())
 
     def select_dependencies_to_build(self) -> None:

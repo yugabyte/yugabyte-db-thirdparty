@@ -59,7 +59,7 @@ def get_final_dependency_module_names(compiler_choice: CompilerChoice) -> List[s
     dep_names.append('ncurses')
 
     if is_linux():
-        dep_names.extend(['libkeyutils', 'libverto', 'libaio', 'abseil', 'tcmalloc'])
+        dep_names.extend(['libkeyutils', 'libverto', 'libaio', 'tcmalloc'])
         if compiler_choice.is_gcc():
             # We only need to build a newer version of patchelf when building with GCC.
             # If using Clang, we can't use the custom-built patchelf to patch libc++ that patchelf
@@ -67,6 +67,7 @@ def get_final_dependency_module_names(compiler_choice: CompilerChoice) -> List[s
             dep_names.append('patchelf')
 
     dep_names.extend([
+        'abseil',
         'libedit',
         'icu4c',
         'protobuf',
