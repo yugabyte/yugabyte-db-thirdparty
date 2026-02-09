@@ -1,19 +1,37 @@
-diff -ruN -x p a/MODULE.bazel b/MODULE.bazel
---- a/MODULE.bazel	2025-02-06 17:29:40
-+++ b/MODULE.bazel	2026-02-09 09:49:31
+diff -ruN abseil-cpp-20240722.0-yb-1/MODULE.bazel abseil-cpp-20240722.0-yb-1-modified/MODULE.bazel
+--- abseil-cpp-20240722.0-yb-1/MODULE.bazel
++++ abseil-cpp-20240722.0-yb-1-modified/MODULE.bazel
 @@ -40,3 +40,9 @@
  
  bazel_dep(name = "platforms",
            version = "0.0.10")
 +
 +bazel_dep(name = "rules_cc",
-+          version = "0.1.0")
++          version = "0.2.14")
 +
 +bazel_dep(name = "rules_foreign_cc",
 +          version = "0.13.0")
-diff -ruN -x p a/absl/BUILD.bazel b/absl/BUILD.bazel
---- a/absl/BUILD.bazel	2025-02-06 17:29:40
-+++ b/absl/BUILD.bazel	2026-02-09 09:47:05
+diff -ruN abseil-cpp-20240722.0-yb-1/WORKSPACE abseil-cpp-20240722.0-yb-1-modified/WORKSPACE
+--- abseil-cpp-20240722.0-yb-1/WORKSPACE
++++ abseil-cpp-20240722.0-yb-1-modified/WORKSPACE
+@@ -18,6 +18,14 @@
+ 
+ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+ 
++# rules_cc with cc/common package for CcInfo provider (Bazel 9 compat).
++http_archive(
++    name = "rules_cc",
++    sha256 = "a2fdfde2ab9b2176bd6a33afca14458039023edb1dd2e73e6823810809df4027",
++    strip_prefix = "rules_cc-0.2.14",
++    urls = ["https://github.com/bazelbuild/rules_cc/releases/download/0.2.14/rules_cc-0.2.14.tar.gz"],
++)
++
+ # GoogleTest/GoogleMock framework. Used by most unit-tests.
+ http_archive(
+     name = "com_google_googletest",
+diff -ruN abseil-cpp-20240722.0-yb-1/absl/BUILD.bazel abseil-cpp-20240722.0-yb-1-modified/absl/BUILD.bazel
+--- abseil-cpp-20240722.0-yb-1/absl/BUILD.bazel
++++ abseil-cpp-20240722.0-yb-1-modified/absl/BUILD.bazel
 @@ -21,6 +21,7 @@
      "ABSL_DEFAULT_LINKOPTS",
  )
@@ -22,9 +40,9 @@ diff -ruN -x p a/absl/BUILD.bazel b/absl/BUILD.bazel
  
  package(default_visibility = ["//visibility:public"])
  
-diff -ruN -x p a/absl/algorithm/BUILD.bazel b/absl/algorithm/BUILD.bazel
---- a/absl/algorithm/BUILD.bazel	2025-02-06 17:29:40
-+++ b/absl/algorithm/BUILD.bazel	2026-02-09 09:47:05
+diff -ruN abseil-cpp-20240722.0-yb-1/absl/algorithm/BUILD.bazel abseil-cpp-20240722.0-yb-1-modified/absl/algorithm/BUILD.bazel
+--- abseil-cpp-20240722.0-yb-1/absl/algorithm/BUILD.bazel
++++ abseil-cpp-20240722.0-yb-1-modified/absl/algorithm/BUILD.bazel
 @@ -20,6 +20,7 @@
      "ABSL_DEFAULT_LINKOPTS",
      "ABSL_TEST_COPTS",
@@ -33,9 +51,9 @@ diff -ruN -x p a/absl/algorithm/BUILD.bazel b/absl/algorithm/BUILD.bazel
  
  package(
      default_visibility = ["//visibility:public"],
-diff -ruN -x p a/absl/base/BUILD.bazel b/absl/base/BUILD.bazel
---- a/absl/base/BUILD.bazel	2025-02-06 17:29:40
-+++ b/absl/base/BUILD.bazel	2026-02-09 09:47:05
+diff -ruN abseil-cpp-20240722.0-yb-1/absl/base/BUILD.bazel abseil-cpp-20240722.0-yb-1-modified/absl/base/BUILD.bazel
+--- abseil-cpp-20240722.0-yb-1/absl/base/BUILD.bazel
++++ abseil-cpp-20240722.0-yb-1-modified/absl/base/BUILD.bazel
 @@ -20,6 +20,7 @@
      "ABSL_DEFAULT_LINKOPTS",
      "ABSL_TEST_COPTS",
@@ -44,17 +62,16 @@ diff -ruN -x p a/absl/base/BUILD.bazel b/absl/base/BUILD.bazel
  
  package(
      default_visibility = ["//visibility:public"],
-diff -ruN -x p a/absl/cc_static_library.bzl b/absl/cc_static_library.bzl
---- a/absl/cc_static_library.bzl	2025-02-06 17:29:40
-+++ b/absl/cc_static_library.bzl	2026-02-09 09:50:47
-@@ -1,14 +1,29 @@
+diff -ruN abseil-cpp-20240722.0-yb-1/absl/cc_static_library.bzl abseil-cpp-20240722.0-yb-1-modified/absl/cc_static_library.bzl
+--- abseil-cpp-20240722.0-yb-1/absl/cc_static_library.bzl
++++ abseil-cpp-20240722.0-yb-1-modified/absl/cc_static_library.bzl
+@@ -1,12 +1,24 @@
 +load("@rules_cc//cc/common:cc_info.bzl", "CcInfo")
 +
  def _cc_static_library_impl(ctx):
      cc = ctx.attr.dep[CcInfo]
 -    libraries = []
 +    objects = []
-+    static_libs = []
      for link_input in cc.linking_context.linker_inputs.to_list():
          for library in link_input.libraries:
 -            libraries += library.pic_objects
@@ -63,28 +80,23 @@ diff -ruN -x p a/absl/cc_static_library.bzl b/absl/cc_static_library.bzl
 +                objects += library.pic_objects
 +            elif library.objects:
 +                objects += library.objects
-+            elif library.pic_static_library:
-+                static_libs.append(library.pic_static_library)
-+            elif library.static_library:
-+                static_libs.append(library.static_library)
-+    if objects:
-+        all_inputs = objects
-+        args = ["-static", "-o", ctx.outputs.out.path] + [f.path for f in objects]
-+    else:
-+        all_inputs = static_libs
-+        args = ["-static", "-o", ctx.outputs.out.path] + [f.path for f in static_libs]
++    if not objects:
++        for link_input in cc.linking_context.linker_inputs.to_list():
++            for library in link_input.libraries:
++                if library.pic_static_library:
++                    objects.append(library.pic_static_library)
++                elif library.static_library:
++                    objects.append(library.static_library)
++    args = ["rcs", ctx.outputs.out.path] + [f.path for f in objects]
      ctx.actions.run(
 -        inputs = libraries,
-+        inputs = all_inputs,
++        inputs = objects,
          outputs = [ctx.outputs.out],
--        executable = "/usr/bin/ar",
-+        executable = "/usr/bin/libtool",
+         executable = "/usr/bin/ar",
          arguments = args,
-     )
-     return [DefaultInfo()]
-diff -ruN -x p a/absl/cleanup/BUILD.bazel b/absl/cleanup/BUILD.bazel
---- a/absl/cleanup/BUILD.bazel	2025-02-06 17:29:40
-+++ b/absl/cleanup/BUILD.bazel	2026-02-09 09:47:05
+diff -ruN abseil-cpp-20240722.0-yb-1/absl/cleanup/BUILD.bazel abseil-cpp-20240722.0-yb-1-modified/absl/cleanup/BUILD.bazel
+--- abseil-cpp-20240722.0-yb-1/absl/cleanup/BUILD.bazel
++++ abseil-cpp-20240722.0-yb-1-modified/absl/cleanup/BUILD.bazel
 @@ -18,6 +18,7 @@
      "ABSL_DEFAULT_LINKOPTS",
      "ABSL_TEST_COPTS",
@@ -93,9 +105,9 @@ diff -ruN -x p a/absl/cleanup/BUILD.bazel b/absl/cleanup/BUILD.bazel
  
  package(
      default_visibility = ["//visibility:public"],
-diff -ruN -x p a/absl/container/BUILD.bazel b/absl/container/BUILD.bazel
---- a/absl/container/BUILD.bazel	2025-02-06 17:29:40
-+++ b/absl/container/BUILD.bazel	2026-02-09 09:47:05
+diff -ruN abseil-cpp-20240722.0-yb-1/absl/container/BUILD.bazel abseil-cpp-20240722.0-yb-1-modified/absl/container/BUILD.bazel
+--- abseil-cpp-20240722.0-yb-1/absl/container/BUILD.bazel
++++ abseil-cpp-20240722.0-yb-1-modified/absl/container/BUILD.bazel
 @@ -20,6 +20,7 @@
      "ABSL_DEFAULT_LINKOPTS",
      "ABSL_TEST_COPTS",
@@ -104,9 +116,9 @@ diff -ruN -x p a/absl/container/BUILD.bazel b/absl/container/BUILD.bazel
  
  package(
      default_visibility = ["//visibility:public"],
-diff -ruN -x p a/absl/crc/BUILD.bazel b/absl/crc/BUILD.bazel
---- a/absl/crc/BUILD.bazel	2025-02-06 17:29:40
-+++ b/absl/crc/BUILD.bazel	2026-02-09 09:47:05
+diff -ruN abseil-cpp-20240722.0-yb-1/absl/crc/BUILD.bazel abseil-cpp-20240722.0-yb-1-modified/absl/crc/BUILD.bazel
+--- abseil-cpp-20240722.0-yb-1/absl/crc/BUILD.bazel
++++ abseil-cpp-20240722.0-yb-1-modified/absl/crc/BUILD.bazel
 @@ -18,6 +18,7 @@
      "ABSL_DEFAULT_LINKOPTS",
      "ABSL_TEST_COPTS",
@@ -115,9 +127,9 @@ diff -ruN -x p a/absl/crc/BUILD.bazel b/absl/crc/BUILD.bazel
  
  package(
      default_visibility = ["//visibility:private"],
-diff -ruN -x p a/absl/debugging/BUILD.bazel b/absl/debugging/BUILD.bazel
---- a/absl/debugging/BUILD.bazel	2025-02-06 17:29:40
-+++ b/absl/debugging/BUILD.bazel	2026-02-09 09:47:05
+diff -ruN abseil-cpp-20240722.0-yb-1/absl/debugging/BUILD.bazel abseil-cpp-20240722.0-yb-1-modified/absl/debugging/BUILD.bazel
+--- abseil-cpp-20240722.0-yb-1/absl/debugging/BUILD.bazel
++++ abseil-cpp-20240722.0-yb-1-modified/absl/debugging/BUILD.bazel
 @@ -20,6 +20,7 @@
      "ABSL_DEFAULT_LINKOPTS",
      "ABSL_TEST_COPTS",
@@ -126,9 +138,9 @@ diff -ruN -x p a/absl/debugging/BUILD.bazel b/absl/debugging/BUILD.bazel
  
  package(
      default_visibility = ["//visibility:public"],
-diff -ruN -x p a/absl/flags/BUILD.bazel b/absl/flags/BUILD.bazel
---- a/absl/flags/BUILD.bazel	2025-02-06 17:29:40
-+++ b/absl/flags/BUILD.bazel	2026-02-09 09:47:05
+diff -ruN abseil-cpp-20240722.0-yb-1/absl/flags/BUILD.bazel abseil-cpp-20240722.0-yb-1-modified/absl/flags/BUILD.bazel
+--- abseil-cpp-20240722.0-yb-1/absl/flags/BUILD.bazel
++++ abseil-cpp-20240722.0-yb-1-modified/absl/flags/BUILD.bazel
 @@ -20,6 +20,7 @@
      "ABSL_DEFAULT_LINKOPTS",
      "ABSL_TEST_COPTS",
@@ -137,9 +149,9 @@ diff -ruN -x p a/absl/flags/BUILD.bazel b/absl/flags/BUILD.bazel
  
  package(
      default_visibility = ["//visibility:public"],
-diff -ruN -x p a/absl/functional/BUILD.bazel b/absl/functional/BUILD.bazel
---- a/absl/functional/BUILD.bazel	2025-02-06 17:29:40
-+++ b/absl/functional/BUILD.bazel	2026-02-09 09:47:05
+diff -ruN abseil-cpp-20240722.0-yb-1/absl/functional/BUILD.bazel abseil-cpp-20240722.0-yb-1-modified/absl/functional/BUILD.bazel
+--- abseil-cpp-20240722.0-yb-1/absl/functional/BUILD.bazel
++++ abseil-cpp-20240722.0-yb-1-modified/absl/functional/BUILD.bazel
 @@ -20,6 +20,7 @@
      "ABSL_DEFAULT_LINKOPTS",
      "ABSL_TEST_COPTS",
@@ -148,9 +160,9 @@ diff -ruN -x p a/absl/functional/BUILD.bazel b/absl/functional/BUILD.bazel
  
  package(
      default_visibility = ["//visibility:public"],
-diff -ruN -x p a/absl/hash/BUILD.bazel b/absl/hash/BUILD.bazel
---- a/absl/hash/BUILD.bazel	2025-02-06 17:29:40
-+++ b/absl/hash/BUILD.bazel	2026-02-09 09:47:05
+diff -ruN abseil-cpp-20240722.0-yb-1/absl/hash/BUILD.bazel abseil-cpp-20240722.0-yb-1-modified/absl/hash/BUILD.bazel
+--- abseil-cpp-20240722.0-yb-1/absl/hash/BUILD.bazel
++++ abseil-cpp-20240722.0-yb-1-modified/absl/hash/BUILD.bazel
 @@ -20,6 +20,7 @@
      "ABSL_DEFAULT_LINKOPTS",
      "ABSL_TEST_COPTS",
@@ -159,9 +171,9 @@ diff -ruN -x p a/absl/hash/BUILD.bazel b/absl/hash/BUILD.bazel
  
  package(
      default_visibility = ["//visibility:public"],
-diff -ruN -x p a/absl/log/BUILD.bazel b/absl/log/BUILD.bazel
---- a/absl/log/BUILD.bazel	2025-02-06 17:29:40
-+++ b/absl/log/BUILD.bazel	2026-02-09 09:47:05
+diff -ruN abseil-cpp-20240722.0-yb-1/absl/log/BUILD.bazel abseil-cpp-20240722.0-yb-1-modified/absl/log/BUILD.bazel
+--- abseil-cpp-20240722.0-yb-1/absl/log/BUILD.bazel
++++ abseil-cpp-20240722.0-yb-1-modified/absl/log/BUILD.bazel
 @@ -20,6 +20,7 @@
      "ABSL_DEFAULT_LINKOPTS",
      "ABSL_TEST_COPTS",
@@ -170,9 +182,9 @@ diff -ruN -x p a/absl/log/BUILD.bazel b/absl/log/BUILD.bazel
  
  package(
      default_visibility = ["//visibility:public"],
-diff -ruN -x p a/absl/log/internal/BUILD.bazel b/absl/log/internal/BUILD.bazel
---- a/absl/log/internal/BUILD.bazel	2025-02-06 17:29:40
-+++ b/absl/log/internal/BUILD.bazel	2026-02-09 09:47:05
+diff -ruN abseil-cpp-20240722.0-yb-1/absl/log/internal/BUILD.bazel abseil-cpp-20240722.0-yb-1-modified/absl/log/internal/BUILD.bazel
+--- abseil-cpp-20240722.0-yb-1/absl/log/internal/BUILD.bazel
++++ abseil-cpp-20240722.0-yb-1-modified/absl/log/internal/BUILD.bazel
 @@ -20,6 +20,7 @@
      "ABSL_DEFAULT_LINKOPTS",
      "ABSL_TEST_COPTS",
@@ -181,9 +193,9 @@ diff -ruN -x p a/absl/log/internal/BUILD.bazel b/absl/log/internal/BUILD.bazel
  
  package(
      default_visibility = [
-diff -ruN -x p a/absl/memory/BUILD.bazel b/absl/memory/BUILD.bazel
---- a/absl/memory/BUILD.bazel	2025-02-06 17:29:40
-+++ b/absl/memory/BUILD.bazel	2026-02-09 09:47:05
+diff -ruN abseil-cpp-20240722.0-yb-1/absl/memory/BUILD.bazel abseil-cpp-20240722.0-yb-1-modified/absl/memory/BUILD.bazel
+--- abseil-cpp-20240722.0-yb-1/absl/memory/BUILD.bazel
++++ abseil-cpp-20240722.0-yb-1-modified/absl/memory/BUILD.bazel
 @@ -20,6 +20,7 @@
      "ABSL_DEFAULT_LINKOPTS",
      "ABSL_TEST_COPTS",
@@ -192,9 +204,9 @@ diff -ruN -x p a/absl/memory/BUILD.bazel b/absl/memory/BUILD.bazel
  
  package(
      default_visibility = ["//visibility:public"],
-diff -ruN -x p a/absl/meta/BUILD.bazel b/absl/meta/BUILD.bazel
---- a/absl/meta/BUILD.bazel	2025-02-06 17:29:40
-+++ b/absl/meta/BUILD.bazel	2026-02-09 09:47:05
+diff -ruN abseil-cpp-20240722.0-yb-1/absl/meta/BUILD.bazel abseil-cpp-20240722.0-yb-1-modified/absl/meta/BUILD.bazel
+--- abseil-cpp-20240722.0-yb-1/absl/meta/BUILD.bazel
++++ abseil-cpp-20240722.0-yb-1-modified/absl/meta/BUILD.bazel
 @@ -20,6 +20,7 @@
      "ABSL_DEFAULT_LINKOPTS",
      "ABSL_TEST_COPTS",
@@ -203,9 +215,9 @@ diff -ruN -x p a/absl/meta/BUILD.bazel b/absl/meta/BUILD.bazel
  
  package(
      default_visibility = ["//visibility:public"],
-diff -ruN -x p a/absl/numeric/BUILD.bazel b/absl/numeric/BUILD.bazel
---- a/absl/numeric/BUILD.bazel	2025-02-06 17:29:40
-+++ b/absl/numeric/BUILD.bazel	2026-02-09 09:47:05
+diff -ruN abseil-cpp-20240722.0-yb-1/absl/numeric/BUILD.bazel abseil-cpp-20240722.0-yb-1-modified/absl/numeric/BUILD.bazel
+--- abseil-cpp-20240722.0-yb-1/absl/numeric/BUILD.bazel
++++ abseil-cpp-20240722.0-yb-1-modified/absl/numeric/BUILD.bazel
 @@ -18,6 +18,7 @@
      "ABSL_DEFAULT_LINKOPTS",
      "ABSL_TEST_COPTS",
@@ -214,9 +226,9 @@ diff -ruN -x p a/absl/numeric/BUILD.bazel b/absl/numeric/BUILD.bazel
  
  package(
      default_visibility = ["//visibility:public"],
-diff -ruN -x p a/absl/profiling/BUILD.bazel b/absl/profiling/BUILD.bazel
---- a/absl/profiling/BUILD.bazel	2025-02-06 17:29:40
-+++ b/absl/profiling/BUILD.bazel	2026-02-09 09:47:05
+diff -ruN abseil-cpp-20240722.0-yb-1/absl/profiling/BUILD.bazel abseil-cpp-20240722.0-yb-1-modified/absl/profiling/BUILD.bazel
+--- abseil-cpp-20240722.0-yb-1/absl/profiling/BUILD.bazel
++++ abseil-cpp-20240722.0-yb-1-modified/absl/profiling/BUILD.bazel
 @@ -18,6 +18,7 @@
      "ABSL_DEFAULT_LINKOPTS",
      "ABSL_TEST_COPTS",
@@ -225,9 +237,9 @@ diff -ruN -x p a/absl/profiling/BUILD.bazel b/absl/profiling/BUILD.bazel
  
  package(
      default_visibility = ["//visibility:private"],
-diff -ruN -x p a/absl/random/BUILD.bazel b/absl/random/BUILD.bazel
---- a/absl/random/BUILD.bazel	2025-02-06 17:29:40
-+++ b/absl/random/BUILD.bazel	2026-02-09 09:47:05
+diff -ruN abseil-cpp-20240722.0-yb-1/absl/random/BUILD.bazel abseil-cpp-20240722.0-yb-1-modified/absl/random/BUILD.bazel
+--- abseil-cpp-20240722.0-yb-1/absl/random/BUILD.bazel
++++ abseil-cpp-20240722.0-yb-1-modified/absl/random/BUILD.bazel
 @@ -22,6 +22,7 @@
      "ABSL_DEFAULT_LINKOPTS",
      "ABSL_TEST_COPTS",
@@ -236,9 +248,9 @@ diff -ruN -x p a/absl/random/BUILD.bazel b/absl/random/BUILD.bazel
  
  package(
      default_visibility = ["//visibility:public"],
-diff -ruN -x p a/absl/random/internal/BUILD.bazel b/absl/random/internal/BUILD.bazel
---- a/absl/random/internal/BUILD.bazel	2025-02-06 17:29:40
-+++ b/absl/random/internal/BUILD.bazel	2026-02-09 09:47:05
+diff -ruN abseil-cpp-20240722.0-yb-1/absl/random/internal/BUILD.bazel abseil-cpp-20240722.0-yb-1-modified/absl/random/internal/BUILD.bazel
+--- abseil-cpp-20240722.0-yb-1/absl/random/internal/BUILD.bazel
++++ abseil-cpp-20240722.0-yb-1-modified/absl/random/internal/BUILD.bazel
 @@ -23,6 +23,7 @@
      "ABSL_TEST_COPTS",
      "absl_random_randen_copts_init",
@@ -247,9 +259,9 @@ diff -ruN -x p a/absl/random/internal/BUILD.bazel b/absl/random/internal/BUILD.b
  
  default_package_visibility = [
      "//absl/random:__pkg__",
-diff -ruN -x p a/absl/status/BUILD.bazel b/absl/status/BUILD.bazel
---- a/absl/status/BUILD.bazel	2025-02-06 17:29:40
-+++ b/absl/status/BUILD.bazel	2026-02-09 09:47:05
+diff -ruN abseil-cpp-20240722.0-yb-1/absl/status/BUILD.bazel abseil-cpp-20240722.0-yb-1-modified/absl/status/BUILD.bazel
+--- abseil-cpp-20240722.0-yb-1/absl/status/BUILD.bazel
++++ abseil-cpp-20240722.0-yb-1-modified/absl/status/BUILD.bazel
 @@ -23,6 +23,7 @@
      "ABSL_DEFAULT_LINKOPTS",
      "ABSL_TEST_COPTS",
@@ -258,9 +270,9 @@ diff -ruN -x p a/absl/status/BUILD.bazel b/absl/status/BUILD.bazel
  
  package(
      default_visibility = ["//visibility:public"],
-diff -ruN -x p a/absl/strings/BUILD.bazel b/absl/strings/BUILD.bazel
---- a/absl/strings/BUILD.bazel	2025-02-06 17:29:40
-+++ b/absl/strings/BUILD.bazel	2026-02-09 09:47:05
+diff -ruN abseil-cpp-20240722.0-yb-1/absl/strings/BUILD.bazel abseil-cpp-20240722.0-yb-1-modified/absl/strings/BUILD.bazel
+--- abseil-cpp-20240722.0-yb-1/absl/strings/BUILD.bazel
++++ abseil-cpp-20240722.0-yb-1-modified/absl/strings/BUILD.bazel
 @@ -19,6 +19,7 @@
      "ABSL_DEFAULT_LINKOPTS",
      "ABSL_TEST_COPTS",
@@ -269,9 +281,9 @@ diff -ruN -x p a/absl/strings/BUILD.bazel b/absl/strings/BUILD.bazel
  
  package(
      default_visibility = ["//visibility:public"],
-diff -ruN -x p a/absl/synchronization/BUILD.bazel b/absl/synchronization/BUILD.bazel
---- a/absl/synchronization/BUILD.bazel	2025-02-06 17:29:40
-+++ b/absl/synchronization/BUILD.bazel	2026-02-09 09:47:05
+diff -ruN abseil-cpp-20240722.0-yb-1/absl/synchronization/BUILD.bazel abseil-cpp-20240722.0-yb-1-modified/absl/synchronization/BUILD.bazel
+--- abseil-cpp-20240722.0-yb-1/absl/synchronization/BUILD.bazel
++++ abseil-cpp-20240722.0-yb-1-modified/absl/synchronization/BUILD.bazel
 @@ -20,6 +20,7 @@
      "ABSL_DEFAULT_LINKOPTS",
      "ABSL_TEST_COPTS",
@@ -280,9 +292,9 @@ diff -ruN -x p a/absl/synchronization/BUILD.bazel b/absl/synchronization/BUILD.b
  
  package(
      default_visibility = ["//visibility:private"],
-diff -ruN -x p a/absl/time/BUILD.bazel b/absl/time/BUILD.bazel
---- a/absl/time/BUILD.bazel	2025-02-06 17:29:40
-+++ b/absl/time/BUILD.bazel	2026-02-09 09:47:05
+diff -ruN abseil-cpp-20240722.0-yb-1/absl/time/BUILD.bazel abseil-cpp-20240722.0-yb-1-modified/absl/time/BUILD.bazel
+--- abseil-cpp-20240722.0-yb-1/absl/time/BUILD.bazel
++++ abseil-cpp-20240722.0-yb-1-modified/absl/time/BUILD.bazel
 @@ -20,6 +20,7 @@
      "ABSL_DEFAULT_LINKOPTS",
      "ABSL_TEST_COPTS",
@@ -291,9 +303,9 @@ diff -ruN -x p a/absl/time/BUILD.bazel b/absl/time/BUILD.bazel
  
  package(
      default_visibility = ["//visibility:public"],
-diff -ruN -x p a/absl/time/internal/cctz/BUILD.bazel b/absl/time/internal/cctz/BUILD.bazel
---- a/absl/time/internal/cctz/BUILD.bazel	2025-02-06 17:29:40
-+++ b/absl/time/internal/cctz/BUILD.bazel	2026-02-09 09:47:05
+diff -ruN abseil-cpp-20240722.0-yb-1/absl/time/internal/cctz/BUILD.bazel abseil-cpp-20240722.0-yb-1-modified/absl/time/internal/cctz/BUILD.bazel
+--- abseil-cpp-20240722.0-yb-1/absl/time/internal/cctz/BUILD.bazel
++++ abseil-cpp-20240722.0-yb-1-modified/absl/time/internal/cctz/BUILD.bazel
 @@ -12,6 +12,7 @@
  #   See the License for the specific language governing permissions and
  #   limitations under the License.
@@ -302,9 +314,9 @@ diff -ruN -x p a/absl/time/internal/cctz/BUILD.bazel b/absl/time/internal/cctz/B
  package(features = [
      "header_modules",
      "layering_check",
-diff -ruN -x p a/absl/types/BUILD.bazel b/absl/types/BUILD.bazel
---- a/absl/types/BUILD.bazel	2025-02-06 17:29:40
-+++ b/absl/types/BUILD.bazel	2026-02-09 09:47:05
+diff -ruN abseil-cpp-20240722.0-yb-1/absl/types/BUILD.bazel abseil-cpp-20240722.0-yb-1-modified/absl/types/BUILD.bazel
+--- abseil-cpp-20240722.0-yb-1/absl/types/BUILD.bazel
++++ abseil-cpp-20240722.0-yb-1-modified/absl/types/BUILD.bazel
 @@ -19,6 +19,7 @@
      "ABSL_DEFAULT_LINKOPTS",
      "ABSL_TEST_COPTS",
@@ -313,9 +325,9 @@ diff -ruN -x p a/absl/types/BUILD.bazel b/absl/types/BUILD.bazel
  
  package(
      default_visibility = ["//visibility:public"],
-diff -ruN -x p a/absl/utility/BUILD.bazel b/absl/utility/BUILD.bazel
---- a/absl/utility/BUILD.bazel	2025-02-06 17:29:40
-+++ b/absl/utility/BUILD.bazel	2026-02-09 09:47:05
+diff -ruN abseil-cpp-20240722.0-yb-1/absl/utility/BUILD.bazel abseil-cpp-20240722.0-yb-1-modified/absl/utility/BUILD.bazel
+--- abseil-cpp-20240722.0-yb-1/absl/utility/BUILD.bazel
++++ abseil-cpp-20240722.0-yb-1-modified/absl/utility/BUILD.bazel
 @@ -20,6 +20,7 @@
      "ABSL_DEFAULT_LINKOPTS",
      "ABSL_TEST_COPTS",
