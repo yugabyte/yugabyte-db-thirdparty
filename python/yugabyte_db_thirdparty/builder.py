@@ -902,6 +902,17 @@ class Builder(BuilderInterface):
         self.log_output(log_prefix, ['chmod', '755' if is_shared else '644', src_path])
         self.log_output(log_prefix, ['cp', src_path, dest_path])
 
+        if is_shared and is_macos() and src_file != dest_file:
+            # On macOS, Bazel embeds the original filename as the Mach-O install_name
+            # (e.g. @rpath/libabsl_shared.dylib). When we rename the library (e.g. to
+            # libabsl.dylib), the install_name no longer matches the actual filename,
+            # causing dyld to fail at runtime. Fix by updating the install_name to match
+            # the new filename. This is not needed on Linux where ELF SONAME is handled
+            # differently by the dynamic linker.
+            self.log_output(log_prefix, [
+                'install_name_tool', '-id', '@rpath/' + dest_file, dest_path
+            ])
+
     def validate_build_output(self) -> None:
         if is_macos():
             target_arch = get_target_arch()
