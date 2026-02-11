@@ -853,6 +853,15 @@ class Builder(BuilderInterface):
         build_command += ["--action_env", f"BAZEL_CXXOPTS={bazel_cxxopts}"]
         build_command += ["--action_env", f"BAZEL_LINKOPTS={bazel_linkopts}"]
 
+        # Explicitly pass the C++ standard via --cxxopt to ensure it is respected by all Bazel
+        # C++ toolchains (including the Apple toolchain on macOS, which may not honor
+        # BAZEL_CXXOPTS).
+        if is_macos():
+            cxx_std_flag = f"-std=c++{constants.OSX_CXX_STANDARD}"
+        else:
+            cxx_std_flag = f"-std=c++{constants.CXX_STANDARD}"
+        build_command += ["--cxxopt", cxx_std_flag]
+
         # Need to explicitly pass environment variables which we want to be available.
         env_vars_to_copy = [
             "CC",

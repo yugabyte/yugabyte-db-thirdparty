@@ -13,7 +13,6 @@
 #
 
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
-from sys_detection import is_macos
 import os
 
 
@@ -26,6 +25,7 @@ class AbseilDependency(Dependency):
                         '{0}.tar.gz',
             build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = True
+        self.patches = ['abseil-type-traits-cplusplus-check.patch']
         self.bazel_project_subdir_name = 'com_google_absl'
 
     def build(self, builder: BuilderInterface) -> None:
@@ -34,7 +34,7 @@ class AbseilDependency(Dependency):
                                  targets=["absl:absl_shared", "absl:absl_static"])
         builder.install_bazel_build_output(
                 dep=self,
-                src_file=f"libabsl_shared.so",
+                src_file="libabsl_shared.so",
                 dest_file=f"libabsl.{builder.shared_lib_suffix}",
                 src_folder="absl",
                 is_shared=True)
