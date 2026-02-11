@@ -1,2 +1,1 @@
-# Bazel version used for OS X builds. Make sure this matches the bazel_version in https://github.com/yugabyte/build-infra/blob/master/docker_setup_scripts/docker_setup_scripts_common.sh
 5.3.1
