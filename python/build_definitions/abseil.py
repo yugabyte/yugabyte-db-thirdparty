@@ -25,7 +25,7 @@ class AbseilDependency(Dependency):
                         '{0}.tar.gz',
             build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = True
-        self.patches = ['abseil-type-traits-cplusplus-check.patch']
+        self.patches = ['abseil-fixes.patch']
         self.bazel_project_subdir_name = 'com_google_absl'
 
     def build(self, builder: BuilderInterface) -> None:
