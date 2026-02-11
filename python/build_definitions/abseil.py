@@ -27,9 +27,6 @@ class AbseilDependency(Dependency):
             build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = True
         self.bazel_project_subdir_name = 'com_google_absl'
-        if is_macos():
-            self.patches = ['abseil-bazel9-compat.patch']
-            self.patch_version = 1
 
     def build(self, builder: BuilderInterface) -> None:
         log_prefix = builder.log_prefix(self)
@@ -37,7 +34,7 @@ class AbseilDependency(Dependency):
                                  targets=["absl:absl_shared", "absl:absl_static"])
         builder.install_bazel_build_output(
                 dep=self,
-                src_file=f"libabsl_shared.{builder.shared_lib_suffix}",
+                src_file=f"libabsl_shared.so",
                 dest_file=f"libabsl.{builder.shared_lib_suffix}",
                 src_folder="absl",
                 is_shared=True)

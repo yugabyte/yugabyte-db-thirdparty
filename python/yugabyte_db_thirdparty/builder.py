@@ -827,6 +827,16 @@ class Builder(BuilderInterface):
         if not self.prepare_for_build_tool_invocation(dep):
             return
         log_prefix = self.log_prefix(dep)
+
+        # Ensure Bazelisk uses the Bazel version specified in the repo root .bazelversion file,
+        # even when invoking Bazel from a subdirectory that has its own workspace files.
+        bazelversion_path = os.path.join(YB_THIRDPARTY_DIR, '.bazelversion')
+        if os.path.exists(bazelversion_path):
+            with open(bazelversion_path) as f:
+                bazel_version = f.read().strip()
+            os.environ['USE_BAZEL_VERSION'] = bazel_version
+            log(f"Set USE_BAZEL_VERSION={bazel_version} from {bazelversion_path}")
+
         if should_clean:
             self.log_output(log_prefix, ['bazel', 'clean', '--expunge'])
 
@@ -862,13 +872,12 @@ class Builder(BuilderInterface):
 
         build_command.append("--verbose_failures")
 
-        if is_macos():
-            from yugabyte_db_thirdparty.macos import get_min_supported_macos_version
-            macos_min_ver = get_min_supported_macos_version()
-            build_command += [
-                "--macos_minimum_os=%s" % macos_min_ver,
-                "--action_env", "MACOSX_DEPLOYMENT_TARGET=%s" % macos_min_ver,
-            ]
+        # if is_macos():
+        #     macos_min_ver = get_min_supported_macos_version()
+        #     build_command += [
+        #         "--macos_minimum_os=%s" % macos_min_ver,
+        #         "--action_env", "MACOSX_DEPLOYMENT_TARGET=%s" % macos_min_ver,
+        #     ]
 
         build_script_path = 'yb_build_with_bazel.sh'
         with open(build_script_path, 'w') as build_script_file:
