@@ -20,12 +20,11 @@ class AbseilDependency(Dependency):
     def __init__(self) -> None:
         super(AbseilDependency, self).__init__(
             name='abseil',
-            version='20240722.0-yb-1',
+            version='20240722.0-yb-2',
             url_pattern='https://github.com/yugabyte/abseil-cpp/archive/refs/tags/'
                         '{0}.tar.gz',
             build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = True
-        self.patches = ['abseil-fixes.patch']
         self.bazel_project_subdir_name = 'com_google_absl'
 
     def build(self, builder: BuilderInterface) -> None:

@@ -357,9 +357,9 @@ class Builder(BuilderInterface):
             if dep.name in self.dependencies_by_name:
                 raise ValueError("Duplicate dependency: %s" % dep.name)
             self.dependencies_by_name[dep.name] = dep
-        abseil_dep = self.dependencies_by_name.get('abseil')
+        abseil_dep = self.dependencies_by_name['abseil']
         tcmalloc_dep = self.dependencies_by_name.get('tcmalloc')
-        if tcmalloc_dep is not None and abseil_dep is not None:
+        if tcmalloc_dep is not None:
             tcmalloc_dep = cast(TCMallocDependency, tcmalloc_dep)
             tcmalloc_dep.set_abseil_source_dir_basename(abseil_dep.get_source_dir_basename())
 
@@ -830,12 +830,14 @@ class Builder(BuilderInterface):
 
         # Ensure Bazelisk uses the Bazel version specified in the repo root .bazelversion file,
         # even when invoking Bazel from a subdirectory that has its own workspace files.
+        # We don't use this path except on OS X. On Linux builds, Bazel version is specified here:
+        # https://github.com/yugabyte/build-infra/blob/master/docker_setup_scripts/docker_setup_scripts_common.sh
+        # and setting this does nothing since we don't use Bazelisk at all.
         bazelversion_path = os.path.join(YB_THIRDPARTY_DIR, '.bazelversion')
-        if os.path.exists(bazelversion_path):
-            with open(bazelversion_path) as f:
-                bazel_version = f.read().strip()
-            os.environ['USE_BAZEL_VERSION'] = bazel_version
-            log(f"Set USE_BAZEL_VERSION={bazel_version} from {bazelversion_path}")
+        with open(bazelversion_path) as f:
+            bazel_version = f.read().strip()
+        os.environ['USE_BAZEL_VERSION'] = bazel_version
+        log(f"Set USE_BAZEL_VERSION={bazel_version} from {bazelversion_path}")
 
         if should_clean:
             self.log_output(log_prefix, ['bazel', 'clean', '--expunge'])
