@@ -357,9 +357,10 @@ class Builder(BuilderInterface):
             if dep.name in self.dependencies_by_name:
                 raise ValueError("Duplicate dependency: %s" % dep.name)
             self.dependencies_by_name[dep.name] = dep
-        abseil_dep = self.dependencies_by_name.get('abseil')
-        if abseil_dep is not None:
-            tcmalloc_dep = cast(TCMallocDependency, self.dependencies_by_name['tcmalloc'])
+        abseil_dep = self.dependencies_by_name['abseil']
+        tcmalloc_dep = self.dependencies_by_name.get('tcmalloc')
+        if tcmalloc_dep is not None:
+            tcmalloc_dep = cast(TCMallocDependency, tcmalloc_dep)
             tcmalloc_dep.set_abseil_source_dir_basename(abseil_dep.get_source_dir_basename())
 
     def select_dependencies_to_build(self) -> None:
@@ -826,6 +827,18 @@ class Builder(BuilderInterface):
         if not self.prepare_for_build_tool_invocation(dep):
             return
         log_prefix = self.log_prefix(dep)
+
+        # Ensure Bazelisk uses the Bazel version specified in the repo root .bazelversion file,
+        # even when invoking Bazel from a subdirectory that has its own workspace files.
+        # We don't use this path except on OS X. On Linux builds, Bazel version is specified here:
+        # https://github.com/yugabyte/build-infra/blob/master/docker_setup_scripts/docker_setup_scripts_common.sh
+        # and setting this does nothing since we don't use Bazelisk at all.
+        bazelversion_path = os.path.join(YB_THIRDPARTY_DIR, '.bazelversion')
+        with open(bazelversion_path) as f:
+            bazel_version = f.read().strip()
+        os.environ['USE_BAZEL_VERSION'] = bazel_version
+        log(f"Set USE_BAZEL_VERSION={bazel_version} from {bazelversion_path}")
+
         if should_clean:
             self.log_output(log_prefix, ['bazel', 'clean', '--expunge'])
 
@@ -841,6 +854,15 @@ class Builder(BuilderInterface):
             build_command.append("--subcommands")
         build_command += ["--action_env", f"BAZEL_CXXOPTS={bazel_cxxopts}"]
         build_command += ["--action_env", f"BAZEL_LINKOPTS={bazel_linkopts}"]
+
+        # Explicitly pass the C++ standard via --cxxopt to ensure it is respected by all Bazel
+        # C++ toolchains (including the Apple toolchain on macOS, which may not honor
+        # BAZEL_CXXOPTS).
+        if is_macos():
+            cxx_std_flag = f"-std=c++{constants.OSX_CXX_STANDARD}"
+        else:
+            cxx_std_flag = f"-std=c++{constants.CXX_STANDARD}"
+        build_command += ["--cxxopt", cxx_std_flag]
 
         # Need to explicitly pass environment variables which we want to be available.
         env_vars_to_copy = [
@@ -860,6 +882,16 @@ class Builder(BuilderInterface):
             build_command += ["--action_env", f"{env_var}={os.environ[env_var]}"]
 
         build_command.append("--verbose_failures")
+
+        if is_macos():
+            macos_min_ver = get_min_supported_macos_version()
+            macos_ver_flag = "-mmacosx-version-min=%s" % macos_min_ver
+            build_command += [
+                "--macos_minimum_os=%s" % macos_min_ver,
+                "--action_env", "MACOSX_DEPLOYMENT_TARGET=%s" % macos_min_ver,
+                "--cxxopt", macos_ver_flag,
+                "--linkopt", macos_ver_flag,
+            ]
 
         build_script_path = 'yb_build_with_bazel.sh'
         with open(build_script_path, 'w') as build_script_file:
@@ -892,6 +924,17 @@ class Builder(BuilderInterface):
         # prevents overwriting when building thirdparty multiple times.
         self.log_output(log_prefix, ['chmod', '755' if is_shared else '644', src_path])
         self.log_output(log_prefix, ['cp', src_path, dest_path])
+
+        if is_shared and is_macos() and src_file != dest_file:
+            # On macOS, Bazel embeds the original filename as the Mach-O install_name
+            # (e.g. @rpath/libabsl_shared.dylib). When we rename the library (e.g. to
+            # libabsl.dylib), the install_name no longer matches the actual filename,
+            # causing dyld to fail at runtime. Fix by updating the install_name to match
+            # the new filename. This is not needed on Linux where ELF SONAME is handled
+            # differently by the dynamic linker.
+            self.log_output(log_prefix, [
+                'install_name_tool', '-id', '@rpath/' + dest_file, dest_path
+            ])
 
     def validate_build_output(self) -> None:
         if is_macos():

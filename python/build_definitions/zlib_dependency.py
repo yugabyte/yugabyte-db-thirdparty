@@ -33,8 +33,10 @@ class ZLibDependency(Dependency):
 
     def get_additional_ld_flags(self, builder: 'BuilderInterface') -> List[str]:
         flags = []
-        if (builder.compiler_choice.is_clang() and
+        if (not is_macos() and
+                builder.compiler_choice.is_clang() and
                 builder.compiler_choice.is_llvm_major_version_at_least(17)):
             # Workaround for https://github.com/madler/zlib/issues/856
+            # Only on Linux; macOS Apple ld does not support --undefined-version.
             flags.append('-Wl,--undefined-version')
         return flags
