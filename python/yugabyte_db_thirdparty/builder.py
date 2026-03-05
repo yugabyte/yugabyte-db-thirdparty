@@ -868,6 +868,9 @@ class Builder(BuilderInterface):
             cxx_std_flag = f"-std=c++{constants.OSX_CXX_STANDARD}"
         else:
             cxx_std_flag = f"-std=c++{constants.CXX_STANDARD}"
+            # See https://github.com/bazelbuild/bazel/issues/4231. Without this, setting CC variable
+            # doesn't work on macOS builds when Xcode is installed.
+            build_command += ["--action_env", f"BAZEL_USE_CPP_ONLY_TOOLCHAIN=1"]
         build_command += ["--cxxopt", cxx_std_flag]
 
         # Need to explicitly pass environment variables which we want to be available.
