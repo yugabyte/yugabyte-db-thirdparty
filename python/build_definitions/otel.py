@@ -35,7 +35,6 @@ class OtelDependency(Dependency):
         builder.build_with_cmake(self,
                                  ['-DCMAKE_POSITION_INDEPENDENT_CODE=ON',
                                   '-DCMAKE_BUILD_TYPE=Release',
-                                  '-DBUILD_SHARED_LIBS=ON',
                                   '-DBUILD_TESTING=OFF',
                                   '-DWITH_EXAMPLES=OFF',
                                   '-DWITH_OTLP=ON',
@@ -44,4 +43,5 @@ class OtelDependency(Dependency):
                                   "-DCMAKE_PREFIX_PATH={uninst};{common}".format(
                                       uninst=builder.prefix,
                                       common=installed_common_dir),
-                                  "-DOTELCPP_PROTO_PATH={path}".format(path=src_dir)])
+                                  "-DOTELCPP_PROTO_PATH={path}".format(path=src_dir)],
+                                 shared_and_static=True)
