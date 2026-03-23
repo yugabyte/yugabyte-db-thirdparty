@@ -24,6 +24,9 @@ class HwyDependency(Dependency):
                         '{0}.tar.gz',
             build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = True
+        self.patch_version = 1
+        self.patch_strip = 0
+        self.patches = ['hwy-clang-avx10.2.patch']
 
     def build(self, builder: BuilderInterface) -> None:
         extra_cmake_args = [

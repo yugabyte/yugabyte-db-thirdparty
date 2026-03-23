@@ -287,6 +287,13 @@ class LibTestMac(LibTestBase):
             "^\t/usr/lib/",
         ]
 
+    def compare_version(self, version: str, min_version: str) -> bool:
+        version_parts = [int(x) for x in version.split('.', 1)]
+        min_version_parts = [int(x) for x in min_version.split('.', 1)]
+        if version_parts[0] == min_version_parts[0]:
+            return version_parts[1] >= min_version_parts[1]
+        return version_parts[0] >= min_version_parts[1]
+
     def check_libs_for_file(self, file_path: str) -> bool:
         otool_output = subprocess.check_output(['otool', '-L', file_path]).decode('utf-8')
         if 'is not an object file' in otool_output:
@@ -307,7 +314,7 @@ class LibTestMac(LibTestBase):
             if line.startswith('minos '):
                 items = line.split()
                 min_macos_version = items[1]
-                if min_macos_version != min_supported_macos_version:
+                if self.compare_version(min_macos_version, min_supported_macos_version):
                     log("File %s has wrong minimum supported macOS version: %s. Full line:\n%s\n"
                         "(output from 'otool -l'). Expected: %s, section: %s",
                         file_path, min_macos_version, line, min_supported_macos_version,
