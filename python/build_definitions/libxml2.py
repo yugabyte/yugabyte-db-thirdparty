@@ -20,7 +20,7 @@ class LibXml2Dependency(Dependency):
         super(LibXml2Dependency, self).__init__(
             name='libxml2',
             version='2.13.5',
-            url_pattern='https://download.gnome.org/sources/libxml2/2.13/libxml2-2.13.5.tar.xz',
+            url_pattern='https://download.gnome.org/sources/libxml2/2.13/libxml2-{0}.tar.xz',
             build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = True
 
