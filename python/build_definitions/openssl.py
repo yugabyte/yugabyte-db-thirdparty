@@ -34,7 +34,7 @@ class OpenSSLDependency(Dependency):
     def __init__(self) -> None:
         super(OpenSSLDependency, self).__init__(
             name='openssl',
-            version='3.0.16',
+            version='3.0.20',
             url_pattern='https://www.openssl.org/source/openssl-{0}.tar.gz',
             build_group=BuildGroup.COMMON)
         self.copy_sources = True
@@ -43,7 +43,7 @@ class OpenSSLDependency(Dependency):
         # symbol not defined
         # ld.lld: error: version script assignment of 'global' to symbol 'v_check' failed:
         # symbol not defined
-        self.patches = ['openssl-fix-afalg-link-on-centos7.patch']
+        self.patches = ['openssl-3.0.20-fix-afalg-link-on-centos7.patch']
 
     def build(self, builder: BuilderInterface) -> None:
         common_configure_options = ['shared', 'no-tests']
