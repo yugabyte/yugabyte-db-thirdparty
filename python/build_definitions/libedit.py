@@ -38,3 +38,6 @@ class LibEditDependency(Dependency):
 
     def build(self, builder: BuilderInterface) -> None:
         builder.build_with_configure(dep=self, extra_configure_args=['--with-pic'])
+
+    def use_cppflags_env_var(self) -> bool:
+        return True

@@ -33,19 +33,23 @@ class LlvmLibUnwindDependency(LlvmPartDependencyBase):
         llvm_path = os.path.join(source_path, 'llvm')
         if not os.path.exists(llvm_path):
             raise IOError(f"Main llvm project directory not found at {llvm_path}")
+        extra_cmake_args = [
+            '-DCMAKE_BUILD_TYPE=Release',
+            '-DBUILD_SHARED_LIBS=ON',
+            '-DLIBUNWIND_USE_COMPILER_RT=ON',
+            # Enable the workaround already present in libunwind's CMakeLists.txt for old
+            # versions of CMake and AIX operating system, that ended up being necessary in our
+            # case too. Without this, libunwind's .S files are not being compiled, resulting
+            # in the missing symbol __unw_getcontext.
+            '-DYB_LIBUNWIND_FORCE_ASM_AS_C=ON',
+            f'-DLLVM_PATH={llvm_path}',
+        ]
+        if is_macos():
+            extra_cmake_args.append('-DLIBUNWIND_ENABLE_ASSERTIONS=OFF')
+
         builder.build_with_cmake(
             self,
-            extra_cmake_args=[
-                '-DCMAKE_BUILD_TYPE=Release',
-                '-DBUILD_SHARED_LIBS=ON',
-                '-DLIBUNWIND_USE_COMPILER_RT=ON',
-                # Enable the workaround already present in libunwind's CMakeLists.txt for old
-                # versions of CMake and AIX operating system, that ended up being necessary in our
-                # case too. Without this, libunwind's .S files are not being compiled, resulting
-                # in the missing symbol __unw_getcontext.
-                '-DYB_LIBUNWIND_FORCE_ASM_AS_C=ON',
-                f'-DLLVM_PATH={llvm_path}',
-            ],
+            extra_cmake_args=extra_cmake_args,
             src_subdir_name=src_subdir_name)
 
         # TODO: do not use this "standalone" build of libunwind -- it is deprecated.
