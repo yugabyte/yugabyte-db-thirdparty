@@ -4,9 +4,7 @@ on:
   push:
     branches:
       - master
-      # Not all of these branches might exist.
-      - 2.20
-      - 2024.1
+      - 2025.1
     paths-ignore:
       - README.md
 
@@ -14,8 +12,7 @@ on:
   pull_request:
     branches:
       - master
-      - 2.20
-      - 2024.1
+      - 2025.1
 
     paths-ignore:
       - README.md
