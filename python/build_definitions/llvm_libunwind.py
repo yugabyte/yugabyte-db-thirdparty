@@ -13,55 +13,45 @@
 
 import os
 
-from build_definitions.llvm_part import LlvmPartDependencyBase
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
 
-class LlvmLibUnwindDependency(LlvmPartDependencyBase):
+class LlvmLibUnwindDependency(Dependency):
     def __init__(self, version: str) -> None:
         super(LlvmLibUnwindDependency, self).__init__(
             name='llvm_libunwind',
             version=version,
-            build_group=BuildGroup.COMMON)
-
-    def get_additional_cxx_flags(self, builder: 'BuilderInterface') -> List[str]:
-        return ['-D_LIBUNWIND_NO_HEAP']
+            build_group=BuildGroup.COMMON,
+            url_pattern=None,
+            mkdir_only=True)
 
     def build(self, builder: BuilderInterface) -> None:
-        src_subdir_name = 'libunwind'
-        source_path = builder.fs_layout.get_source_path(self)
-        llvm_path = os.path.join(source_path, 'llvm')
-        if not os.path.exists(llvm_path):
-            raise IOError(f"Main llvm project directory not found at {llvm_path}")
-        extra_cmake_args = [
-            '-DCMAKE_BUILD_TYPE=Release',
-            '-DBUILD_SHARED_LIBS=ON',
-            '-DLIBUNWIND_USE_COMPILER_RT=ON',
-            # Enable the workaround already present in libunwind's CMakeLists.txt for old
-            # versions of CMake and AIX operating system, that ended up being necessary in our
-            # case too. Without this, libunwind's .S files are not being compiled, resulting
-            # in the missing symbol __unw_getcontext.
-            '-DYB_LIBUNWIND_FORCE_ASM_AS_C=ON',
-            f'-DLLVM_PATH={llvm_path}',
-        ]
-        if is_macos():
-            extra_cmake_args.append('-DLIBUNWIND_ENABLE_ASSERTIONS=OFF')
+        # This is only None for non-llvm-installer builds, and this dependency is
+        # llvm-installer specific.
+        assert builder.toolchain is not None
 
-        builder.build_with_cmake(
-            self,
-            extra_cmake_args=extra_cmake_args,
-            src_subdir_name=src_subdir_name)
-
-        # TODO: do not use this "standalone" build of libunwind -- it is deprecated.
-        # https://github.com/yugabyte/yugabyte-db/issues/11962
-        # Maybe we won't need to do this manual copying of headers if we use a supported approach.
-        src_include_path = os.path.join(source_path, src_subdir_name, 'include')
+        # We copy libunwind headers and libraries from the toolchain directly so that we run
+        # with the same libunwind that we link with (our build RPATH points only to thirdparty and
+        # not to the toolchain, so we need a copy in thirdparty).
+        toolchain_root = builder.toolchain.toolchain_root
+        src_include_path = os.path.join(toolchain_root, 'include')
         dest_include_path = os.path.join(builder.prefix, 'include')
         for root, dirs, files in os.walk(src_include_path):
             for file_name in files:
-                if file_name.endswith('.h'):
+                if file_name.endswith('.h') and 'unwind' in file_name:
                     file_path = os.path.abspath(os.path.join(root, file_name))
-                    rel_path = os.path.relpath(file_path, src_include_path)
+                    rel_path = os.path.basename(file_name)
                     dest_path = os.path.join(dest_include_path, rel_path)
+                    mkdir_p(os.path.dirname(dest_path))
+                    copy_file_and_log(file_path, dest_path)
+
+        src_lib_path = os.path.join(toolchain_root, 'lib')
+        dest_lib_path = os.path.join(builder.prefix, 'lib')
+        for root, dirs, files in os.walk(src_lib_path):
+            for file_name in files:
+                if 'unwind' in file_name:
+                    file_path = os.path.abspath(os.path.join(root, file_name))
+                    rel_path = os.path.basename(file_name)
+                    dest_path = os.path.join(dest_lib_path, rel_path)
                     mkdir_p(os.path.dirname(dest_path))
                     copy_file_and_log(file_path, dest_path)

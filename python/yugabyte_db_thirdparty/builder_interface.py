@@ -13,8 +13,9 @@
 from re import Pattern
 from typing import List, Optional, Callable, Any, TYPE_CHECKING
 
-from yugabyte_db_thirdparty.file_system_layout import FileSystemLayout
 from build_definitions import BuildType
+from yugabyte_db_thirdparty.file_system_layout import FileSystemLayout
+from yugabyte_db_thirdparty.toolchain import Toolchain
 
 if TYPE_CHECKING:
     from .dependency import Dependency
@@ -79,6 +80,8 @@ class BuilderInterface:
     compiler_choice: 'CompilerChoice'
     fs_layout: FileSystemLayout
     lto_type: Optional[str]
+
+    toolchain: 'Toolchain | None'
 
     # For the build_with_... functions below, please make sure their signatures match those in
     # builder.py, and that all default arguments are specified as DEFAULT_... constants defined
