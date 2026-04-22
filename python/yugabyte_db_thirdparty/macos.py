@@ -16,10 +16,19 @@ import glob
 from yugabyte_db_thirdparty.arch import get_target_arch
 from sys_detection import is_macos
 
+MIN_SUPPORTED_MACOS_VERSION_X86_64 = '10.14'
+MIN_SUPPORTED_MACOS_VERSION_ARM64 = '11.2'
+
 
 def get_min_supported_macos_version() -> str:
     assert is_macos()
-    return '11.2'
+    target_arch = get_target_arch()
+    if target_arch == 'x86_64':
+        return MIN_SUPPORTED_MACOS_VERSION_X86_64
+    if target_arch == 'arm64':
+        return MIN_SUPPORTED_MACOS_VERSION_ARM64
+    raise ValueError("Could not determine minimum supported macOS version for target "
+                     "architecture %s" % target_arch)
 
 
 def get_macos_sysroot() -> str:
