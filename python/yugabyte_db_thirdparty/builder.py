@@ -1151,7 +1151,7 @@ class Builder(BuilderInterface):
             # TODO(asrivastava): We might not need libc++ in cxxflags but removing it causes certain
             # builds to fail.
             self.cxx_flags += ['-stdlib=libc++', '-nostdinc++']
-            self.preprocessor_flags.extend(['-isystem', libcxx_installed_include])
+            self.cxx_flags.extend(['-isystem', libcxx_installed_include])
             self.prepend_lib_dir_and_rpath(libcxx_installed_lib)
 
         if is_libcxx:

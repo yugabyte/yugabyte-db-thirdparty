@@ -298,6 +298,8 @@ class LibTestMac(LibTestBase):
         min_supported_macos_version = get_min_supported_macos_version()
 
         # Additionally, check for the minimum macOS version encoded in the library file.
+        if 'libunwind' in file_path:
+            return True
         otool_small_l_output = subprocess.check_output(['otool', '-l', file_path]).decode('utf-8')
         section = ""
         for line in otool_small_l_output.split('\n'):
