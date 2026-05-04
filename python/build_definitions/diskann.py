@@ -35,7 +35,7 @@ class DiskANNDependency(Dependency):
     def __init__(self) -> None:
         super(DiskANNDependency, self).__init__(
             name='diskann',
-            version='0.7.0.1-yb-1',
+            version='0.7.0.1-yb-3',
             url_pattern='https://github.com/yugabyte/diskann/archive/v{0}.tar.gz',
             build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = False
@@ -182,6 +182,15 @@ class DiskANNDependency(Dependency):
         ]
 
         return [get_rpath_flag(p) for p in rpaths]
+
+    def get_additional_cxx_flags(self, builder: 'BuilderInterface') -> List[str]:
+        extra_cxx_flags = []
+        gcc_major_version = builder.compiler_choice.get_gcc_major_version()
+        if gcc_major_version is not None and gcc_major_version >= 15:
+            extra_cxx_flags.extend([
+                '-Wno-error=maybe-uninitialized',
+            ])
+        return extra_cxx_flags
 
     def get_compiler_wrapper_ld_flags_to_remove(self, builder: BuilderInterface) -> Set[str]:
         """

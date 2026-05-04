@@ -39,25 +39,23 @@ jobs:
           # Ubuntu 22.04
           # ---------------------------------------------------------------------------------------
 
-          - name: ubuntu2204-x86_64-gcc12
+          - name: ubuntu2204-x86_64-gcc15
             runs_on: ubuntu-24.04
-            docker_image: yugabyteci/yb_build_infra_ubuntu2204_x86_64:v2024-09-20T23_57_46
+            docker_image: yugabyteci/yb_build_infra_ubuntu2204_x86_64:v2026-04-08T19_15_27
             build_thirdparty_args: >-
-              --compiler-prefix=/usr
-              --compiler-family=gcc
-              --compiler-suffix=-12
+              --toolchain=gcc15
             architecture: x86_64
 
           - name: ubuntu2204-x86_64-clang19
             runs_on: ubuntu-24.04
-            docker_image: yugabyteci/yb_build_infra_ubuntu2204_x86_64:v2024-09-20T23_57_46
+            docker_image: yugabyteci/yb_build_infra_ubuntu2204_x86_64:v2026-04-08T19_15_27
             build_thirdparty_args: >-
               --toolchain=llvm19
             architecture: x86_64
 
           - name: ubuntu2204-x86_64-clang21
             runs_on: ubuntu-24.04
-            docker_image: yugabyteci/yb_build_infra_ubuntu2204_x86_64:v2024-09-20T23_57_46
+            docker_image: yugabyteci/yb_build_infra_ubuntu2204_x86_64:v2026-04-08T19_15_27
             build_thirdparty_args: >-
               --toolchain=llvm21
             architecture: x86_64
@@ -69,25 +67,23 @@ jobs:
 
           # GCC 11 and GCC 12 have DiskANN compilation issues on Ubuntu 24.04.
 
-          - name: ubuntu2404-x86_64-gcc13
+          - name: ubuntu2404-x86_64-gcc15
             runs_on: ubuntu-24.04
-            docker_image: yugabyteci/yb_build_infra_ubuntu2404_x86_64:v2024-09-20T23_57_48
+            docker_image: yugabyteci/yb_build_infra_ubuntu2404_x86_64:v2026-04-08T19_15_27
             build_thirdparty_args: >-
-              --compiler-prefix=/usr
-              --compiler-family=gcc
-              --compiler-suffix=-13
+              --toolchain=gcc15
             architecture: x86_64
 
           - name: ubuntu2404-x86_64-clang19
             runs_on: ubuntu-24.04
-            docker_image: yugabyteci/yb_build_infra_ubuntu2404_x86_64:v2024-09-20T23_57_48
+            docker_image: yugabyteci/yb_build_infra_ubuntu2404_x86_64:v2026-04-08T19_15_27
             build_thirdparty_args: >-
               --toolchain=llvm19
             architecture: x86_64
 
           - name: ubuntu2404-x86_64-clang21
             runs_on: ubuntu-24.04
-            docker_image: yugabyteci/yb_build_infra_ubuntu2404_x86_64:v2024-09-20T23_57_48
+            docker_image: yugabyteci/yb_build_infra_ubuntu2404_x86_64:v2026-04-08T19_15_27
             build_thirdparty_args: >-
               --toolchain=llvm21
             architecture: x86_64
@@ -97,31 +93,24 @@ jobs:
           # AlmaLinux 8
           # ---------------------------------------------------------------------------------------
 
-          - name: almalinux8-x86_64-gcc12
+          - name: almalinux8-x86_64-gcc15
             runs_on: ubuntu-24.04
-            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2024-09-20T20_33_55
+            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2026-04-08T19_15_27
             build_thirdparty_args: >-
-              --devtoolset=12
-            architecture: x86_64
-
-          - name: almalinux8-x86_64-gcc13
-            runs_on: ubuntu-24.04
-            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2024-09-20T20_33_55
-            build_thirdparty_args: >-
-              --devtoolset=13
+              --toolchain=gcc15
             architecture: x86_64
 
           # Clang/LLVM 19
           - name: almalinux8-x86_64-clang19
             runs_on: ubuntu-24.04
-            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2024-09-20T20_33_55
+            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2026-04-08T19_15_27
             build_thirdparty_args: >-
               --toolchain=llvm19
             architecture: x86_64
 
           - name: almalinux8-x86_64-clang19-full-lto
             runs_on: ubuntu-24.04
-            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2024-09-20T20_33_55
+            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2026-04-08T19_15_27
             build_thirdparty_args: >-
               --toolchain=llvm19
               --lto=full
@@ -130,14 +119,14 @@ jobs:
           # Clang/LLVM 21
           - name: almalinux8-x86_64-clang21
             runs_on: ubuntu-24.04
-            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2024-09-20T20_33_55
+            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2026-04-08T19_15_27
             build_thirdparty_args: >-
               --toolchain=llvm21
             architecture: x86_64
 
           - name: almalinux8-x86_64-clang21-full-lto
             runs_on: ubuntu-24.04
-            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2024-09-20T20_33_55
+            docker_image: yugabyteci/yb_build_infra_almalinux8_x86_64:v2026-04-08T19_15_27
             build_thirdparty_args: >-
               --toolchain=llvm21
               --lto=full
@@ -147,30 +136,23 @@ jobs:
           # AlmaLinux 9
           # ---------------------------------------------------------------------------------------
 
-          - name: almalinux9-x86_64-gcc12
+          - name: almalinux9-x86_64-gcc15
             runs_on: ubuntu-24.04
-            docker_image: yugabyteci/yb_build_infra_almalinux9_x86_64:v2024-09-20T20_33_54
+            docker_image: yugabyteci/yb_build_infra_almalinux9_x86_64:v2026-04-08T19_15_27
             build_thirdparty_args: >-
-              --devtoolset=12
-            architecture: x86_64
-
-          - name: almalinux9-x86_64-gcc13
-            runs_on: ubuntu-24.04
-            docker_image: yugabyteci/yb_build_infra_almalinux9_x86_64:v2024-09-20T20_33_54
-            build_thirdparty_args: >-
-              --devtoolset=13
+              --toolchain=gcc15
             architecture: x86_64
 
           - name: almalinux9-x86_64-clang19
             runs_on: ubuntu-24.04
-            docker_image: yugabyteci/yb_build_infra_almalinux9_x86_64:v2024-09-20T20_33_54
+            docker_image: yugabyteci/yb_build_infra_almalinux9_x86_64:v2026-04-08T19_15_27
             build_thirdparty_args: >-
               --toolchain=llvm19
             architecture: x86_64
 
           - name: almalinux9-x86_64-clang21
             runs_on: ubuntu-24.04
-            docker_image: yugabyteci/yb_build_infra_almalinux9_x86_64:v2024-09-20T20_33_54
+            docker_image: yugabyteci/yb_build_infra_almalinux9_x86_64:v2026-04-08T19_15_27
             build_thirdparty_args: >-
               --toolchain=llvm21
             architecture: x86_64
@@ -217,14 +199,14 @@ jobs:
 
           - name: almalinux8-aarch64-clang19
             runs_on: ubuntu-24.04-aarch64-4core-16gb
-            docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2024-09-20T23_59_06
+            docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2026-04-08T19_15_27
             build_thirdparty_args: >-
               --toolchain=llvm19
               --skip-sanitizers
 
           - name: almalinux8-aarch64-clang19-full-lto
             runs_on: ubuntu-24.04-aarch64-4core-16gb
-            docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2024-09-20T23_59_06
+            docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2026-04-08T19_15_27
             build_thirdparty_args: >-
               --toolchain=llvm19
               --skip-sanitizers
@@ -232,14 +214,14 @@ jobs:
 
           - name: almalinux8-aarch64-clang21
             runs_on: ubuntu-24.04-aarch64-4core-16gb
-            docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2024-09-20T23_59_06
+            docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2026-04-08T19_15_27
             build_thirdparty_args: >-
               --toolchain=llvm21
               --skip-sanitizers
 
           - name: almalinux8-aarch64-clang21-full-lto
             runs_on: ubuntu-24.04-aarch64-4core-16gb
-            docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2024-09-20T23_59_06
+            docker_image: yugabyteci/yb_build_infra_almalinux8_aarch64:v2026-04-08T19_15_27
             build_thirdparty_args: >-
               --toolchain=llvm21
               --skip-sanitizers

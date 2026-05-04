@@ -74,4 +74,8 @@ class CassandraCppDriverDependency(Dependency):
                     '-Wno-error=array-bounds',
                     '-Wno-error=deprecated-declarations'
                 ])
+            if gcc_major_version >= 15:
+                extra_cxx_flags.extend([
+                    '-Wno-error=maybe-uninitialized',
+                ])
         return extra_cxx_flags

@@ -39,5 +39,8 @@ class LibEditDependency(Dependency):
     def build(self, builder: BuilderInterface) -> None:
         builder.build_with_configure(dep=self, extra_configure_args=['--with-pic'])
 
+    def get_additional_c_flags(self, builder: BuilderInterface) -> List[str]:
+        return ['-std=gnu17']
+
     def use_cppflags_env_var(self) -> bool:
         return True

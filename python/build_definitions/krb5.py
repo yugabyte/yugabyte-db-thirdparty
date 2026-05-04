@@ -30,6 +30,9 @@ class Krb5Dependency(Dependency):
         self.copy_sources = True
         self.shared_and_static = True
 
+    def get_additional_c_flags(self, builder: BuilderInterface) -> List[str]:
+        return ['-std=gnu17']
+
     def get_additional_ld_flags(self, builder: BuilderInterface) -> List[str]:
         flags: List[str] = list(super().get_additional_ld_flags(builder))
         if builder.compiler_choice.is_linux_clang():
