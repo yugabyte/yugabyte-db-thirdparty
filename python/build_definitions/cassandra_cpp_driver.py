@@ -62,7 +62,8 @@ class CassandraCppDriverDependency(Dependency):
         extra_cxx_flags: List[str] = []
         builder.add_checked_flag(extra_cxx_flags, '-Wno-error=implicit-fallthrough')
         builder.add_checked_flag(extra_cxx_flags, '-Wno-error=class-memaccess')
-        if builder.compiler_choice.is_llvm_installer_clang():
+        # ptr_fun is deprecated in C++11 and removed in C++17
+        if builder.compiler_choice.is_clang():
             builder.add_checked_flag(extra_cxx_flags, '-Wno-error=deprecated-declarations')
         gcc_major_version = builder.compiler_choice.get_gcc_major_version()
         if gcc_major_version is not None and gcc_major_version >= 11:
@@ -79,3 +80,4 @@ class CassandraCppDriverDependency(Dependency):
                     '-Wno-error=maybe-uninitialized',
                 ])
         return extra_cxx_flags
+
