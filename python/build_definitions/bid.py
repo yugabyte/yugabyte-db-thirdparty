@@ -22,7 +22,7 @@ class BidDependency(Dependency):
         super(BidDependency, self).__init__(
             name='bid',
             version='2.0u3-1-yb-1',
-            url_pattern='https://github.com/yugabyte/intelrdfpmath/archive/refs/tags/v{0}.tar.gz',
+            url_pattern='https://s3.us-west-2.amazonaws.com/downloads.yugabyte.com/yugabyte-db-thirdparty/bid-{0}.tar.gz',
             build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = True
 
