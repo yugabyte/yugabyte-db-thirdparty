@@ -25,4 +25,6 @@ class LibXml2Dependency(Dependency):
         self.copy_sources = True
 
     def build(self, builder: BuilderInterface) -> None:
-        builder.build_with_configure(dep=self, extra_configure_args=['--without-python'])
+        builder.build_with_configure(
+            dep=self,
+            extra_configure_args=['--without-python', '--enable-shared', '--enable-static'])
