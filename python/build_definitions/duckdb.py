@@ -96,6 +96,20 @@ class DuckDBDependency(Dependency):
             'EXTENSION_CONFIGS': ext_config_path,
         }
 
+        # Build DuckDB's objects without LTO, dropping the -flto flag the thirdparty build injects
+        # into CFLAGS/CXXFLAGS for LTO build types. DuckDB ships as a prebuilt static archive
+        # (libduckdb_bundle.a) that pg_duckdb links in the yugabyte-db repo, so LTO of these objects
+        # buys nothing here and is actively harmful: LTO bitcode is tied to an exact LLVM version,
+        # so an archive built with it would fail to link if yugabyte-db's compiler ever diverges
+        # from thirdparty's. Full-LTO clang+libc++ also instantiates a unique_ptr<CachedFileHandle>
+        # destructor against an incomplete type in the pinned httpfs sources, which only the LTO
+        # instantiation path rejects. Emitting regular objects sidesteps both issues.
+        for flags_var in ('CFLAGS', 'CXXFLAGS'):
+            existing_flags = os.environ.get(flags_var)
+            if existing_flags is not None:
+                build_env[flags_var] = ' '.join(
+                    flag for flag in existing_flags.split() if not flag.startswith('-flto'))
+
         with PushDir(src_path):
             # The bundle assembly step (`make bundle-library`) globs build/release/vcpkg_installed
             # for static libs. We don't use vcpkg, so create the directory empty to match the
