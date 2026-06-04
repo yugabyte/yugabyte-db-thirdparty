@@ -101,7 +101,7 @@ class DuckDBDependency(Dependency):
             # for static libs. We don't use vcpkg, so create the directory empty to match the
             # ReleaseStatic build path pg_duckdb uses upstream.
             mkdir_p(os.path.join(src_path, 'build', 'release', 'vcpkg_installed'))
-            with EnvVarContext(**build_env):
+            with EnvVarContext(build_env):
                 # `bundle-library` builds the `release` target and packs every static lib
                 # (libduckdb_static.a, third_party/*, extensions, vcpkg) into libduckdb_bundle.a.
                 builder.log_output(log_prefix, ['make', 'bundle-library'])
