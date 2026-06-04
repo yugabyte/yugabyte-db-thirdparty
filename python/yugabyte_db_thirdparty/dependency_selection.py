@@ -90,6 +90,9 @@ def get_final_dependency_module_names(compiler_choice: CompilerChoice) -> List[s
         'eigen',
         'cnpy',
         'libxml2',
+        # Consumed by the pg_duckdb PostgreSQL extension. Built once here instead of recompiling
+        # DuckDB from source on every yugabyte-db build.
+        'duckdb',
     ])
 
     if is_linux() and is_building_for_x86_64() and (
