@@ -43,6 +43,14 @@ duckdb_extension_load(httpfs
 """
 
 # Patches applied to the fetched httpfs sources (in patches/, applied with `patch -p1`).
+#
+# httpfs is not part of the DuckDB tarball -- it is git-fetched by CMake during the configure step.
+# So the usual `self.patches` mechanism can't reach it (that runs against the extracted tarball,
+# before httpfs exists). Rather than maintaining a fork of duckdb-httpfs just to carry this fix, we
+# use DuckDB's own APPLY_PATCHES hook (above), which applies these patches right after the fetch.
+# This keeps the upstream GIT_URL/GIT_TAG pin intact and the fix self-contained as a reviewable
+# patch.
+#
 # duckdb-httpfs-cachedfile-gethandle-out-of-line: CachedFile::GetHandle() is defined inline in
 # http_state.hpp where CachedFileHandle is still incomplete, so instantiating its returned
 # unique_ptr<CachedFileHandle> destructor is ill-formed. clang+libc++ rejects this under full-LTO
@@ -107,6 +115,11 @@ class DuckDBDependency(Dependency):
             'OVERRIDE_GIT_DESCRIBE': 'v' + self.version,
             'GEN': 'ninja',
             'CMAKE_VARS': cmake_vars,
+            # DuckDB enables ASan/UBSan by default (ENABLE_SANITIZER/ENABLE_UBSAN are ON in its
+            # CMakeLists), so without this it would self-instrument with -fsanitize=address,ubsan
+            # even in a release build. Disable that; the thirdparty build still injects its own
+            # sanitizer flags via CXXFLAGS for sanitizer build types, so this only avoids applying
+            # them twice, not dropping instrumentation.
             'DISABLE_SANITIZER': '1',
             'DISABLE_ASSERTIONS': '1',
             'EXTENSION_CONFIGS': ext_config_path,
