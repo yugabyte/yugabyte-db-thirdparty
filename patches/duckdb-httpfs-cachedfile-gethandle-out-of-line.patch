@@ -1,0 +1,32 @@
+diff --git a/src/http_state.cpp b/src/http_state.cpp
+index 1b09114..6e008d3 100644
+--- a/src/http_state.cpp
++++ b/src/http_state.cpp
+@@ -3,6 +3,11 @@
+ 
+ namespace duckdb {
+ 
++unique_ptr<CachedFileHandle> CachedFile::GetHandle() {
++	auto this_ptr = shared_from_this();
++	return make_uniq<CachedFileHandle>(this_ptr);
++}
++
+ CachedFileHandle::CachedFileHandle(shared_ptr<CachedFile> &file_p) {
+ 	// If the file was not yet initialized, we need to grab a lock.
+ 	if (!file_p->initialized) {
+diff --git a/src/include/http_state.hpp b/src/include/http_state.hpp
+index 20849c4..c787dfe 100644
+--- a/src/include/http_state.hpp
++++ b/src/include/http_state.hpp
+@@ -16,10 +16,7 @@ class CachedFile : public enable_shared_from_this<CachedFile> {
+ 	friend class CachedFileHandle;
+ 
+ public:
+-	unique_ptr<CachedFileHandle> GetHandle() {
+-		auto this_ptr = shared_from_this();
+-		return make_uniq<CachedFileHandle>(this_ptr);
+-	}
++	unique_ptr<CachedFileHandle> GetHandle();
+ 
+ private:
+ 	//! Cached Data

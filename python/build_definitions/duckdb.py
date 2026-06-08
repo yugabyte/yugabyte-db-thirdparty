@@ -17,24 +17,38 @@ import shutil
 
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 from yugabyte_db_thirdparty.env_helpers import EnvVarContext
+from yugabyte_db_thirdparty.util import YB_THIRDPARTY_DIR
 
 
 # DuckDB is consumed by the pg_duckdb PostgreSQL extension in the yugabyte-db repo. pg_duckdb relies
 # on DuckDB's private headers (not just the public amalgamation), so the full src/include tree is
 # shipped alongside libduckdb_bundle.a.
 
-# DuckDB extensions to compile into the bundle. This MUST stay in sync with
+# DuckDB extensions to compile into the bundle. This must stay in sync with
 # src/postgres/third-party-extensions/pg_duckdb/third_party/pg_duckdb_extensions.cmake in the
 # yugabyte-db repo. httpfs is fetched from its own git repo during the DuckDB CMake configure step
 # (it provides S3/HTTP read support that pg_duckdb depends on).
+#
+# APPLY_PATCHES is the one intentional divergence from pg_duckdb's config: it tells DuckDB to run
+# scripts/apply_extension_patches.py against <duckdb>/.github/patches/extensions/httpfs/ after
+# fetching httpfs at the pinned commit. We use it to apply HTTPFS_PATCHES below.
 PG_DUCKDB_EXTENSIONS_CMAKE = """\
 duckdb_extension_load(json)
 duckdb_extension_load(icu)
 duckdb_extension_load(httpfs
     GIT_URL https://github.com/duckdb/duckdb-httpfs
     GIT_TAG 9c7d34977b10346d0b4cbbde5df807d1dab0b2bf
+    APPLY_PATCHES
 )
 """
+
+# Patches applied to the fetched httpfs sources (in patches/, applied with `patch -p1`).
+# duckdb-httpfs-cachedfile-gethandle-out-of-line: CachedFile::GetHandle() is defined inline in
+# http_state.hpp where CachedFileHandle is still incomplete, so instantiating its returned
+# unique_ptr<CachedFileHandle> destructor is ill-formed. clang+libc++ rejects this under full-LTO
+# (and would on other instantiation paths / compiler bumps). Moving the body into http_state.cpp,
+# where CachedFileHandle is complete, fixes it.
+HTTPFS_PATCHES = ['duckdb-httpfs-cachedfile-gethandle-out-of-line.patch']
 
 
 class DuckDBDependency(Dependency):
@@ -60,6 +74,16 @@ class DuckDBDependency(Dependency):
         ext_config_path = os.path.join(src_path, 'pg_duckdb_extensions.cmake')
         with open(ext_config_path, 'w') as ext_config_file:
             ext_config_file.write(PG_DUCKDB_EXTENSIONS_CMAKE)
+
+        # Stage our httpfs patches where DuckDB's APPLY_PATCHES mechanism looks for them. After
+        # FetchContent clones httpfs, DuckDB runs scripts/apply_extension_patches.py against this
+        # directory, applying every *.patch with `patch -p1` in the fetched httpfs tree.
+        httpfs_patch_dir = os.path.join(src_path, '.github', 'patches', 'extensions', 'httpfs')
+        mkdir_p(httpfs_patch_dir)
+        for patch_name in HTTPFS_PATCHES:
+            shutil.copy(
+                os.path.join(YB_THIRDPARTY_DIR, 'patches', patch_name),
+                os.path.join(httpfs_patch_dir, patch_name))
 
         # httpfs needs OpenSSL. We do not use vcpkg here; instead we point DuckDB's find_package at
         # the OpenSSL we already built in thirdparty. OpenSSL is a COMMON dependency, so it lives in
@@ -87,20 +111,6 @@ class DuckDBDependency(Dependency):
             'DISABLE_ASSERTIONS': '1',
             'EXTENSION_CONFIGS': ext_config_path,
         }
-
-        # Build DuckDB's objects without LTO, dropping the -flto flag the thirdparty build injects
-        # into CFLAGS/CXXFLAGS for LTO build types. DuckDB ships as a prebuilt static archive
-        # (libduckdb_bundle.a) that pg_duckdb links in the yugabyte-db repo, so LTO of these objects
-        # buys nothing here and is actively harmful: LTO bitcode is tied to an exact LLVM version,
-        # so an archive built with it would fail to link if yugabyte-db's compiler ever diverges
-        # from thirdparty's. Full-LTO clang+libc++ also instantiates a unique_ptr<CachedFileHandle>
-        # destructor against an incomplete type in the pinned httpfs sources, which only the LTO
-        # instantiation path rejects. Emitting regular objects sidesteps both issues.
-        for flags_var in ('CFLAGS', 'CXXFLAGS'):
-            existing_flags = os.environ.get(flags_var)
-            if existing_flags is not None:
-                build_env[flags_var] = ' '.join(
-                    flag for flag in existing_flags.split() if not flag.startswith('-flto'))
 
         with PushDir(src_path):
             # The bundle assembly step (`make bundle-library`) globs build/release/vcpkg_installed
