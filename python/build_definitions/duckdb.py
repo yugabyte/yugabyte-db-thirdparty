@@ -19,17 +19,9 @@ from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 from yugabyte_db_thirdparty.env_helpers import EnvVarContext
 
 
-# DuckDB is consumed by the pg_duckdb PostgreSQL extension in the yugabyte-db repo. Rather than
-# embedding DuckDB's ~14k source files in yugabyte-db (as a submodule or subtree) and recompiling it
-# on every fresh build, we build it once here and publish libduckdb_bundle.a plus DuckDB's internal
-# header tree as a thirdparty artifact. pg_duckdb relies on DuckDB's private headers (not just the
-# public amalgamation), so the full src/include tree is shipped.
-#
-# The pin below must match upstream pg_duckdb's DuckDB submodule pointer and DUCKDB_VERSION in
-# pg_duckdb's Makefile. For v1.4.3 the submodule SHA d1dc88f950d456d72493df452dabdcd13aa413dd is the
-# v1.4.3 release tag, so the release tarball matches the pin exactly. On a pg_duckdb rebase, read
-# the new submodule SHA upstream and update DUCKDB_VERSION (and the pin if it diverges from a tag).
-DUCKDB_VERSION = '1.4.3'
+# DuckDB is consumed by the pg_duckdb PostgreSQL extension in the yugabyte-db repo. pg_duckdb relies
+# on DuckDB's private headers (not just the public amalgamation), so the full src/include tree is
+# shipped alongside libduckdb_bundle.a.
 
 # DuckDB extensions to compile into the bundle. This MUST stay in sync with
 # src/postgres/third-party-extensions/pg_duckdb/third_party/pg_duckdb_extensions.cmake in the
@@ -49,7 +41,7 @@ class DuckDBDependency(Dependency):
     def __init__(self) -> None:
         super(DuckDBDependency, self).__init__(
             name='duckdb',
-            version=DUCKDB_VERSION,
+            version='1.4.3',
             url_pattern='https://github.com/duckdb/duckdb/archive/refs/tags/v{0}.tar.gz',
             build_group=BuildGroup.POTENTIALLY_INSTRUMENTED,
             license='MIT')
@@ -88,11 +80,11 @@ class DuckDBDependency(Dependency):
 
         build_env = {
             # Stamps the DuckDB version into the binary without requiring a git checkout.
-            'OVERRIDE_GIT_DESCRIBE': 'v' + DUCKDB_VERSION,
+            'OVERRIDE_GIT_DESCRIBE': 'v' + self.version,
             'GEN': 'ninja',
             'CMAKE_VARS': cmake_vars,
             'DISABLE_SANITIZER': '1',
-            'DISABLE_ASSERTIONS': '0',
+            'DISABLE_ASSERTIONS': '1',
             'EXTENSION_CONFIGS': ext_config_path,
         }
 
@@ -123,7 +115,6 @@ class DuckDBDependency(Dependency):
         self.install_artifacts(builder, src_path)
 
     def install_artifacts(self, builder: BuilderInterface, src_path: str) -> None:
-        # The single static bundle pg_duckdb links against.
         bundle_lib = os.path.join(src_path, 'build', 'release', 'libduckdb_bundle.a')
         if not os.path.exists(bundle_lib):
             raise IOError("Expected DuckDB bundle library not found: %s" % bundle_lib)
