@@ -70,6 +70,10 @@ class DuckDBDependency(Dependency):
         # DuckDB's own Makefile/CMake builds in-source (into build/release/), so build on a copy of
         # the extracted sources rather than polluting the downloaded tree.
         self.copy_sources = True
+        # Patch applied to the extracted tarball before building. DuckDB's bundled ICU defines
+        # reserved-identifier macros (_Sc etc.) that collide with clang's libc++ <algorithm> when
+        # the unity build leaks them into a later TU; the patch undefs them.
+        self.patches = ['duckdb-icu-undef-reserved-category-macros.patch']
 
     def build(self, builder: BuilderInterface) -> None:
         if not builder.prepare_for_build_tool_invocation(self):
