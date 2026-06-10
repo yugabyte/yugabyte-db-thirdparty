@@ -260,6 +260,7 @@ class DownloadManager:
                         '-o',
                         file_path,
                         '-L',  # follow redirects
+                        '--fail',  # exit non-zero on HTTP errors instead of saving the error body
                         '--silent',
                         '--show-error',
                         '--location',

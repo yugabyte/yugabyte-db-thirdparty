@@ -21,18 +21,19 @@ class BidDependency(Dependency):
     def __init__(self) -> None:
         super(BidDependency, self).__init__(
             name='bid',
-            version='20U2',
-            url_pattern='https://netlib.org/misc/intel/IntelRDFPMathLib{0}.tar.gz',
+            version='2.0u3-1',
+            # 
+            url_pattern=('https://s3.us-west-2.amazonaws.com/downloads.yugabyte.com/'
+                         'yugabyte-db-thirdparty/bid-{0}.tar.gz'),
             build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = True
-
-        self.patches = ['bid.patch', 'bid-crlf.patch']
 
     def get_additional_compiler_flags(self, builder: BuilderInterface) -> List[str]:
         flags = ['-Wno-error=missing-braces']
         return flags
 
     def build(self, builder: BuilderInterface) -> None:
+        cc_name = 'clang' if builder.compiler_choice.is_clang() else 'gcc'
         with PushDir("LIBRARY"):
             builder.build_with_make(
                 dep=self,
@@ -41,6 +42,7 @@ class BidDependency(Dependency):
                                  'GLOBAL_RND=0',
                                  'GLOBAL_FLAGS=0',
                                  'UNCHANGED_BINARY_FLAGS=0',
+                                 f'CC_NAME={cc_name}',
                                  ],
                 # Instead of "make install", we do a custom copy command below.
                 install_targets=[],
