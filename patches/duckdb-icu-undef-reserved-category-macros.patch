@@ -1,0 +1,44 @@
+--- a/extension/icu/third_party/icu/common/uprops.h
++++ b/extension/icu/third_party/icu/common/uprops.h
+@@ -343,6 +343,41 @@
+ #define _Sk     UPROPS_FLAG(U_MODIFIER_SYMBOL)
+ #define _So     UPROPS_FLAG(U_OTHER_SYMBOL)
+ #define _Pi     UPROPS_FLAG(U_INITIAL_PUNCTUATION)
++
++/*
++ * YugabyteDB: undefine the single-underscore general-category convenience macros above.
++ * They use reserved identifiers (e.g. _Sc) that collide with standard library headers --
++ * upstream ICU already disables _Lo/_Pe/_Pc/_Pf for the same reason (MSVC headers). With
++ * clang's libc++, _Sc collides with a template parameter in <__algorithm/radix_sort.h>, and
++ * DuckDB's unity build leaks the macro into a later TU that includes <algorithm>. These
++ * macros are unused in the bundled ICU, so undefining them here is safe.
++ */
++#undef _Cn
++#undef _Lu
++#undef _Ll
++#undef _Lt
++#undef _Lm
++#undef _Mn
++#undef _Me
++#undef _Mc
++#undef _Nd
++#undef _Nl
++#undef _No
++#undef _Zs
++#undef _Zl
++#undef _Zp
++#undef _Cc
++#undef _Cf
++#undef _Co
++#undef _Cs
++#undef _Pd
++#undef _Ps
++#undef _Po
++#undef _Sm
++#undef _Sc
++#undef _Sk
++#undef _So
++#undef _Pi
+ /* #define _Pf     UPROPS_FLAG(U_FINAL_PUNCTUATION) -- conflicts with MS Visual Studio 9.0 streambuf */
+ 
+ /** Some code points. @internal */
