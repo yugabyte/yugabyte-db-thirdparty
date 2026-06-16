@@ -1,7 +1,7 @@
 codecheck
 compiler-identification
 docker
-llvm-installer
+llvm-installer @ git+https://github.com/es1024/yb-llvm-installer.git@unwind-test
 mypy
 packaging
 pycodestyle
