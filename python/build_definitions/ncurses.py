@@ -19,13 +19,19 @@ class NCursesDependency(Dependency):
     def __init__(self) -> None:
         super(NCursesDependency, self).__init__(
             'ncurses',
-            '6.4',
+            '6.6',
             'https://ftp.gnu.org/pub/gnu/ncurses/ncurses-{0}.tar.gz',
             BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = True
 
     def build(self, builder: BuilderInterface) -> None:
-        extra_args = ['--with-shared', '--with-default-terminfo-dir=/usr/share/terminfo']
+        # ncurses 6.5+ enables widec by default (ABI 6), which builds libncursesw instead of the
+        # narrow libncurses that libedit links against — so disable widec to keep the narrow lib.
+        # ncurses 6.6 fails "make install" if /usr/share/terminfo is not writable (e.g. macOS CI,
+        # non-root builds). We use the system terminfo DB at runtime and never ship the installed
+        # one, so skip installing it.
+        extra_args = ['--with-shared', '--with-default-terminfo-dir=/usr/share/terminfo',
+                      '--disable-widec', '--disable-db-install']
         builder.build_with_configure(dep=self, extra_configure_args=extra_args)
 
     def get_additional_c_flags(self, builder: BuilderInterface) -> List[str]:
