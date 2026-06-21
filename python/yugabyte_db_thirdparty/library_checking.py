@@ -155,6 +155,13 @@ class LibTestBase:
         if compiler_choice.is_gcc():
             # The GCC toolchain links with the libstdc++ library in a system-wide location.
             self.allowed_system_libraries.add('libstdc++')
+        
+        # On ppc64le, some binaries (like escapesrc from cqlsh) may link against libstdc++
+        # even when using Clang, due to system dependencies
+        # Also, ppc64le requires libatomic for atomic operations
+        if compiler_choice.is_clang() and platform.machine() == 'ppc64le':
+            self.allowed_system_libraries.add('libstdc++')
+            self.allowed_system_libraries.add('libatomic')
 
         if (compiler_choice.is_gcc() or
                 compiler_choice.is_clang() and
@@ -476,3 +483,4 @@ def get_lib_tester(fs_layout: FileSystemLayout) -> LibTestBase:
     else:
         fatal(f"Unsupported platform: {platform.system()}")
     return lib_tester_class(fs_layout=fs_layout)
+

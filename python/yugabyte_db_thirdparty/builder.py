@@ -328,25 +328,30 @@ class Builder(BuilderInterface):
             llvm_major_version: Optional[int] = self.compiler_choice.get_llvm_major_version()
             if (self.compiler_choice.is_clang() and
                     llvm_major_version is not None and llvm_major_version >= 10):
+                # Only build llvm_libunwind if we have a toolchain or installer clang
                 if self.toolchain:
                     llvm_version_str = self.toolchain.get_installer_version_str()
-                else:
+                elif self.compiler_choice.is_llvm_installer_clang():
                     llvm_version_str = self.compiler_choice.get_installer_version_str()
-
-                self.dependencies.append(
-                    get_build_def_module('llvm_libunwind').LlvmLibUnwindDependency(
-                        version=llvm_version_str
-                    ))
-                libcxx_dep_module = get_build_def_module('llvm_libcxx')
-                if llvm_major_version >= 13:
-                    self.dependencies.append(
-                        libcxx_dep_module.LibCxxWithAbiDependency(version=llvm_version_str))
                 else:
-                    # It is important that we build libc++abi first, and only then build libc++.
-                    self.dependencies += [
-                        libcxx_dep_module.LlvmLibCxxAbiDependency(version=llvm_version_str),
-                        libcxx_dep_module.LlvmLibCxxDependency(version=llvm_version_str),
-                    ]
+                    # Skip llvm_libunwind for non-installer clang builds
+                    llvm_version_str = None
+
+                if llvm_version_str is not None:
+                    self.dependencies.append(
+                        get_build_def_module('llvm_libunwind').LlvmLibUnwindDependency(
+                            version=llvm_version_str
+                        ))
+                    libcxx_dep_module = get_build_def_module('llvm_libcxx')
+                    if llvm_major_version >= 13:
+                        self.dependencies.append(
+                            libcxx_dep_module.LibCxxWithAbiDependency(version=llvm_version_str))
+                    else:
+                        # It is important that we build libc++abi first, and only then build libc++.
+                        self.dependencies += [
+                            libcxx_dep_module.LlvmLibCxxAbiDependency(version=llvm_version_str),
+                            libcxx_dep_module.LlvmLibCxxDependency(version=llvm_version_str),
+                        ]
             else:
                 self.dependencies.append(get_build_def_module('libunwind').LibUnwindDependency())
 
@@ -533,6 +538,26 @@ class Builder(BuilderInterface):
             self.ld_flags.append("-Wl,-headerpad_max_install_names")
         else:
             fatal("Unsupported platform: {}".format(platform.system()))
+
+        # For Linux with Clang on ppc64le, we need to use libc++ for C++ ABI compatibility
+        # with YugabyteDB, which is built with libc++.
+        if is_linux() and self.compiler_choice.is_clang() and platform.machine() == 'ppc64le':
+            self.cxx_flags.append("-stdlib=libc++")
+            # libc++ is installed in the main LLVM lib directory, not the clang runtime lib dir
+            # We need to add both the main lib dir and the clang runtime lib dir
+            llvm_lib_dir = os.path.join(os.path.dirname(os.path.dirname(
+                self.compiler_choice.get_c_compiler())), 'lib')
+            if os.path.isdir(llvm_lib_dir):
+                # Add to linker search path for finding libc++.so during linking
+                self.ld_flags.append(f"-L{llvm_lib_dir}")
+                # Add to RPATH for finding libc++.so at runtime
+                self.add_rpath(llvm_lib_dir)
+            
+            # Also add the clang runtime library directory for compiler-rt libraries
+            clang_lib_dirs = get_clang_library_dir(self.compiler_choice.get_c_compiler())
+            if clang_lib_dirs:
+                for clang_lib_dir in clang_lib_dirs:
+                    self.add_rpath(clang_lib_dir)
 
         self.cxx_flags.append('-frtti')
 
@@ -1660,3 +1685,4 @@ class Builder(BuilderInterface):
             self.log_prefix(dep),
             ['rsync', '-av', '--delete', copy_from_dir, copy_to_dir]
         )
+

@@ -26,7 +26,8 @@ class BidDependency(Dependency):
             build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = True
 
-        self.patches = ['bid.patch', 'bid-crlf.patch']
+        self.patch_version = 1
+        self.patches = ['bid.patch', 'bid-crlf.patch', 'bid-ppc64le-support.patch']
 
     def get_additional_compiler_flags(self, builder: BuilderInterface) -> List[str]:
         flags = ['-Wno-error=missing-braces']
@@ -57,3 +58,4 @@ class BidDependency(Dependency):
                         builder.log_output(builder.log_prefix(self), ['cp', src_path, dest_path])
 
             builder.log_output(builder.log_prefix(self), ['cp', 'libbid.a', builder.prefix_lib])
+

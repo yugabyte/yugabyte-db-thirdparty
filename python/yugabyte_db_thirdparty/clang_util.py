@@ -67,7 +67,12 @@ def get_clang_library_dir(
     candidate_dirs: List[str] = []
 
     arch = platform.machine()
-    arch_specific_subdir_name = f'{arch}-unknown-linux-gnu'
+    # Map ppc64le to powerpc64le for LLVM directory naming
+    if arch == 'ppc64le':
+        arch_for_llvm = 'powerpc64le'
+    else:
+        arch_for_llvm = arch
+    arch_specific_subdir_name = f'{arch_for_llvm}-unknown-linux-gnu'
     subdir_names = ['linux', arch_specific_subdir_name]
 
     found_dirs: List[str] = []
@@ -145,3 +150,4 @@ def create_llvm_tool_dir(clang_path: str, tool_dir_path: str) -> bool:
                 src_must_exist=True
             )
     return True
+
