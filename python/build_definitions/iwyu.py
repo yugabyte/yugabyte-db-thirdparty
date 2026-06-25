@@ -25,7 +25,8 @@ class IncludeWhatYouUseDependency(Dependency):
     CXX_UNINSTRUMENTED group, like patchelf.
 
     IWYU pins to Clang's internal (unstable) APIs, so its release must match the toolchain's Clang
-    major version: IWYU 0.25 targets Clang/LLVM 21.
+    major version: IWYU 0.25 targets Clang/LLVM 21. For that reason it is only selected for Clang 21
+    builds (see the version gate in dependency_selection.py); bump both together on a Clang upgrade.
     """
     def __init__(self) -> None:
         super(IncludeWhatYouUseDependency, self).__init__(
@@ -77,9 +78,9 @@ class IncludeWhatYouUseDependency(Dependency):
         On macOS, drop the thirdparty libc++ rpath from the IWYU binary so it resolves libc++ from
         the Clang toolchain at runtime.
 
-        IWYU links the toolchain's LLVM/Clang dylibs, which were built against the toolchain's libc++
-        (libc++abi merged into libc++.1.0.dylib). The thirdparty libc++ keeps libc++abi as a separate
-        dylib, so it lacks symbols the toolchain dylibs expect from libc++.1.0.dylib (e.g. the
+        IWYU links the toolchain's LLVM/Clang dylibs, which were built against the toolchain's
+        libc++ (libc++abi merged into libc++.1.0.dylib). The thirdparty libc++ keeps libc++abi as a
+        separate dylib, so it lacks symbols the toolchain dylibs expect from libc++.1.0.dylib (e.g.
         __cxxabiv1::__si_class_type_info vtable), causing a dyld "Symbol not found" at startup. The
         thirdparty libcxx/lib rpath is listed first, so dyld loads the wrong libc++. Removing that
         rpath makes dyld fall through to the toolchain lib dir (the only other rpath that has
