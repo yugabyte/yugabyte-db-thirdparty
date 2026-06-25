@@ -1,0 +1,25 @@
+YugabyteDB: add the TargetParser LLVM component to IWYU's link list.
+
+iwyu_driver.cc calls llvm::sys::getDefaultTargetTriple(), which lives in the
+LLVMTargetParser component in LLVM 21 (it was previously in Support). IWYU's
+LLVM_LINK_COMPONENTS list omits TargetParser and relies on it being pulled in
+transitively. That works when linking against static LLVM archives, but the
+YugabyteDB thirdparty build links the toolchain's per-component shared dylibs
+(BUILD_SHARED_LIBS=ON), and shared linking does not pull transitive component
+dependencies -- exactly the situation IWYU already documents for Serialization
+a few lines below. Without this, the link fails with:
+
+  ld64.lld: error: undefined symbol: llvm::sys::getDefaultTargetTriple()
+
+Listing TargetParser explicitly puts libLLVMTargetParser on the link line.
+
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -119,6 +119,7 @@
+ set(LLVM_LINK_COMPONENTS
+   Option
+   Support
++  TargetParser
+   AllTargetsAsmParsers
+   AllTargetsDescs
+   AllTargetsInfos

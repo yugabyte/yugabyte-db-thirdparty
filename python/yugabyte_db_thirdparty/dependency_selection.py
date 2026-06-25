@@ -87,6 +87,7 @@ def get_final_dependency_module_names(compiler_choice: CompilerChoice) -> List[s
         'bson',
         'pcre',
         'hwy',
+        'iwyu',
         'eigen',
         'cnpy',
         'libxml2',
