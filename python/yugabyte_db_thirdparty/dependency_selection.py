@@ -87,7 +87,6 @@ def get_final_dependency_module_names(compiler_choice: CompilerChoice) -> List[s
         'bson',
         'pcre',
         'hwy',
-        'iwyu',
         'eigen',
         'cnpy',
         'libxml2',
@@ -101,5 +100,11 @@ def get_final_dependency_module_names(compiler_choice: CompilerChoice) -> List[s
 
     if not is_building_for_aarch64():
         dep_names.append('bid')
+
+    # include-what-you-use pins to Clang's internal APIs, so it can only be built with a matching
+    # Clang and not with GCC (no Clang libraries to link). IWYU 0.25 targets Clang 21; keep this
+    # version gate in sync with the version in build_definitions/iwyu.py.
+    if compiler_choice.is_clang() and compiler_choice.get_llvm_major_version() == 21:
+        dep_names.append('iwyu')
 
     return dep_names
