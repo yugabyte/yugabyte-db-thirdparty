@@ -317,6 +317,9 @@ class Builder(BuilderInterface):
         if is_linux():
             self.dependencies += [
                 get_build_def_module('libuuid').LibUuidDependency(),
+                # liburing is a low-level, uninstrumented C library (like libev, the other RPC
+                # reactor event-loop backend), so it lives in the COMMON build group.
+                get_build_def_module('liburing').LibUringDependency(),
             ]
 
             llvm_major_version: Optional[int] = self.compiler_choice.get_llvm_major_version()
