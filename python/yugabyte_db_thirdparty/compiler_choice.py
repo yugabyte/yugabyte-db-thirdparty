@@ -174,6 +174,7 @@ class CompilerChoice:
 
     def is_clang(self) -> bool:
         assert self.compiler_family is not None
+        assert self.expected_major_compiler_version is not None
         return self.compiler_family == 'clang'
 
     def is_gcc(self) -> bool:
@@ -189,9 +190,6 @@ class CompilerChoice:
 
     def is_linux_clang(self) -> bool:
         return is_linux() and self.is_clang()
-
-    def is_llvm_installer_clang(self) -> bool:
-        return self.expected_major_compiler_version is not None and self.is_clang()
 
     def set_compiler(self, use_compiler_wrapper: Optional[bool] = None) -> None:
         if use_compiler_wrapper is not None:

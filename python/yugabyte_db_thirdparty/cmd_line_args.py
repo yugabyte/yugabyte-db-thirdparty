@@ -19,7 +19,7 @@ import platform
 from typing import Dict, Set
 from argparse_utils import enum_action  # type: ignore
 
-from sys_detection import is_macos, local_sys_conf
+from sys_detection import local_sys_conf
 
 from build_definitions import BuildType
 

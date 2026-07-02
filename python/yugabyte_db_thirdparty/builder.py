@@ -324,7 +324,7 @@ class Builder(BuilderInterface):
                 get_build_def_module('libuuid').LibUuidDependency(),
             ]
 
-        if is_linux() or self.compiler_choice.is_llvm_installer_clang():
+        if is_linux() or self.compiler_choice.is_clang():
             llvm_major_version: Optional[int] = self.compiler_choice.get_llvm_major_version()
             if (self.compiler_choice.is_clang() and
                     llvm_major_version is not None and llvm_major_version >= 10):
@@ -514,13 +514,6 @@ class Builder(BuilderInterface):
         elif is_macos():
             self.shared_lib_suffix = "dylib"
 
-            if not self.compiler_choice.is_llvm_installer_clang():
-                # YugaByte builds with C++23, which on OS X requires using libc++ as the standard
-                # library implementation. Some of the dependencies do not compile against libc++ by
-                # default, so we specify it explicitly.
-                self.cxx_flags.append("-stdlib=libc++")
-                self.ld_flags += ["-lc++", "-lc++abi"]
-
             # Build for macOS Mojave or later. See https://bit.ly/37myHbk
             extend_lists(
                 [self.compiler_flags, self.ld_flags, self.assembler_flags],
@@ -547,10 +540,7 @@ class Builder(BuilderInterface):
         # issues with handling exceptions. We are force-including this flag even though there are
         # "proper" ways to specify the C++ standard for various build systems, e.g. CMake's
         # CMAKE_CXX_STANDARD.
-        if is_macos() and not self.compiler_choice.is_llvm_installer_clang():
-            self.cxx_flags.append(f'-std=c++{constants.OSX_CXX_STANDARD}')
-        else:
-            self.cxx_flags.append(f'-std=c++{constants.CXX_STANDARD}')
+        self.cxx_flags.append(f'-std=c++{constants.CXX_STANDARD}')
 
     def add_lib_dir_and_rpath(self, lib_dir: str) -> None:
         if self.args.verbose:
@@ -873,13 +863,10 @@ class Builder(BuilderInterface):
         # Explicitly pass the C++ standard via --cxxopt to ensure it is respected by all Bazel
         # C++ toolchains (including the Apple toolchain on macOS, which may not honor
         # BAZEL_CXXOPTS).
-        if is_macos() and not self.compiler_choice.is_llvm_installer_clang():
-            cxx_std_flag = f"-std=c++{constants.OSX_CXX_STANDARD}"
-        else:
-            cxx_std_flag = f"-std=c++{constants.CXX_STANDARD}"
-            # See https://github.com/bazelbuild/bazel/issues/4231. Without this, setting CC variable
-            # doesn't work on macOS builds when Xcode is installed.
-            build_command += ["--action_env", f"BAZEL_USE_CPP_ONLY_TOOLCHAIN=1"]
+        cxx_std_flag = f"-std=c++{constants.CXX_STANDARD}"
+        # See https://github.com/bazelbuild/bazel/issues/4231. Without this, setting CC variable
+        # doesn't work on macOS builds when Xcode is installed.
+        build_command += ["--action_env", f"BAZEL_USE_CPP_ONLY_TOOLCHAIN=1"]
         build_command += ["--cxxopt", cxx_std_flag]
 
         # Need to explicitly pass environment variables which we want to be available.
@@ -1044,8 +1031,8 @@ class Builder(BuilderInterface):
         """
         self.init_compiler_independent_flags(dep)
 
-        if self.compiler_choice.is_llvm_installer_clang():
-            # Special setup for LLVM installer Clang.
+        if self.compiler_choice.is_clang():
+            # Special setup for Clang.
             compiler_choice = self.compiler_choice
             llvm_major_version: Optional[int] = compiler_choice.get_llvm_major_version()
             if llvm_major_version is not None and llvm_major_version >= 10:
