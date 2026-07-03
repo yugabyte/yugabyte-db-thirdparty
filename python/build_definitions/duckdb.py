@@ -120,10 +120,11 @@ class DuckDBDependency(Dependency):
             'GEN': 'ninja',
             'CMAKE_VARS': cmake_vars,
             # DuckDB enables ASan/UBSan by default (ENABLE_SANITIZER/ENABLE_UBSAN are ON in its
-            # CMakeLists), so without this it would self-instrument with -fsanitize=address,ubsan
-            # even in a release build. Disable that; the thirdparty build still injects its own
-            # sanitizer flags via CXXFLAGS for sanitizer build types, so this only avoids applying
-            # them twice, not dropping instrumentation.
+            # CMakeLists), which would instrument it even in release builds; DISABLE_SANITIZER=1
+            # turns that off. As a result DuckDB is NOT sanitizer-instrumented in any build type,
+            # including ASAN/TSAN -- its build doesn't apply the thirdparty-injected -fsanitize
+            # flags (the ASAN/TSAN bundles carry no sanitize_address/sanitize_thread attributes).
+            # Instrumenting it for sanitizer builds is tracked in issue #364.
             'DISABLE_SANITIZER': '1',
             'DISABLE_ASSERTIONS': '1',
             'EXTENSION_CONFIGS': ext_config_path,
