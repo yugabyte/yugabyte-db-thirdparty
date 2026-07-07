@@ -17,8 +17,6 @@ import subprocess
 
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
-from typing import Optional
-
 
 # IWYU pins to Clang's internal (unstable) APIs, so each release targets exactly one Clang major
 # version. The version is therefore resolved from the toolchain's Clang at build time (see
@@ -54,15 +52,15 @@ class IncludeWhatYouUseDependency(Dependency):
 
     def dependency_version(self, builder: BuilderInterface) -> str:
         compiler_choice = builder.compiler_choice
-        if not compiler_choice.is_llvm_installer_clang():
-            raise RuntimeError(
-                'include-what-you-use can only be built with an LLVM-installer Clang toolchain')
-        major: Optional[int] = compiler_choice.get_llvm_major_version()
-        version = IWYU_VERSION_FOR_CLANG_MAJOR.get(major) if major is not None else None
+        if not compiler_choice.is_clang():
+            raise RuntimeError('include-what-you-use can only be built with a Clang toolchain')
+        major = compiler_choice.get_llvm_major_version()
+        assert major is not None, 'Could not determine the Clang major version'
+        version = IWYU_VERSION_FOR_CLANG_MAJOR.get(major)
         if version is None:
             raise RuntimeError(
                 'No include-what-you-use version configured for Clang major version %s; add one to '
-                'IWYU_VERSION_FOR_CLANG_MAJOR in build_definitions/iwyu.py' % (major,))
+                'IWYU_VERSION_FOR_CLANG_MAJOR in build_definitions/iwyu.py' % major)
         return version
 
     def build(self, builder: BuilderInterface) -> None:
