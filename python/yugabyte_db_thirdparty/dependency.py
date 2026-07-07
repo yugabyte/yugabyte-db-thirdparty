@@ -13,8 +13,6 @@
 import os
 from typing import Optional, List, Set, TYPE_CHECKING
 
-from sys_detection import is_linux, is_macos
-
 from build_definitions import ExtraDownload, BuildGroup
 from yugabyte_db_thirdparty.archive_handling import make_archive_name
 from yugabyte_db_thirdparty.git_util import parse_github_url
@@ -128,7 +126,7 @@ class Dependency:
         compiler wrapper command line.
         """
         llvm_major_version: Optional[int] = builder.compiler_choice.get_llvm_major_version()
-        if (builder.compiler_choice.is_llvm_installer_clang() and
+        if (builder.compiler_choice.is_clang() and
                 llvm_major_version is not None and
                 llvm_major_version >= 12 and
                 builder.lto_type is not None):
