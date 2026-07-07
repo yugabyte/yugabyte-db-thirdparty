@@ -17,21 +17,29 @@ import subprocess
 
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 
+from typing import Optional
+
+
+# IWYU pins to Clang's internal (unstable) APIs, so each release targets exactly one Clang major
+# version. The version is therefore resolved from the toolchain's Clang at build time (see
+# dependency_version) rather than hard-coded, so a single thirdparty commit can build IWYU for
+# multiple Clang versions. Add an entry (and its checksum) when adding support for a new Clang.
+IWYU_VERSION_FOR_CLANG_MAJOR = {
+    19: '0.23',
+    21: '0.25',
+}
+
 
 class IncludeWhatYouUseDependency(Dependency):
     """
     include-what-you-use (IWYU): a Clang-based tool that analyzes #include usage. It is shipped as a
     build-time host tool (not linked into YugabyteDB), so it is built once in the
     CXX_UNINSTRUMENTED group, like patchelf.
-
-    IWYU pins to Clang's internal (unstable) APIs, so its release must match the toolchain's Clang
-    major version: IWYU 0.25 targets Clang/LLVM 21. For that reason it is only selected for Clang 21
-    builds (see the version gate in dependency_selection.py); bump both together on a Clang upgrade.
     """
     def __init__(self) -> None:
         super(IncludeWhatYouUseDependency, self).__init__(
             name='iwyu',
-            version='0.25',
+            version=None,  # resolved from the Clang major version at build time
             url_pattern='https://github.com/include-what-you-use/include-what-you-use/'
                         'archive/refs/tags/{0}.tar.gz',
             # The upstream tarball unpacks to include-what-you-use-<version>; name the archive to
@@ -40,8 +48,22 @@ class IncludeWhatYouUseDependency(Dependency):
             build_group=BuildGroup.CXX_UNINSTRUMENTED)
         # IWYU's LLVM_LINK_COMPONENTS omits TargetParser, which provides
         # llvm::sys::getDefaultTargetTriple(); needed because we link LLVM's per-component shared
-        # dylibs, which don't pull transitive component deps. See the patch for details.
-        self.patches = ['iwyu-0.25-add-targetparser-link-component.patch']
+        # dylibs, which don't pull transitive component deps. See the patch for details. The block
+        # it patches is identical across the IWYU releases we build, so one patch covers all.
+        self.patches = ['iwyu-add-targetparser-link-component.patch']
+
+    def dependency_version(self, builder: BuilderInterface) -> str:
+        compiler_choice = builder.compiler_choice
+        if not compiler_choice.is_llvm_installer_clang():
+            raise RuntimeError(
+                'include-what-you-use can only be built with an LLVM-installer Clang toolchain')
+        major: Optional[int] = compiler_choice.get_llvm_major_version()
+        version = IWYU_VERSION_FOR_CLANG_MAJOR.get(major) if major is not None else None
+        if version is None:
+            raise RuntimeError(
+                'No include-what-you-use version configured for Clang major version %s; add one to '
+                'IWYU_VERSION_FOR_CLANG_MAJOR in build_definitions/iwyu.py' % (major,))
+        return version
 
     def build(self, builder: BuilderInterface) -> None:
         # IWYU links against the LLVM/Clang libraries of the toolchain we are building with. The C

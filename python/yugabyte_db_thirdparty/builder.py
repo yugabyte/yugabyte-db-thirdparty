@@ -1226,6 +1226,10 @@ class Builder(BuilderInterface):
         ]
 
     def perform_pre_build_steps(self, dep: Dependency) -> None:
+        # Resolve a lazily-versioned dependency (version=None) before any version-dependent field
+        # (dir_name, download_url, ...) is used below.
+        dep.resolve_version(self)
+
         log("")
         colored_log(YELLOW_COLOR, SEPARATOR)
         colored_log(YELLOW_COLOR, "Building %s (%s)", dep.name, self.build_type)
