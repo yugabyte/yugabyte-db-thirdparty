@@ -23,6 +23,13 @@ if TYPE_CHECKING:
 
 
 class Dependency:
+    # version may be resolved lazily at build time (see dependency_version / resolve_version), so it
+    # and the fields derived from it are only guaranteed to be set once resolve_version() has run.
+    version: str
+    dir_name: str
+    underscored_version: str
+    url_pattern: Optional[str]
+    archive_name_prefix: Optional[str]
     download_url: Optional[str]
     extra_downloads: List[ExtraDownload]
     patches: List[str]
@@ -50,7 +57,7 @@ class Dependency:
     def __init__(
             self,
             name: str,
-            version: str,
+            version: Optional[str],
             url_pattern: Optional[str],
             build_group: BuildGroup,
             archive_name_prefix: Optional[str] = None,
@@ -58,20 +65,10 @@ class Dependency:
             mkdir_only: bool = False,
             local_archive: Optional[str] = None) -> None:
         self.name = name
-        self.version = version
-        self.dir_name = '{}-{}'.format(name, version)
-        self.underscored_version = version.replace('.', '_')
-        if url_pattern is not None:
-            self.download_url = url_pattern.format(version, self.underscored_version)
-        else:
-            self.download_url = None
+        self.url_pattern = url_pattern
+        self.archive_name_prefix = archive_name_prefix
         self.build_group = build_group
-
-        self.archive_name = None
         self.mkdir_only = mkdir_only
-        if not mkdir_only:
-            self.archive_name = make_archive_name(
-                archive_name_prefix or name, version, self.download_url)
         self.local_archive = local_archive
 
         self.patch_version = 0
@@ -90,15 +87,48 @@ class Dependency:
         self.shared_and_static = False
         self.bazel_project_subdir_name = None
 
+        # version may be None to defer resolution to build time, for dependencies whose version
+        # depends on the compiler (see dependency_version / resolve_version). Version-dependent
+        # fields are computed by _apply_version, either now or once the version is resolved.
+        if version is not None:
+            self._apply_version(version)
+
+    def _apply_version(self, version: str) -> None:
+        """Compute all version-dependent fields from a concrete version string."""
+        self.version = version
+        self.dir_name = '{}-{}'.format(self.name, version)
+        self.underscored_version = version.replace('.', '_')
+        if self.url_pattern is not None:
+            self.download_url = self.url_pattern.format(version, self.underscored_version)
+        else:
+            self.download_url = None
+        self.archive_name = None
+        if not self.mkdir_only:
+            self.archive_name = make_archive_name(
+                self.archive_name_prefix or self.name, version, self.download_url)
+        self.github_org_name = None
+        self.github_repo_name = None
+        self.github_ref = None
         if self.download_url is not None:
             parse_result = parse_github_url(self.download_url)
-            self.github_org_name = None
-            self.github_repo_name = None
-            self.github_ref = None
             if parse_result:
                 self.github_org_name, self.github_repo_name, self.github_ref = parse_result
             elif self.download_url.startswith('https://github.com/'):
                 log("Warning: failed to parse GitHub URL %s", self.download_url)
+
+    def dependency_version(self, builder: 'BuilderInterface') -> str:
+        """
+        Return the version to use, computed from the builder (e.g. the compiler version). Only
+        invoked for dependencies constructed with version=None, which must override this.
+        """
+        raise NotImplementedError(
+            '%s was constructed with version=None but does not override dependency_version()' %
+            type(self).__name__)
+
+    def resolve_version(self, builder: 'BuilderInterface') -> None:
+        """Resolve a deferred (version=None) version from the builder; a no-op otherwise."""
+        if not hasattr(self, 'version'):
+            self._apply_version(self.dependency_version(builder))
 
     def get_additional_compiler_flags(
             self,

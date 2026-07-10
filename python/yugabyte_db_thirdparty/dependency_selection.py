@@ -101,4 +101,10 @@ def get_final_dependency_module_names(compiler_choice: CompilerChoice) -> List[s
     if not is_building_for_aarch64():
         dep_names.append('bid')
 
+    # include-what-you-use pins to Clang's internal APIs, so it can only be built with Clang (not
+    # GCC, which has no Clang libraries to link). The matching IWYU release is chosen per Clang
+    # major version in build_definitions/iwyu.py.
+    if compiler_choice.is_clang():
+        dep_names.append('iwyu')
+
     return dep_names
