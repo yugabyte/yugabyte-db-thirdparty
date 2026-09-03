@@ -21,8 +21,8 @@ class SnappyDependency(Dependency):
     def __init__(self) -> None:
         super(SnappyDependency, self).__init__(
             name='snappy',
-            version='1.1.9-yb-3',
-            url_pattern='https://github.com/yugabyte/snappy/archive/refs/tags/v{0}.tar.gz',
+            version='1.2.2-yb-1',
+            url_pattern='https://github.com/es1024/yb-snappy/archive/refs/tags/v{0}.tar.gz',
             build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
 
     def build(self, builder: BuilderInterface) -> None:
