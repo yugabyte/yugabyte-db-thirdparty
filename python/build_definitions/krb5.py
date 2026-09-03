@@ -75,7 +75,7 @@ class Krb5Dependency(Dependency):
                 else:
                     extra_args = ['--disable-shared', '--enable-static']
                 if builder.build_type in [BuildType.ASAN]:
-                    extra_args.append('--enable-asan')
+                    extra_args.append('--enable-asan=hwaddress')
                 builder.build_with_configure(
                     dep=self,
                     src_subdir_name='src',
