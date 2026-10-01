@@ -499,6 +499,11 @@ full text of the licenses here, since neither source nor binary distributions
 bundle these projects.
 
 --------------------------------------------------------------------------------
+thirdparty/benchmark-*/: Apache 2.0
+Source: https://github.com/google/benchmark
+NOTE: build-time dependency, only linked into benchmark binaries.
+
+--------------------------------------------------------------------------------
 thirdparty/cmake-*/: BSD 3-clause license
 source: http://cmake.org/
 NOTE: build-time dependency only

@@ -76,6 +76,7 @@ def get_final_dependency_module_names(compiler_choice: CompilerChoice) -> List[s
         'glog',
         'gperftools',
         'googletest',
+        'benchmark',
         'snappy',
         'crcutil',
         'libuv',
