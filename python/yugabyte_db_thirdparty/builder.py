@@ -107,7 +107,7 @@ from yugabyte_db_thirdparty import intel_oneapi, dependency_selection, env_var_n
 # -------------------------------------------------------------------------------------------------
 
 ASAN_COMPILER_FLAGS = [
-    '-fsanitize=address',
+    '-fsanitize=hwaddress',
     '-fsanitize=undefined',
     '-DADDRESS_SANITIZER',
 ]
@@ -798,7 +798,7 @@ class Builder(BuilderInterface):
             for command_item in compile_commands:
                 command_args = command_item['command'].split()
                 if self.build_type == BuildType.ASAN:
-                    assert_list_contains(command_args, '-fsanitize=address')
+                    assert_list_contains(command_args, '-fsanitize=hwaddress')
                     assert_list_contains(command_args, '-fsanitize=undefined')
                 if self.build_type == BuildType.TSAN:
                     assert_list_contains(command_args, '-fsanitize=thread')
