@@ -26,7 +26,6 @@ class BenchmarkDependency(Dependency):
 
     def build(self, builder: BuilderInterface) -> None:
         extra_cmake_args = [
-            # The library prints a warning on every run if it is not built with NDEBUG.
             '-DCMAKE_BUILD_TYPE=Release',
             # Testing would pull in and build a bundled googletest.
             '-DBENCHMARK_ENABLE_TESTING=OFF',
