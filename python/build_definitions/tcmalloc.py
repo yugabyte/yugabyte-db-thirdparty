@@ -13,6 +13,7 @@
 #
 
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
+from yugabyte_db_thirdparty import constants
 import glob
 import os
 
@@ -23,33 +24,10 @@ class TCMallocDependency(Dependency):
     def __init__(self) -> None:
         super(TCMallocDependency, self).__init__(
             name='tcmalloc',
-            version='3b79ccc-yb-2',
-            url_pattern='https://github.com/yugabyte/tcmalloc/archive/{0}.tar.gz',
+            version='31549f83a1f2ca328dee482dd9ed338a2db4e88b',
+            url_pattern='https://github.com/google/tcmalloc/archive/{0}.tar.gz',
             build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
-        self.copy_sources = True
-        self.bazel_project_subdir_name = 'com_google_tcmalloc'
-
-    def update_workspace_file(self) -> None:
-        """
-        The tcmalloc codebase has a WORKSPACE file that has a reference to the Abseil source
-        directory. Here, we make sure it refers to the correct location of Abseil source code.
-        """
-        workspace_file_path = os.path.join(os.getcwd(), 'WORKSPACE')
-        with open(workspace_file_path) as workspace_file:
-            lines = [line.rstrip() for line in workspace_file.readlines()]
-        found = False
-        for i in range(len(lines) - 2):
-            if (lines[i].strip() == 'local_repository(' and
-                    lines[i + 1].strip() == 'name = "com_google_absl",'):
-                lines[i + 2] = '    path = "../%s",' % self.abseil_src_dir_name
-                found = True
-                break
-        if not found:
-            raise ValueError(
-                "Could not update Abseil source path in %s" % workspace_file_path)
-        log("Successfully updated Abseil source directory in %s", workspace_file_path)
-        with open(workspace_file_path, 'w') as workspace_file:
-            workspace_file.write('\n'.join(lines) + '\n')
+        self.patches = ['tcmalloc-yb-cmake-build.patch']
 
     def set_abseil_source_dir_basename(self, abseil_src_dir_name: str) -> None:
         self.abseil_src_dir_name = abseil_src_dir_name
@@ -63,20 +41,41 @@ class TCMallocDependency(Dependency):
 
     def build(self, builder: BuilderInterface) -> None:
         log_prefix = builder.log_prefix(self)
-        self.update_workspace_file()
-        builder.build_with_bazel(dep=self,
-                                 targets=["tcmalloc:tcmalloc_shared", "tcmalloc:tcmalloc_static"])
+        abseil_src_dir = os.path.join(builder.fs_layout.tp_src_dir, self.abseil_src_dir_name)
+        builder.build_with_cmake(
+            dep=self,
+            extra_cmake_args=[
+                '-DCMAKE_BUILD_TYPE=Release',
+                '-DBUILD_SHARED_LIBS=OFF',
+                f'-DCMAKE_CXX_STANDARD={constants.CXX_STANDARD}',
+                '-DCMAKE_CXX_EXTENSIONS=OFF',
+                f'-DABSL_SRC_DIR={abseil_src_dir}',
+            ],
+            src_subdir_name='yb_cmake',
+            extra_build_tool_args=['yb_tcmalloc_closure'],
+            should_install=False)
 
-        builder.install_bazel_build_output(
-                dep=self,
-                src_file="libtcmalloc_shared.so",
-                dest_file=f"libgoogletcmalloc.{builder.shared_lib_suffix}",
-                src_folder="tcmalloc",
-                is_shared=True)
-        builder.install_bazel_build_output(
-                dep=self, src_file="tcmalloc_static.a", dest_file="libgoogletcmalloc.a",
-                src_folder="tcmalloc", is_shared=False)
+        # Abseil objects are compiled here only as dependencies and are not included, because
+        # YugabyteDB links libabsl separately.
+        object_files = sorted(glob.glob(os.path.join('tcmalloc', '**', '*.o'), recursive=True))
+        static_lib_path = os.path.join(builder.prefix_lib, 'libgoogletcmalloc.a')
+        remove_path(static_lib_path)
+        builder.log_output(log_prefix, ['ar', 'qc', static_lib_path] + object_files)
+        builder.log_output(log_prefix, ['ranlib', static_lib_path])
+
+        shared_lib_name = f'libgoogletcmalloc.{builder.shared_lib_suffix}'
+        builder.log_output(
+            log_prefix,
+            [builder.compiler_choice.get_cxx_compiler()] +
+            builder.compiler_flags + builder.cxx_flags +
+            ['-shared', '-o', os.path.join(builder.prefix_lib, shared_lib_name),
+             '-Wl,-soname,' + shared_lib_name,
+             '-Wl,--whole-archive', static_lib_path, '-Wl,--no-whole-archive',
+             '-L' + builder.prefix_lib, '-labsl', '-lpthread'] +
+            builder.ld_flags)
 
         # Copy headers, keeping the folder structure. https://stackoverflow.com/a/9626253/1890288.
-        builder.log_output(log_prefix, ["rsync", "-a", "--include=*.h", "-f",
-                                        "hide,! */", "./tcmalloc", builder.prefix_include])
+        src_dir = builder.fs_layout.get_source_path(self)
+        builder.log_output(log_prefix, ["rsync", "-a", "--include=*.h", "-f", "hide,! */",
+                                        os.path.join(src_dir, 'tcmalloc'),
+                                        builder.prefix_include])
