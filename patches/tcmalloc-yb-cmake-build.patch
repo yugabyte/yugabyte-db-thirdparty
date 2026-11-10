@@ -2,13 +2,16 @@ diff --git a/yb_cmake/CMakeLists.txt b/yb_cmake/CMakeLists.txt
 new file mode 100644
 --- /dev/null
 +++ b/yb_cmake/CMakeLists.txt
-@@ -0,0 +1,49 @@
+@@ -0,0 +1,52 @@
 +# Builds the parts of tcmalloc that YugabyteDB links against. The upstream top-level CMakeLists.txt
 +# is not used because it fetches googletest, Abseil, protobuf, re2, benchmark and fuzztest at HEAD.
 +# Abseil comes from the source directory given by ABSL_SRC_DIR instead.
 +cmake_minimum_required(VERSION 3.24)
 +project(yb_tcmalloc CXX C ASM)
 +
++# The builder passes its flags (including sanitizer flags) as CMAKE_C_FLAGS/CMAKE_CXX_FLAGS only;
++# the rseq assembly sources need them too.
++string(APPEND CMAKE_ASM_FLAGS " ${CMAKE_C_FLAGS}")
 +set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 +set(ABSL_PROPAGATE_CXX_STD ON)
 +set(ABSL_BUILD_TESTING OFF CACHE BOOL "" FORCE)
