@@ -20,6 +20,7 @@ import subprocess
 import stat
 import time
 import re
+import shutil
 
 from re import Pattern
 
@@ -366,8 +367,7 @@ class Builder(BuilderInterface):
         abseil_dep = self.dependencies_by_name['abseil']
         tcmalloc_dep = self.dependencies_by_name.get('tcmalloc')
         if tcmalloc_dep is not None:
-            tcmalloc_dep = cast(TCMallocDependency, tcmalloc_dep)
-            tcmalloc_dep.set_abseil_source_dir_basename(abseil_dep.get_source_dir_basename())
+            cast(TCMallocDependency, tcmalloc_dep).set_abseil_dep(abseil_dep)
 
     def select_dependencies_to_build(self) -> None:
         self.selected_dependencies = []
@@ -823,29 +823,63 @@ class Builder(BuilderInterface):
             do_build_with_cmake()
             self.validate_build_output()
 
-    def build_with_bazel(
-            self,
-            dep: Dependency,
-            verbose_output: bool = True,
-            should_clean: bool = True,
-            targets: List[str] = []) -> None:
-        if not self.prepare_for_build_tool_invocation(dep):
-            return
-        log_prefix = self.log_prefix(dep)
-
-        # Ensure Bazelisk uses the Bazel version specified in the repo root .bazelversion file,
-        # even when invoking Bazel from a subdirectory that has its own workspace files.
-        # We don't use this path except on OS X. On Linux builds, Bazel version is specified here:
-        # https://github.com/yugabyte/build-infra/blob/master/docker_setup_scripts/docker_setup_scripts_common.sh
-        # and setting this does nothing since we don't use Bazelisk at all.
+    def get_bazel_command(self) -> List[str]:
+        """
+        Returns the command for running the Bazel version in .bazelversion. On macOS, "bazel" is
+        Bazelisk, which reads USE_BAZEL_VERSION. The Linux CI images install a fixed Bazel, so on
+        Linux we download the pinned release unless the Bazel on PATH is already that version.
+        """
         bazelversion_path = os.path.join(YB_THIRDPARTY_DIR, '.bazelversion')
         with open(bazelversion_path) as f:
             bazel_version = f.read().strip()
         os.environ['USE_BAZEL_VERSION'] = bazel_version
-        log(f"Set USE_BAZEL_VERSION={bazel_version} from {bazelversion_path}")
+
+        bazel_path = 'bazel'
+        if not is_macos():
+            system_bazel = shutil.which('bazel')
+            system_bazel_version = None
+            if system_bazel is not None:
+                # A launcher (e.g. /usr/bin/bazel from Bazel's RPM) fails if it does not have the
+                # requested version.
+                result = subprocess.run(
+                    [system_bazel, '--version'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+                if result.returncode == 0:
+                    system_bazel_version = result.stdout.decode('utf-8').strip()
+            if system_bazel_version != f'bazel {bazel_version}':
+                arch = 'arm64' if get_target_arch() == 'aarch64' else 'x86_64'
+                file_name = f'bazel-{bazel_version}-linux-{arch}'
+                bazel_path = os.path.join(self.fs_layout.tp_download_dir, file_name)
+                self.download_manager.ensure_file_downloaded(
+                    url='https://github.com/bazelbuild/bazel/releases/download/'
+                        f'{bazel_version}/{file_name}',
+                    file_path=bazel_path,
+                    enable_using_alternative_url=False)
+                os.chmod(bazel_path, 0o755)
+
+        # The projects' own .bazelrc files configure their CI. For example, tcmalloc's forces
+        # C++17 and registers a toolchain from a module that is only a dev dependency.
+        return [bazel_path, '--ignore_all_rc_files']
+
+    def query_bazel(self, query: str) -> List[str]:
+        output = subprocess.check_output(
+            self.get_bazel_command() +
+            ['query', '--ignore_dev_dependency', '--output=label', query])
+        return [line for line in output.decode('utf-8').splitlines() if line.strip()]
+
+    def build_with_bazel(
+            self,
+            dep: Dependency,
+            targets: List[str],
+            override_modules: Dict[str, str] = {},
+            verbose_output: bool = True,
+            should_clean: bool = True) -> None:
+        if not self.prepare_for_build_tool_invocation(dep):
+            return
+        log_prefix = self.log_prefix(dep)
+        bazel_command = self.get_bazel_command()
 
         if should_clean:
-            self.log_output(log_prefix, ['bazel', 'clean', '--expunge'])
+            self.log_output(log_prefix, bazel_command + ['clean', '--expunge'])
 
         # Need to remove the space after isystem so replacing the space separators with colons
         # works properly.
@@ -854,11 +888,13 @@ class Builder(BuilderInterface):
         bazel_linkopts = os.environ["LDFLAGS"].replace(" ", ":")
 
         # Build without curses for more readable build output.
-        build_command = ["bazel", "build", "--curses=no"]
+        build_command = bazel_command + ["build", "--curses=no"]
         if verbose_output:
             build_command.append("--subcommands")
-        build_command += ["--action_env", f"BAZEL_CXXOPTS={bazel_cxxopts}"]
-        build_command += ["--action_env", f"BAZEL_LINKOPTS={bazel_linkopts}"]
+
+        # The C++ toolchain is configured by a repository rule, which only sees --repo_env.
+        build_command += ["--repo_env", f"BAZEL_CXXOPTS={bazel_cxxopts}"]
+        build_command += ["--repo_env", f"BAZEL_LINKOPTS={bazel_linkopts}"]
 
         # Explicitly pass the C++ standard via --cxxopt to ensure it is respected by all Bazel
         # C++ toolchains (including the Apple toolchain on macOS, which may not honor
@@ -866,7 +902,7 @@ class Builder(BuilderInterface):
         cxx_std_flag = f"-std=c++{constants.CXX_STANDARD}"
         # See https://github.com/bazelbuild/bazel/issues/4231. Without this, setting CC variable
         # doesn't work on macOS builds when Xcode is installed.
-        build_command += ["--action_env", f"BAZEL_USE_CPP_ONLY_TOOLCHAIN=1"]
+        build_command += ["--repo_env", "BAZEL_USE_CPP_ONLY_TOOLCHAIN=1"]
         build_command += ["--cxxopt", cxx_std_flag]
 
         # Need to explicitly pass environment variables which we want to be available.
@@ -885,8 +921,23 @@ class Builder(BuilderInterface):
                 log(f"Environment variable {env_var} not found. Not passing it to Bazel.")
                 continue
             build_command += ["--action_env", f"{env_var}={os.environ[env_var]}"]
+            if env_var in ("CC", "CXX"):
+                build_command += ["--repo_env", f"{env_var}={os.environ[env_var]}"]
 
-        build_command.append("--verbose_failures")
+        build_command += [
+            "--verbose_failures",
+            # Test frameworks, benchmarks, and CI toolchains are dev dependencies.
+            "--ignore_dev_dependency",
+            # Our compiler wrappers write outside the sandbox (compilation database, ccache).
+            "--spawn_strategy=local",
+            "--force_pic",
+        ]
+        if self.build_type.is_sanitizer:
+            # ASAN emits a common symbol (___asan_globals_registered) in every object, which
+            # cc_static_library's duplicate symbol validation reports as a conflict.
+            build_command.append("--norun_validations")
+        for module_name, module_path in sorted(override_modules.items()):
+            build_command.append(f"--override_module={module_name}={module_path}")
 
         if is_macos():
             macos_min_ver = get_min_supported_macos_version()
@@ -905,14 +956,13 @@ class Builder(BuilderInterface):
                 'set -euxo pipefail',
                 'cd "$( dirname "$0" )"',
                 '. "./%s"' % DEPENDENCY_ENV_FILE_NAME,
-                'for target in ' + shlex_join(targets) + '; do',
-                '  ' + shlex_join(build_command) + ' "$target"',
-                'done',
+                shlex_join(build_command + targets),
             ]))
         os.chmod(build_script_path, 0o755)
 
-        for target in targets:
-            self.log_output(log_prefix, build_command + [target])
+        self.log_output(log_prefix, build_command + targets)
+        # Each build type uses its own workspace, so don't leave idle servers behind.
+        self.log_output(log_prefix, bazel_command + ['shutdown'])
 
     def install_bazel_build_output(
             self,
@@ -1405,10 +1455,12 @@ class Builder(BuilderInterface):
 
             src_dir = self.fs_layout.get_source_path(dep)
             build_dir = self.create_build_dir_and_prepare(dep)
+            # Bazel names the main repository "_main" in its output paths.
+            bazel_path_mapping = dict(self.bazel_path_mapping, _main=build_dir)
             if self.args.postprocess_compile_commands_only:
                 log("Only post-processing compile_commands.json in %s, skipping build", build_dir)
                 compile_commands.postprocess_compile_commands(
-                    build_dir, self.bazel_path_mapping, clang_toolchain_dir, src_dir)
+                    build_dir, bazel_path_mapping, clang_toolchain_dir, src_dir)
                 return
 
             with PushDir(build_dir):
@@ -1419,7 +1471,7 @@ class Builder(BuilderInterface):
 
             if compile_commands_tmp_dir is not None:
                 compile_commands.aggregate_compile_commands(
-                    compile_commands_tmp_dir, build_dir, self.bazel_path_mapping,
+                    compile_commands_tmp_dir, build_dir, bazel_path_mapping,
                     clang_toolchain_dir, src_dir)
 
             if self.args.delete_build_dir_after and dep.name != 'icu4c':

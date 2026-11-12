@@ -13,9 +13,11 @@
 #
 
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
-from yugabyte_db_thirdparty import constants
-import glob
 import os
+
+PUBLIC_LIBRARIES_QUERY = (
+    'attr(visibility, "//visibility:public", kind("cc_library", //absl/...)) '
+    'except attr(testonly, 1, //absl/...)')
 
 
 class AbseilDependency(Dependency):
@@ -25,47 +27,43 @@ class AbseilDependency(Dependency):
             version='20260526.0',
             url_pattern='https://github.com/abseil/abseil-cpp/archive/refs/tags/{0}.tar.gz',
             build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
+        self.copy_sources = True
+        # Abseil's repository name in the Bazel output paths of projects that depend on it.
+        self.bazel_project_subdir_name = 'abseil-cpp+'
 
     def build(self, builder: BuilderInterface) -> None:
         log_prefix = builder.log_prefix(self)
-        builder.build_with_cmake(
-            dep=self,
-            extra_cmake_args=[
-                '-DCMAKE_BUILD_TYPE=Release',
-                '-DBUILD_SHARED_LIBS=OFF',
-                f'-DCMAKE_CXX_STANDARD={constants.CXX_STANDARD}',
-                '-DCMAKE_CXX_EXTENSIONS=OFF',
-                '-DABSL_PROPAGATE_CXX_STD=ON',
-                '-DABSL_BUILD_TESTING=OFF',
-            ],
-            should_install=False)
 
         # YugabyteDB links against one library containing all of Abseil, not the per-component
-        # libraries that Abseil's CMake build produces. Object file names are not unique across
-        # components, so append ("q") instead of replacing ("r") archive members.
-        object_files = sorted(glob.glob(os.path.join('absl', '**', '*.o'), recursive=True))
-        static_lib_path = os.path.join(builder.prefix_lib, 'libabsl.a')
-        remove_path(static_lib_path)
-        builder.log_output(log_prefix, ['ar', 'qc', static_lib_path] + object_files)
-        builder.log_output(log_prefix, ['ranlib', static_lib_path])
-
+        # libraries, so combine the public libraries in a package of our own.
+        libraries = builder.query_bazel(PUBLIC_LIBRARIES_QUERY)
+        if not libraries:
+            raise ValueError("Found no public Abseil libraries")
         shared_lib_name = f'libabsl.{builder.shared_lib_suffix}'
-        link_cmd = (
-            [builder.compiler_choice.get_cxx_compiler()] +
-            builder.compiler_flags + builder.cxx_flags +
-            ['-shared', '-o', os.path.join(builder.prefix_lib, shared_lib_name)])
-        if is_macos():
-            link_cmd += ['-Wl,-install_name,@rpath/' + shared_lib_name,
-                         '-Wl,-force_load,' + static_lib_path,
-                         '-framework', 'CoreFoundation']
-        else:
-            link_cmd += ['-Wl,-soname,' + shared_lib_name,
-                         '-Wl,--whole-archive', static_lib_path, '-Wl,--no-whole-archive',
-                         '-lpthread']
-        builder.log_output(log_prefix, link_cmd + builder.ld_flags)
+        shared_lib_link_flags = [] if is_macos() else ['-Wl,-soname,' + shared_lib_name]
+        os.makedirs('yb_bazel', exist_ok=True)
+        with open(os.path.join('yb_bazel', 'BUILD.bazel'), 'w') as build_file:
+            build_file.write('\n'.join([
+                'load("@rules_cc//cc:cc_shared_library.bzl", "cc_shared_library")',
+                'load("@rules_cc//cc:cc_static_library.bzl", "cc_static_library")',
+                f'ABSL_LIBRARIES = {libraries!r}',
+                'cc_static_library(name = "absl", deps = ABSL_LIBRARIES)',
+                'cc_shared_library(',
+                '    name = "absl_shared",',
+                '    deps = ABSL_LIBRARIES,',
+                f'    shared_lib_name = "{shared_lib_name}",',
+                f'    user_link_flags = {shared_lib_link_flags!r},',
+                ')',
+            ]) + '\n')
+
+        builder.build_with_bazel(dep=self, targets=['//yb_bazel:absl', '//yb_bazel:absl_shared'])
+        builder.install_bazel_build_output(
+                dep=self, src_file='libabsl.a', dest_file='libabsl.a',
+                src_folder='yb_bazel', is_shared=False)
+        builder.install_bazel_build_output(
+                dep=self, src_file=shared_lib_name, dest_file=shared_lib_name,
+                src_folder='yb_bazel', is_shared=True)
 
         # Copy headers, keeping the folder structure. https://stackoverflow.com/a/9626253/1890288.
-        src_dir = builder.fs_layout.get_source_path(self)
         builder.log_output(log_prefix, ["rsync", "-a", "--include=*.h", "--include=*.inc", "-f",
-                                        "hide,! */", os.path.join(src_dir, 'absl'),
-                                        builder.prefix_include])
+                                        "hide,! */", "./absl", builder.prefix_include])
