@@ -73,7 +73,15 @@ class DuckDBDependency(Dependency):
         # Patch applied to the extracted tarball before building. DuckDB's bundled ICU defines
         # reserved-identifier macros (_Sc etc.) that collide with clang's libc++ <algorithm> when
         # the unity build leaks them into a later TU; the patch undefs them.
-        self.patches = ['duckdb-icu-undef-reserved-category-macros.patch']
+        #
+        # duckdb-brotli-cve-2026-111497 is DuckDB's port of the upstream Brotli decoder fix
+        # (duckdb/duckdb#27791) to the vendored third_party/brotli. It is released only in DuckDB
+        # 2.0.1, which pg_duckdb in yugabyte-db cannot build against yet; drop it when moving to
+        # DuckDB >= 2.0.1.
+        self.patches = [
+            'duckdb-icu-undef-reserved-category-macros.patch',
+            'duckdb-brotli-cve-2026-111497.patch',
+        ]
 
     def build(self, builder: BuilderInterface) -> None:
         if not builder.prepare_for_build_tool_invocation(self):
