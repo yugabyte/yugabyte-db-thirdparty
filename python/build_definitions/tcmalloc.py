@@ -15,6 +15,7 @@
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 import glob
 import os
+import platform
 
 
 class TCMallocDependency(Dependency):
@@ -53,6 +54,13 @@ class TCMallocDependency(Dependency):
 
     def set_abseil_source_dir_basename(self, abseil_src_dir_name: str) -> None:
         self.abseil_src_dir_name = abseil_src_dir_name
+
+    def get_additional_compiler_flags(self, builder: BuilderInterface) -> List[str]:
+        if platform.uname().machine == 'x86_64':
+            # TCMalloc builds Abseil from source via Bazel local_repository. Enable SSE4.2 and
+            # PCLMULQDQ so that Abseil's CRC32C uses hardware acceleration in this context too.
+            return ['-msse4.2', '-mpclmul']
+        return []
 
     def get_additional_cxx_flags(self, builder: 'BuilderInterface') -> List[str]:
         cxx_flags = []

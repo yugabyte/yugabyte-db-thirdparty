@@ -14,6 +14,7 @@
 
 from yugabyte_db_thirdparty.build_definition_helpers import *  # noqa
 import os
+import platform
 
 
 class AbseilDependency(Dependency):
@@ -26,6 +27,14 @@ class AbseilDependency(Dependency):
             build_group=BuildGroup.POTENTIALLY_INSTRUMENTED)
         self.copy_sources = True
         self.bazel_project_subdir_name = 'com_google_absl'
+
+    def get_additional_compiler_flags(self, builder: BuilderInterface) -> List[str]:
+        if platform.uname().machine == 'x86_64':
+            # Enable SSE4.2 and PCLMULQDQ so that Abseil's CRC32C implementation uses hardware
+            # acceleration (CRC32 instruction + carry-less multiply for large-buffer folding)
+            # instead of falling back to a software table-based implementation.
+            return ['-msse4.2', '-mpclmul']
+        return []
 
     def build(self, builder: BuilderInterface) -> None:
         log_prefix = builder.log_prefix(self)
