@@ -11,7 +11,7 @@
 # under the License.
 
 from re import Pattern
-from typing import List, Optional, Callable, Any, TYPE_CHECKING
+from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING
 
 from build_definitions import BuildType
 from yugabyte_db_thirdparty.file_system_layout import FileSystemLayout
@@ -123,9 +123,13 @@ class BuilderInterface:
     def build_with_bazel(
             self,
             dep: 'Dependency',
+            targets: List[str],
+            override_modules: Dict[str, str] = {},
             verbose_output: bool = False,
-            should_clean: bool = False,
-            targets: List[str] = []) -> None:
+            should_clean: bool = False) -> None:
+        raise NotImplementedError()
+
+    def query_bazel(self, query: str) -> List[str]:
         raise NotImplementedError()
 
     def install_bazel_build_output(
